@@ -38,6 +38,43 @@
 
 Примечание: при старте контейнера `api` автоматически выполняется `alembic upgrade head`, затем запускается `uvicorn`.
 
+## Упрощенный деплой на 1 VM (Yandex Cloud)
+
+Ниже вариант "как есть" для теста: `api + postgres + minio` на одной виртуальной машине.
+
+1. Создать VM в Yandex Cloud (Ubuntu 22.04/24.04, минимум 2 vCPU / 4 GB RAM / 30 GB disk).
+2. Открыть в Security Group:
+   - `22/tcp` (только с вашего IP),
+   - `80/tcp` и `443/tcp` (публично),
+   - при необходимости `8000/tcp` временно для прямой проверки API.
+3. Подключиться к VM по SSH и установить Docker:
+   - `curl -fsSL https://get.docker.com | sh`
+   - `sudo usermod -aG docker $USER`
+   - переподключиться по SSH.
+4. Клонировать проект и перейти в `backend`.
+5. Создать env-файл для VM:
+   - `cp .env.vm.example .env.vm`
+   - обязательно поменять `POSTGRES_PASSWORD`, `SECRET_KEY`, `BOOTSTRAP_ADMIN_PASSWORD`, `MINIO_ROOT_PASSWORD`.
+   - важно: `DATABASE_URL` должен использовать тот же пароль, что и `POSTGRES_PASSWORD`.
+6. Запустить контейнеры:
+   - `docker compose -f docker-compose.vm.yml up --build -d`
+7. Проверка:
+   - `docker compose -f docker-compose.vm.yml ps`
+   - `docker compose -f docker-compose.vm.yml logs -f api`
+   - локально на VM: `curl http://127.0.0.1:8000/health`
+8. Публикация наружу:
+   - быстрый вариант: открыть `8000/tcp` и использовать `http://<VM_IP>:8000`.
+   - рекомендуемый вариант: поставить Nginx и проксировать `80/443 -> 127.0.0.1:8000`.
+
+Примечания:
+- В `docker-compose.vm.yml` порты `api` и `minio` привязаны к `127.0.0.1`, чтобы не торчали в интернет напрямую.
+- Данные PostgreSQL и MinIO сохраняются в docker volumes (`pgdata`, `minio_data`).
+- Для обновления приложения:
+  - `git pull`
+  - `docker compose -f docker-compose.vm.yml up --build -d`
+- Для остановки:
+  - `docker compose -f docker-compose.vm.yml down`
+
 ## Основные URL
 
 - `GET /health`
