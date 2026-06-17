@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Позиция каталога - Auto160{% endblock %}
+{% block content %}
+{% if item %}
+  <h1>{{ item.make }} {{ item.model }}</h1>
+  <p class="hint">Поколение: {{ item.generation or "—" }}</p>
+  {% if is_admin %}
+    <div class="actions-row">
+      <a class="btn-link" href="/admin/catalog/{{ item.id }}/photos">Управление фото</a>
+    </div>
+  {% endif %}
+
+  {% if photos %}
+    <div class="photo-grid">
+      {% for url in photos %}
+        <img class="detail-photo" src="{{ url }}" alt="{{ item.make }} {{ item.model }}" />
+      {% endfor %}
+    </div>
+  {% else %}
+    <p>Фотографии пока не добавлены.</p>
+  {% endif %}
+
+  <div class="detail">
+    <p><strong>Годы выпуска:</strong> {{ item.year_from or "?" }} - {{ item.year_to or "?" }}</p>
+    <p><strong>Кузов:</strong> {{ item.body_type or "—" }}</p>
+    <p><strong>Страна экспорта:</strong> {{ item.export_country or "—" }}</p>
+    <p><strong>Руль:</strong> {{ item.steering_wheel or "—" }}</p>
+    <p><strong>Топливо:</strong> {{ item.fuel_type or "—" }}</p>
+    <p><strong>Мощность:</strong> {{ item.engine_power_hp or "—" }} hp</p>
+    <p><strong>Объем:</strong> {{ item.engine_volume_l or "—" }} л</p>
+    <p><strong>Привод:</strong> {{ item.drivetrain or "—" }}</p>
+    <p><strong>КПП:</strong> {{ item.transmission or "—" }}</p>
+    <p><strong>Минимальная цена:</strong> {% if item.min_price_rub %}{{ item.min_price_rub }} ₽{% else %}уточняется{% endif %}</p>
+  </div>
+
+  {% if spec_sections %}
+    <div class="specs-wrap">
+      <h2>Технические характеристики</h2>
+      {% for section in spec_sections %}
+        <h3 class="spec-section-title">{{ section.title }}</h3>
+        <div class="detail spec-section-body">
+          {% for row in section.rows %}
+            <p><strong>{{ row.label }}:</strong> {{ row.value }}</p>
+          {% endfor %}
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% else %}
+  <h1>Позиция каталога не найдена</h1>
+{% endif %}
+{% endblock %}

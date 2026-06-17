@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Сравнение комплектаций - Auto160{% endblock %}
+{% block content %}
+<h1>Сравнение комплектаций</h1>
+<p class="hint"><a href="/catalog">← Назад в каталог</a></p>
+
+{% if items and compare_sections %}
+  <div class="compare-wrap">
+    <table class="compare-table">
+      <thead>
+        <tr>
+          <th>Параметр</th>
+          {% for item in items %}
+            <th>
+              <a href="/catalog/item/{{ item.id }}">{{ item.make }} {{ item.model }}</a><br />
+              <span class="hint">{{ item.generation or "—" }}</span>
+            </th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for section in compare_sections %}
+          <tr class="compare-section-row">
+            <td><strong>{{ section.title }}</strong></td>
+            {% for _item in items %}
+              <td></td>
+            {% endfor %}
+          </tr>
+          {% for row in section.rows %}
+            <tr>
+              <td><strong>{{ row["label"] }}</strong></td>
+              {% for value in row["values"] %}
+                <td class="{{ row['classes'][loop.index0] }}">{{ value }}</td>
+              {% endfor %}
+            </tr>
+          {% endfor %}
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% else %}
+  <p>Выбери минимум две комплектации на странице модификаций и нажми "Сравнить выбранные".</p>
+{% endif %}
+{% endblock %}

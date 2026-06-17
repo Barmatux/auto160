@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}Редактировать объявление - Auto160{% endblock %}
+{% block content %}
+<h1>Редактировать объявление</h1>
+
+<form class="form" onsubmit="event.preventDefault(); saveListing();">
+  <label>Заголовок <input id="title" value="{{ listing.title }}" required /></label>
+  <label>Марка <input id="brand" value="{{ listing.brand }}" required /></label>
+  <label>Модель <input id="model" value="{{ listing.model }}" required /></label>
+  <label>Год <input id="year" type="number" value="{{ listing.year }}" required /></label>
+  <label>Пробег <input id="mileage" type="number" value="{{ listing.mileage }}" required /></label>
+  <label>Цена <input id="price" type="number" value="{{ listing.price }}" required /></label>
+  <label>Город <input id="city" value="{{ listing.city }}" required /></label>
+  <label>Описание <textarea id="description" required>{{ listing.description }}</textarea></label>
+  <label>Статус
+    <select id="status">
+      {% for st in listing_statuses %}
+        <option value="{{ st }}" {% if listing.status.value == st %}selected{% endif %}>{{ st }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <button type="submit">Сохранить изменения</button>
+</form>
+
+<pre id="result" class="result"></pre>
+
+{% include "partials/auth_script.html" %}
+<script>
+  async function getAccessTokenOrRedirect() {
+    let token = getCookie("access_token");
+    if (token) return token;
+    const refreshed = await refreshAccessTokenIfNeeded();
+    if (!refreshed) {
+      window.location.href = "/login";
+      return null;
+    }
+    return getCookie("access_token");
+  }
+
+  async function saveListing() {
+    const token = await getAccessTokenOrRedirect();
+    if (!token) return;
+
+    const payload = {
+      title: document.getElementById("title").value,
+      brand: document.getElementById("brand").value,
+      model: document.getElementById("model").value,
+      year: Number(document.getElementById("year").value),
+      mileage: Number(document.getElementById("mileage").value),
+      price: Number(document.getElementById("price").value),
+      city: document.getElementById("city").value,
+      description: document.getElementById("description").value,
+      status: document.getElementById("status").value,
+    };
+
+    const response = await fetch("/api/v1/listings/{{ listing.id }}", {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (response.status === 401) {
+      const refreshed = await refreshAccessTokenIfNeeded();
+      if (refreshed) return saveListing();
+    }
+
+    const data = await response.json().catch(() => ({}));
+    document.getElementById("result").textContent = JSON.stringify(data, null, 2);
+    if (response.ok) {
+      window.location.href = "/profile/my-listings";
+    }
+  }
+</script>
+{% endblock %}

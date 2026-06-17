@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% block title %}Auto160{% endblock %}</title>
+    <link rel="stylesheet" href="/static/styles.css?v=20260616-01" />
+  </head>
+  <body>
+    <header class="header">
+      <a class="brand" href="/">Авто160</a>
+      <nav>
+        <a href="/">Главная</a>
+        {% if is_admin %}
+          <a href="/catalog">Каталог</a>
+          <a href="/create-listing">Подать объявление</a>
+          <a href="/profile/my-listings">Управление объявлениями</a>
+          <a href="/admin/users">Админка</a>
+        {% endif %}
+        {% if is_authenticated %}
+          <span class="user-badge">{{ current_user.email }} ({{ current_user.role.value }})</span>
+          <a href="/logout">Выход</a>
+        {% else %}
+          <a href="/login">Вход</a>
+          <a href="/register">Регистрация</a>
+        {% endif %}
+      </nav>
+    </header>
+    <main class="page">{% block content %}{% endblock %}</main>
+  </body>
+</html>

@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}Создать объявление - Auto160{% endblock %}
+{% block content %}
+<h1>Подать объявление</h1>
+<p class="hint">Добавление объявлений в текущей версии доступно только администратору.</p>
+
+<form class="form" onsubmit="event.preventDefault(); createListing();">
+  <label>Заголовок <input id="title" required /></label>
+  <label>Марка <input id="brand" required /></label>
+  <label>Модель <input id="model" required /></label>
+  <label>Год <input id="year" type="number" value="2020" required /></label>
+  <label>Пробег <input id="mileage" type="number" value="45000" required /></label>
+  <label>Цена <input id="price" type="number" value="1500000" required /></label>
+  <label>Город <input id="city" value="Казань" required /></label>
+  <label>Описание <textarea id="description" required>Отличное состояние, один владелец.</textarea></label>
+  <label>Статус
+    <select id="status">
+      <option value="draft">draft</option>
+      <option value="published">published</option>
+      <option value="archived">archived</option>
+    </select>
+  </label>
+  <button type="submit">Отправить</button>
+</form>
+
+<pre id="result" class="result"></pre>
+
+{% include "partials/auth_script.html" %}
+<script>
+  async function createListing() {
+    let token = getCookie("access_token");
+    if (!token) {
+      const refreshed = await refreshAccessTokenIfNeeded();
+      if (!refreshed) {
+        document.getElementById("result").textContent = "Сначала войдите в систему.";
+        window.location.href = "/login";
+        return;
+      }
+      token = getCookie("access_token");
+    }
+    const payload = {
+      title: document.getElementById("title").value,
+      brand: document.getElementById("brand").value,
+      model: document.getElementById("model").value,
+      year: Number(document.getElementById("year").value),
+      mileage: Number(document.getElementById("mileage").value),
+      price: Number(document.getElementById("price").value),
+      city: document.getElementById("city").value,
+      description: document.getElementById("description").value,
+      status: document.getElementById("status").value,
+    };
+
+    const response = await fetch("/api/v1/listings", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (response.status === 401) {
+      const refreshed = await refreshAccessTokenIfNeeded();
+      if (refreshed) {
+        return createListing();
+      }
+    }
+
+    const data = await response.json().catch(() => ({}));
+    document.getElementById("result").textContent = JSON.stringify(data, null, 2);
+    if (response.ok) {
+      window.location.href = "/profile/my-listings";
+    }
+  }
+</script>
+{% endblock %}

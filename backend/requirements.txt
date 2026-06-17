@@ -1,0 +1,14 @@
+fastapi
+uvicorn[standard]
+sqlalchemy
+psycopg2-binary
+pydantic-settings
+python-jose[cryptography]
+passlib
+python-multipart
+jinja2
+email-validator
+alembic
+boto3
+beautifulsoup4
+curl-cffi

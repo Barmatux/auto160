@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Главная - Auto160{% endblock %}
+{% block content %}
+<h1>Главная страница</h1>
+
+<section class="grid">
+  <a class="card" href="/catalog">
+    <h2>Каталог авто</h2>
+    <p>Быстрый переход к списку объявлений и фильтрам.</p>
+  </a>
+  {% if is_admin %}
+    <a class="card" href="/create-listing">
+      <h2>Объявления</h2>
+      <p>Добавление и управление объявлениями в каталоге.</p>
+    </a>
+  {% endif %}
+  <div class="card muted"><h2>Новости</h2><p>Заглушка для следующей итерации.</p></div>
+  <div class="card muted"><h2>Статьи и тест-драйвы</h2><p>Заглушка.</p></div>
+  <div class="card muted"><h2>Проверенные импортеры</h2><p>Заглушка.</p></div>
+  <div class="card muted"><h2>Калькулятор стоимости</h2><p>Заглушка.</p></div>
+  {% if is_admin %}
+    <a class="card" href="/admin/users">
+      <h2>Управление пользователями</h2>
+      <p>Админ-раздел для просмотра и изменения ролей.</p>
+    </a>
+  {% endif %}
+</section>
+
+<section>
+  <h2>Новые позиции каталога</h2>
+  {% if latest %}
+    <ul class="listing-list">
+      {% for item in latest %}
+        <li>
+          <a href="/catalog/item/{{ item.id }}">{{ item.make }} {{ item.model }} ({{ item.generation or "—" }})</a>
+          <span>{{ item.year_from or "?" }}-{{ item.year_to or "?" }} · {{ item.export_country or "—" }}</span>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>Каталог пока пуст. Данные загрузятся из CSV после миграций.</p>
+  {% endif %}
+</section>
+{% endblock %}

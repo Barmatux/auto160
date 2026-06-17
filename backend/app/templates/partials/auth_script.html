@@ -1,0 +1,29 @@
+<script>
+  function getCookie(name) {
+    const prefix = `${name}=`;
+    const part = document.cookie.split("; ").find((row) => row.startsWith(prefix));
+    return part ? part.slice(prefix.length) : null;
+  }
+
+  function setAuthCookies(accessToken, refreshToken) {
+    document.cookie = `access_token=${accessToken}; path=/`;
+    document.cookie = `refresh_token=${refreshToken}; path=/`;
+  }
+
+  async function refreshAccessTokenIfNeeded() {
+    const refreshToken = getCookie("refresh_token");
+    if (!refreshToken) return false;
+
+    const response = await fetch("/api/v1/auth/refresh", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refresh_token: refreshToken }),
+    });
+
+    if (!response.ok) return false;
+    const data = await response.json();
+    if (!data.access_token || !data.refresh_token) return false;
+    setAuthCookies(data.access_token, data.refresh_token);
+    return true;
+  }
+</script>

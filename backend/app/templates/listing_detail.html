@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Объявление - Auto160{% endblock %}
+{% block content %}
+{% if listing %}
+  <h1>{{ listing.title }}</h1>
+  <p class="hint">{{ listing.brand }} {{ listing.model }} · {{ listing.year }}</p>
+  <div class="detail">
+    <p><strong>Цена:</strong> {{ listing.price }} ₽</p>
+    <p><strong>Пробег:</strong> {{ listing.mileage }} км</p>
+    <p><strong>Город:</strong> {{ listing.city }}</p>
+    <p><strong>Статус:</strong> {{ listing.status.value }}</p>
+    <p><strong>Описание:</strong> {{ listing.description }}</p>
+  </div>
+  {% if is_admin %}
+    <div class="actions-row">
+      <a class="btn-link" href="/profile/edit-listing/{{ listing.id }}">Редактировать</a>
+    </div>
+  {% endif %}
+{% else %}
+  <h1>Объявление не найдено</h1>
+{% endif %}
+{% endblock %}

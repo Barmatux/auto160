@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}Админка - Пользователи{% endblock %}
+{% block content %}
+<h1>Пользователи</h1>
+<p class="hint">Можно менять роли прямо на этой странице (admin only).</p>
+
+<table class="users-table">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Email</th>
+      <th>Имя</th>
+      <th>Роль</th>
+      <th>Действие</th>
+      <th>Создан</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for user in users %}
+      <tr>
+        <td>{{ user.id }}</td>
+        <td>{{ user.email }}</td>
+        <td>{{ user.name }}</td>
+        <td>
+          <select id="role-{{ user.id }}">
+            <option value="guest" {% if user.role.value == "guest" %}selected{% endif %}>guest</option>
+            <option value="seller" {% if user.role.value == "seller" %}selected{% endif %}>seller</option>
+            <option value="admin" {% if user.role.value == "admin" %}selected{% endif %}>admin</option>
+          </select>
+        </td>
+        <td>
+          <button type="button" onclick="updateRole({{ user.id }})">Сохранить</button>
+        </td>
+        <td>{{ user.created_at }}</td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+<pre id="result" class="result"></pre>
+
+{% include "partials/auth_script.html" %}
+<script>
+  async function updateRole(userId) {
+    let token = getCookie("access_token");
+    if (!token) {
+      const refreshed = await refreshAccessTokenIfNeeded();
+      if (!refreshed) {
+        window.location.href = "/login";
+        return;
+      }
+      token = getCookie("access_token");
+    }
+
+    const role = document.getElementById(`role-${userId}`).value;
+    const response = await fetch(`/api/v1/admin/users/${userId}/role`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
+      },
+      body: JSON.stringify({ role }),
+    });
+
+    if (response.status === 401) {
+      const refreshed = await refreshAccessTokenIfNeeded();
+      if (refreshed) return updateRole(userId);
+    }
+
+    const data = await response.json().catch(() => ({}));
+    document.getElementById("result").textContent = JSON.stringify(data, null, 2);
+    if (response.ok) {
+      window.location.reload();
+    }
+  }
+</script>
+{% endblock %}

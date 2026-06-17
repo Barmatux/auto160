@@ -1,0 +1,272 @@
+{% extends "base.html" %}
+{% block title %}Фото позиции - Auto160{% endblock %}
+{% block content %}
+<h1>Фото: {{ item.make }} {{ item.model }}</h1>
+<p class="hint">Загрузка идет напрямую в MinIO через pre-signed URL.</p>
+
+<form class="form" onsubmit="event.preventDefault(); uploadPhotos();">
+  <div id="dropzone" class="dropzone" tabindex="0">
+    <strong>Перетащи фото сюда</strong>
+    <span>или нажми, чтобы выбрать файлы</span>
+    <input id="files" type="file" accept="image/jpeg,image/png,image/webp" multiple required hidden />
+  </div>
+  <label>Базовый sort_order
+    <input id="sort_order" type="number" min="0" value="0" />
+  </label>
+  <label class="inline-checkbox">
+    <input id="is_cover_first" type="checkbox" checked />
+    Сделать первое загруженное фото обложкой
+  </label>
+  <div class="upload-toolbar">
+    <span id="queue_info" class="hint">В очереди: 0</span>
+    <button type="button" onclick="clearQueue()">Очистить очередь</button>
+  </div>
+  <div id="preview_grid" class="preview-grid"></div>
+  <div class="progress-wrap">
+    <div id="progress_bar" class="progress-bar"></div>
+  </div>
+  <button type="submit">Загрузить</button>
+</form>
+
+<pre id="result" class="result"></pre>
+
+<h2>Текущие фото</h2>
+{% if photos %}
+  <div class="photo-grid">
+    {% for photo in photos %}
+      <div class="photo-card">
+        <img class="detail-photo" src="{{ photo.file_url }}" alt="catalog photo" />
+        <p>ID: {{ photo.id }} · sort: {{ photo.sort_order }}</p>
+        <p>{% if photo.is_cover %}<strong>Обложка</strong>{% else %}Обычное фото{% endif %}</p>
+        <div class="actions-row">
+          {% if not photo.is_cover %}
+            <button type="button" onclick="setCover({{ photo.id }})">Сделать обложкой</button>
+          {% endif %}
+          <button type="button" class="danger" onclick="deletePhoto({{ photo.id }})">Удалить</button>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <p>Фото пока нет.</p>
+{% endif %}
+
+{% include "partials/auth_script.html" %}
+<script>
+  let selectedFiles = [];
+  const dropzone = document.getElementById("dropzone");
+  const fileInput = document.getElementById("files");
+  const previewGrid = document.getElementById("preview_grid");
+  const queueInfo = document.getElementById("queue_info");
+  const progressBar = document.getElementById("progress_bar");
+
+  function syncInputFiles() {
+    const dt = new DataTransfer();
+    selectedFiles.forEach((entry) => dt.items.add(entry.file));
+    fileInput.files = dt.files;
+  }
+
+  function updateQueueInfo() {
+    queueInfo.textContent = `В очереди: ${selectedFiles.length}`;
+  }
+
+  function resetProgress() {
+    progressBar.style.width = "0%";
+  }
+
+  function renderPreviews() {
+    previewGrid.innerHTML = "";
+    selectedFiles.forEach((entry, index) => {
+      const card = document.createElement("div");
+      card.className = "preview-card";
+
+      const img = document.createElement("img");
+      img.src = entry.previewUrl;
+      img.alt = entry.file.name;
+      img.className = "preview-image";
+
+      const meta = document.createElement("p");
+      meta.textContent = `${entry.file.name} (${Math.round(entry.file.size / 1024)} KB)`;
+
+      const removeBtn = document.createElement("button");
+      removeBtn.type = "button";
+      removeBtn.textContent = "Убрать";
+      removeBtn.className = "danger";
+      removeBtn.onclick = () => removeFromQueue(index);
+
+      card.appendChild(img);
+      card.appendChild(meta);
+      card.appendChild(removeBtn);
+      previewGrid.appendChild(card);
+    });
+
+    updateQueueInfo();
+  }
+
+  function addFiles(files) {
+    const allowed = new Set(["image/jpeg", "image/png", "image/webp"]);
+    files.forEach((file) => {
+      if (!allowed.has(file.type)) return;
+      selectedFiles.push({
+        file,
+        previewUrl: URL.createObjectURL(file),
+      });
+    });
+    syncInputFiles();
+    renderPreviews();
+  }
+
+  function removeFromQueue(index) {
+    const [removed] = selectedFiles.splice(index, 1);
+    if (removed?.previewUrl) {
+      URL.revokeObjectURL(removed.previewUrl);
+    }
+    syncInputFiles();
+    renderPreviews();
+  }
+
+  function clearQueue() {
+    selectedFiles.forEach((entry) => URL.revokeObjectURL(entry.previewUrl));
+    selectedFiles = [];
+    syncInputFiles();
+    renderPreviews();
+    resetProgress();
+  }
+
+  dropzone.addEventListener("click", () => fileInput.click());
+  dropzone.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      fileInput.click();
+    }
+  });
+  dropzone.addEventListener("dragover", (event) => {
+    event.preventDefault();
+    dropzone.classList.add("dragover");
+  });
+  dropzone.addEventListener("dragleave", () => {
+    dropzone.classList.remove("dragover");
+  });
+  dropzone.addEventListener("drop", (event) => {
+    event.preventDefault();
+    dropzone.classList.remove("dragover");
+    addFiles(Array.from(event.dataTransfer?.files || []));
+  });
+  fileInput.addEventListener("change", () => {
+    addFiles(Array.from(fileInput.files || []));
+  });
+
+  async function getAccessTokenOrRedirect() {
+    let token = getCookie("access_token");
+    if (token) return token;
+    const refreshed = await refreshAccessTokenIfNeeded();
+    if (!refreshed) {
+      window.location.href = "/login";
+      return null;
+    }
+    return getCookie("access_token");
+  }
+
+  async function uploadPhotos() {
+    const token = await getAccessTokenOrRedirect();
+    if (!token) return;
+
+    const files = selectedFiles.map((entry) => entry.file);
+    if (files.length === 0) return;
+
+    const baseSort = Number(document.getElementById("sort_order").value || 0);
+    const firstAsCover = document.getElementById("is_cover_first").checked;
+    const result = document.getElementById("result");
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      progressBar.style.width = `${Math.round((i / files.length) * 100)}%`;
+
+      const presignResp = await fetch("/api/v1/catalog/{{ item.id }}/photos/presign", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          filename: file.name,
+          content_type: file.type,
+        }),
+      });
+
+      if (!presignResp.ok) {
+        result.textContent = `Presign error: ${presignResp.status}`;
+        return;
+      }
+      const presignData = await presignResp.json();
+
+      const uploadResp = await fetch(presignData.upload_url, {
+        method: "PUT",
+        headers: {
+          "Content-Type": file.type,
+        },
+        body: file,
+      });
+      if (!uploadResp.ok) {
+        result.textContent = `Upload error: ${uploadResp.status}`;
+        return;
+      }
+
+      const confirmResp = await fetch("/api/v1/catalog/{{ item.id }}/photos/confirm", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          storage_key: presignData.storage_key,
+          content_type: file.type,
+          sort_order: baseSort + i,
+          is_cover: firstAsCover && i === 0,
+        }),
+      });
+
+      if (!confirmResp.ok) {
+        const fail = await confirmResp.json().catch(() => ({}));
+        result.textContent = JSON.stringify(fail, null, 2);
+        return;
+      }
+    }
+
+    progressBar.style.width = "100%";
+
+    window.location.reload();
+  }
+
+  async function setCover(photoId) {
+    const token = await getAccessTokenOrRedirect();
+    if (!token) return;
+    const resp = await fetch(`/api/v1/catalog/photos/${photoId}/cover`, {
+      method: "PATCH",
+      headers: { "Authorization": `Bearer ${token}` },
+    });
+    if (resp.ok) {
+      window.location.reload();
+      return;
+    }
+    const data = await resp.json().catch(() => ({}));
+    document.getElementById("result").textContent = JSON.stringify(data, null, 2);
+  }
+
+  async function deletePhoto(photoId) {
+    if (!confirm("Удалить фото?")) return;
+    const token = await getAccessTokenOrRedirect();
+    if (!token) return;
+    const resp = await fetch(`/api/v1/catalog/photos/${photoId}`, {
+      method: "DELETE",
+      headers: { "Authorization": `Bearer ${token}` },
+    });
+    if (resp.ok) {
+      window.location.reload();
+      return;
+    }
+    const data = await resp.json().catch(() => ({}));
+    document.getElementById("result").textContent = JSON.stringify(data, null, 2);
+  }
+</script>
+{% endblock %}

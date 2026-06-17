@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Управление каталогом - Auto160{% endblock %}
+{% block content %}
+<h1>Управление каталогом</h1>
+<p class="hint">Раздел администратора: управление фото и просмотр позиций каталога.</p>
+
+{% if listings %}
+  <div class="catalog">
+    {% for item in listings %}
+      <article class="listing-card">
+        {% if cover_urls.get(item.id) %}
+          <img class="catalog-cover" src="{{ cover_urls.get(item.id) }}" alt="{{ item.make }} {{ item.model }}" />
+        {% endif %}
+        <h3><a href="/catalog/item/{{ item.id }}">{{ item.make }} {{ item.model }}</a></h3>
+        <p>Поколение: {{ item.generation or "—" }}</p>
+        <p>Годы: {{ item.year_from or "?" }} - {{ item.year_to or "?" }}</p>
+        <p>Кузов: {{ item.body_type or "—" }} · Страна: {{ item.export_country or "—" }}</p>
+        <div class="actions-row">
+          <a class="btn-link" href="/admin/catalog/{{ item.id }}/photos">Управление фото</a>
+          <a class="btn-link" href="/catalog/item/{{ item.id }}">Открыть карточку</a>
+        </div>
+      </article>
+    {% endfor %}
+  </div>
+{% else %}
+  <p>В каталоге пока нет позиций.</p>
+{% endif %}
+{% endblock %}

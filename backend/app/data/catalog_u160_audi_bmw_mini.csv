@@ -1,0 +1,33 @@
+make;model;generation;year_from;year_to;min_price_rub;body_type;export_country;steering_wheel;fuel_type;engine_power_hp;engine_volume_l;drivetrain;transmission
+BMW;1 Series;F20, F21;2015;2019;;hatchback;Europe;left;petrol;;1,5;rwd;manual
+BMW;1 Series;F20, F21;2015;2019;;hatchback;Europe;left;petrol;;1,5;rwd;automatic
+BMW;1 Series;F20, F21;2015;2019;;hatchback;Europe;left;diesel;;1,5;rwd;manual
+BMW;1 Series;F20, F21;2015;2019;;hatchback;Europe;left;diesel;;1,5;rwd;automatic
+BMW;1 Series;F40;2020;2024;;hatchback;Europe;left;petrol;;1,5;fwd;dct
+BMW;1 Series;F40;2020;2024;;hatchback;Europe;left;petrol;;1,5;fwd;manual
+BMW;1 Series;F40;2020;2024;;hatchback;Europe;left;diesel;;1,5;fwd;dct
+BMW;1 Series;F40;2020;2024;;hatchback;Europe;left;diesel;;1,5;fwd;manual
+BMW;2 Series Gran Coupe;F44;2019;2024;;sedan;Europe;left;petrol;;1,5;fwd;dct
+BMW;2 Series Gran Coupe;F44;2019;2024;;sedan;Europe;left;petrol;;1,5;fwd;manual
+BMW;2 Series Gran Coupe;F44;2019;2024;;sedan;Europe;left;diesel;;1,5;fwd;dct
+BMW;3 Series;G20;2020;2024;;sedan;Korea;left;petrol;;2,0;rwd;automatic
+BMW;3 Series;G20;2020;2024;;sedan;China;left;petrol;;2,0;rwd;automatic
+BMW;3 Series;G20;2020;2024;;sedan;???;left;diesel;;2,0;rwd;automatic
+BMW;X1;U11;2022;2024;;crossover;Europe;left;petrol;;1,5;fwd;dct
+BMW;X1;U11;2022;2024;;crossover;Europe;left;diesel;;1,5;fwd;dct
+BMW;X2;U10;2024;2024;;crossover;Europe;left;petrol;;1,5;fwd;dct
+BMW;X2;U10;2024;2024;;crossover;Europe;left;diesel;;1,5;fwd;dct
+BMW;2 Series Active Tourer;U06;2022;2024;;minivan;Europe;left;petrol;;1,5;fwd;dct
+BMW;2 Series Active Tourer;U06;2022;2024;;minivan;Europe;left;diesel;;1,5;fwd;dct
+;;;;;;;;;;;;;
+MINI;3 Door;F56;2020;2024;;hatchback;Germany;left;petrol;;;fwd;automatic
+MINI;5 Door;F55;2020;2024;;hatchback;Germany;left;petrol;;;fwd;automatic
+MINI;Clubman;F54;2020;2024;;wagon;Germany;left;petrol;;;fwd;automatic
+MINI;Countryman;F60;2020;2024;;crossover;Germany;left;petrol;;;fwd;automatic
+;;;;;;;;;;;;;
+Audi;A3;8Y;2020;2024;;sedan;Germany;left;petrol;;;fwd;automatic
+Audi;A3 Sportback;8Y;2020;2024;;hatchback;Germany;left;petrol;;;fwd;automatic
+Audi;A4;B9;2020;2024;;sedan;Germany;left;petrol;;;fwd;automatic
+Audi;A4 Avant;B9;2020;2024;;wagon;Germany;left;petrol;;;fwd;automatic
+Audi;Q2;GA;2020;2024;;crossover;Germany;left;petrol;;;fwd;automatic
+Audi;Q3;F3;2020;2024;;crossover;Germany;left;petrol;;;fwd;automatic

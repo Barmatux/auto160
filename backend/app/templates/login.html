@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Вход - Auto160{% endblock %}
+{% block content %}
+<h1>Вход в кабинет</h1>
+<p class="hint">После входа токены сохраняются в cookie и интерфейс переключается по роли.</p>
+
+<form class="form" onsubmit="event.preventDefault(); loginByApi();">
+  <label>Логин <input id="login" required /></label>
+  <label>Пароль <input id="password" type="password" required /></label>
+  <button type="submit">Войти</button>
+</form>
+
+<pre id="result" class="result"></pre>
+
+{% include "partials/auth_script.html" %}
+<script>
+  async function loginByApi() {
+    const payload = {
+      login: document.getElementById("login").value,
+      password: document.getElementById("password").value,
+    };
+    const response = await fetch("/api/v1/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await response.json();
+    document.getElementById("result").textContent = JSON.stringify(data, null, 2);
+    if (response.ok && data.access_token && data.refresh_token) {
+      setAuthCookies(data.access_token, data.refresh_token);
+      window.location.href = "/";
+    }
+  }
+</script>
+{% endblock %}
