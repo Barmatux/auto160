@@ -39,10 +39,10 @@
         {% endif %}
       </div>
 
-      <aside class="ads-feed ads-feed-right">
+      <aside class="offers-panel offers-panel-right">
         <h2>Лента объявлений</h2>
         {% if ad_listings %}
-          <div class="ads-list">
+          <div class="offers-list">
             {% for ad in ad_listings %}
               <article class="listing-card">
                 <h3><a href="/listings/{{ ad.id }}">{{ ad.title }}</a></h3>

@@ -133,7 +133,7 @@ body {
   margin-top: 0;
 }
 
-.ads-feed {
+.offers-panel {
   margin-top: 18px;
 }
 
@@ -144,15 +144,15 @@ body {
   align-items: start;
 }
 
-.ads-feed-right {
+.offers-panel-right {
   margin-top: 0;
 }
 
-.ads-feed-right h2 {
+.offers-panel-right h2 {
   margin-top: 0;
 }
 
-.ads-list {
+.offers-list {
   display: grid;
   gap: 10px;
 }
