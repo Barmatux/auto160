@@ -20,19 +20,6 @@
     <p>Фотографии пока не добавлены.</p>
   {% endif %}
 
-  <div class="detail">
-    <p><strong>Годы выпуска:</strong> {{ item.year_from or "?" }} - {{ item.year_to or "?" }}</p>
-    <p><strong>Кузов:</strong> {{ item.body_type or "—" }}</p>
-    <p><strong>Страна экспорта:</strong> {{ item.export_country or "—" }}</p>
-    <p><strong>Руль:</strong> {{ item.steering_wheel or "—" }}</p>
-    <p><strong>Топливо:</strong> {{ item.fuel_type or "—" }}</p>
-    <p><strong>Мощность:</strong> {{ item.engine_power_hp or "—" }} hp</p>
-    <p><strong>Объем:</strong> {{ item.engine_volume_l or "—" }} л</p>
-    <p><strong>Привод:</strong> {{ item.drivetrain or "—" }}</p>
-    <p><strong>КПП:</strong> {{ item.transmission or "—" }}</p>
-    <p><strong>Минимальная цена:</strong> {% if item.min_price_rub %}{{ item.min_price_rub }} ₽{% else %}уточняется{% endif %}</p>
-  </div>
-
   {% if spec_sections %}
     <div class="specs-wrap">
       <h2>Технические характеристики</h2>
@@ -45,6 +32,8 @@
         </div>
       {% endfor %}
     </div>
+  {% else %}
+    <p class="hint">Характеристики парсера для этой комплектации не найдены.</p>
   {% endif %}
 {% else %}
   <h1>Позиция каталога не найдена</h1>

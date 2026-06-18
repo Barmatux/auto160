@@ -1,68 +1,78 @@
 {% extends "base.html" %}
 {% block title %}Комплектации - Auto160{% endblock %}
 {% block content %}
-<h1>Комплектации</h1>
-<p class="hint">
-  <a href="{{ back_to_catalog_url if back_to_catalog_url else '/catalog' }}">← Назад к списку групп</a>
-</p>
+<div class="catalog-layout">
+  {% include "partials/catalog_filters_sidebar.html" %}
+  <section class="catalog-main">
+    <h1>Комплектации</h1>
+    <p class="hint">
+      <a href="{{ back_to_catalog_url if back_to_catalog_url else '/catalog' }}">← Назад к поколениям</a>
+    </p>
+    <p class="hint">Шаг 4 из 4: выбери комплектацию и открой спецификацию.</p>
 
-<p class="hint">Найдено комплектаций: {{ total }} · Страница {{ page }} из {{ total_pages }}</p>
-<div class="actions-row">
-  <button id="compare-btn" type="button" disabled>Сравнить выбранные</button>
-  <span id="compare-count" class="hint">Выбрано: 0</span>
-</div>
+    <p class="hint">Найдено комплектаций: {{ total }} · Страница {{ page }} из {{ total_pages }}</p>
+    <div class="actions-row">
+      <button id="compare-btn" type="button" disabled>Сравнить выбранные</button>
+      <span id="compare-count" class="hint">Выбрано: 0</span>
+    </div>
 
-{% if items %}
-  <div class="catalog">
-    {% for item in items %}
-      <article class="listing-card">
-        <label class="hint">
-          <input type="checkbox" class="compare-checkbox" value="{{ item.id }}" />
-          Выбрать для сравнения
-        </label>
-        {% if cover_urls.get(item.id) %}
-          <img class="catalog-cover" src="{{ cover_urls.get(item.id) }}" alt="{{ item.make }} {{ item.model }}" />
-        {% endif %}
-        <h3><a href="/catalog/item/{{ item.id }}">{{ item.make }} {{ item.model }}</a></h3>
-        <p>Поколение: {{ item.generation or "—" }}</p>
-        <p>Годы: {{ item.year_from or "?" }} - {{ item.year_to or "?" }}</p>
-        <p>Кузов: {{ item.body_type or "—" }} · Топливо: {{ item.fuel_type or "—" }}</p>
-        <p>Экспорт: {{ item.export_country or "—" }}</p>
-        <p>Привод: {{ item.drivetrain or "—" }} · КПП: {{ item.transmission or "—" }}</p>
-        <strong>
-          {% if item.min_price_rub %}
-            от {{ item.min_price_rub }} ₽
-          {% else %}
-            Цена уточняется
-          {% endif %} ·
-          <a href="/catalog/item/{{ item.id }}">Открыть спецификацию</a>
-        </strong>
-        {% set spec_rows = spec_rows_by_id.get(item.id, []) %}
-        {% if spec_rows %}
-          <div class="detail" style="margin-top:12px;">
-            {% for label, value in spec_rows %}
-              <p><strong>{{ label }}:</strong> {{ value }}</p>
+    <div class="modifications-layout">
+      <div class="modifications-main-list">
+        {% if items %}
+          <div class="catalog">
+            {% for item in items %}
+              <article class="listing-card">
+                <label class="hint">
+                  <input type="checkbox" class="compare-checkbox" value="{{ item.id }}" />
+                  Выбрать для сравнения
+                </label>
+                {% if cover_urls.get(item.id) %}
+                  <img class="catalog-cover" src="{{ cover_urls.get(item.id) }}" alt="{{ item.make }} {{ item.model }}" />
+                {% endif %}
+                <h3><a href="/catalog/item/{{ item.id }}">{{ item.make }} {{ item.model }}</a></h3>
+                <strong><a href="/catalog/item/{{ item.id }}">Открыть спецификацию</a></strong>
+              </article>
             {% endfor %}
           </div>
+        {% else %}
+          <p>Модификации не найдены.</p>
         {% endif %}
-      </article>
-    {% endfor %}
-  </div>
-{% else %}
-  <p>Модификации не найдены.</p>
-{% endif %}
+      </div>
 
-<div class="pager">
-  {% if has_prev %}
-    <a class="page-link" href="{{ prev_url }}">← Назад</a>
-  {% else %}
-    <span class="page-link disabled">← Назад</span>
-  {% endif %}
-  {% if has_next %}
-    <a class="page-link" href="{{ next_url }}">Вперед →</a>
-  {% else %}
-    <span class="page-link disabled">Вперед →</span>
-  {% endif %}
+      <aside class="ads-feed ads-feed-right">
+        <h2>Лента объявлений</h2>
+        {% if ad_listings %}
+          <div class="ads-list">
+            {% for ad in ad_listings %}
+              <article class="listing-card">
+                <h3><a href="/listings/{{ ad.id }}">{{ ad.title }}</a></h3>
+                <p><strong>{{ ad.brand }} {{ ad.model }}</strong> · {{ ad.year }}</p>
+                <p><strong>Цена:</strong> {{ ad.price }} ₽</p>
+                <p><strong>Пробег:</strong> {{ ad.mileage }} км</p>
+                <p><strong>Город:</strong> {{ ad.city }}</p>
+                <a href="/listings/{{ ad.id }}">Открыть объявление</a>
+              </article>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="hint">Подходящих объявлений пока нет.</p>
+        {% endif %}
+      </aside>
+    </div>
+
+    <div class="pager">
+      {% if has_prev %}
+        <a class="page-link" href="{{ prev_url }}">← Назад</a>
+      {% else %}
+        <span class="page-link disabled">← Назад</span>
+      {% endif %}
+      {% if has_next %}
+        <a class="page-link" href="{{ next_url }}">Вперед →</a>
+      {% else %}
+        <span class="page-link disabled">Вперед →</span>
+      {% endif %}
+    </div>
+  </section>
 </div>
 <script>
   const compareBtn = document.getElementById("compare-btn");

@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Модели {{ make }} - Auto160{% endblock %}
+{% block content %}
+<div class="catalog-layout">
+  {% include "partials/catalog_filters_sidebar.html" %}
+  <section class="catalog-main">
+    <h1>Модели {{ make }}</h1>
+    <p class="hint">
+      <a href="/catalog">← Назад к маркам</a>
+    </p>
+    <p class="hint">Шаг 2 из 4: выбери модель. Найдено: {{ total }}</p>
+
+    {% if models %}
+      <div class="catalog">
+        {% for item in models %}
+          <article class="listing-card">
+            {% if cover_urls.get(item.first_id) %}
+              <img class="catalog-cover" src="{{ cover_urls.get(item.first_id) }}" alt="{{ item.make }} {{ item.model }}" />
+            {% endif %}
+            <h3><a href="{{ item.generations_url }}">{{ item.model }}</a></h3>
+            <p>Поколений: {{ item.generation_count }}</p>
+            <p>Годы: {{ item.year_from or "?" }} - {{ item.year_to or "?" }}</p>
+            <p>Комплектаций: <strong>{{ item.count }}</strong></p>
+            <strong><a href="{{ item.generations_url }}">Открыть поколения</a></strong>
+          </article>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p>Для этой марки модели не найдены.</p>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

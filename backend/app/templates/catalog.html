@@ -1,173 +1,34 @@
 {% extends "base.html" %}
 {% block title %}Каталог - Auto160{% endblock %}
 {% block content %}
-<h1>Каталог автомобилей</h1>
+<div class="catalog-layout">
+  {% include "partials/catalog_filters_sidebar.html" %}
+  <section class="catalog-main">
+    <h1>Каталог автомобилей</h1>
+    <p class="hint">Шаг 1 из 4: выбери марку.</p>
+    <p class="hint">Найдено марок: {{ total }}</p>
 
-<p class="hint">
-  Общие карточки моделей. Внутри каждой — список всех комплектаций.
-</p>
-
-<form class="filters" method="get" action="/catalog">
-  <label>
-    Производитель
-    <select id="make_select" name="make">
-      <option value="" {% if filters.make == "" %}selected{% endif %}>Любой</option>
-      {% for value in options.make %}
-        <option value="{{ value }}" {% if filters.make == value %}selected{% endif %}>{{ value }}</option>
-      {% endfor %}
-    </select>
-  </label>
-  <label>
-    Модель
-    <select id="model_select" name="model">
-      <option value="" {% if filters.model == "" %}selected{% endif %}>Любая</option>
-      {% for value in options.model %}
-        <option value="{{ value }}" {% if filters.model == value %}selected{% endif %}>{{ value }}</option>
-      {% endfor %}
-    </select>
-  </label>
-  <label>
-    Поколение
-    <select name="generation">
-      <option value="" {% if filters.generation == "" %}selected{% endif %}>Любое</option>
-      {% for value in options.generation %}
-        <option value="{{ value }}" {% if filters.generation == value %}selected{% endif %}>{{ value }}</option>
-      {% endfor %}
-    </select>
-  </label>
-  <label>
-    Тип кузова
-    <select name="body_type">
-      <option value="" {% if filters.body_type == "" %}selected{% endif %}>Любой</option>
-      {% for value in options.body_type %}
-        <option value="{{ value }}" {% if filters.body_type == value %}selected{% endif %}>{{ value }}</option>
-      {% endfor %}
-    </select>
-  </label>
-  <label>
-    Страна экспорта
-    <select name="export_country">
-      <option value="" {% if filters.export_country == "" %}selected{% endif %}>Любая</option>
-      {% for value in options.export_country %}
-        <option value="{{ value }}" {% if filters.export_country == value %}selected{% endif %}>{{ value }}</option>
-      {% endfor %}
-    </select>
-  </label>
-  <label>
-    Год от
-    <select name="year_from">
-      <option value="" {% if filters.year_from == "" %}selected{% endif %}>Не важно</option>
-      {% for year in options.years %}
-        <option value="{{ year }}" {% if filters.year_from == year %}selected{% endif %}>{{ year }}</option>
-      {% endfor %}
-    </select>
-  </label>
-  <label>
-    Год до
-    <select name="year_to">
-      <option value="" {% if filters.year_to == "" %}selected{% endif %}>Не важно</option>
-      {% for year in options.years %}
-        <option value="{{ year }}" {% if filters.year_to == year %}selected{% endif %}>{{ year }}</option>
-      {% endfor %}
-    </select>
-  </label>
-  <label>
-    Сортировка
-    <select name="sort">
-      <option value="year_desc" {% if filters.sort == "year_desc" %}selected{% endif %}>Год по убыванию</option>
-      <option value="year_asc" {% if filters.sort == "year_asc" %}selected{% endif %}>Год по возрастанию</option>
-      <option value="newest" {% if filters.sort == "newest" %}selected{% endif %}>По дате загрузки</option>
-    </select>
-  </label>
-  <label>
-    На странице
-    <select name="page_size">
-      <option value="12" {% if page_size == 12 %}selected{% endif %}>12</option>
-      <option value="24" {% if page_size == 24 %}selected{% endif %}>24</option>
-      <option value="48" {% if page_size == 48 %}selected{% endif %}>48</option>
-    </select>
-  </label>
-  <button type="submit">Применить</button>
-  <a class="page-link" href="/catalog">Сбросить фильтры</a>
-</form>
-
-<p class="hint">Найдено моделей: {{ total }} · Страница {{ page }} из {{ total_pages }}</p>
-
-{% if groups %}
-  <div class="catalog">
-    {% for item in groups %}
-      <article class="listing-card">
-        {% if cover_urls.get(item.first_id) %}
-          <img class="catalog-cover" src="{{ cover_urls.get(item.first_id) }}" alt="{{ item.make }} {{ item.model }}" />
-        {% endif %}
-        <h3><a href="{{ item.mods_url }}">{{ item.make }} {{ item.model }}</a></h3>
-        <p>Поколения: {{ item.generation_count }}{% if item.generation %} ({{ item.generation }}){% endif %}</p>
-        {% if item.default_generation %}
-          <p>По умолчанию открывается поколение: <strong>{{ item.default_generation }}</strong></p>
-        {% endif %}
-        <p>Годы: {{ item.year_from or "?" }} - {{ item.year_to or "?" }}</p>
-        <p>Комплектаций: <strong>{{ item.count }}</strong></p>
-        <strong>
-          {% if item.min_price_rub %}
-            от {{ item.min_price_rub }} ₽
-          {% else %}
-            Цена уточняется
-          {% endif %} ·
-          <a href="{{ item.mods_url }}">Смотреть модификации</a>
-        </strong>
-      </article>
-    {% endfor %}
-  </div>
-{% else %}
-  <p>В каталоге нет подходящих групп модификаций.</p>
-{% endif %}
-
-<div class="pager">
-  {% if has_prev %}
-    <a class="page-link" href="{{ prev_url }}">← Назад</a>
-  {% else %}
-    <span class="page-link disabled">← Назад</span>
-  {% endif %}
-  {% if has_next %}
-    <a class="page-link" href="{{ next_url }}">Вперед →</a>
-  {% else %}
-    <span class="page-link disabled">Вперед →</span>
-  {% endif %}
+    {% if makes %}
+      <div class="catalog">
+        {% for item in makes %}
+          <article class="listing-card">
+            {% if item.logo_url %}
+              <a class="make-logo-wrap" href="{{ item.models_url }}" aria-label="Открыть модели {{ item.make }}">
+                <img class="make-logo" src="{{ item.logo_url }}" alt="Логотип {{ item.make }}" loading="lazy" />
+              </a>
+            {% elif cover_urls.get(item.first_id) %}
+              <img class="catalog-cover" src="{{ cover_urls.get(item.first_id) }}" alt="{{ item.make }}" />
+            {% endif %}
+            <h3><a href="{{ item.models_url }}">{{ item.make }}</a></h3>
+            <p>Годы: {{ item.year_from or "?" }} - {{ item.year_to or "?" }}</p>
+            <p>Позиции в каталоге: <strong>{{ item.count }}</strong></p>
+            <strong><a href="{{ item.models_url }}">Открыть модели</a></strong>
+          </article>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p>В каталоге нет марок.</p>
+    {% endif %}
+  </section>
 </div>
-
-<script>
-  const makeModelMap = {{ make_model_map | tojson }};
-  const makeSelect = document.getElementById("make_select");
-  const modelSelect = document.getElementById("model_select");
-  const initialSelectedModel = "{{ filters.model }}";
-
-  function refillModelOptions(preferredModel = "") {
-    const make = makeSelect.value;
-    const models = make ? (makeModelMap[make] || []) : Object.values(makeModelMap).flat();
-    const uniqueModels = [...new Set(models)].sort((a, b) => a.localeCompare(b));
-
-    modelSelect.innerHTML = "";
-
-    const anyOption = document.createElement("option");
-    anyOption.value = "";
-    anyOption.textContent = "Любая";
-    modelSelect.appendChild(anyOption);
-
-    uniqueModels.forEach((model) => {
-      const opt = document.createElement("option");
-      opt.value = model;
-      opt.textContent = model;
-      if (model === preferredModel) {
-        opt.selected = true;
-      }
-      modelSelect.appendChild(opt);
-    });
-  }
-
-  makeSelect.addEventListener("change", () => {
-    refillModelOptions("");
-  });
-
-  refillModelOptions(initialSelectedModel);
-</script>
 {% endblock %}

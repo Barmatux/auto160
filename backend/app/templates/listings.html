@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Объявления - Auto160{% endblock %}
+{% block content %}
+<h1>Объявления о продаже</h1>
+
+<form class="filters" method="get" action="/listings">
+  <label>
+    Марка
+    <input type="text" name="brand" value="{{ filters.brand }}" placeholder="Например, BMW" />
+  </label>
+  <label>
+    Модель
+    <input type="text" name="model" value="{{ filters.model }}" placeholder="Например, X1" />
+  </label>
+  <label>
+    Город
+    <input type="text" name="city" value="{{ filters.city }}" placeholder="Минск" />
+  </label>
+  <label>
+    Год от
+    <input type="number" name="year_from" min="1950" max="2100" value="{{ filters.year_from }}" />
+  </label>
+  <label>
+    Год до
+    <input type="number" name="year_to" min="1950" max="2100" value="{{ filters.year_to }}" />
+  </label>
+  <label>
+    Сортировка
+    <select name="sort">
+      <option value="newest" {% if filters.sort == "newest" %}selected{% endif %}>Сначала новые</option>
+      <option value="price_asc" {% if filters.sort == "price_asc" %}selected{% endif %}>Цена по возрастанию</option>
+      <option value="price_desc" {% if filters.sort == "price_desc" %}selected{% endif %}>Цена по убыванию</option>
+      <option value="year_desc" {% if filters.sort == "year_desc" %}selected{% endif %}>Год по убыванию</option>
+      <option value="year_asc" {% if filters.sort == "year_asc" %}selected{% endif %}>Год по возрастанию</option>
+    </select>
+  </label>
+  <label>
+    На странице
+    <select name="page_size">
+      <option value="12" {% if page_size == 12 %}selected{% endif %}>12</option>
+      <option value="20" {% if page_size == 20 %}selected{% endif %}>20</option>
+      <option value="40" {% if page_size == 40 %}selected{% endif %}>40</option>
+    </select>
+  </label>
+  <button type="submit">Применить</button>
+  <a class="page-link" href="/listings">Сбросить</a>
+</form>
+
+<p class="hint">Найдено объявлений: {{ total }} · Страница {{ page }} из {{ total_pages }}</p>
+
+{% if listings %}
+  <div class="catalog">
+    {% for listing in listings %}
+      <article class="listing-card">
+        <h3><a href="/listings/{{ listing.id }}">{{ listing.title }}</a></h3>
+        <p><strong>{{ listing.brand }} {{ listing.model }}</strong> · {{ listing.year }}</p>
+        <p><strong>Цена:</strong> {{ listing.price }} ₽</p>
+        <p><strong>Пробег:</strong> {{ listing.mileage }} км</p>
+        <p><strong>Город:</strong> {{ listing.city }}</p>
+        {% if is_admin %}
+          <p><strong>Статус:</strong> {{ listing.status.value }}</p>
+        {% endif %}
+        <a href="/listings/{{ listing.id }}">Открыть объявление</a>
+      </article>
+    {% endfor %}
+  </div>
+{% else %}
+  <p>Объявления пока не найдены.</p>
+{% endif %}
+
+<div class="pager">
+  {% if has_prev %}
+    <a class="page-link" href="{{ prev_url }}">← Назад</a>
+  {% else %}
+    <span class="page-link disabled">← Назад</span>
+  {% endif %}
+  {% if has_next %}
+    <a class="page-link" href="{{ next_url }}">Вперед →</a>
+  {% else %}
+    <span class="page-link disabled">Вперед →</span>
+  {% endif %}
+</div>
+{% endblock %}

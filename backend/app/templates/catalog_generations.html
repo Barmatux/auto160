@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Поколения {{ make }} {{ model }} - Auto160{% endblock %}
+{% block content %}
+<div class="catalog-layout">
+  {% include "partials/catalog_filters_sidebar.html" %}
+  <section class="catalog-main">
+    <h1>{{ make }} {{ model }}</h1>
+    <p class="hint">
+      <a href="{{ back_to_models_url }}">← Назад к моделям {{ make }}</a>
+    </p>
+    <p class="hint">Шаг 3 из 4: выбери поколение. Найдено: {{ total }}</p>
+
+    {% if generations %}
+      <div class="catalog">
+        {% for item in generations %}
+          <article class="listing-card">
+            {% if cover_urls.get(item.first_id) %}
+              <img class="catalog-cover" src="{{ cover_urls.get(item.first_id) }}" alt="{{ make }} {{ model }} {{ item.generation }}" />
+            {% endif %}
+            <h3><a href="{{ item.mods_url }}">{{ item.generation }}</a></h3>
+            <p>Годы: {{ item.year_from or "?" }} - {{ item.year_to or "?" }}</p>
+            <p>Комплектаций: <strong>{{ item.count }}</strong></p>
+            <strong><a href="{{ item.mods_url }}">Открыть спецификации</a></strong>
+          </article>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p>Поколения для этой модели не найдены.</p>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}
