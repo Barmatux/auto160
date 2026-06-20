@@ -4,11 +4,13 @@
 <div class="catalog-layout">
   {% include "partials/catalog_filters_sidebar.html" %}
   <section class="catalog-main">
-    <h1>{% if make %}Модели {{ make }}{% else %}Все модели{% endif %}</h1>
-    <p class="hint">
-      <a href="/catalog">← Назад к маркам</a>
-    </p>
-    <p class="hint">Шаг 2 из 4: выбери модель. Найдено: {{ total }}</p>
+    <div class="catalog-main-head">
+      <h1>{% if make %}Модели {{ make }}{% else %}Все модели{% endif %}</h1>
+      <p class="hint">
+        <a href="/catalog">← Назад к маркам</a>
+      </p>
+      <p class="hint">Шаг 2 из 4: выбери модель. Найдено: {{ total }}</p>
+    </div>
 
     {% if models %}
       <div class="catalog">

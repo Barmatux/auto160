@@ -4,11 +4,13 @@
 <div class="catalog-layout">
   {% include "partials/catalog_filters_sidebar.html" %}
   <section class="catalog-main">
-    <h1>{% if make and model %}{{ make }} {{ model }}{% else %}Все поколения{% endif %}</h1>
-    <p class="hint">
-      <a href="{{ back_to_models_url }}">← Назад к моделям{% if make %} {{ make }}{% endif %}</a>
-    </p>
-    <p class="hint">Шаг 3 из 4: выбери поколение. Найдено: {{ total }}</p>
+    <div class="catalog-main-head">
+      <h1>{% if make and model %}{{ make }} {{ model }}{% else %}Все поколения{% endif %}</h1>
+      <p class="hint">
+        <a href="{{ back_to_models_url }}">← Назад к моделям{% if make %} {{ make }}{% endif %}</a>
+      </p>
+      <p class="hint">Шаг 3 из 4: выбери поколение. Найдено: {{ total }}</p>
+    </div>
 
     {% if generations %}
       <div class="catalog">

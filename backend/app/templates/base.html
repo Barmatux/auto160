@@ -11,10 +11,10 @@
       <a class="brand" href="/">Авто160</a>
       <nav>
         <a href="/">Главная</a>
+        <a href="/catalog">Каталог</a>
         <a href="/listings">Объявления</a>
         <a href="/inspection">Проверка</a>
         {% if is_admin %}
-          <a href="/catalog">Каталог</a>
           <a href="/create-listing">Подать объявление</a>
           <a href="/profile/my-listings">Управление объявлениями</a>
           <a href="/admin/users">Админка</a>
@@ -29,5 +29,13 @@
       </nav>
     </header>
     <main class="page">{% block content %}{% endblock %}</main>
+    <footer class="site-footer">
+      <div class="site-footer-inner">
+        <a href="/">Главная</a>
+        <a href="/catalog">Каталог</a>
+        <a href="/listings">Объявления</a>
+        <a href="/inspection">Проверка VIN</a>
+      </div>
+    </footer>
   </body>
 </html>

@@ -1,7 +1,11 @@
 {% extends "base.html" %}
 {% block title %}Объявления - Auto160{% endblock %}
 {% block content %}
-<h1>Объявления о продаже</h1>
+<section class="catalog-main">
+  <div class="catalog-main-head">
+    <h1>Объявления о продаже</h1>
+    <p class="hint">Карточки адаптированы под структуру av.by: фото, поколение, двигатель, коробка, привод и источник.</p>
+  </div>
 
 <form class="filters" method="get" action="/listings">
   <label>
@@ -44,43 +48,62 @@
   </label>
   <button type="submit">Применить</button>
   <a class="page-link" href="/listings">Сбросить</a>
-</form>
+  </form>
 
-<p class="hint">Найдено объявлений: {{ total }} · Страница {{ page }} из {{ total_pages }}</p>
+  <p class="hint">Найдено объявлений: {{ total }} · Страница {{ page }} из {{ total_pages }}</p>
 
-{% if listings %}
-  <div class="catalog">
-    {% for listing in listings %}
-      <article class="listing-card">
-        <h3><a href="/listings/{{ listing.id }}">{{ listing.title }}</a></h3>
-        <p><strong>{{ listing.brand }} {{ listing.model }}</strong> · {{ listing.year }}</p>
-        <p><strong>Цена:</strong> {{ listing.price }} ₽</p>
-        <p><strong>Пробег:</strong> {{ listing.mileage }} км</p>
-        <p><strong>Город:</strong> {{ listing.city }}</p>
-        {% if is_admin %}
-          <p><strong>Статус:</strong> {{ listing.status.value }}</p>
-        {% endif %}
-        <div class="actions-row">
-          <a href="/listings/{{ listing.id }}">Открыть объявление</a>
-          <a href="/inspection?listing_id={{ listing.id }}">Проверить VIN</a>
-        </div>
-      </article>
-    {% endfor %}
+  {% if listings %}
+    <div class="catalog">
+      {% for listing in listings %}
+        <article class="listing-card avby-listing-card">
+          {% if listing.cover_photo_url %}
+            <img class="catalog-cover" src="{{ listing.cover_photo_url }}" alt="{{ listing.brand }} {{ listing.model }}" />
+          {% endif %}
+          <h3><a href="/listings/{{ listing.id }}">{{ listing.title }}</a></h3>
+          <p><strong>{{ listing.brand }} {{ listing.model }}</strong> · {{ listing.year }}{% if listing.generation %} · {{ listing.generation }}{% endif %}</p>
+          <p><strong>Цена:</strong> {{ listing.price }} ₽</p>
+          <p><strong>Пробег:</strong> {{ listing.mileage }} км</p>
+          <p><strong>Город:</strong> {{ listing.city }}</p>
+          {% if listing.seller_name %}
+            <p><strong>Продавец:</strong> {{ listing.seller_name }}</p>
+          {% endif %}
+          <div class="listing-spec-tags">
+            {% if listing.engine_capacity_l %}<span>{{ listing.engine_capacity_l }} л</span>{% endif %}
+            {% if listing.engine_power_hp %}<span>{{ listing.engine_power_hp }} л.с.</span>{% endif %}
+            {% if listing.engine_type %}<span>{{ listing.engine_type }}</span>{% endif %}
+            {% if listing.transmission_type %}<span>{{ listing.transmission_type }}</span>{% endif %}
+            {% if listing.drive_type %}<span>{{ listing.drive_type }}</span>{% endif %}
+            {% if listing.body_type %}<span>{{ listing.body_type }}</span>{% endif %}
+            {% if listing.vin_indicated is not none %}<span>{% if listing.vin_indicated %}VIN указан{% else %}VIN скрыт{% endif %}</span>{% endif %}
+          </div>
+          {% if listing.source_url %}
+            <p class="hint">Источник: <a href="{{ listing.source_url }}" target="_blank" rel="noopener">av.by</a></p>
+          {% endif %}
+          {% if is_admin %}
+            <p><strong>Статус:</strong> {{ listing.status.value }}</p>
+          {% endif %}
+          <div class="actions-row">
+            <a href="/listings/{{ listing.id }}">Открыть объявление</a>
+            <a href="/inspection?listing_id={{ listing.id }}">Проверить VIN</a>
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p>Объявления пока не найдены.</p>
+  {% endif %}
+
+  <div class="pager">
+    {% if has_prev %}
+      <a class="page-link" href="{{ prev_url }}">← Назад</a>
+    {% else %}
+      <span class="page-link disabled">← Назад</span>
+    {% endif %}
+    {% if has_next %}
+      <a class="page-link" href="{{ next_url }}">Вперед →</a>
+    {% else %}
+      <span class="page-link disabled">Вперед →</span>
+    {% endif %}
   </div>
-{% else %}
-  <p>Объявления пока не найдены.</p>
-{% endif %}
-
-<div class="pager">
-  {% if has_prev %}
-    <a class="page-link" href="{{ prev_url }}">← Назад</a>
-  {% else %}
-    <span class="page-link disabled">← Назад</span>
-  {% endif %}
-  {% if has_next %}
-    <a class="page-link" href="{{ next_url }}">Вперед →</a>
-  {% else %}
-    <span class="page-link disabled">Вперед →</span>
-  {% endif %}
-</div>
+</section>
 {% endblock %}

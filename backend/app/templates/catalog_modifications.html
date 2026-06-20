@@ -4,13 +4,14 @@
 <div class="catalog-layout">
   {% include "partials/catalog_filters_sidebar.html" %}
   <section class="catalog-main">
-    <h1>Комплектации</h1>
-    <p class="hint">
-      <a href="{{ back_to_catalog_url if back_to_catalog_url else '/catalog' }}">← Назад к поколениям</a>
-    </p>
-    <p class="hint">Шаг 4 из 4: выбери комплектацию и открой спецификацию.</p>
-
-    <p class="hint">Найдено комплектаций: {{ total }} · Страница {{ page }} из {{ total_pages }}</p>
+    <div class="catalog-main-head">
+      <h1>Комплектации</h1>
+      <p class="hint">
+        <a href="{{ back_to_catalog_url if back_to_catalog_url else '/catalog' }}">← Назад к поколениям</a>
+      </p>
+      <p class="hint">Шаг 4 из 4: выбери комплектацию и открой спецификацию.</p>
+      <p class="hint">Найдено комплектаций: {{ total }} · Страница {{ page }} из {{ total_pages }}</p>
+    </div>
     <div class="actions-row">
       <button id="compare-btn" type="button" disabled>Сравнить выбранные</button>
       <span id="compare-count" class="hint">Выбрано: 0</span>

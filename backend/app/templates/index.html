@@ -1,54 +1,35 @@
 {% extends "base.html" %}
 {% block title %}Главная - Auto160{% endblock %}
 {% block content %}
-<h1>Главная страница</h1>
+<section class="home-hero">
+  <p class="home-badge">Лучшая платформа для продажи авто в регионе</p>
+  <h1>Продайте или купите автомобиль выгодно</h1>
+  <p class="home-subtitle">
+    Тысячи предложений от дилеров и частных лиц. Проверяйте историю авто, сравнивайте цены и выбирайте без риска.
+  </p>
 
-<section class="grid">
-  <a class="card" href="/listings">
-    <h2>Объявления</h2>
-    <p>Карточки объявлений продаж с фильтрами и сортировкой.</p>
-  </a>
-  <a class="card" href="/catalog">
-    <h2>Каталог авто</h2>
-    <p>Многошаговый каталог марок, моделей и спецификаций.</p>
-  </a>
-  {% if is_admin %}
-    <a class="card" href="/create-listing">
-      <h2>Подать объявление</h2>
-      <p>Добавление нового объявления о продаже.</p>
-    </a>
-  {% endif %}
-  {% if is_admin %}
-    <a class="card" href="/profile/my-listings">
-      <h2>Управление объявлениями</h2>
-      <p>Админский раздел управления каталогом/объявлениями.</p>
-    </a>
-  {% endif %}
-  {% if is_admin %}
-    <a class="card" href="/admin/users">
-      <h2>Управление пользователями</h2>
-      <p>Админ-раздел для просмотра и изменения ролей.</p>
-    </a>
-  {% endif %}
-  <div class="card muted"><h2>Новости</h2><p>Заглушка для следующей итерации.</p></div>
-  <div class="card muted"><h2>Статьи и тест-драйвы</h2><p>Заглушка.</p></div>
-  <div class="card muted"><h2>Проверенные импортеры</h2><p>Заглушка.</p></div>
-  <div class="card muted"><h2>Калькулятор стоимости</h2><p>Заглушка.</p></div>
+  <div class="home-stats">
+    <div><strong>50 000+</strong><span>активных объявлений</span></div>
+    <div><strong>12 000+</strong><span>продавцов по всей стране</span></div>
+    <div><strong>98%</strong><span>довольных пользователей</span></div>
+  </div>
 </section>
 
-<section>
-  <h2>Новые позиции каталога</h2>
-  {% if latest %}
-    <ul class="listing-list">
-      {% for item in latest %}
-        <li>
-          <a href="/catalog/item/{{ item.id }}">{{ item.make }} {{ item.model }} ({{ item.generation or "—" }})</a>
-          <span>{{ item.year_from or "?" }}-{{ item.year_to or "?" }} · {{ item.export_country or "—" }}</span>
-        </li>
-      {% endfor %}
-    </ul>
-  {% else %}
-    <p>Каталог пока пуст. Данные загрузятся из CSV после миграций.</p>
-  {% endif %}
+<section class="home-features">
+  <a class="card" href="/catalog">
+    <h2>Каталог</h2>
+    <p>Тысячи автомобилей от официальных дилеров и частных лиц. Удобная фильтрация и детальные карточки.</p>
+    <span class="home-link">Перейти в каталог →</span>
+  </a>
+  <a class="card" href="/listings">
+    <h2>Доска объявлений</h2>
+    <p>Объявления напрямую от продавцов. Быстрый доступ к цене, пробегу и истории владения.</p>
+    <span class="home-link">Открыть объявления →</span>
+  </a>
+  <a class="card" href="/inspection">
+    <h2>Проверка авто</h2>
+    <p>Проверь VIN перед покупкой: ограничения, ДТП, пробег и ключевые риски по автомобилю.</p>
+    <span class="home-link">Проверить VIN →</span>
+  </a>
 </section>
 {% endblock %}

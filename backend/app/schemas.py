@@ -43,6 +43,18 @@ class ListingCreate(BaseModel):
     mileage: int = Field(ge=0)
     price: Decimal = Field(gt=0)
     city: str
+    generation: str | None = None
+    body_type: str | None = None
+    drive_type: str | None = None
+    transmission_type: str | None = None
+    engine_type: str | None = None
+    engine_capacity_l: Decimal | None = None
+    engine_power_hp: int | None = Field(default=None, ge=1)
+    vin_indicated: bool | None = None
+    seller_name: str | None = None
+    source_url: str | None = None
+    cover_photo_url: str | None = None
+    raw_photos: list[dict] | None = None
     description: str = Field(min_length=10)
     status: ListingStatus = ListingStatus.draft
 
@@ -55,6 +67,18 @@ class ListingUpdate(BaseModel):
     mileage: int | None = Field(default=None, ge=0)
     price: Decimal | None = Field(default=None, gt=0)
     city: str | None = None
+    generation: str | None = None
+    body_type: str | None = None
+    drive_type: str | None = None
+    transmission_type: str | None = None
+    engine_type: str | None = None
+    engine_capacity_l: Decimal | None = None
+    engine_power_hp: int | None = Field(default=None, ge=1)
+    vin_indicated: bool | None = None
+    seller_name: str | None = None
+    source_url: str | None = None
+    cover_photo_url: str | None = None
+    raw_photos: list[dict] | None = None
     description: str | None = Field(default=None, min_length=10)
     status: ListingStatus | None = None
 
@@ -65,10 +89,22 @@ class ListingOut(BaseModel):
     title: str
     brand: str
     model: str
+    generation: str | None = None
     year: int
     mileage: int
     price: Decimal
     city: str
+    body_type: str | None = None
+    drive_type: str | None = None
+    transmission_type: str | None = None
+    engine_type: str | None = None
+    engine_capacity_l: Decimal | None = None
+    engine_power_hp: int | None = None
+    vin_indicated: bool | None = None
+    seller_name: str | None = None
+    source_url: str | None = None
+    cover_photo_url: str | None = None
+    raw_photos: list[dict] | None = None
     description: str
     status: ListingStatus
     created_at: datetime

@@ -2,15 +2,62 @@
 {% block title %}Объявление - Auto160{% endblock %}
 {% block content %}
 {% if listing %}
-  <h1>{{ listing.title }}</h1>
-  <p class="hint">{{ listing.brand }} {{ listing.model }} · {{ listing.year }}</p>
-  <div class="detail">
-    <p><strong>Цена:</strong> {{ listing.price }} ₽</p>
-    <p><strong>Пробег:</strong> {{ listing.mileage }} км</p>
-    <p><strong>Город:</strong> {{ listing.city }}</p>
-    <p><strong>Статус:</strong> {{ listing.status.value }}</p>
-    <p><strong>Описание:</strong> {{ listing.description }}</p>
-  </div>
+  <section class="catalog-main listing-detail-page">
+    <div class="catalog-main-head">
+      <h1>{{ listing.title }}</h1>
+      <p class="hint">{{ listing.brand }} {{ listing.model }} · {{ listing.year }}{% if listing.generation %} · {{ listing.generation }}{% endif %}</p>
+    </div>
+
+    {% set gallery_urls = [] %}
+    {% if listing.raw_photos %}
+      {% for photo in listing.raw_photos %}
+        {% set variants = photo.variants if photo.variants is defined else {} %}
+        {% set url = variants.big or variants.medium or variants.small or variants.extrasmall %}
+        {% if url and url not in gallery_urls %}
+          {% set _ = gallery_urls.append(url) %}
+        {% endif %}
+      {% endfor %}
+    {% endif %}
+    {% if listing.cover_photo_url and listing.cover_photo_url not in gallery_urls %}
+      {% set _ = gallery_urls.insert(0, listing.cover_photo_url) %}
+    {% endif %}
+
+    {% if gallery_urls %}
+      <div class="listing-gallery">
+        <img class="detail-photo detail-cover-photo" src="{{ gallery_urls[0] }}" alt="{{ listing.brand }} {{ listing.model }}" />
+        {% if gallery_urls|length > 1 %}
+          <div class="listing-gallery-grid">
+            {% for photo_url in gallery_urls[1:] %}
+              <a href="{{ photo_url }}" target="_blank" rel="noopener">
+                <img class="listing-gallery-thumb" src="{{ photo_url }}" alt="{{ listing.brand }} {{ listing.model }} фото {{ loop.index + 1 }}" />
+              </a>
+            {% endfor %}
+          </div>
+        {% endif %}
+      </div>
+    {% endif %}
+
+    <div class="detail">
+      <p><strong>Цена:</strong> {{ listing.price }} ₽</p>
+      <p><strong>Пробег:</strong> {{ listing.mileage }} км</p>
+      <p><strong>Город:</strong> {{ listing.city }}</p>
+      {% if listing.seller_name %}<p><strong>Продавец:</strong> {{ listing.seller_name }}</p>{% endif %}
+      {% if listing.body_type %}<p><strong>Кузов:</strong> {{ listing.body_type }}</p>{% endif %}
+      {% if listing.engine_type %}<p><strong>Топливо:</strong> {{ listing.engine_type }}</p>{% endif %}
+      {% if listing.engine_capacity_l %}<p><strong>Объем:</strong> {{ listing.engine_capacity_l }} л</p>{% endif %}
+      {% if listing.engine_power_hp %}<p><strong>Мощность:</strong> {{ listing.engine_power_hp }} л.с.</p>{% endif %}
+      {% if listing.transmission_type %}<p><strong>Коробка:</strong> {{ listing.transmission_type }}</p>{% endif %}
+      {% if listing.drive_type %}<p><strong>Привод:</strong> {{ listing.drive_type }}</p>{% endif %}
+      {% if listing.vin_indicated is not none %}
+        <p><strong>VIN:</strong> {% if listing.vin_indicated %}указан{% else %}не указан{% endif %}</p>
+      {% endif %}
+      {% if listing.source_url %}
+        <p><strong>Источник:</strong> <a href="{{ listing.source_url }}" target="_blank" rel="noopener">Открыть на av.by</a></p>
+      {% endif %}
+      <p><strong>Статус:</strong> {{ listing.status.value }}</p>
+      <p><strong>Описание:</strong> {{ listing.description }}</p>
+    </div>
+  </section>
   <div class="actions-row">
     <a class="btn-link" href="/inspection?listing_id={{ listing.id }}">Проверить VIN</a>
   </div>
