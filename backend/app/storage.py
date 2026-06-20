@@ -1,4 +1,5 @@
 from functools import lru_cache
+from urllib.parse import quote
 
 import boto3
 from botocore.client import Config
@@ -65,3 +66,7 @@ def object_exists(storage_key: str) -> bool:
         return True
     except (ClientError, BotoCoreError):
         return False
+
+
+def build_app_download_url(storage_key: str) -> str:
+    return f"/media/object?key={quote(storage_key, safe='')}"

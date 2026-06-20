@@ -13,7 +13,7 @@ from app.schemas import (
     PhotoPresignRequest,
     PhotoPresignResponse,
 )
-from app.storage import generate_download_url, generate_upload_url, object_exists
+from app.storage import build_app_download_url, generate_upload_url, object_exists
 
 router = APIRouter(prefix="/api/v1/catalog", tags=["catalog-photos"])
 
@@ -85,7 +85,7 @@ def confirm_catalog_photo_upload(
     db.refresh(photo)
 
     result = CatalogPhotoOut.model_validate(photo)
-    result.file_url = generate_download_url(photo.storage_key)
+    result.file_url = build_app_download_url(photo.storage_key)
     return result
 
 
@@ -100,7 +100,7 @@ def list_catalog_item_photos(catalog_item_id: int, db: Session = Depends(get_db)
     result: list[CatalogPhotoOut] = []
     for photo in photos:
         item = CatalogPhotoOut.model_validate(photo)
-        item.file_url = generate_download_url(photo.storage_key)
+        item.file_url = build_app_download_url(photo.storage_key)
         result.append(item)
     return result
 
@@ -129,5 +129,5 @@ def set_cover_catalog_photo(photo_id: int, _: User = Depends(require_admin), db:
     db.refresh(photo)
 
     result = CatalogPhotoOut.model_validate(photo)
-    result.file_url = generate_download_url(photo.storage_key)
+    result.file_url = build_app_download_url(photo.storage_key)
     return result

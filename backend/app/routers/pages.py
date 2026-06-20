@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 from app.db import get_db
 from app.models import CarListing, CatalogItem, CatalogItemPhoto, ListingStatus, User, UserRole
 from app.security import decode_token, is_token_revoked
-from app.storage import generate_download_url
+from app.storage import build_app_download_url
 
 router = APIRouter(tags=["pages"])
 templates = Jinja2Templates(directory="app/templates")
@@ -211,7 +211,7 @@ def _build_cover_url_map(item_ids: list[int], db: Session) -> dict[int, str]:
     for photo in photos:
         if photo.catalog_item_id in cover_map:
             continue
-        cover_map[photo.catalog_item_id] = generate_download_url(photo.storage_key)
+        cover_map[photo.catalog_item_id] = build_app_download_url(photo.storage_key)
 
     missing_ids = [item_id for item_id in item_ids if item_id not in cover_map]
     if missing_ids:
@@ -1204,7 +1204,7 @@ def catalog_item_detail(request: Request, item_id: int, db: Session = Depends(ge
         .order_by(CatalogItemPhoto.is_cover.desc(), CatalogItemPhoto.sort_order.asc(), CatalogItemPhoto.id.asc())
         .all()
     )
-    photo_urls = [generate_download_url(photo.storage_key) for photo in photos]
+    photo_urls = [build_app_download_url(photo.storage_key) for photo in photos]
     context = _template_context(request, current_user)
     context["item"] = item
     context["photos"] = photo_urls
@@ -1370,7 +1370,7 @@ def admin_catalog_item_photos(request: Request, item_id: int, db: Session = Depe
             "is_cover": p.is_cover,
             "sort_order": p.sort_order,
             "content_type": p.content_type,
-            "file_url": generate_download_url(p.storage_key),
+            "file_url": build_app_download_url(p.storage_key),
         }
         for p in photos
     ]

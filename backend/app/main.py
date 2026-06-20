@@ -3,7 +3,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.bootstrap import safe_bootstrap_admin
 from app.db import SessionLocal, engine
-from app.routers import admin, auth, catalog_photos, listings, pages
+from app.routers import admin, auth, catalog_photos, listings, media, pages
 from app.storage import ensure_bucket_exists
 
 app = FastAPI(title="Auto160 Backend", version="0.1.0")
@@ -24,5 +24,6 @@ def health():
 app.include_router(auth.router)
 app.include_router(listings.router)
 app.include_router(catalog_photos.router)
+app.include_router(media.router)
 app.include_router(pages.router)
 app.include_router(admin.router)
