@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Проверка VIN - Auto160{% endblock %}
+{% block content %}
+<h1>Проверка автомобиля по VIN</h1>
+<p class="hint">Введи VIN, чтобы получить предварительный отчет по машине.</p>
+
+{% if listing %}
+  <div class="detail">
+    <p><strong>Объявление:</strong> <a href="/listings/{{ listing.id }}">{{ listing.title }}</a></p>
+    <p><strong>Авто:</strong> {{ listing.brand }} {{ listing.model }} · {{ listing.year }}</p>
+    <p class="hint">VIN в объявлении не хранится, введи его вручную.</p>
+  </div>
+{% endif %}
+
+<form class="form" method="get" action="/inspection">
+  {% if listing %}
+    <input type="hidden" name="listing_id" value="{{ listing.id }}" />
+  {% endif %}
+  <label>
+    VIN номер
+    <input
+      type="text"
+      name="vin"
+      value="{{ vin }}"
+      placeholder="Например: WBAHT31030F123456"
+      maxlength="24"
+      autocomplete="off"
+      required
+    />
+  </label>
+  <button type="submit">Проверить VIN</button>
+</form>
+
+{% if vin_error %}
+  <p class="hint" style="color:#b91c1c; margin-top: 10px;">{{ vin_error }}</p>
+{% endif %}
+
+{% if vin_report %}
+  <div class="specs-wrap">
+    <h2>Результат проверки</h2>
+    <div class="detail spec-section-body">
+      {% for label, value in vin_report.items() %}
+        <p><strong>{{ label }}:</strong> {{ value }}</p>
+      {% endfor %}
+    </div>
+  </div>
+{% endif %}
+{% endblock %}

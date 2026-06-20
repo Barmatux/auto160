@@ -1,10 +1,10 @@
 {% extends "base.html" %}
-{% block title %}Модели {{ make }} - Auto160{% endblock %}
+{% block title %}{% if make %}Модели {{ make }}{% else %}Все модели{% endif %} - Auto160{% endblock %}
 {% block content %}
 <div class="catalog-layout">
   {% include "partials/catalog_filters_sidebar.html" %}
   <section class="catalog-main">
-    <h1>Модели {{ make }}</h1>
+    <h1>{% if make %}Модели {{ make }}{% else %}Все модели{% endif %}</h1>
     <p class="hint">
       <a href="/catalog">← Назад к маркам</a>
     </p>
@@ -18,9 +18,32 @@
               <img class="catalog-cover" src="{{ cover_urls.get(item.first_id) }}" alt="{{ item.make }} {{ item.model }}" />
             {% endif %}
             <h3><a href="{{ item.generations_url }}">{{ item.model }}</a></h3>
+            {% if not make %}
+              <p>Марка: {{ item.make }}</p>
+            {% endif %}
             <p>Поколений: {{ item.generation_count }}</p>
             <p>Годы: {{ item.year_from or "?" }} - {{ item.year_to or "?" }}</p>
             <p>Комплектаций: <strong>{{ item.count }}</strong></p>
+            {% if item.generation_previews %}
+              <div class="generation-mini-grid">
+                {% for generation in item.generation_previews %}
+                  <a class="generation-mini-card" href="{{ generation.mods_url }}">
+                    {% if generation_cover_urls.get(generation.first_id) %}
+                      <img
+                        class="generation-mini-cover"
+                        src="{{ generation_cover_urls.get(generation.first_id) }}"
+                        alt="{{ generation.generation }}"
+                      />
+                    {% endif %}
+                    <div class="generation-mini-info">
+                      <strong>{{ generation.generation }}</strong>
+                      <span>{{ generation.year_from or "?" }}-{{ generation.year_to or "?" }}</span>
+                      <span>{{ generation.count }} компл.</span>
+                    </div>
+                  </a>
+                {% endfor %}
+              </div>
+            {% endif %}
             <strong><a href="{{ item.generations_url }}">Открыть поколения</a></strong>
           </article>
         {% endfor %}

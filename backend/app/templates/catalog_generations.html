@@ -1,12 +1,12 @@
 {% extends "base.html" %}
-{% block title %}Поколения {{ make }} {{ model }} - Auto160{% endblock %}
+{% block title %}{% if make and model %}Поколения {{ make }} {{ model }}{% else %}Все поколения{% endif %} - Auto160{% endblock %}
 {% block content %}
 <div class="catalog-layout">
   {% include "partials/catalog_filters_sidebar.html" %}
   <section class="catalog-main">
-    <h1>{{ make }} {{ model }}</h1>
+    <h1>{% if make and model %}{{ make }} {{ model }}{% else %}Все поколения{% endif %}</h1>
     <p class="hint">
-      <a href="{{ back_to_models_url }}">← Назад к моделям {{ make }}</a>
+      <a href="{{ back_to_models_url }}">← Назад к моделям{% if make %} {{ make }}{% endif %}</a>
     </p>
     <p class="hint">Шаг 3 из 4: выбери поколение. Найдено: {{ total }}</p>
 
@@ -15,7 +15,10 @@
         {% for item in generations %}
           <article class="listing-card">
             {% if cover_urls.get(item.first_id) %}
-              <img class="catalog-cover" src="{{ cover_urls.get(item.first_id) }}" alt="{{ make }} {{ model }} {{ item.generation }}" />
+              <img class="catalog-cover" src="{{ cover_urls.get(item.first_id) }}" alt="{{ item.make }} {{ item.model }} {{ item.generation }}" />
+            {% endif %}
+            {% if not (make and model) %}
+              <p><strong>{{ item.make }} {{ item.model }}</strong></p>
             {% endif %}
             <h3><a href="{{ item.mods_url }}">{{ item.generation }}</a></h3>
             <p>Годы: {{ item.year_from or "?" }} - {{ item.year_to or "?" }}</p>

@@ -60,7 +60,10 @@
         {% if is_admin %}
           <p><strong>Статус:</strong> {{ listing.status.value }}</p>
         {% endif %}
-        <a href="/listings/{{ listing.id }}">Открыть объявление</a>
+        <div class="actions-row">
+          <a href="/listings/{{ listing.id }}">Открыть объявление</a>
+          <a href="/inspection?listing_id={{ listing.id }}">Проверить VIN</a>
+        </div>
       </article>
     {% endfor %}
   </div>

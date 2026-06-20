@@ -29,7 +29,7 @@
                 {% if cover_urls.get(item.id) %}
                   <img class="catalog-cover" src="{{ cover_urls.get(item.id) }}" alt="{{ item.make }} {{ item.model }}" />
                 {% endif %}
-                <h3><a href="/catalog/item/{{ item.id }}">{{ item.make }} {{ item.model }}</a></h3>
+                <h3><a href="/catalog/item/{{ item.id }}">{{ mod_titles.get(item.id, item.make ~ " " ~ item.model) }}</a></h3>
                 <strong><a href="/catalog/item/{{ item.id }}">Открыть спецификацию</a></strong>
               </article>
             {% endfor %}
@@ -50,7 +50,10 @@
                 <p><strong>Цена:</strong> {{ ad.price }} ₽</p>
                 <p><strong>Пробег:</strong> {{ ad.mileage }} км</p>
                 <p><strong>Город:</strong> {{ ad.city }}</p>
-                <a href="/listings/{{ ad.id }}">Открыть объявление</a>
+                <div class="actions-row">
+                  <a href="/listings/{{ ad.id }}">Открыть объявление</a>
+                  <a href="/inspection?listing_id={{ ad.id }}">Проверить VIN</a>
+                </div>
               </article>
             {% endfor %}
           </div>

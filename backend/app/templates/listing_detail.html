@@ -11,6 +11,9 @@
     <p><strong>Статус:</strong> {{ listing.status.value }}</p>
     <p><strong>Описание:</strong> {{ listing.description }}</p>
   </div>
+  <div class="actions-row">
+    <a class="btn-link" href="/inspection?listing_id={{ listing.id }}">Проверить VIN</a>
+  </div>
   {% if is_admin %}
     <div class="actions-row">
       <a class="btn-link" href="/profile/edit-listing/{{ listing.id }}">Редактировать</a>

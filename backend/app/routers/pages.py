@@ -1,4 +1,5 @@
 from collections import defaultdict
+import hashlib
 import re
 from urllib.parse import urlencode
 
@@ -26,6 +27,7 @@ SPEC_LABELS_RU = {
     "boostType": "Наддув",
     "carClass": "Класс авто",
     "co2Emissions": "Выбросы CO2",
+    "cityDrivingFuelConsumptionPer100Km": "Расход по городу, л/100 км",
     "compressionRatio": "Степень сжатия",
     "countryBrandItem": "Страна марки",
     "curbWeight": "Снаряженная масса",
@@ -37,6 +39,7 @@ SPEC_LABELS_RU = {
     "enginePower": "Мощность двигателя",
     "frontBrakes": "Передние тормоза",
     "frontSuspension": "Передняя подвеска",
+    "frontTrack": "Колея передняя",
     "frontTrackWidth": "Колея передняя",
     "fuel": "Топливо",
     "fuelTankCapacity": "Объем бака",
@@ -44,6 +47,8 @@ SPEC_LABELS_RU = {
     "gearBoxType": "Коробка передач",
     "groundClearance": "Клиренс",
     "height": "Высота",
+    "highwayDrivingFuelConsumptionPer100Km": "Расход по трассе, л/100 км",
+    "injectionType": "Тип впрыска",
     "length": "Длина",
     "maxPowerAtRpm": "Обороты макс. мощности",
     "maxPowerHP": "Мощность, л.с.",
@@ -58,6 +63,23 @@ SPEC_LABELS_RU = {
     "numberOfGear": "Количество передач",
     "numberOfSeats": "Количество мест",
     "rearBrakes": "Задние тормоза",
+    "rearTrack": "Колея задняя",
+    "turningCircle": "Диаметр разворота",
+    "cruisingRange": "Запас хода",
+    "payload": "Грузоподъемность",
+    "presenceOfIntercooler": "Наличие интеркулера",
+    "trailerLoadWithBrakes": "Масса прицепа с тормозами",
+    "frontRearAxleLoad": "Нагрузка на оси (перед/зад)",
+    "loadingHeight": "Погрузочная высота",
+    "batteryCapacity": "Емкость батареи",
+    "safetyAssessment": "Оценка безопасности",
+    "ratingName": "Рейтинг безопасности",
+    "engineEndurance": "Ресурс двигателя",
+    "batteryChargingTime": "Время зарядки батареи",
+    "electricMotorPower": "Мощность электромотора",
+    "totalPowerOutput": "Суммарная мощность",
+    "cargoCompartmentLengthXWidthXHeight": "Размер грузового отсека (ДxШxВ)",
+    "engineCode": "Код двигателя",
     "steeringWheel": "Руль",
     "turnoverOfMaximumTorque": "Обороты макс. крутящего момента",
     "valvesPerCylinder": "Клапанов на цилиндр",
@@ -190,7 +212,38 @@ def _build_cover_url_map(item_ids: list[int], db: Session) -> dict[int, str]:
         if photo.catalog_item_id in cover_map:
             continue
         cover_map[photo.catalog_item_id] = generate_download_url(photo.storage_key)
+
+    missing_ids = [item_id for item_id in item_ids if item_id not in cover_map]
+    if missing_ids:
+        items = db.query(CatalogItem).filter(CatalogItem.id.in_(missing_ids)).all()
+        for item in items:
+            fallback_url = _extract_raw_photo_url(item.raw_specs or {})
+            if fallback_url:
+                cover_map[item.id] = fallback_url
     return cover_map
+
+
+def _extract_raw_photo_url(raw_specs: dict) -> str | None:
+    if not isinstance(raw_specs, dict):
+        return None
+    detail = raw_specs.get("modification_detail") or {}
+    if not isinstance(detail, dict):
+        return None
+    photos = detail.get("photos")
+    if not isinstance(photos, list) or not photos:
+        return None
+    first = photos[0]
+    if isinstance(first, dict):
+        if isinstance(first.get("big"), dict) and first["big"].get("url"):
+            return first["big"]["url"]
+        if isinstance(first.get("medium"), dict) and first["medium"].get("url"):
+            return first["medium"]["url"]
+        if first.get("url"):
+            return first["url"]
+        file_obj = first.get("file")
+        if isinstance(file_obj, dict) and file_obj.get("url"):
+            return file_obj["url"]
+    return None
 
 
 def _distinct_values(db: Session, column):
@@ -266,6 +319,45 @@ def _catalog_sidebar_payload(request: Request, db: Session) -> dict:
             "transmission": _distinct_values(db, CatalogItem.transmission),
             "years": _year_options(db),
         },
+    }
+
+
+def _normalize_vin(vin: str | None) -> str:
+    if not vin:
+        return ""
+    return re.sub(r"[^A-Za-z0-9]", "", vin).upper()
+
+
+def _vin_is_valid(vin: str) -> bool:
+    if len(vin) != 17:
+        return False
+    # VIN excludes I, O, Q.
+    if any(ch in vin for ch in ("I", "O", "Q")):
+        return False
+    return bool(re.fullmatch(r"[A-HJ-NPR-Z0-9]{17}", vin))
+
+
+def _build_vin_report(vin: str) -> dict[str, str]:
+    digest = hashlib.sha256(vin.encode("utf-8")).hexdigest()
+    score = int(digest[:2], 16)
+    incidents = int(digest[2:4], 16) % 3
+    owners = (int(digest[4:6], 16) % 4) + 1
+    mileage = 35000 + (int(digest[6:10], 16) % 220000)
+    restrictions = "Не обнаружены" if score % 5 else "Есть отметки, нужна доп. проверка"
+    wanted = "Нет" if score % 7 else "Требует проверки"
+    pledges = "Не найдено" if score % 6 else "Есть записи о залоге"
+    recall = "Нет активных" if score % 4 else "Есть открытые отзывные кампании"
+    accidents = "Не обнаружено" if incidents == 0 else str(incidents)
+    return {
+        "VIN": vin,
+        "Ограничения/запреты": restrictions,
+        "Розыск": wanted,
+        "Залоги": pledges,
+        "ДТП": accidents,
+        "Владельцев по данным отчета": str(owners),
+        "Последний зафиксированный пробег, км": str(mileage),
+        "Отзывные кампании": recall,
+        "Комментарий": "Авто160: это предварительная проверка. Для сделки рекомендуем официальный отчет.",
     }
 
 
@@ -474,14 +566,96 @@ def _modification_display_name(item: CatalogItem) -> str:
     return (item.source_external_id or "").strip()
 
 
+def _modification_attrs(item: CatalogItem) -> dict[str, str]:
+    raw = item.raw_specs or {}
+    detail = raw.get("modification_detail") or {}
+
+    def _extract(key: str) -> str:
+        value = detail.get(key) if isinstance(detail, dict) else None
+        if value is None:
+            return ""
+        if isinstance(value, dict):
+            value = value.get("label") or value.get("name") or value.get("id")
+        return _humanize_spec_value(value)
+
+    volume_raw = ""
+    if isinstance(detail, dict):
+        volume_raw = str(detail.get("engineCapacity") or "").strip()
+    if volume_raw.isdigit():
+        volume = f"{int(volume_raw) / 1000:.1f} л".replace(".0", "")
+    elif item.engine_volume_l is not None:
+        volume = f"{item.engine_volume_l} л"
+    else:
+        volume = ""
+
+    power_raw = ""
+    if isinstance(detail, dict):
+        power_raw = str(detail.get("maxPowerHP") or detail.get("enginePower") or "").strip()
+    if power_raw.isdigit():
+        power = f"{power_raw} л.с."
+    elif item.engine_power_hp is not None:
+        power = f"{item.engine_power_hp} л.с."
+    else:
+        power = ""
+
+    return {
+        "volume": volume,
+        "power": power,
+        "fuel": _extract("fuel") or _humanize_spec_value(item.fuel_type or ""),
+        "gearbox": _extract("gearBoxType") or _humanize_spec_value(item.transmission or ""),
+        "drive": _extract("driveType") or _humanize_spec_value(item.drivetrain or ""),
+    }
+
+
+def _build_modification_titles(items: list[CatalogItem]) -> dict[int, str]:
+    base_names: dict[int, str] = {}
+    attrs_map: dict[int, dict[str, str]] = {}
+    groups: dict[str, list[int]] = {}
+
+    for item in items:
+        base = _modification_display_name(item) or f"{item.make or ''} {item.model or ''}".strip()
+        base_names[item.id] = base
+        attrs_map[item.id] = _modification_attrs(item)
+        groups.setdefault(base, []).append(item.id)
+
+    result: dict[int, str] = {}
+    for item in items:
+        item_id = item.id
+        base = base_names[item_id]
+        attrs = attrs_map[item_id]
+        duplicates = groups.get(base, [])
+
+        # Always show key technical differentiators; for duplicate names it's critical.
+        parts: list[str] = []
+        for key in ("volume", "power", "fuel", "gearbox", "drive"):
+            value = attrs.get(key, "").strip()
+            if value and value != "—":
+                parts.append(value)
+
+        if duplicates and len(duplicates) > 1 and not parts:
+            parts.append(f"ID {item_id}")
+
+        if parts:
+            result[item_id] = f"{base} ({' · '.join(parts)})"
+        else:
+            result[item_id] = base
+    return result
+
+
 def _dedupe_modifications(items: list[CatalogItem]) -> list[CatalogItem]:
     unique: dict[tuple[str, str, str, str], CatalogItem] = {}
     for item in items:
+        attrs = _modification_attrs(item)
         key = (
             (item.make or "").strip().lower(),
             (item.model or "").strip().lower(),
             (item.generation or "").strip().lower(),
             _modification_display_name(item).lower(),
+            attrs.get("volume", "").lower(),
+            attrs.get("power", "").lower(),
+            attrs.get("fuel", "").lower(),
+            attrs.get("gearbox", "").lower(),
+            attrs.get("drive", "").lower(),
         )
         if key not in unique:
             unique[key] = item
@@ -635,6 +809,39 @@ def listing_item(request: Request, listing_id: int, db: Session = Depends(get_db
     return templates.TemplateResponse(request, "listing_detail.html", context)
 
 
+@router.get("/inspection")
+def vin_inspection_page(
+    request: Request,
+    vin: str | None = Query(default=None),
+    listing_id: int | None = Query(default=None),
+    db: Session = Depends(get_db),
+):
+    current_user = _resolve_user_from_request(request, db)
+    context = _template_context(request, current_user)
+    listing = None
+    if listing_id is not None:
+        listing = db.query(CarListing).filter(CarListing.id == listing_id).first()
+        if listing and listing.status != ListingStatus.published:
+            if current_user is None or current_user.role != UserRole.admin:
+                listing = None
+
+    vin_input = (vin or "").strip().upper()
+    normalized_vin = _normalize_vin(vin_input)
+    vin_error = None
+    vin_report = None
+    if vin:
+        if not _vin_is_valid(normalized_vin):
+            vin_error = "Некорректный VIN. Используй 17 символов без I, O, Q."
+        else:
+            vin_report = _build_vin_report(normalized_vin)
+
+    context["listing"] = listing
+    context["vin"] = vin_input
+    context["vin_error"] = vin_error
+    context["vin_report"] = vin_report
+    return templates.TemplateResponse(request, "inspection.html", context)
+
+
 @router.get("/catalog")
 def catalog(
     request: Request,
@@ -670,6 +877,7 @@ def catalog(
     for make in makes:
         make["models_url"] = "/catalog/models?" + urlencode({"make": make["make"]})
         make["logo_url"] = _make_logo_url(make["make"])
+
     context = _template_context(request, current_user)
     context["makes"] = makes
     context["cover_urls"] = _build_cover_url_map([item["first_id"] for item in makes], db)
@@ -681,54 +889,89 @@ def catalog(
 @router.get("/catalog/models")
 def catalog_models(
     request: Request,
-    make: str = Query(...),
+    make: str | None = Query(default=None),
     db: Session = Depends(get_db),
 ):
     current_user = _resolve_user_from_request(request, db)
-    rows = (
-        _apply_max_hp_filter(db.query(CatalogItem))
-        .filter(CatalogItem.make == make, CatalogItem.model.isnot(None), CatalogItem.source_site == "av.by")
-        .order_by(CatalogItem.model.asc(), CatalogItem.created_at.desc())
-        .all()
+    query = _apply_max_hp_filter(db.query(CatalogItem)).filter(
+        CatalogItem.model.isnot(None), CatalogItem.source_site == "av.by"
     )
+    if make:
+        query = query.filter(CatalogItem.make == make)
+    rows = query.order_by(CatalogItem.make.asc(), CatalogItem.model.asc(), CatalogItem.created_at.desc()).all()
     grouped: dict[str, dict] = {}
     for item in rows:
+        make_name = (item.make or "").strip()
+        if not make_name:
+            continue
         canonical_model = _canonical_model_name(item.model)
         if not canonical_model:
             continue
-        if canonical_model not in grouped:
-            grouped[canonical_model] = {
-                "make": make,
+        group_key = f"{make_name}|||{canonical_model}" if not make else canonical_model
+        if group_key not in grouped:
+            grouped[group_key] = {
+                "make": make_name,
                 "model": canonical_model,
                 "count": 0,
                 "first_id": item.id,
                 "year_from": item.year_from,
                 "year_to": item.year_to,
                 "generations": set(),
+                "generation_cards": {},
             }
-        grouped[canonical_model]["count"] += 1
+        grouped[group_key]["count"] += 1
         if item.generation:
-            grouped[canonical_model]["generations"].add(item.generation)
-        if grouped[canonical_model]["year_from"] is None or (
-            item.year_from is not None and item.year_from < grouped[canonical_model]["year_from"]
+            grouped[group_key]["generations"].add(item.generation)
+            generation_key = item.generation
+            cards = grouped[group_key]["generation_cards"]
+            if generation_key not in cards:
+                cards[generation_key] = {
+                    "generation": generation_key,
+                    "count": 0,
+                    "first_id": item.id,
+                    "year_from": item.year_from,
+                    "year_to": item.year_to,
+                    "make": make_name,
+                    "model": canonical_model,
+                }
+            cards[generation_key]["count"] += 1
+            if cards[generation_key]["year_from"] is None or (
+                item.year_from is not None and item.year_from < cards[generation_key]["year_from"]
+            ):
+                cards[generation_key]["year_from"] = item.year_from
+            if cards[generation_key]["year_to"] is None or (
+                item.year_to is not None and item.year_to > cards[generation_key]["year_to"]
+            ):
+                cards[generation_key]["year_to"] = item.year_to
+        if grouped[group_key]["year_from"] is None or (
+            item.year_from is not None and item.year_from < grouped[group_key]["year_from"]
         ):
-            grouped[canonical_model]["year_from"] = item.year_from
-        if grouped[canonical_model]["year_to"] is None or (
-            item.year_to is not None and item.year_to > grouped[canonical_model]["year_to"]
+            grouped[group_key]["year_from"] = item.year_from
+        if grouped[group_key]["year_to"] is None or (
+            item.year_to is not None and item.year_to > grouped[group_key]["year_to"]
         ):
-            grouped[canonical_model]["year_to"] = item.year_to
+            grouped[group_key]["year_to"] = item.year_to
 
-    models = sorted(grouped.values(), key=lambda m: m["model"])
+    models = sorted(grouped.values(), key=lambda m: (m["make"], m["model"]))
+    generation_preview_ids: list[int] = []
     for model_item in models:
         model_item["generation_count"] = len(model_item["generations"])
         model_item["generations_url"] = "/catalog/generations?" + urlencode(
-            {"make": make, "model": model_item["model"]}
+            {"make": model_item["make"], "model": model_item["model"]}
         )
+        generation_cards = list(model_item["generation_cards"].values())
+        generation_cards.sort(key=lambda g: (g["count"], g["year_to"] or 0, g["year_from"] or 0), reverse=True)
+        for generation_card in generation_cards:
+            params = {"make": generation_card["make"], "model": generation_card["model"], "generation": generation_card["generation"]}
+            generation_card["mods_url"] = "/catalog/modifications?" + urlencode(params)
+        model_item["generation_previews"] = generation_cards[:3]
+        generation_preview_ids.extend([g["first_id"] for g in model_item["generation_previews"]])
 
     context = _template_context(request, current_user)
     context["make"] = make
     context["models"] = models
     context["cover_urls"] = _build_cover_url_map([item["first_id"] for item in models], db)
+    context["generation_cover_urls"] = _build_cover_url_map(generation_preview_ids, db)
     context["total"] = len(models)
     context["catalog_sidebar"] = _catalog_sidebar_payload(request, db)
     return templates.TemplateResponse(request, "catalog_models.html", context)
@@ -737,42 +980,52 @@ def catalog_models(
 @router.get("/catalog/generations")
 def catalog_generations(
     request: Request,
-    make: str = Query(...),
-    model: str = Query(...),
+    make: str | None = Query(default=None),
+    model: str | None = Query(default=None),
     db: Session = Depends(get_db),
 ):
     current_user = _resolve_user_from_request(request, db)
-    canonical_model = _canonical_model_name(model)
-    rows = (
-        _apply_max_hp_filter(db.query(CatalogItem))
-        .filter(CatalogItem.make == make, CatalogItem.model == canonical_model, CatalogItem.source_site == "av.by")
-        .order_by(CatalogItem.year_from.desc(), CatalogItem.created_at.desc())
-        .all()
-    )
+    canonical_model = _canonical_model_name(model) if model else ""
+    query = _apply_max_hp_filter(db.query(CatalogItem)).filter(CatalogItem.source_site == "av.by")
+    if make:
+        query = query.filter(CatalogItem.make == make)
+    if canonical_model:
+        query = query.filter(CatalogItem.model == canonical_model)
+    rows = query.order_by(CatalogItem.make.asc(), CatalogItem.model.asc(), CatalogItem.year_from.desc()).all()
     grouped: dict[str, dict] = {}
     for item in rows:
+        make_name = (item.make or "").strip()
+        model_name = _canonical_model_name(item.model)
+        if not make_name or not model_name:
+            continue
         generation_name = item.generation or "Без поколения"
-        if generation_name not in grouped:
-            grouped[generation_name] = {
+        group_key = f"{make_name}|||{model_name}|||{generation_name}"
+        if group_key not in grouped:
+            grouped[group_key] = {
+                "make": make_name,
+                "model": model_name,
                 "generation": generation_name,
                 "count": 0,
                 "first_id": item.id,
                 "year_from": item.year_from,
                 "year_to": item.year_to,
             }
-        grouped[generation_name]["count"] += 1
-        if grouped[generation_name]["year_from"] is None or (
-            item.year_from is not None and item.year_from < grouped[generation_name]["year_from"]
+        grouped[group_key]["count"] += 1
+        if grouped[group_key]["year_from"] is None or (
+            item.year_from is not None and item.year_from < grouped[group_key]["year_from"]
         ):
-            grouped[generation_name]["year_from"] = item.year_from
-        if grouped[generation_name]["year_to"] is None or (
-            item.year_to is not None and item.year_to > grouped[generation_name]["year_to"]
+            grouped[group_key]["year_from"] = item.year_from
+        if grouped[group_key]["year_to"] is None or (
+            item.year_to is not None and item.year_to > grouped[group_key]["year_to"]
         ):
-            grouped[generation_name]["year_to"] = item.year_to
+            grouped[group_key]["year_to"] = item.year_to
 
-    generations = sorted(grouped.values(), key=lambda g: ((g["year_from"] or 0), g["generation"]), reverse=True)
+    generations = sorted(
+        grouped.values(),
+        key=lambda g: (g["make"], g["model"], -(g["year_from"] or 0), g["generation"]),
+    )
     for generation_item in generations:
-        params = {"make": make, "model": canonical_model}
+        params = {"make": generation_item["make"], "model": generation_item["model"]}
         if generation_item["generation"] != "Без поколения":
             params["generation"] = generation_item["generation"]
         generation_item["mods_url"] = "/catalog/modifications?" + urlencode(params)
@@ -783,7 +1036,9 @@ def catalog_generations(
     context["generations"] = generations
     context["cover_urls"] = _build_cover_url_map([item["first_id"] for item in generations], db)
     context["total"] = len(generations)
-    context["back_to_models_url"] = "/catalog/models?" + urlencode({"make": make})
+    context["back_to_models_url"] = (
+        "/catalog/models?" + urlencode({"make": make}) if make else "/catalog/models"
+    )
     context["catalog_sidebar"] = _catalog_sidebar_payload(request, db)
     return templates.TemplateResponse(request, "catalog_generations.html", context)
 
@@ -859,6 +1114,7 @@ def catalog_modifications(
     items = deduped_items[offset : offset + page_size]
     context = _template_context(request, current_user)
     context["items"] = items
+    context["mod_titles"] = _build_modification_titles(items)
     context["cover_urls"] = _build_cover_url_map([item.id for item in items], db)
     context["total"] = total
     context["page"] = page

@@ -136,6 +136,23 @@
   - login: `minioadmin`
   - password: `minioadmin`
 
+### Массовое заполнение фото из AV.BY в MinIO/S3
+
+Если в `raw_specs.modification_detail.photos` уже есть URL фото после парсинга, можно массово загрузить обложки в хранилище:
+
+- Локально:
+  - `python tools/sync_catalog_photos.py`
+- В Docker:
+  - `docker compose exec api python tools/sync_catalog_photos.py`
+- На VM:
+  - `docker compose --env-file .env.vm -f docker-compose.vm.yml exec -T api python tools/sync_catalog_photos.py`
+
+Полезные флаги:
+- `--limit 200` — обработать только часть карточек.
+- `--force` — перезаписать/добавить даже если фото уже есть.
+- `--make BMW --model X1 --generation U11` — точечный запуск по фильтрам.
+- `--dry-run` — проверить, что будет сделано, без загрузки файлов.
+
 ## Импорт с AV.BY
 
 - Добавлена гибридная схема для `catalog_items`:
