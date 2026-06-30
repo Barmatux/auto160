@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% block title %}Админка — Парсинг av.by{% endblock %}
+{% block content %}
+<nav class="admin-nav">
+  <a href="/admin/users">Пользователи</a>
+  <a href="/admin/avby-sync" class="active">Парсинг av.by</a>
+</nav>
+
+<h1>Парсинг av.by</h1>
+<p class="hint">
+  Синхронизация объявлений с av.by по моделям из каталога. Планировщик запускает импорт каждые 20 минут.
+</p>
+
+{% if running_sync %}
+  <div class="admin-alert admin-alert-info">
+    Сейчас выполняется синхронизация (запуск {{ running_sync.started_at.strftime('%d.%m.%Y %H:%M') }},
+    источник: {{ trigger_labels.get(running_sync.trigger, running_sync.trigger) }}).
+  </div>
+{% endif %}
+
+<section class="admin-stats-grid">
+  <article class="admin-stat-card">
+    <div class="label">Объявлений с av.by</div>
+    <div class="value">{{ avby_total }}</div>
+    <div class="sub">опубликовано {{ avby_published }}, в архиве {{ avby_archived }}</div>
+  </article>
+  <article class="admin-stat-card">
+    <div class="label">Моделей в каталоге</div>
+    <div class="value">{{ catalog_models }}</div>
+    <div class="sub">source_site = av.by</div>
+  </article>
+  <article class="admin-stat-card">
+    <div class="label">Последний запуск</div>
+    {% if last_run %}
+      <div class="value">
+        <span class="status-pill {{ last_run.status }}">{{ status_labels.get(last_run.status, last_run.status) }}</span>
+      </div>
+      <div class="sub">
+        {{ last_run.started_at.strftime('%d.%m.%Y %H:%M') }}
+        {% if last_run_duration %} · {{ last_run_duration }}{% endif %}
+      </div>
+    {% else %}
+      <div class="value">—</div>
+      <div class="sub">запусков ещё не было</div>
+    {% endif %}
+  </article>
+  <article class="admin-stat-card">
+    <div class="label">За 24 часа</div>
+    <div class="value">+{{ created_24h }} / ~{{ updated_24h }}</div>
+    <div class="sub">создано / обновлено · {{ syncs_24h }} успешных запусков · {{ pages_24h }} страниц</div>
+  </article>
+</section>
+
+{% if last_success %}
+<section class="admin-last-success">
+  <h2>Последний успешный запуск</h2>
+  <p>
+    {{ last_success.started_at.strftime('%d.%m.%Y %H:%M') }} —
+    создано {{ last_success.created_count }},
+    обновлено {{ last_success.updated_count }},
+    пропущено {{ last_success.skipped_count }}
+    (из них по мощности &gt; {{ last_success.max_hp }} л.с.: {{ last_success.skipped_by_hp_count }}),
+    страниц {{ last_success.pages_fetched_count }},
+    марок {{ last_success.brands_count }},
+    моделей {{ last_success.models_count }}.
+  </p>
+</section>
+{% endif %}
+
+<h2>История запусков</h2>
+{% if runs %}
+<table class="users-table sync-table">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Начало</th>
+      <th>Длительность</th>
+      <th>Статус</th>
+      <th>Источник</th>
+      <th>Созд.</th>
+      <th>Обнов.</th>
+      <th>Пропущ.</th>
+      <th>&gt; л.с.</th>
+      <th>Страниц</th>
+      <th>Марки</th>
+      <th>Модели</th>
+      <th>Сбои</th>
+      <th>max HP</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for row in runs %}
+      {% set run = row.run %}
+      <tr>
+        <td>{{ run.id }}</td>
+        <td>{{ run.started_at.strftime('%d.%m.%Y %H:%M') }}</td>
+        <td>{{ row.duration }}</td>
+        <td>
+          <span class="status-pill {{ run.status }}">{{ row.status_label }}</span>
+          {% if run.error_message %}
+            <div class="sync-error" title="{{ run.error_message }}">{{ run.error_message[:80] }}{% if run.error_message|length > 80 %}…{% endif %}</div>
+          {% endif %}
+        </td>
+        <td>{{ row.trigger_label }}</td>
+        <td>{{ run.created_count }}</td>
+        <td>{{ run.updated_count }}</td>
+        <td>{{ run.skipped_count }}</td>
+        <td>{{ run.skipped_by_hp_count }}</td>
+        <td>{{ run.pages_fetched_count }}</td>
+        <td>{{ run.brands_count }}</td>
+        <td>{{ run.models_count }}</td>
+        <td>{{ run.failed_brands_count }}</td>
+        <td>{{ run.max_hp }}</td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="hint">История пуста. Данные появятся после первого запуска импортера (планировщик или вручную).</p>
+{% endif %}
+{% endblock %}

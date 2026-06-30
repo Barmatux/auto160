@@ -14,7 +14,14 @@ def _ts() -> str:
     return datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S UTC")
 
 
-def run_once(max_hp: int, max_pages: int, per_model_limit: int, update_existing: bool, archive_overpowered: bool) -> int:
+def run_once(
+    max_hp: int,
+    max_pages: int,
+    per_model_limit: int,
+    update_existing: bool,
+    archive_overpowered: bool,
+    trigger: str = "scheduler",
+) -> int:
     cmd = [
         sys.executable,
         str(IMPORTER_PATH),
@@ -24,6 +31,8 @@ def run_once(max_hp: int, max_pages: int, per_model_limit: int, update_existing:
         str(max_pages),
         "--per-model-limit",
         str(per_model_limit),
+        "--trigger",
+        trigger,
     ]
     if not update_existing:
         cmd.append("--no-update-existing")

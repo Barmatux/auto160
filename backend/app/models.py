@@ -91,6 +91,27 @@ class CatalogItem(Base):
     photos: Mapped[list["CatalogItemPhoto"]] = relationship(back_populates="catalog_item", cascade="all, delete-orphan")
 
 
+class AvbySyncRun(Base):
+    __tablename__ = "avby_sync_runs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    started_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    status: Mapped[str] = mapped_column(String(20), default="running", index=True)
+    trigger: Mapped[str] = mapped_column(String(30), default="manual", index=True)
+    models_count: Mapped[int] = mapped_column(Integer, default=0)
+    brands_count: Mapped[int] = mapped_column(Integer, default=0)
+    created_count: Mapped[int] = mapped_column(Integer, default=0)
+    updated_count: Mapped[int] = mapped_column(Integer, default=0)
+    skipped_count: Mapped[int] = mapped_column(Integer, default=0)
+    skipped_by_hp_count: Mapped[int] = mapped_column(Integer, default=0)
+    failed_brands_count: Mapped[int] = mapped_column(Integer, default=0)
+    pages_fetched_count: Mapped[int] = mapped_column(Integer, default=0)
+    max_hp: Mapped[int] = mapped_column(Integer, default=160)
+    dry_run: Mapped[bool] = mapped_column(default=False)
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
 class CatalogItemPhoto(Base):
     __tablename__ = "catalog_item_photos"
 

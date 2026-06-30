@@ -1,6 +1,7 @@
 from collections import defaultdict
 import hashlib
 import re
+from datetime import datetime, timedelta
 from urllib.parse import urlencode
 
 from fastapi import APIRouter, Depends, Query, Request
@@ -11,7 +12,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from app.db import get_db
-from app.models import CarListing, CatalogItem, CatalogItemPhoto, ListingStatus, User, UserRole
+from app.models import AvbySyncRun, CarListing, CatalogItem, CatalogItemPhoto, ListingStatus, User, UserRole
 from app.security import decode_token, is_token_revoked
 from app.storage import build_app_download_url
 
@@ -1392,6 +1393,127 @@ def admin_users_page(request: Request, db: Session = Depends(get_db)):
     context = _template_context(request, current_user)
     context["users"] = users
     return templates.TemplateResponse(request, "admin_users.html", context)
+
+
+def _format_duration(seconds: int | None) -> str:
+    if seconds is None:
+        return "—"
+    if seconds < 60:
+        return f"{seconds} сек"
+    minutes, sec = divmod(seconds, 60)
+    if minutes < 60:
+        return f"{minutes} мин {sec} сек"
+    hours, minutes = divmod(minutes, 60)
+    return f"{hours} ч {minutes} мин"
+
+
+AVBY_SYNC_TRIGGER_LABELS = {
+    "scheduler": "Планировщик",
+    "manual": "Вручную",
+    "admin": "Админ",
+}
+
+AVBY_SYNC_STATUS_LABELS = {
+    "running": "В процессе",
+    "success": "Успех",
+    "failed": "Ошибка",
+}
+
+
+@router.get("/admin/avby-sync")
+def admin_avby_sync_page(request: Request, db: Session = Depends(get_db)):
+    current_user = _resolve_user_from_request(request, db)
+    if not current_user:
+        return RedirectResponse(url="/login", status_code=302)
+    if current_user.role != UserRole.admin:
+        return RedirectResponse(url="/", status_code=302)
+
+    runs = db.query(AvbySyncRun).order_by(desc(AvbySyncRun.started_at)).limit(50).all()
+    avby_filter = CarListing.avby_id.isnot(None)
+
+    avby_total = db.query(CarListing).filter(avby_filter).count()
+    avby_published = (
+        db.query(CarListing)
+        .filter(avby_filter, CarListing.status == ListingStatus.published)
+        .count()
+    )
+    avby_archived = (
+        db.query(CarListing)
+        .filter(avby_filter, CarListing.status == ListingStatus.archived)
+        .count()
+    )
+    catalog_models = (
+        db.query(CatalogItem)
+        .filter(CatalogItem.source_site == "av.by")
+        .count()
+    )
+
+    last_run = runs[0] if runs else None
+    last_success = (
+        db.query(AvbySyncRun)
+        .filter(AvbySyncRun.status == "success")
+        .order_by(desc(AvbySyncRun.started_at))
+        .first()
+    )
+    running_sync = (
+        db.query(AvbySyncRun)
+        .filter(AvbySyncRun.status == "running")
+        .order_by(desc(AvbySyncRun.started_at))
+        .first()
+    )
+
+    since_24h = datetime.utcnow() - timedelta(hours=24)
+    recent_success_runs = (
+        db.query(AvbySyncRun)
+        .filter(AvbySyncRun.started_at >= since_24h, AvbySyncRun.status == "success")
+        .all()
+    )
+    created_24h = sum(run.created_count for run in recent_success_runs)
+    updated_24h = sum(run.updated_count for run in recent_success_runs)
+    pages_24h = sum(run.pages_fetched_count for run in recent_success_runs)
+    syncs_24h = len(recent_success_runs)
+
+    run_rows = []
+    for run in runs:
+        duration_sec = None
+        if run.started_at and run.finished_at:
+            duration_sec = int((run.finished_at - run.started_at).total_seconds())
+        run_rows.append(
+            {
+                "run": run,
+                "duration": _format_duration(duration_sec),
+                "trigger_label": AVBY_SYNC_TRIGGER_LABELS.get(run.trigger, run.trigger),
+                "status_label": AVBY_SYNC_STATUS_LABELS.get(run.status, run.status),
+            }
+        )
+
+    last_run_duration = None
+    if last_run and last_run.started_at and last_run.finished_at:
+        last_run_duration = _format_duration(
+            int((last_run.finished_at - last_run.started_at).total_seconds())
+        )
+
+    context = _template_context(request, current_user)
+    context.update(
+        {
+            "runs": run_rows,
+            "avby_total": avby_total,
+            "avby_published": avby_published,
+            "avby_archived": avby_archived,
+            "catalog_models": catalog_models,
+            "last_run": last_run,
+            "last_run_duration": last_run_duration,
+            "last_success": last_success,
+            "running_sync": running_sync,
+            "created_24h": created_24h,
+            "updated_24h": updated_24h,
+            "pages_24h": pages_24h,
+            "syncs_24h": syncs_24h,
+            "trigger_labels": AVBY_SYNC_TRIGGER_LABELS,
+            "status_labels": AVBY_SYNC_STATUS_LABELS,
+        }
+    )
+    return templates.TemplateResponse(request, "admin_avby_sync.html", context)
 
 
 @router.get("/logout")

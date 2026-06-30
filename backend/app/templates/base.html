@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{% block title %}Auto160{% endblock %}</title>
-    <link rel="stylesheet" href="/static/styles.css?v=20260616-01" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260630-01" />
   </head>
   <body>
     <header class="header">
@@ -17,7 +17,8 @@
         {% if is_admin %}
           <a href="/create-listing">Подать объявление</a>
           <a href="/profile/my-listings">Управление объявлениями</a>
-          <a href="/admin/users">Админка</a>
+          <a href="/admin/users">Пользователи</a>
+          <a href="/admin/avby-sync">Парсинг</a>
         {% endif %}
         {% if is_authenticated %}
           <span class="user-badge">{{ current_user.email }} ({{ current_user.role.value }})</span>

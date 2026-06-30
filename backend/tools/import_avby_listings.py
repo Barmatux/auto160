@@ -2,6 +2,7 @@ import argparse
 import os
 import re
 import sys
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -14,7 +15,7 @@ if str(ROOT_DIR) not in sys.path:
 os.chdir(ROOT_DIR)
 
 from app.db import SessionLocal
-from app.models import CarListing, CatalogItem, ListingStatus, User, UserRole
+from app.models import AvbySyncRun, CarListing, CatalogItem, ListingStatus, User, UserRole
 from app.security import hash_password
 
 
@@ -332,60 +333,111 @@ def _fetch_brand_page(brand_id: int, page: int, user_agent: str) -> dict[str, An
     return response.json()
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser(description="Import AV.BY adverts into car_listings for our catalog models")
-    parser.add_argument("--user-agent", default="Mozilla/5.0", help="Browser User-Agent")
-    parser.add_argument("--make", default=None, help="Filter by make (contains match)")
-    parser.add_argument("--model", default=None, help="Filter by model (contains match)")
-    parser.add_argument("--limit-models", type=int, default=None, help="Limit number of models to fetch")
-    parser.add_argument("--per-model-limit", type=int, default=30, help="Limit adverts per model")
-    parser.add_argument("--max-pages", type=int, default=30, help="Max paginated pages per brand")
-    parser.add_argument("--max-hp", type=int, default=160, help="Import only adverts with power <= this value")
-    parser.add_argument(
-        "--no-update-existing",
-        action="store_true",
-        help="Do not update existing imported AV.BY listings",
-    )
-    parser.add_argument(
-        "--archive-overpowered",
-        action="store_true",
-        help="Archive existing listing if the same AVBY_ID now has power above max-hp",
-    )
-    parser.add_argument("--dry-run", action="store_true", help="Do not write to DB")
-    args = parser.parse_args()
-    update_existing = not args.no_update_existing
+def _start_sync_run(db, *, trigger: str, max_hp: int, dry_run: bool) -> AvbySyncRun | None:
+    if dry_run:
+        return None
+    run = AvbySyncRun(status="running", trigger=trigger, max_hp=max_hp, dry_run=dry_run)
+    db.add(run)
+    db.commit()
+    db.refresh(run)
+    return run
 
-    targets = _collect_target_models(args.make, args.model, args.limit_models)
+
+def _finish_sync_run(
+    db,
+    run: AvbySyncRun | None,
+    *,
+    status: str,
+    models_count: int,
+    brands_count: int,
+    created: int,
+    updated: int,
+    skipped: int,
+    skipped_by_hp: int,
+    failed_brands: int,
+    pages_fetched: int,
+    error_message: str | None = None,
+) -> None:
+    if run is None:
+        return
+    run.finished_at = datetime.utcnow()
+    run.status = status
+    run.models_count = models_count
+    run.brands_count = brands_count
+    run.created_count = created
+    run.updated_count = updated
+    run.skipped_count = skipped
+    run.skipped_by_hp_count = skipped_by_hp
+    run.failed_brands_count = failed_brands
+    run.pages_fetched_count = pages_fetched
+    run.error_message = error_message
+    db.commit()
+
+
+def run_import(
+    *,
+    user_agent: str = "Mozilla/5.0",
+    make: str | None = None,
+    model: str | None = None,
+    limit_models: int | None = None,
+    per_model_limit: int = 30,
+    max_pages: int = 30,
+    max_hp: int = 160,
+    update_existing: bool = True,
+    archive_overpowered: bool = False,
+    dry_run: bool = False,
+    trigger: str = "manual",
+) -> dict[str, Any]:
+    targets = _collect_target_models(make, model, limit_models)
     if not targets:
         print("No target models found in catalog_items (source_site=av.by).")
-        return
+        db = SessionLocal()
+        try:
+            run = _start_sync_run(db, trigger=trigger, max_hp=max_hp, dry_run=dry_run)
+            _finish_sync_run(
+                db,
+                run,
+                status="success",
+                models_count=0,
+                brands_count=0,
+                created=0,
+                updated=0,
+                skipped=0,
+                skipped_by_hp=0,
+                failed_brands=0,
+                pages_fetched=0,
+            )
+        finally:
+            db.close()
+        return {"status": "success", "models": 0, "brands": 0, "created": 0, "updated": 0}
 
     brand_to_models: dict[str, set[str]] = {}
     canonical_model_name: dict[tuple[str, str], str] = {}
     canonical_brand_name: dict[str, str] = {}
-    for make, model in targets:
-        make_n = _normalize_name(make)
-        model_n = _normalize_name(model)
+    for make_name, model_name in targets:
+        make_n = _normalize_name(make_name)
+        model_n = _normalize_name(model_name)
         if not make_n or not model_n:
             continue
         brand_to_models.setdefault(make_n, set()).add(model_n)
-        canonical_model_name[(make_n, model_n)] = model
-        canonical_brand_name[make_n] = make
+        canonical_model_name[(make_n, model_n)] = model_name
+        canonical_brand_name[make_n] = make_name
 
     print(f"models: {len(targets)} brands: {len(brand_to_models)}")
-    brand_id_map = _fetch_brand_id_map(args.user_agent)
+    brand_id_map = _fetch_brand_id_map(user_agent)
 
     db = SessionLocal()
+    run = None
+    created = 0
+    updated = 0
+    skipped = 0
+    skipped_by_hp = 0
+    failed_brands = 0
+    pages_fetched = 0
     try:
+        run = _start_sync_run(db, trigger=trigger, max_hp=max_hp, dry_run=dry_run)
         seller = _ensure_importer_user(db)
         existing_map = _load_existing_avby_map(db)
-
-        created = 0
-        updated = 0
-        skipped = 0
-        skipped_by_hp = 0
-        failed_brands = 0
-        pages_fetched = 0
         imported_per_model: dict[tuple[str, str], int] = {}
 
         for brand_n, model_set in brand_to_models.items():
@@ -397,11 +449,11 @@ def main() -> None:
                 continue
 
             page = 1
-            page_count = args.max_pages
+            page_count = max_pages
             print(f"fetch-brand: {brand_display} (id={brand_id})")
-            while page <= min(page_count, args.max_pages):
+            while page <= min(page_count, max_pages):
                 try:
-                    page_data = _fetch_brand_page(brand_id=brand_id, page=page, user_agent=args.user_agent)
+                    page_data = _fetch_brand_page(brand_id=brand_id, page=page, user_agent=user_agent)
                 except Exception as exc:
                     failed_brands += 1
                     print(f"fail-brand-page: {brand_display} page={page} -> {exc}")
@@ -411,7 +463,7 @@ def main() -> None:
                 page_count = _to_int(page_data.get("pageCount")) or page_count
                 adverts = page_data.get("adverts") or []
                 print(
-                    f"  page {page}/{min(page_count, args.max_pages)}: "
+                    f"  page {page}/{min(page_count, max_pages)}: "
                     f"adverts={len(adverts)}"
                 )
 
@@ -430,7 +482,7 @@ def main() -> None:
                         skipped += 1
                         continue
 
-                    if args.per_model_limit > 0 and imported_per_model.get(target_key, 0) >= args.per_model_limit:
+                    if per_model_limit > 0 and imported_per_model.get(target_key, 0) >= per_model_limit:
                         skipped += 1
                         continue
 
@@ -446,10 +498,10 @@ def main() -> None:
                     power_hp = _to_int(payload.get("engine_power_hp"))
                     existing = existing_map.get(avby_id)
 
-                    if power_hp is None or power_hp > args.max_hp:
+                    if power_hp is None or power_hp > max_hp:
                         skipped += 1
                         skipped_by_hp += 1
-                        if args.archive_overpowered and existing:
+                        if archive_overpowered and existing:
                             existing.status = ListingStatus.archived
                         continue
 
@@ -476,27 +528,114 @@ def main() -> None:
                     created += 1
                     imported_per_model[target_key] = imported_per_model.get(target_key, 0) + 1
 
-                if not args.dry_run:
+                if not dry_run:
                     db.commit()
 
-                if args.per_model_limit > 0 and all(
-                    imported_per_model.get((brand_n, m), 0) >= args.per_model_limit for m in model_set
+                if per_model_limit > 0 and all(
+                    imported_per_model.get((brand_n, m), 0) >= per_model_limit for m in model_set
                 ):
                     print(f"  stop-brand: reached per-model limit for all target models ({len(model_set)})")
                     break
                 page += 1
 
-        if args.dry_run:
+        if dry_run:
             db.rollback()
 
+        status = "failed" if failed_brands > 0 and created == 0 and updated == 0 else "success"
+        _finish_sync_run(
+            db,
+            run,
+            status=status,
+            models_count=len(targets),
+            brands_count=len(brand_to_models),
+            created=created,
+            updated=updated,
+            skipped=skipped,
+            skipped_by_hp=skipped_by_hp,
+            failed_brands=failed_brands,
+            pages_fetched=pages_fetched,
+        )
         print(
             "summary: "
             f"created={created} updated={updated} skipped={skipped} "
             f"skipped_by_hp={skipped_by_hp} failed_brands={failed_brands} "
-            f"pages_fetched={pages_fetched} max_hp={args.max_hp} dry_run={args.dry_run}"
+            f"pages_fetched={pages_fetched} max_hp={max_hp} dry_run={dry_run}"
         )
+        return {
+            "status": status,
+            "models": len(targets),
+            "brands": len(brand_to_models),
+            "created": created,
+            "updated": updated,
+            "skipped": skipped,
+            "skipped_by_hp": skipped_by_hp,
+            "failed_brands": failed_brands,
+            "pages_fetched": pages_fetched,
+        }
+    except Exception as exc:
+        if dry_run:
+            db.rollback()
+        _finish_sync_run(
+            db,
+            run,
+            status="failed",
+            models_count=len(targets),
+            brands_count=len(brand_to_models),
+            created=created,
+            updated=updated,
+            skipped=skipped,
+            skipped_by_hp=skipped_by_hp,
+            failed_brands=failed_brands,
+            pages_fetched=pages_fetched,
+            error_message=str(exc),
+        )
+        raise
     finally:
         db.close()
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Import AV.BY adverts into car_listings for our catalog models")
+    parser.add_argument("--user-agent", default="Mozilla/5.0", help="Browser User-Agent")
+    parser.add_argument("--make", default=None, help="Filter by make (contains match)")
+    parser.add_argument("--model", default=None, help="Filter by model (contains match)")
+    parser.add_argument("--limit-models", type=int, default=None, help="Limit number of models to fetch")
+    parser.add_argument("--per-model-limit", type=int, default=30, help="Limit adverts per model")
+    parser.add_argument("--max-pages", type=int, default=30, help="Max paginated pages per brand")
+    parser.add_argument("--max-hp", type=int, default=160, help="Import only adverts with power <= this value")
+    parser.add_argument(
+        "--no-update-existing",
+        action="store_true",
+        help="Do not update existing imported AV.BY listings",
+    )
+    parser.add_argument(
+        "--archive-overpowered",
+        action="store_true",
+        help="Archive existing listing if the same AVBY_ID now has power above max-hp",
+    )
+    parser.add_argument("--dry-run", action="store_true", help="Do not write to DB")
+    parser.add_argument("--trigger", default="manual", help="Sync trigger label: manual, scheduler, admin")
+    args = parser.parse_args()
+
+    try:
+        result = run_import(
+            user_agent=args.user_agent,
+            make=args.make,
+            model=args.model,
+            limit_models=args.limit_models,
+            per_model_limit=args.per_model_limit,
+            max_pages=args.max_pages,
+            max_hp=args.max_hp,
+            update_existing=not args.no_update_existing,
+            archive_overpowered=args.archive_overpowered,
+            dry_run=args.dry_run,
+            trigger=args.trigger,
+        )
+    except Exception:
+        raise SystemExit(1) from None
+
+    if result.get("status") == "failed":
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":
