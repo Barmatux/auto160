@@ -213,6 +213,51 @@ body {
   gap: 10px;
 }
 
+.offer-feed-card {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.offer-feed-thumb-wrap {
+  display: block;
+  margin-bottom: 0;
+  border-radius: 8px;
+  overflow: hidden;
+  line-height: 0;
+}
+
+.offer-feed-thumb {
+  width: 72px;
+  height: 54px;
+  object-fit: cover;
+  display: block;
+}
+
+.offer-feed-body {
+  min-width: 0;
+}
+
+.offer-feed-body h3 {
+  margin: 0 0 6px;
+  font-size: 0.95rem;
+  line-height: 1.25;
+}
+
+.offer-feed-body p {
+  margin: 3px 0;
+  font-size: 0.84rem;
+}
+
+.offer-feed-body .actions-row {
+  margin-top: 8px;
+  gap: 6px;
+}
+
+.offer-feed-body .actions-row a {
+  font-size: 0.82rem;
+}
+
 .filters {
   background: var(--surface);
   border: 1px solid var(--border);

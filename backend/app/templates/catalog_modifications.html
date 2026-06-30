@@ -47,15 +47,22 @@
         {% if ad_listings %}
           <div class="offers-list">
             {% for ad in ad_listings %}
-              <article class="listing-card">
-                <h3><a href="/listings/{{ ad.id }}">{{ ad.title }}</a></h3>
-                <p><strong>{{ ad.brand }} {{ ad.model }}</strong> · {{ ad.year }}</p>
-                <p><strong>Цена:</strong> {{ ad.price }} ₽</p>
-                <p><strong>Пробег:</strong> {{ ad.mileage }} км</p>
-                <p><strong>Город:</strong> {{ ad.city }}</p>
-                <div class="actions-row">
-                  <a href="/listings/{{ ad.id }}">Открыть объявление</a>
-                  <a href="/inspection?listing_id={{ ad.id }}">Проверить VIN</a>
+              <article class="listing-card offer-feed-card">
+                {% if ad_listing_cover_urls.get(ad.id) %}
+                  <a class="offer-feed-thumb-wrap card-cover-link" href="/listings/{{ ad.id }}" aria-label="Открыть объявление {{ ad.brand }} {{ ad.model }}">
+                    <img class="offer-feed-thumb" src="{{ ad_listing_cover_urls.get(ad.id) }}" alt="{{ ad.brand }} {{ ad.model }}" />
+                  </a>
+                {% endif %}
+                <div class="offer-feed-body">
+                  <h3><a href="/listings/{{ ad.id }}">{{ ad.title }}</a></h3>
+                  <p><strong>{{ ad.brand }} {{ ad.model }}</strong> · {{ ad.year }}</p>
+                  <p><strong>Цена:</strong> {{ ad.price }} ₽</p>
+                  <p><strong>Пробег:</strong> {{ ad.mileage }} км</p>
+                  <p><strong>Город:</strong> {{ ad.city }}</p>
+                  <div class="actions-row">
+                    <a href="/listings/{{ ad.id }}">Открыть объявление</a>
+                    <a href="/inspection?listing_id={{ ad.id }}">Проверить VIN</a>
+                  </div>
                 </div>
               </article>
             {% endfor %}

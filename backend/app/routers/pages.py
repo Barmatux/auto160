@@ -199,6 +199,147 @@ def _template_context(request: Request, current_user: User | None) -> dict:
     }
 
 
+def _normalize_match_text(value: str | None) -> str:
+    if not value:
+        return ""
+    return value.strip().lower().replace("ё", "е")
+
+
+def _body_types_compatible(catalog_body: str | None, listing_body: str | None) -> bool:
+    left = _normalize_match_text(catalog_body)
+    right = _normalize_match_text(listing_body)
+    if not left or not right:
+        return True
+    if left == right:
+        return True
+    return left in right or right in left
+
+
+def _extract_photo_url_from_entry(photo: dict) -> str | None:
+    if not isinstance(photo, dict):
+        return None
+    for key in ("big", "medium", "small", "extrasmall"):
+        variant = photo.get(key)
+        if isinstance(variant, dict) and variant.get("url"):
+            return variant["url"]
+    if photo.get("url"):
+        return photo["url"]
+    file_obj = photo.get("file")
+    if isinstance(file_obj, dict) and file_obj.get("url"):
+        return file_obj["url"]
+    return None
+
+
+def _extract_photo_urls_from_raw_specs(raw_specs: dict) -> list[str]:
+    if not isinstance(raw_specs, dict):
+        return []
+    detail = raw_specs.get("modification_detail") or {}
+    if not isinstance(detail, dict):
+        return []
+    photos = detail.get("photos")
+    if not isinstance(photos, list):
+        return []
+    urls: list[str] = []
+    seen: set[str] = set()
+    for photo in photos:
+        url = _extract_photo_url_from_entry(photo)
+        if url and url not in seen:
+            seen.add(url)
+            urls.append(url)
+    return urls
+
+
+def _extract_raw_photo_url(raw_specs: dict) -> str | None:
+    urls = _extract_photo_urls_from_raw_specs(raw_specs)
+    return urls[0] if urls else None
+
+
+def _listing_match_score(listing: CarListing, item: CatalogItem) -> int:
+    if not listing.cover_photo_url:
+        return -1
+    if _normalize_match_text(listing.brand) != _normalize_match_text(item.make):
+        return -1
+    if _canonical_model_name(listing.model) != _canonical_model_name(item.model):
+        return -1
+    if not _body_types_compatible(item.body_type, listing.body_type):
+        return -1
+
+    score = 10
+    if item.body_type and listing.body_type:
+        if _normalize_match_text(item.body_type) == _normalize_match_text(listing.body_type):
+            score += 40
+        else:
+            score += 25
+    if item.generation and listing.generation:
+        if _normalize_match_text(item.generation) == _normalize_match_text(listing.generation):
+            score += 20
+        elif _normalize_match_text(listing.generation) in _normalize_match_text(item.generation):
+            score += 10
+    if item.year_from is not None and listing.year is not None:
+        year_to = item.year_to if item.year_to is not None else item.year_from
+        if item.year_from <= listing.year <= year_to:
+            score += 15
+        elif abs(listing.year - item.year_from) <= 1 or abs(listing.year - year_to) <= 1:
+            score += 5
+    if item.engine_power_hp is not None and listing.engine_power_hp is not None:
+        diff = abs(item.engine_power_hp - listing.engine_power_hp)
+        if diff <= 5:
+            score += 25
+        elif diff <= 15:
+            score += 12
+        elif diff <= 30:
+            score += 5
+    return score
+
+
+def _fetch_listings_for_catalog_items(items: list[CatalogItem], db: Session) -> dict[tuple[str, str], list[CarListing]]:
+    if not items:
+        return {}
+    pairs = {(item.make or "", _canonical_model_name(item.model)) for item in items if item.make and item.model}
+    cache: dict[tuple[str, str], list[CarListing]] = {}
+    for make, model in pairs:
+        if not make or not model:
+            continue
+        cache[(make, model)] = (
+            db.query(CarListing)
+            .filter(
+                CarListing.status == ListingStatus.published,
+                CarListing.cover_photo_url.isnot(None),
+                CarListing.brand.ilike(make),
+                CarListing.model.ilike(model),
+            )
+            .order_by(CarListing.created_at.desc())
+            .limit(200)
+            .all()
+        )
+    return cache
+
+
+def _pick_listing_cover_for_item(item: CatalogItem, listings: list[CarListing]) -> str | None:
+    scored: list[tuple[int, int, str]] = []
+    for listing in listings:
+        score = _listing_match_score(listing, item)
+        if score >= 0 and listing.cover_photo_url:
+            scored.append((score, listing.id, listing.cover_photo_url))
+    if not scored:
+        return None
+    scored.sort(key=lambda row: (-row[0], -row[1]))
+    top_score = scored[0][0]
+    top_matches = [row for row in scored if row[0] == top_score]
+    return top_matches[item.id % len(top_matches)][2]
+
+
+def _resolve_catalog_item_cover(
+    item: CatalogItem,
+    listings_cache: dict[tuple[str, str], list[CarListing]],
+) -> str | None:
+    listings = listings_cache.get((item.make or "", _canonical_model_name(item.model)), [])
+    listing_cover = _pick_listing_cover_for_item(item, listings)
+    if listing_cover:
+        return listing_cover
+    return _extract_raw_photo_url(item.raw_specs or {})
+
+
 def _build_cover_url_map(item_ids: list[int], db: Session) -> dict[int, str]:
     if not item_ids:
         return {}
@@ -215,36 +356,54 @@ def _build_cover_url_map(item_ids: list[int], db: Session) -> dict[int, str]:
         cover_map[photo.catalog_item_id] = build_app_download_url(photo.storage_key)
 
     missing_ids = [item_id for item_id in item_ids if item_id not in cover_map]
-    if missing_ids:
-        items = db.query(CatalogItem).filter(CatalogItem.id.in_(missing_ids)).all()
-        for item in items:
-            fallback_url = _extract_raw_photo_url(item.raw_specs or {})
-            if fallback_url:
-                cover_map[item.id] = fallback_url
+    if not missing_ids:
+        return cover_map
+
+    items = db.query(CatalogItem).filter(CatalogItem.id.in_(missing_ids)).all()
+    listings_cache = _fetch_listings_for_catalog_items(items, db)
+    for item in items:
+        cover_url = _resolve_catalog_item_cover(item, listings_cache)
+        if cover_url:
+            cover_map[item.id] = cover_url
     return cover_map
 
 
-def _extract_raw_photo_url(raw_specs: dict) -> str | None:
-    if not isinstance(raw_specs, dict):
+def _match_catalog_item_for_listing(listing: CarListing, catalog_items: list[CatalogItem]) -> CatalogItem | None:
+    if not catalog_items:
         return None
-    detail = raw_specs.get("modification_detail") or {}
-    if not isinstance(detail, dict):
-        return None
-    photos = detail.get("photos")
-    if not isinstance(photos, list) or not photos:
-        return None
-    first = photos[0]
-    if isinstance(first, dict):
-        if isinstance(first.get("big"), dict) and first["big"].get("url"):
-            return first["big"]["url"]
-        if isinstance(first.get("medium"), dict) and first["medium"].get("url"):
-            return first["medium"]["url"]
-        if first.get("url"):
-            return first["url"]
-        file_obj = first.get("file")
-        if isinstance(file_obj, dict) and file_obj.get("url"):
-            return file_obj["url"]
-    return None
+    if listing.year is not None:
+        for item in catalog_items:
+            year_from = item.year_from
+            year_to = item.year_to if item.year_to is not None else year_from
+            if year_from is not None and year_from <= listing.year <= (year_to or year_from):
+                return item
+    return catalog_items[0]
+
+
+def _build_listing_catalog_cover_urls(
+    listings: list[CarListing],
+    catalog_items: list[CatalogItem],
+    db: Session,
+) -> dict[int, str]:
+    if not listings or not catalog_items:
+        return {}
+
+    listing_to_catalog: dict[int, int] = {}
+    for listing in listings:
+        matched = _match_catalog_item_for_listing(listing, catalog_items)
+        if matched:
+            listing_to_catalog[listing.id] = matched.id
+
+    cover_by_catalog = _build_cover_url_map(list(listing_to_catalog.values()), db)
+    result: dict[int, str] = {}
+    for listing in listings:
+        if listing.cover_photo_url:
+            result[listing.id] = listing.cover_photo_url
+            continue
+        catalog_id = listing_to_catalog.get(listing.id)
+        if catalog_id and catalog_id in cover_by_catalog:
+            result[listing.id] = cover_by_catalog[catalog_id]
+    return result
 
 
 def _distinct_values(db: Session, column):
@@ -1160,6 +1319,7 @@ def catalog_modifications(
         {k: v for k, v in {"make": make or None, "model": _canonical_model_name(model or "") or None}.items() if v}
     )
     ad_listings: list[CarListing] = []
+    generation_items: list[CatalogItem] = []
     canonical_model = _canonical_model_name(model or "")
     if make and canonical_model and generation and generation != "Без поколения":
         generation_items_query = _apply_max_hp_filter(
@@ -1188,6 +1348,7 @@ def catalog_modifications(
                 listings_query = listings_query.filter(CarListing.year <= generation_year_to)
             ad_listings = listings_query.order_by(CarListing.created_at.desc()).limit(8).all()
     context["ad_listings"] = ad_listings
+    context["ad_listing_cover_urls"] = _build_listing_catalog_cover_urls(ad_listings, generation_items, db)
     context["catalog_sidebar"] = _catalog_sidebar_payload(request, db)
     return templates.TemplateResponse(request, "catalog_modifications.html", context)
 
@@ -1206,6 +1367,16 @@ def catalog_item_detail(request: Request, item_id: int, db: Session = Depends(ge
         .all()
     )
     photo_urls = [build_app_download_url(photo.storage_key) for photo in photos]
+    if not photo_urls:
+        listings_cache = _fetch_listings_for_catalog_items([item], db)
+        resolved_cover = _resolve_catalog_item_cover(item, listings_cache)
+        raw_urls = _extract_photo_urls_from_raw_specs(item.raw_specs or {})
+        if resolved_cover and resolved_cover not in raw_urls:
+            photo_urls = [resolved_cover, *raw_urls]
+        elif raw_urls:
+            photo_urls = raw_urls
+        elif resolved_cover:
+            photo_urls = [resolved_cover]
     context = _template_context(request, current_user)
     context["item"] = item
     context["photos"] = photo_urls
