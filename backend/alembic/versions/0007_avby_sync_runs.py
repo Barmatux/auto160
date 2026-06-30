@@ -34,7 +34,7 @@ def upgrade() -> None:
         sa.Column("failed_brands_count", sa.Integer(), nullable=False, server_default="0"),
         sa.Column("pages_fetched_count", sa.Integer(), nullable=False, server_default="0"),
         sa.Column("max_hp", sa.Integer(), nullable=False, server_default="160"),
-        sa.Column("dry_run", sa.Boolean(), nullable=False, server_default=sa.text("0")),
+        sa.Column("dry_run", sa.Boolean(), nullable=False, server_default=sa.false()),
         sa.Column("error_message", sa.Text(), nullable=True),
     )
     op.create_index("ix_avby_sync_runs_id", "avby_sync_runs", ["id"], unique=False)
