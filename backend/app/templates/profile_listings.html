@@ -9,7 +9,9 @@
     {% for item in listings %}
       <article class="listing-card">
         {% if cover_urls.get(item.id) %}
-          <img class="catalog-cover" src="{{ cover_urls.get(item.id) }}" alt="{{ item.make }} {{ item.model }}" />
+          <a class="card-cover-link" href="/catalog/item/{{ item.id }}" aria-label="Открыть карточку {{ item.make }} {{ item.model }}">
+            <img class="catalog-cover" src="{{ cover_urls.get(item.id) }}" alt="{{ item.make }} {{ item.model }}" />
+          </a>
         {% endif %}
         <h3><a href="/catalog/item/{{ item.id }}">{{ item.make }} {{ item.model }}</a></h3>
         <p>Поколение: {{ item.generation or "—" }}</p>

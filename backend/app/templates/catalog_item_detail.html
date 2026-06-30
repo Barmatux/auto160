@@ -16,7 +16,9 @@
     {% if photos %}
       <div class="photo-grid">
         {% for url in photos %}
-          <img class="detail-photo" src="{{ url }}" alt="{{ item.make }} {{ item.model }}" />
+          <a class="photo-link" href="{{ url }}" target="_blank" rel="noopener">
+            <img class="detail-photo" src="{{ url }}" alt="{{ item.make }} {{ item.model }}" />
+          </a>
         {% endfor %}
       </div>
     {% else %}

@@ -24,11 +24,13 @@
 
     {% if gallery_urls %}
       <div class="listing-gallery">
-        <img class="detail-photo detail-cover-photo" src="{{ gallery_urls[0] }}" alt="{{ listing.brand }} {{ listing.model }}" />
+        <a class="photo-link" href="{{ gallery_urls[0] }}" target="_blank" rel="noopener">
+          <img class="detail-photo detail-cover-photo" src="{{ gallery_urls[0] }}" alt="{{ listing.brand }} {{ listing.model }}" />
+        </a>
         {% if gallery_urls|length > 1 %}
           <div class="listing-gallery-grid">
             {% for photo_url in gallery_urls[1:] %}
-              <a href="{{ photo_url }}" target="_blank" rel="noopener">
+              <a class="photo-link" href="{{ photo_url }}" target="_blank" rel="noopener">
                 <img class="listing-gallery-thumb" src="{{ photo_url }}" alt="{{ listing.brand }} {{ listing.model }} фото {{ loop.index + 1 }}" />
               </a>
             {% endfor %}

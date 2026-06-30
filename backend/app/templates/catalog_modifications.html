@@ -28,7 +28,9 @@
                   Выбрать для сравнения
                 </label>
                 {% if cover_urls.get(item.id) %}
-                  <img class="catalog-cover" src="{{ cover_urls.get(item.id) }}" alt="{{ item.make }} {{ item.model }}" />
+                  <a class="card-cover-link" href="/catalog/item/{{ item.id }}" aria-label="Открыть спецификацию {{ item.make }} {{ item.model }}">
+                    <img class="catalog-cover" src="{{ cover_urls.get(item.id) }}" alt="{{ item.make }} {{ item.model }}" />
+                  </a>
                 {% endif %}
                 <h3><a href="/catalog/item/{{ item.id }}">{{ mod_titles.get(item.id, item.make ~ " " ~ item.model) }}</a></h3>
                 <strong><a href="/catalog/item/{{ item.id }}">Открыть спецификацию</a></strong>

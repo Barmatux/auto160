@@ -17,7 +17,9 @@
         {% for item in models %}
           <article class="listing-card">
             {% if cover_urls.get(item.first_id) %}
-              <img class="catalog-cover" src="{{ cover_urls.get(item.first_id) }}" alt="{{ item.make }} {{ item.model }}" />
+              <a class="card-cover-link" href="{{ item.generations_url }}" aria-label="Открыть поколения {{ item.make }} {{ item.model }}">
+                <img class="catalog-cover" src="{{ cover_urls.get(item.first_id) }}" alt="{{ item.make }} {{ item.model }}" />
+              </a>
             {% endif %}
             <h3><a href="{{ item.generations_url }}">{{ item.model }}</a></h3>
             {% if not make %}

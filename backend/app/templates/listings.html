@@ -57,7 +57,9 @@
       {% for listing in listings %}
         <article class="listing-card avby-listing-card">
           {% if listing.cover_photo_url %}
-            <img class="catalog-cover" src="{{ listing.cover_photo_url }}" alt="{{ listing.brand }} {{ listing.model }}" />
+            <a class="card-cover-link" href="/listings/{{ listing.id }}" aria-label="Открыть объявление {{ listing.brand }} {{ listing.model }}">
+              <img class="catalog-cover" src="{{ listing.cover_photo_url }}" alt="{{ listing.brand }} {{ listing.model }}" />
+            </a>
           {% endif %}
           <h3><a href="/listings/{{ listing.id }}">{{ listing.title }}</a></h3>
           <p><strong>{{ listing.brand }} {{ listing.model }}</strong> · {{ listing.year }}{% if listing.generation %} · {{ listing.generation }}{% endif %}</p>
