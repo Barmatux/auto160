@@ -45,6 +45,25 @@ services:
     volumes:
       - minio_data:/data
 
+  avby-sync:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: auto160-avby-sync
+    restart: unless-stopped
+    env_file:
+      - .env.vm
+    depends_on:
+      db:
+        condition: service_healthy
+    command: >
+      python tools/schedule_avby_listings_sync.py
+      --interval-minutes 20
+      --max-hp 160
+      --max-pages 30
+      --per-model-limit 30
+      --archive-overpowered
+
 volumes:
   pgdata:
   minio_data:

@@ -340,13 +340,20 @@ def main() -> None:
     parser.add_argument("--limit-models", type=int, default=None, help="Limit number of models to fetch")
     parser.add_argument("--per-model-limit", type=int, default=30, help="Limit adverts per model")
     parser.add_argument("--max-pages", type=int, default=30, help="Max paginated pages per brand")
+    parser.add_argument("--max-hp", type=int, default=160, help="Import only adverts with power <= this value")
     parser.add_argument(
-        "--update-existing",
+        "--no-update-existing",
         action="store_true",
-        help="Update existing imported AV.BY listings if AVBY_ID already exists",
+        help="Do not update existing imported AV.BY listings",
+    )
+    parser.add_argument(
+        "--archive-overpowered",
+        action="store_true",
+        help="Archive existing listing if the same AVBY_ID now has power above max-hp",
     )
     parser.add_argument("--dry-run", action="store_true", help="Do not write to DB")
     args = parser.parse_args()
+    update_existing = not args.no_update_existing
 
     targets = _collect_target_models(args.make, args.model, args.limit_models)
     if not targets:
@@ -376,6 +383,7 @@ def main() -> None:
         created = 0
         updated = 0
         skipped = 0
+        skipped_by_hp = 0
         failed_brands = 0
         pages_fetched = 0
         imported_per_model: dict[tuple[str, str], int] = {}
@@ -435,10 +443,18 @@ def main() -> None:
                         skipped += 1
                         continue
                     avby_id = payload.pop("avby_id")
-
+                    power_hp = _to_int(payload.get("engine_power_hp"))
                     existing = existing_map.get(avby_id)
+
+                    if power_hp is None or power_hp > args.max_hp:
+                        skipped += 1
+                        skipped_by_hp += 1
+                        if args.archive_overpowered and existing:
+                            existing.status = ListingStatus.archived
+                        continue
+
                     if existing:
-                        if not args.update_existing:
+                        if not update_existing:
                             skipped += 1
                             continue
                         existing.avby_id = avby_id
@@ -476,7 +492,8 @@ def main() -> None:
         print(
             "summary: "
             f"created={created} updated={updated} skipped={skipped} "
-            f"failed_brands={failed_brands} pages_fetched={pages_fetched} dry_run={args.dry_run}"
+            f"skipped_by_hp={skipped_by_hp} failed_brands={failed_brands} "
+            f"pages_fetched={pages_fetched} max_hp={args.max_hp} dry_run={args.dry_run}"
         )
     finally:
         db.close()

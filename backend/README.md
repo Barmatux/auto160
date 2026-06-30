@@ -173,16 +173,28 @@
 
 - Скрипт: `tools/import_avby_listings.py`
 - Источник моделей: берутся из `catalog_items` (`source_site='av.by'`), далее скрипт ходит в `web-api.av.by` с пагинацией по страницам и отбирает объявления под наши модели.
-- Дедупликация: по `AVBY_ID` (сохраняется в `description`).
+- Ограничение по мощности: импортируются только объявления с `engine_power_hp <= 160` (по умолчанию).
+- Дедупликация: по `avby_id` (уникальный индекс в БД), fallback на `AVBY_ID` в `description` для старых записей.
 - Запуск:
-  - `python tools/import_avby_listings.py`
+  - `python tools/import_avby_listings.py --archive-overpowered`
 - Полезные флаги:
   - `--make BMW --model X1` — ограничить импорт по марке/модели.
   - `--limit-models 10` — обработать только часть моделей.
   - `--per-model-limit 30` — ограничить число объявлений на модель.
   - `--max-pages 30` — лимит страниц пагинации на марку (чем выше, тем полнее импорт).
-  - `--update-existing` — обновить уже импортированные объявления.
+  - `--max-hp 160` — лимит мощности по л.с.
+  - `--no-update-existing` — не обновлять уже импортированные объявления.
+  - `--archive-overpowered` — архивировать существующие объявления, если текущая мощность на источнике выше лимита.
   - `--dry-run` — проверить импорт без записи в БД.
+
+### Scheduler импорта объявлений (каждые 20 минут)
+
+- Скрипт: `tools/schedule_avby_listings_sync.py`
+- Разовый запуск:
+  - `python tools/schedule_avby_listings_sync.py --run-once --archive-overpowered`
+- Постоянный цикл:
+  - `python tools/schedule_avby_listings_sync.py --interval-minutes 20 --archive-overpowered`
+- В Docker Compose уже добавлен сервис `avby-sync`, который запускает импорт каждые 20 минут.
 
 ## Предсозданный админ
 
