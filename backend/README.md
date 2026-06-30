@@ -69,11 +69,56 @@
 Примечания:
 - В `docker-compose.vm.yml` порты `api` и `minio` привязаны к `127.0.0.1`, чтобы не торчали в интернет напрямую.
 - Данные PostgreSQL и MinIO сохраняются в docker volumes (`pgdata`, `minio_data`).
-- Для обновления приложения:
-  - `git pull`
-  - `docker compose -f docker-compose.vm.yml up --build -d`
+- Для обновления приложения вручную:
+  - `git pull origin master`
+  - `bash scripts/deploy-vm.sh`
 - Для остановки:
   - `docker compose -f docker-compose.vm.yml down`
+
+## CI/CD (автодеплой на VM)
+
+При push в `master` GitHub Actions подключается по SSH к VM и запускает `scripts/deploy-vm.sh`.
+
+### Одноразовая подготовка VM
+
+1. Клонировать репозиторий:
+   - `git clone https://github.com/Barmatux/auto160.git ~/auto160`
+2. Создать env-файл:
+   - `cd ~/auto160/backend`
+   - `cp .env.vm.example .env.vm`
+   - заполнить пароли и секреты
+3. Первый запуск:
+   - `bash ~/auto160/scripts/deploy-vm.sh`
+4. Убедиться, что пользователь в группе `docker`:
+   - `sudo usermod -aG docker $USER`
+   - переподключиться по SSH
+
+### GitHub Secrets (Settings → Secrets and variables → Actions)
+
+| Secret | Пример | Обязателен |
+| --- | --- | --- |
+| `VM_HOST` | `51.xxx.xxx.xxx` или домен | да |
+| `VM_USER` | `ubuntu` | да |
+| `VM_SSH_KEY` | приватный SSH-ключ (PEM) | да |
+| `VM_SSH_PORT` | `22` | нет |
+| `VM_APP_DIR` | `/home/ubuntu/auto160` | нет |
+
+Рекомендуется отдельный deploy-ключ:
+
+```bash
+ssh-keygen -t ed25519 -C "github-actions-auto160" -f ~/.ssh/auto160_deploy -N ""
+cat ~/.ssh/auto160_deploy.pub >> ~/.ssh/authorized_keys
+```
+
+Приватный ключ (`auto160_deploy`) добавить в GitHub Secret `VM_SSH_KEY`.
+
+### Проверка CI/CD
+
+- Вкладка **Actions** в GitHub → workflow **Deploy to VM**
+- Ручной запуск: **Run workflow**
+- На VM после деплоя:
+  - `docker compose --env-file .env.vm -f docker-compose.vm.yml ps`
+  - `curl http://127.0.0.1:8000/health`
 
 ## Основные URL
 
