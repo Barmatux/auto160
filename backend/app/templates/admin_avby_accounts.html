@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+{% block title %}Админка — Аккаунты av.by{% endblock %}
+{% block content %}
+{% set admin_section = "avby-accounts" %}
+{% include "partials/admin_nav.html" %}
+
+<h1>Аккаунты av.by</h1>
+<p class="hint">
+  Сервисные аккаунты для парсера. Импортируйте из JSON после запуска
+  <code>python tools/register_avby_accounts.py</code>.
+  Файл по умолчанию: <code>{{ json_path }}</code>
+</p>
+
+<section class="admin-stats-grid">
+  <article class="admin-stat-card">
+    <div class="label">Всего</div>
+    <div class="value">{{ stats.total }}</div>
+  </article>
+  <article class="admin-stat-card">
+    <div class="label">Подтверждено</div>
+    <div class="value">{{ stats.confirmed }}</div>
+    <div class="sub">с api_key: {{ stats.with_api_key }}</div>
+  </article>
+  <article class="admin-stat-card">
+    <div class="label">Активных</div>
+    <div class="value">{{ stats.active }}</div>
+    <div class="sub">используются парсером</div>
+  </article>
+  <article class="admin-stat-card">
+    <div class="label">Ошибки</div>
+    <div class="value">{{ stats.failed }}</div>
+  </article>
+</section>
+
+<div class="actions-row admin-actions-bar">
+  <button type="button" id="import-json-btn">Импорт из JSON</button>
+  <span id="import-result" class="hint"></span>
+</div>
+
+{% if accounts %}
+  <table class="users-table sync-table avby-accounts-table">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Email</th>
+        <th>Имя</th>
+        <th>Статус</th>
+        <th>API key</th>
+        <th>Активен</th>
+        <th>Создан</th>
+        <th>Действия</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for account in accounts %}
+        <tr data-account-id="{{ account.id }}">
+          <td>{{ account.id }}</td>
+          <td>{{ account.email }}</td>
+          <td>{{ account.name or "—" }}</td>
+          <td>
+            <span class="status-pill {{ account.status }}">{{ status_labels.get(account.status, account.status) }}</span>
+            {% if account.error_message %}
+              <div class="sync-error" title="{{ account.error_message }}">{{ account.error_message[:60] }}{% if account.error_message|length > 60 %}…{% endif %}</div>
+            {% endif %}
+          </td>
+          <td>{{ account.api_key_masked or "—" }}</td>
+          <td>
+            <label class="hint account-active-toggle">
+              <input type="checkbox" class="active-checkbox" {% if account.is_active %}checked{% endif %} />
+              да
+            </label>
+          </td>
+          <td>
+            {% if account.registered_at %}
+              {{ account.registered_at.strftime('%d.%m.%Y %H:%M') }}
+            {% elif account.created_at %}
+              {{ account.created_at.strftime('%d.%m.%Y %H:%M') }}
+            {% else %}
+              —
+            {% endif %}
+          </td>
+          <td>
+            <div class="actions-row account-row-actions">
+              <button type="button" class="btn-link-like show-secrets-btn">Секреты</button>
+              <button type="button" class="btn-link-like danger delete-account-btn">Удалить</button>
+            </div>
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% else %}
+  <p class="hint">Аккаунтов пока нет. Запустите регистратор или нажмите «Импорт из JSON».</p>
+{% endif %}
+
+<pre id="secrets-output" class="result" hidden></pre>
+
+{% include "partials/auth_script.html" %}
+<script>
+  async function adminFetch(url, options = {}) {
+    let token = getCookie("access_token");
+    if (!token) {
+      const refreshed = await refreshAccessTokenIfNeeded();
+      if (!refreshed) {
+        window.location.href = "/login";
+        return null;
+      }
+      token = getCookie("access_token");
+    }
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
+        ...(options.headers || {}),
+      },
+    });
+    if (response.status === 401) {
+      const refreshed = await refreshAccessTokenIfNeeded();
+      if (refreshed) return adminFetch(url, options);
+    }
+    return response;
+  }
+
+  document.getElementById("import-json-btn").addEventListener("click", async () => {
+    const resultEl = document.getElementById("import-result");
+    resultEl.textContent = "Импорт…";
+    const response = await adminFetch("/api/v1/admin/avby-accounts/import-json", { method: "POST" });
+    if (!response) return;
+    const data = await response.json().catch(() => ({}));
+    if (response.ok) {
+      resultEl.textContent = `Импортировано: ${data.imported}, пропущено: ${data.skipped}`;
+      window.location.reload();
+      return;
+    }
+    resultEl.textContent = data.detail || "Ошибка импорта";
+  });
+
+  document.querySelectorAll(".active-checkbox").forEach((checkbox) => {
+    checkbox.addEventListener("change", async (event) => {
+      const row = event.target.closest("tr");
+      const accountId = row.dataset.accountId;
+      const response = await adminFetch(`/api/v1/admin/avby-accounts/${accountId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ is_active: event.target.checked }),
+      });
+      if (!response || !response.ok) {
+        event.target.checked = !event.target.checked;
+      }
+    });
+  });
+
+  document.querySelectorAll(".show-secrets-btn").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const row = button.closest("tr");
+      const accountId = row.dataset.accountId;
+      const output = document.getElementById("secrets-output");
+      const response = await adminFetch(`/api/v1/admin/avby-accounts/${accountId}/secrets`);
+      if (!response) return;
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        output.hidden = false;
+        output.textContent = JSON.stringify(data, null, 2);
+        return;
+      }
+      output.hidden = false;
+      output.textContent = JSON.stringify(data, null, 2);
+    });
+  });
+
+  document.querySelectorAll(".delete-account-btn").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const row = button.closest("tr");
+      const accountId = row.dataset.accountId;
+      if (!window.confirm(`Удалить аккаунт #${accountId}?`)) return;
+      const response = await adminFetch(`/api/v1/admin/avby-accounts/${accountId}`, { method: "DELETE" });
+      if (response && response.ok) {
+        row.remove();
+      }
+    });
+  });
+</script>
+{% endblock %}

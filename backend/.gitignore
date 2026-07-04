@@ -6,3 +6,5 @@ __pycache__/
 venv/
 .pytest_cache/
 .mypy_cache/
+data/avby_service_accounts.json
+avby_service_accounts*.json

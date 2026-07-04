@@ -150,3 +150,36 @@ class CatalogPhotoOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class AvbyServiceAccountPublic(BaseModel):
+    id: int
+    email: str
+    name: str
+    status: str
+    is_active: bool
+    api_key_masked: str | None = None
+    has_auth_token: bool = False
+    error_message: str | None = None
+    notes: str | None = None
+    registered_at: datetime | None = None
+    created_at: datetime
+
+
+class AvbyServiceAccountSecrets(AvbyServiceAccountPublic):
+    mailtm_password: str | None = None
+    avby_password: str | None = None
+    api_key: str | None = None
+    auth_token: str | None = None
+    email_token: str | None = None
+
+
+class AvbyServiceAccountUpdateRequest(BaseModel):
+    is_active: bool | None = None
+    notes: str | None = None
+
+
+class AvbyAccountsImportResult(BaseModel):
+    imported: int
+    skipped: int
+    path: str

@@ -646,6 +646,49 @@ body {
   color: #1e40af;
 }
 
+.status-pill.confirmed {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.status-pill.mailtm_only,
+.status-pill.pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.admin-actions-bar {
+  margin: 16px 0 20px;
+  align-items: center;
+}
+
+.btn-link-like {
+  border: none;
+  background: transparent;
+  color: var(--primary);
+  cursor: pointer;
+  padding: 0;
+  font: inherit;
+}
+
+.btn-link-like.danger {
+  color: #b91c1c;
+}
+
+.account-row-actions {
+  margin-top: 0;
+}
+
+.account-active-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.avby-accounts-table td {
+  vertical-align: top;
+}
+
 .sync-table {
   font-size: 0.88rem;
 }

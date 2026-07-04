@@ -112,6 +112,26 @@ class AvbySyncRun(Base):
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
 
 
+class AvbyServiceAccount(Base):
+    __tablename__ = "avby_service_accounts"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    name: Mapped[str] = mapped_column(String(120), default="")
+    mailtm_password: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    avby_password: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    api_key: Mapped[str | None] = mapped_column(String(120), nullable=True, index=True)
+    auth_token: Mapped[str | None] = mapped_column(Text, nullable=True)
+    email_token: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    status: Mapped[str] = mapped_column(String(30), default="pending", index=True)
+    is_active: Mapped[bool] = mapped_column(default=False, index=True)
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    registered_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
 class CatalogItemPhoto(Base):
     __tablename__ = "catalog_item_photos"
 

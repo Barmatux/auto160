@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     bootstrap_admin_name: str = "Auto160 Admin"
     bootstrap_admin_password: str = "admin12345"
     catalog_seed_csv_path: str = "app/data/catalog_u160_audi_bmw_mini.csv"
+    avby_accounts_json_path: str = "data/avby_service_accounts.json"
     s3_endpoint_url: str = "http://minio:9000"
     s3_access_key: str = "minioadmin"
     s3_secret_key: str = "minioadmin"

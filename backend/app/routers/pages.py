@@ -11,8 +11,10 @@ from sqlalchemy import case, desc, or_
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
+from app.config import settings
+from app.avby_accounts import serialize_account_public
 from app.db import get_db
-from app.models import AvbySyncRun, CarListing, CatalogItem, CatalogItemPhoto, ListingStatus, User, UserRole
+from app.models import AvbyServiceAccount, AvbySyncRun, CarListing, CatalogItem, CatalogItemPhoto, ListingStatus, User, UserRole
 from app.security import decode_token, is_token_revoked
 from app.storage import build_app_download_url
 
@@ -1685,6 +1687,49 @@ def admin_avby_sync_page(request: Request, db: Session = Depends(get_db)):
         }
     )
     return templates.TemplateResponse(request, "admin_avby_sync.html", context)
+
+
+AVBY_ACCOUNT_STATUS_LABELS = {
+    "confirmed": "Подтверждён",
+    "failed": "Ошибка",
+    "mailtm_only": "Только почта",
+    "pending": "Ожидает",
+}
+
+
+@router.get("/admin/avby-accounts")
+def admin_avby_accounts_page(request: Request, db: Session = Depends(get_db)):
+    current_user = _resolve_user_from_request(request, db)
+    if not current_user:
+        return RedirectResponse(url="/login", status_code=302)
+    if current_user.role != UserRole.admin:
+        return RedirectResponse(url="/", status_code=302)
+
+    rows = db.query(AvbyServiceAccount).order_by(AvbyServiceAccount.created_at.desc()).all()
+    accounts = []
+    for account in rows:
+        item = serialize_account_public(account)
+        item["registered_at"] = account.registered_at
+        item["created_at"] = account.created_at
+        accounts.append(item)
+
+    confirmed = sum(1 for row in rows if row.status == "confirmed")
+    context = _template_context(request, current_user)
+    context.update(
+        {
+            "accounts": accounts,
+            "json_path": settings.avby_accounts_json_path,
+            "status_labels": AVBY_ACCOUNT_STATUS_LABELS,
+            "stats": {
+                "total": len(rows),
+                "confirmed": confirmed,
+                "with_api_key": sum(1 for row in rows if row.api_key),
+                "active": sum(1 for row in rows if row.is_active),
+                "failed": sum(1 for row in rows if row.status == "failed"),
+            },
+        }
+    )
+    return templates.TemplateResponse(request, "admin_avby_accounts.html", context)
 
 
 @router.get("/logout")

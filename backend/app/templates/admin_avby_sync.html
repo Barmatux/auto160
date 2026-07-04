@@ -1,10 +1,8 @@
 {% extends "base.html" %}
 {% block title %}Админка — Парсинг av.by{% endblock %}
 {% block content %}
-<nav class="admin-nav">
-  <a href="/admin/users">Пользователи</a>
-  <a href="/admin/avby-sync" class="active">Парсинг av.by</a>
-</nav>
+{% set admin_section = "avby-sync" %}
+{% include "partials/admin_nav.html" %}
 
 <h1>Парсинг av.by</h1>
 <p class="hint">

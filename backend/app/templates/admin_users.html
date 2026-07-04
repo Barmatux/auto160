@@ -1,10 +1,8 @@
 {% extends "base.html" %}
 {% block title %}Админка - Пользователи{% endblock %}
 {% block content %}
-<nav class="admin-nav">
-  <a href="/admin/users" class="active">Пользователи</a>
-  <a href="/admin/avby-sync">Парсинг av.by</a>
-</nav>
+{% set admin_section = "users" %}
+{% include "partials/admin_nav.html" %}
 
 <h1>Пользователи</h1>
 <p class="hint">Можно менять роли прямо на этой странице (admin only).</p>
