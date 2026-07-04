@@ -33,6 +33,9 @@ from app.db import SessionLocal
 
 MAILTM_BASE = "https://api.mail.tm"
 AVBY_BASE = "https://web-api.av.by"
+AVBY_RECAPTCHA_SITE_KEY = "6LewiPMbAAAAAGivApIOmNe4pIjnoWgi5gjRdcW2"
+AVBY_REGISTRATION_URL = "https://av.by/registration"
+DEFAULT_CAPTCHA_API_URL = "https://2captcha.com"
 
 CODE_PATTERNS = [
     re.compile(r"(?:код[^\d]{0,40})(\d{4,8})", re.IGNORECASE),
@@ -93,6 +96,85 @@ def _extract_verification_token(subject: str, text: str, html: str | list[str]) 
         if match:
             return match.group(1)
     return None
+
+
+def _captcha_env_api_key() -> str | None:
+    for name in ("CAPTCHA_2CAPTCHA_API_KEY", "TWOCAPTCHA_API_KEY", "RUCAPTCHA_API_KEY"):
+        value = (os.environ.get(name) or "").strip()
+        if value:
+            return value
+    return None
+
+
+def solve_recaptcha_invisible(
+    *,
+    api_key: str,
+    site_key: str = AVBY_RECAPTCHA_SITE_KEY,
+    page_url: str = AVBY_REGISTRATION_URL,
+    api_base: str = DEFAULT_CAPTCHA_API_URL,
+    poll_interval: float = 5.0,
+    timeout_seconds: int = 180,
+) -> str:
+    """Solve Google reCAPTCHA v2 invisible via 2captcha-compatible API."""
+    api_base = api_base.rstrip("/")
+    submit_resp = requests.post(
+        f"{api_base}/in.php",
+        data={
+            "key": api_key,
+            "method": "userrecaptcha",
+            "googlekey": site_key,
+            "pageurl": page_url,
+            "invisible": 1,
+            "json": 1,
+        },
+        timeout=30,
+    )
+    submit_resp.raise_for_status()
+    submit_payload = submit_resp.json()
+    if submit_payload.get("status") != 1:
+        raise RuntimeError(f"captcha submit failed: {submit_payload.get('request') or submit_payload}")
+
+    task_id = str(submit_payload["request"])
+    deadline = time.time() + timeout_seconds
+    while time.time() < deadline:
+        time.sleep(poll_interval)
+        poll_resp = requests.get(
+            f"{api_base}/res.php",
+            params={"key": api_key, "action": "get", "id": task_id, "json": 1},
+            timeout=30,
+        )
+        poll_resp.raise_for_status()
+        poll_payload = poll_resp.json()
+        if poll_payload.get("status") == 1:
+            token = poll_payload.get("request")
+            if token:
+                return str(token)
+            raise RuntimeError("captcha solver returned empty token")
+        request_msg = str(poll_payload.get("request") or "")
+        if request_msg != "CAPCHA_NOT_READY":
+            raise RuntimeError(f"captcha solve failed: {request_msg}")
+    raise TimeoutError(f"captcha solve timed out after {timeout_seconds}s")
+
+
+def obtain_captcha_token(args: argparse.Namespace, *, user_agent: str, index: int) -> str:
+    if args.captcha_token:
+        if args.count > 1:
+            print(f"[{index}] warning: --captcha-token is single-use; use 2captcha for batch runs")
+        return args.captcha_token
+
+    api_key = _captcha_env_api_key()
+    if api_key:
+        print(f"[{index}] solving reCAPTCHA via {args.captcha_api_url}...")
+        return solve_recaptcha_invisible(api_key=api_key, api_base=args.captcha_api_url)
+
+    client = AvbyAuthClient(user_agent=user_agent)
+    requirements = client.get_signup_requirements()
+    if requirements.get("captchaRequired"):
+        raise RuntimeError(
+            "av.by requires reCAPTCHA on this IP. Set CAPTCHA_2CAPTCHA_API_KEY in .env.vm "
+            "or pass --captcha-token (manual, single account)."
+        )
+    return ""
 
 
 class MailTmClient:
@@ -167,6 +249,11 @@ class AvbyAuthClient:
             "Referer": "https://av.by/registration",
         }
 
+    def get_signup_requirements(self) -> dict[str, Any]:
+        resp = self.session.get(f"{AVBY_BASE}/auth/requirements/sign-up", headers=self.headers)
+        resp.raise_for_status()
+        return resp.json()
+
     def sign_up_by_email(
         self,
         *,
@@ -183,7 +270,13 @@ class AvbyAuthClient:
         }
         resp = self.session.post(f"{AVBY_BASE}/auth/email/sign-up", headers=self.headers, json=payload)
         if resp.status_code not in {200, 201, 204}:
-            raise RuntimeError(f"av.by sign-up failed: {resp.status_code} {resp.text[:500]}")
+            detail = resp.text[:500]
+            if "invalid_captcha" in detail:
+                raise RuntimeError(
+                    f"av.by sign-up failed: invalid captcha ({resp.status_code}). "
+                    "Set CAPTCHA_2CAPTCHA_API_KEY in .env.vm or pass a fresh --captcha-token."
+                )
+            raise RuntimeError(f"av.by sign-up failed: {resp.status_code} {detail}")
 
     def confirm_sign_up(self, email_token: str) -> dict[str, Any]:
         resp = self.session.post(
@@ -283,7 +376,16 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--name", default="Сервис Авто", help="Display name on av.by (Cyrillic)")
     parser.add_argument("--delay-seconds", type=float, default=3.0, help="Pause between accounts")
     parser.add_argument("--mail-wait-seconds", type=int, default=180, help="How long to wait for verification email")
-    parser.add_argument("--captcha-token", default=None, help="googleRecaptcha2InvisibleToken if av.by starts requiring it")
+    parser.add_argument(
+        "--captcha-token",
+        default=None,
+        help="googleRecaptcha2InvisibleToken (single-use; for one account only)",
+    )
+    parser.add_argument(
+        "--captcha-api-url",
+        default=os.environ.get("CAPTCHA_API_URL", DEFAULT_CAPTCHA_API_URL),
+        help="2captcha-compatible API base URL (https://2captcha.com or https://rucaptcha.com)",
+    )
     parser.add_argument("--user-agent", default="Mozilla/5.0", help="Browser User-Agent")
     parser.add_argument("--dry-run", action="store_true", help="Only create Mail.tm mailbox, skip av.by registration")
     return parser.parse_args()
@@ -316,12 +418,13 @@ def main() -> int:
                 )
                 print(f"[{index}] dry-run mailbox: {email}")
             else:
+                captcha_token = obtain_captcha_token(args, user_agent=args.user_agent, index=index)
                 account = register_one_account(
                     index=index,
                     local_prefix=args.prefix,
                     display_name=args.name,
                     user_agent=args.user_agent,
-                    captcha_token=args.captcha_token,
+                    captcha_token=captcha_token,
                     mail_wait_seconds=args.mail_wait_seconds,
                 )
             stored.append(asdict(account))
