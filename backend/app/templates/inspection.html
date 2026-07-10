@@ -1,14 +1,24 @@
 {% extends "base.html" %}
 {% block title %}Проверка VIN - Auto160{% endblock %}
 {% block content %}
-<h1>Проверка автомобиля по VIN</h1>
-<p class="hint">Введи VIN, чтобы получить предварительный отчет по машине.</p>
+<h1>Проверка VIN в базе таможни РБ</h1>
+<p class="hint">
+  Данные из
+  <a href="https://www.customs.gov.by/baza-dannykh-vvezyennogo-avtotransporta/" target="_blank" rel="noopener">
+    базы ввезённого автотранспорта ГТК
+  </a>
+  — физлица, выпуск в свободное обращение (база 1).
+</p>
 
 {% if listing %}
   <div class="detail">
     <p><strong>Объявление:</strong> <a href="/listings/{{ listing.id }}">{{ listing.title }}</a></p>
     <p><strong>Авто:</strong> {{ listing.brand }} {{ listing.model }} · {{ listing.year }}</p>
-    <p class="hint">VIN в объявлении не хранится, введи его вручную.</p>
+    {% if listing.vin %}
+      <p class="hint">VIN из объявления подставлен ниже.</p>
+    {% else %}
+      <p class="hint">VIN в объявлении не сохранён — введи его вручную.</p>
+    {% endif %}
   </div>
 {% endif %}
 
@@ -21,14 +31,14 @@
     <input
       type="text"
       name="vin"
-      value="{{ vin }}"
+      value="{{ vin or (listing.vin if listing and listing.vin else '') }}"
       placeholder="Например: WBAHT31030F123456"
       maxlength="24"
       autocomplete="off"
       required
     />
   </label>
-  <button type="submit">Проверить VIN</button>
+  <button type="submit">Проверить в базе ГТК</button>
 </form>
 
 {% if vin_error %}
@@ -38,11 +48,26 @@
 {% if vin_report %}
   <div class="specs-wrap">
     <h2>Результат проверки</h2>
+    {% if customs_result and customs_result.found %}
+      <p class="hint" style="color:#166534;">Автомобиль найден в базе таможни — есть сведения о выпуске в РБ.</p>
+    {% elif customs_result %}
+      <p class="hint">В базе 1 (физлица) записи нет. Это не означает нелегальный ввоз.</p>
+    {% endif %}
     <div class="detail spec-section-body">
       {% for label, value in vin_report.items() %}
-        <p><strong>{{ label }}:</strong> {{ value }}</p>
+        <p>
+          <strong>{{ label }}:</strong>
+          {% if label == "Официальный источник" %}
+            <a href="{{ value }}" target="_blank" rel="noopener">{{ value }}</a>
+          {% else %}
+            {{ value }}
+          {% endif %}
+        </p>
       {% endfor %}
     </div>
+    <p class="hint">
+      Сведения официальные, но носят справочный характер. Для юридически значимого подтверждения обращайтесь в таможню.
+    </p>
   </div>
 {% endif %}
 {% endblock %}

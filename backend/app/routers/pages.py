@@ -1,4 +1,3 @@
-import hashlib
 import re
 from datetime import UTC, datetime, timedelta
 from urllib.parse import urlencode
@@ -11,9 +10,10 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from app.config import settings
-from app.logging_setup import LOG_SERVICES, log_dir, tail_log
+from app.customs_vin import CustomsVinError, lookup_customs_vin, normalize_vin, report_rows, vin_is_valid
 from app.avby_accounts import list_active_vin_accounts, serialize_account_public
 from app.db import get_db
+from app.logging_setup import LOG_SERVICES, log_dir, tail_log
 from app.models import AvbyServiceAccount, AvbySyncRun, CarListing, CatalogItem, CatalogItemPhoto, ListingStatus, User, UserRole
 from app.security import decode_token, is_token_revoked
 from app.storage import build_app_download_url
@@ -603,42 +603,11 @@ def _resolve_listing_cover_urls(listings: list[CarListing], db: Session) -> dict
 
 
 def _normalize_vin(vin: str | None) -> str:
-    if not vin:
-        return ""
-    return re.sub(r"[^A-Za-z0-9]", "", vin).upper()
+    return normalize_vin(vin)
 
 
 def _vin_is_valid(vin: str) -> bool:
-    if len(vin) != 17:
-        return False
-    # VIN excludes I, O, Q.
-    if any(ch in vin for ch in ("I", "O", "Q")):
-        return False
-    return bool(re.fullmatch(r"[A-HJ-NPR-Z0-9]{17}", vin))
-
-
-def _build_vin_report(vin: str) -> dict[str, str]:
-    digest = hashlib.sha256(vin.encode("utf-8")).hexdigest()
-    score = int(digest[:2], 16)
-    incidents = int(digest[2:4], 16) % 3
-    owners = (int(digest[4:6], 16) % 4) + 1
-    mileage = 35000 + (int(digest[6:10], 16) % 220000)
-    restrictions = "Не обнаружены" if score % 5 else "Есть отметки, нужна доп. проверка"
-    wanted = "Нет" if score % 7 else "Требует проверки"
-    pledges = "Не найдено" if score % 6 else "Есть записи о залоге"
-    recall = "Нет активных" if score % 4 else "Есть открытые отзывные кампании"
-    accidents = "Не обнаружено" if incidents == 0 else str(incidents)
-    return {
-        "VIN": vin,
-        "Ограничения/запреты": restrictions,
-        "Розыск": wanted,
-        "Залоги": pledges,
-        "ДТП": accidents,
-        "Владельцев по данным отчета": str(owners),
-        "Последний зафиксированный пробег, км": str(mileage),
-        "Отзывные кампании": recall,
-        "Комментарий": "Авто160: это предварительная проверка. Для сделки рекомендуем официальный отчет.",
-    }
+    return vin_is_valid(vin)
 
 
 def _resolve_latest_generation(db: Session, make: str, model: str) -> str | None:
@@ -1119,20 +1088,26 @@ def vin_inspection_page(
             if current_user is None or current_user.role != UserRole.admin:
                 listing = None
 
-    vin_input = (vin or "").strip().upper()
+    vin_input = (vin or (listing.vin if listing and listing.vin else "") or "").strip().upper()
     normalized_vin = _normalize_vin(vin_input)
     vin_error = None
     vin_report = None
-    if vin:
+    customs_result = None
+    if normalized_vin:
         if not _vin_is_valid(normalized_vin):
             vin_error = "Некорректный VIN. Используй 17 символов без I, O, Q."
         else:
-            vin_report = _build_vin_report(normalized_vin)
+            try:
+                customs_result = lookup_customs_vin(db, normalized_vin)
+                vin_report = report_rows(customs_result)
+            except CustomsVinError as exc:
+                vin_error = str(exc)
 
     context["listing"] = listing
     context["vin"] = vin_input
     context["vin_error"] = vin_error
     context["vin_report"] = vin_report
+    context["customs_result"] = customs_result
     return templates.TemplateResponse(request, "inspection.html", context)
 
 

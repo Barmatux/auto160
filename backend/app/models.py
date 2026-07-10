@@ -153,3 +153,18 @@ class CatalogItemPhoto(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
 
     catalog_item: Mapped[CatalogItem] = relationship(back_populates="photos")
+
+
+class VinCustomsCheck(Base):
+    __tablename__ = "vin_customs_checks"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    vin: Mapped[str] = mapped_column(String(17), index=True)
+    database: Mapped[str] = mapped_column(String(40), index=True)
+    found: Mapped[bool] = mapped_column(default=False, index=True)
+    release_date: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    raw_fields: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    source_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    checked_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
