@@ -18,10 +18,6 @@
               <a class="make-logo-wrap" href="{{ item.models_url }}" aria-label="Открыть модели {{ item.make }}">
                 <img class="make-logo" src="{{ item.logo_url }}" alt="Логотип {{ item.make }}" loading="lazy" />
               </a>
-            {% elif cover_urls.get(item.first_id) %}
-              <a class="card-cover-link" href="{{ item.models_url }}" aria-label="Открыть модели {{ item.make }}">
-                <img class="catalog-cover" src="{{ cover_urls.get(item.first_id) }}" alt="{{ item.make }}" />
-              </a>
             {% endif %}
             <h3><a href="{{ item.models_url }}">{{ item.make }}</a></h3>
             <p>Годы: {{ item.year_from or "?" }} - {{ item.year_to or "?" }}</p>

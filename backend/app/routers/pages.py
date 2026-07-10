@@ -1173,7 +1173,6 @@ def catalog(
 
     context = _template_context(request, current_user)
     context["makes"] = makes
-    context["cover_urls"] = _build_cover_url_map([item["first_id"] for item in makes], db)
     context["total"] = len(makes)
     context["catalog_sidebar"] = _catalog_sidebar_payload(request, db)
     return templates.TemplateResponse(request, "catalog.html", context)
