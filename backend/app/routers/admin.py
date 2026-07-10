@@ -2,14 +2,16 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.avby_accounts import import_avby_accounts_from_json, serialize_account_public, serialize_account_secrets
+from app.avby_vin import AvbyVinError, get_or_fetch_listing_vin
 from app.db import get_db
 from app.deps import require_admin
-from app.models import AvbyServiceAccount, User
+from app.models import AvbyServiceAccount, CarListing, User
 from app.schemas import (
     AvbyAccountsImportResult,
     AvbyServiceAccountPublic,
     AvbyServiceAccountSecrets,
     AvbyServiceAccountUpdateRequest,
+    ListingVinResponse,
     UserPublic,
     UserRoleUpdateRequest,
 )
@@ -100,3 +102,28 @@ def delete_avby_account(
     db.delete(account)
     db.commit()
     return {"ok": True}
+
+
+@router.post("/listings/{listing_id}/vin", response_model=ListingVinResponse)
+def fetch_listing_vin(
+    listing_id: int,
+    _: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    listing = db.query(CarListing).filter(CarListing.id == listing_id).first()
+    if not listing:
+        raise HTTPException(status_code=404, detail="Listing not found")
+    try:
+        result = get_or_fetch_listing_vin(db, listing)
+    except AvbyVinError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
+    if not result.vin:
+        raise HTTPException(status_code=502, detail="VIN not available")
+    return ListingVinResponse(
+        listing_id=listing.id,
+        vin=result.vin,
+        source=result.source or "unknown",
+        cached=result.cached,
+        checks_remaining=result.checks_remaining,
+        fetched_at=result.fetched_at,
+    )

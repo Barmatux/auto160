@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
 from app.bootstrap import safe_bootstrap_admin
+from app.avby_session import warm_vin_test_session
 from app.db import SessionLocal, engine
 from app.routers import admin, auth, catalog_photos, listings, media, pages
 from app.storage import ensure_bucket_exists
@@ -14,6 +15,7 @@ app.mount("/static", StaticFiles(directory="app/static"), name="static")
 def on_startup() -> None:
     ensure_bucket_exists()
     safe_bootstrap_admin(SessionLocal, engine)
+    warm_vin_test_session(SessionLocal)
 
 
 @app.get("/health")

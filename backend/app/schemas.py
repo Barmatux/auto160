@@ -183,3 +183,12 @@ class AvbyAccountsImportResult(BaseModel):
     imported: int
     skipped: int
     path: str
+
+
+class ListingVinResponse(BaseModel):
+    listing_id: int
+    vin: str
+    source: str
+    cached: bool
+    checks_remaining: int | None = None
+    fetched_at: datetime | None = None

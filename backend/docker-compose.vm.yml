@@ -59,10 +59,32 @@ services:
     command: >
       python tools/schedule_avby_listings_sync.py
       --interval-minutes 20
+      --year-min 2010
+      --price-usd-min 10000
       --max-hp 160
+      --creation-date 10
+      --sort 4
       --max-pages 30
       --per-model-limit 30
       --archive-overpowered
+
+  avby-vin-session:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: auto160-avby-vin-session
+    restart: unless-stopped
+    env_file:
+      - .env.vm
+    depends_on:
+      db:
+        condition: service_healthy
+      api:
+        condition: service_started
+    command: >
+      python tools/keep_avby_session_alive.py
+      --interval-minutes 15
+      --refresh-if-within-minutes 15
 
 volumes:
   pgdata:

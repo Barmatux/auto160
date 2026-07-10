@@ -28,6 +28,19 @@
     Год до
     <input type="number" name="year_to" min="1950" max="2100" value="{{ filters.year_to }}" />
   </label>
+  <label class="inline-checkbox">
+    <input type="checkbox" name="passable" value="1" {% if filters.passable %}checked{% endif %} />
+    Только проходные (≥3 лет)
+  </label>
+  <label>
+    Актуальность
+    <select name="freshness">
+      <option value="all" {% if filters.freshness == "all" %}selected{% endif %}>Все</option>
+      <option value="day" {% if filters.freshness == "day" %}selected{% endif %}>За сутки</option>
+      <option value="week" {% if filters.freshness == "week" %}selected{% endif %}>За неделю</option>
+      <option value="month" {% if filters.freshness == "month" %}selected{% endif %}>За месяц</option>
+    </select>
+  </label>
   <label>
     Сортировка
     <select name="sort">
@@ -56,9 +69,10 @@
     <div class="catalog">
       {% for listing in listings %}
         <article class="listing-card avby-listing-card">
-          {% if listing.cover_photo_url %}
+          {% set cover_url = listing.cover_photo_url or listing_cover_urls.get(listing.id) %}
+          {% if cover_url %}
             <a class="card-cover-link" href="/listings/{{ listing.id }}" aria-label="Открыть объявление {{ listing.brand }} {{ listing.model }}">
-              <img class="catalog-cover" src="{{ listing.cover_photo_url }}" alt="{{ listing.brand }} {{ listing.model }}" />
+              <img class="catalog-cover" src="{{ cover_url }}" alt="{{ listing.brand }} {{ listing.model }}" />
             </a>
           {% endif %}
           <h3><a href="/listings/{{ listing.id }}">{{ listing.title }}</a></h3>
@@ -83,6 +97,7 @@
           {% endif %}
           {% if is_admin %}
             <p><strong>Статус:</strong> {{ listing.status.value }}</p>
+            {% include "partials/listing_vin_admin.html" %}
           {% endif %}
           <div class="actions-row">
             <a href="/listings/{{ listing.id }}">Открыть объявление</a>
@@ -108,4 +123,7 @@
     {% endif %}
   </div>
 </section>
+{% if is_admin %}
+  {% include "partials/listing_vin_admin_script.html" %}
+{% endif %}
 {% endblock %}

@@ -1,19 +1,12 @@
 {% extends "base.html" %}
 {% block title %}Каталог - Auto160{% endblock %}
 {% block content %}
-<div class="catalog-layout">
-  {% include "partials/catalog_filters_sidebar.html" %}
+<div class="catalog-page">
+  {% include "partials/catalog_quick_jump.html" %}
   <section class="catalog-main">
     <div class="catalog-main-head">
       <h1>Каталог автомобилей</h1>
       <p class="hint">Шаг 1 из 4: выбери марку.</p>
-    </div>
-    <div class="filters quick-jump">
-      <div class="actions-row">
-        <a class="btn-link" href="/catalog/models">Все модели</a>
-        <a class="btn-link" href="/catalog/generations">Все поколения</a>
-        <a class="btn-link" href="/catalog/modifications">Все комплектации</a>
-      </div>
     </div>
     <p class="hint">Найдено марок: {{ total }}</p>
 
@@ -41,5 +34,6 @@
       <p>В каталоге нет марок.</p>
     {% endif %}
   </section>
+  {% include "partials/catalog_filters_panel.html" %}
 </div>
 {% endblock %}

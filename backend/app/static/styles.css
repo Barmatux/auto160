@@ -141,11 +141,28 @@ body {
   gap: 12px;
 }
 
+.catalog-page {
+  display: grid;
+  gap: 12px;
+}
+
 .catalog-layout {
   display: grid;
   grid-template-columns: 290px minmax(0, 1fr);
   gap: 10px;
   align-items: start;
+}
+
+.catalog-filters-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px;
+  box-shadow: var(--shadow);
+}
+
+.catalog-filters-panel h3 {
+  margin: 0 0 10px;
 }
 
 .catalog-sidebar {
@@ -662,7 +679,18 @@ body {
   align-items: center;
 }
 
-.btn-link-like {
+.listing-vin-admin {
+  margin-top: 0.35rem;
+}
+
+.listing-vin-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  letter-spacing: 0.04em;
+}
+
+.listing-vin-value {
+  margin: 0.35rem 0 0;
+}
   border: none;
   background: transparent;
   color: var(--primary);

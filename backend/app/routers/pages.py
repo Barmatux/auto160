@@ -1,4 +1,3 @@
-from collections import defaultdict
 import hashlib
 import re
 from datetime import datetime, timedelta
@@ -437,7 +436,7 @@ def _parse_optional_year(value: str | None) -> int | None:
 def _make_model_map(db: Session) -> dict[str, list[str]]:
     rows = (
         db.query(CatalogItem.make, CatalogItem.model)
-        .filter(CatalogItem.make.isnot(None), CatalogItem.model.isnot(None))
+        .filter(CatalogItem.make.isnot(None), CatalogItem.model.isnot(None), CatalogItem.source_site == "av.by")
         .distinct()
         .order_by(CatalogItem.make.asc(), CatalogItem.model.asc())
         .all()
@@ -452,6 +451,38 @@ def _make_model_map(db: Session) -> dict[str, list[str]]:
     return mapping
 
 
+def _passable_year_max() -> int:
+    """Cars at least 3 years old (common 'проходной' criterion for EAEU import)."""
+    return datetime.utcnow().year - 3
+
+
+def _is_passable_year(year: int | None) -> bool:
+    if year is None:
+        return False
+    return year <= _passable_year_max()
+
+
+def _build_listings_url(
+    *,
+    brand: str | None = None,
+    model: str | None = None,
+    year_from: int | None = None,
+    year_to: int | None = None,
+) -> str:
+    params: dict[str, str | int] = {}
+    if brand:
+        params["brand"] = brand
+    if model:
+        params["model"] = model
+    if year_from is not None:
+        params["year_from"] = year_from
+    if year_to is not None:
+        params["year_to"] = year_to
+    if not params:
+        return "/listings"
+    return "/listings?" + urlencode(params)
+
+
 def _catalog_sidebar_payload(request: Request, db: Session) -> dict:
     query = request.query_params
     parsed_year_from = _parse_optional_year(query.get("year_from"))
@@ -461,8 +492,14 @@ def _catalog_sidebar_payload(request: Request, db: Session) -> dict:
         page_size = int(raw_page_size)
     except (TypeError, ValueError):
         page_size = 20
+    make = (query.get("make") or "").strip()
+    model = _canonical_model_name(query.get("model") or "")
+    make_model_map = _make_model_map(db)
+    model_options = make_model_map.get(make, []) if make else sorted({m for models in make_model_map.values() for m in models})
     return {
         "filters": {
+            "make": make,
+            "model": model,
             "generation": query.get("generation", ""),
             "body_type": query.get("body_type", ""),
             "export_country": query.get("export_country", ""),
@@ -472,9 +509,12 @@ def _catalog_sidebar_payload(request: Request, db: Session) -> dict:
             "year_to": parsed_year_to if parsed_year_to is not None else "",
             "sort": query.get("sort", "year_desc"),
             "page_size": page_size,
+            "passable": query.get("passable") in ("1", "true", "on"),
         },
         "options": {
-            "generation": _distinct_values(db, CatalogItem.generation),
+            "makes": sorted(make_model_map.keys()),
+            "models": model_options,
+            "make_model_map": make_model_map,
             "body_type": _distinct_values(db, CatalogItem.body_type),
             "export_country": _distinct_values(db, CatalogItem.export_country),
             "fuel_type": _distinct_values(db, CatalogItem.fuel_type),
@@ -482,6 +522,82 @@ def _catalog_sidebar_payload(request: Request, db: Session) -> dict:
             "years": _year_options(db),
         },
     }
+
+
+def _apply_freshness_filter(query, freshness: str | None):
+    if not freshness or freshness == "all":
+        return query
+    now = datetime.utcnow()
+    if freshness == "day":
+        since = now - timedelta(days=1)
+    elif freshness == "week":
+        since = now - timedelta(days=7)
+    elif freshness == "month":
+        since = now - timedelta(days=30)
+    else:
+        return query
+    return query.filter(CarListing.created_at >= since)
+
+
+def _resolve_listing_cover_urls(listings: list[CarListing], db: Session) -> dict[int, str]:
+    if not listings:
+        return {}
+    need_catalog: set[tuple[str, str]] = set()
+    result: dict[int, str] = {}
+    for listing in listings:
+        if listing.cover_photo_url:
+            result[listing.id] = listing.cover_photo_url
+            continue
+        if listing.raw_photos and isinstance(listing.raw_photos, list):
+            for photo in listing.raw_photos:
+                if isinstance(photo, str) and photo.strip():
+                    result[listing.id] = photo.strip()
+                    break
+                if isinstance(photo, dict):
+                    url = photo.get("url")
+                    if isinstance(url, str) and url.strip():
+                        result[listing.id] = url.strip()
+                        break
+                    for key in ("big", "medium", "small"):
+                        variant = photo.get(key)
+                        if isinstance(variant, dict) and variant.get("url"):
+                            result[listing.id] = str(variant["url"])
+                            break
+                    if listing.id in result:
+                        break
+        if listing.id in result:
+            continue
+        make = (listing.brand or "").strip()
+        model = _canonical_model_name(listing.model)
+        if make and model:
+            need_catalog.add((make, model))
+
+    catalog_by_pair: dict[tuple[str, str], list[CatalogItem]] = {}
+    for make, model in need_catalog:
+        catalog_by_pair[(make, model)] = (
+            _apply_max_hp_filter(
+                db.query(CatalogItem).filter(
+                    CatalogItem.source_site == "av.by",
+                    CatalogItem.make.ilike(make),
+                    CatalogItem.model == model,
+                )
+            )
+            .order_by(CatalogItem.year_from.desc())
+            .limit(40)
+            .all()
+        )
+
+    for listing in listings:
+        if listing.id in result:
+            continue
+        make = (listing.brand or "").strip()
+        model = _canonical_model_name(listing.model)
+        catalog_items = catalog_by_pair.get((make, model), [])
+        if catalog_items:
+            fallback = _build_listing_catalog_cover_urls([listing], catalog_items, db)
+            if listing.id in fallback:
+                result[listing.id] = fallback[listing.id]
+    return result
 
 
 def _normalize_vin(vin: str | None) -> str:
@@ -842,6 +958,8 @@ def _apply_catalog_item_filters(
     transmission: str | None,
     parsed_year_from: int | None,
     parsed_year_to: int | None,
+    *,
+    passable: bool = False,
 ):
     if make:
         query = query.filter(CatalogItem.make.ilike(f"%{make}%"))
@@ -861,6 +979,8 @@ def _apply_catalog_item_filters(
         query = query.filter(CatalogItem.year_from >= parsed_year_from)
     if parsed_year_to is not None:
         query = query.filter(CatalogItem.year_to <= parsed_year_to)
+    if passable:
+        query = query.filter(or_(CatalogItem.year_from.is_(None), CatalogItem.year_from <= _passable_year_max()))
     return query
 
 
@@ -887,6 +1007,8 @@ def listings_page(
     city: str | None = Query(default=None),
     year_from: int | None = Query(default=None, ge=1950, le=2100),
     year_to: int | None = Query(default=None, ge=1950, le=2100),
+    passable: bool = Query(default=False),
+    freshness: str = Query(default="all"),
     sort: str = Query(default="newest"),
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=20, ge=1, le=50),
@@ -900,13 +1022,16 @@ def listings_page(
     if brand:
         query = query.filter(CarListing.brand.ilike(f"%{brand}%"))
     if model:
-        query = query.filter(CarListing.model.ilike(f"%{model}%"))
+        query = query.filter(CarListing.model.ilike(f"%{_canonical_model_name(model)}%"))
     if city:
         query = query.filter(CarListing.city.ilike(f"%{city}%"))
     if year_from is not None:
         query = query.filter(CarListing.year >= year_from)
     if year_to is not None:
         query = query.filter(CarListing.year <= year_to)
+    if passable:
+        query = query.filter(CarListing.year <= _passable_year_max())
+    query = _apply_freshness_filter(query, freshness)
 
     if sort == "price_asc":
         query = query.order_by(CarListing.price.asc(), CarListing.created_at.desc())
@@ -924,6 +1049,7 @@ def listings_page(
     listings = query.offset(offset).limit(page_size).all()
     context = _template_context(request, current_user)
     context["listings"] = listings
+    context["listing_cover_urls"] = _resolve_listing_cover_urls(listings, db)
     context["total"] = total
     context["page"] = page
     context["page_size"] = page_size
@@ -936,6 +1062,8 @@ def listings_page(
         "city": city or "",
         "year_from": year_from or "",
         "year_to": year_to or "",
+        "passable": passable,
+        "freshness": freshness,
         "sort": sort,
     }
 
@@ -945,6 +1073,8 @@ def listings_page(
         "city": city or None,
         "year_from": year_from,
         "year_to": year_to,
+        "passable": "1" if passable else None,
+        "freshness": freshness if freshness and freshness != "all" else None,
         "sort": sort if sort else None,
         "page_size": page_size,
     }
@@ -1121,6 +1251,12 @@ def catalog_models(
         model_item["generations_url"] = "/catalog/generations?" + urlencode(
             {"make": model_item["make"], "model": model_item["model"]}
         )
+        model_item["listings_url"] = _build_listings_url(
+            brand=model_item["make"],
+            model=model_item["model"],
+            year_from=model_item.get("year_from"),
+            year_to=model_item.get("year_to"),
+        )
         generation_cards = list(model_item["generation_cards"].values())
         generation_cards.sort(key=lambda g: (g["count"], g["year_to"] or 0, g["year_from"] or 0), reverse=True)
         for generation_card in generation_cards:
@@ -1191,6 +1327,12 @@ def catalog_generations(
         if generation_item["generation"] != "Без поколения":
             params["generation"] = generation_item["generation"]
         generation_item["mods_url"] = "/catalog/modifications?" + urlencode(params)
+        generation_item["listings_url"] = _build_listings_url(
+            brand=generation_item["make"],
+            model=generation_item["model"],
+            year_from=generation_item.get("year_from"),
+            year_to=generation_item.get("year_to"),
+        )
 
     context = _template_context(request, current_user)
     context["make"] = make
@@ -1217,6 +1359,7 @@ def catalog_modifications(
     transmission: str | None = Query(default=None),
     year_from: str | None = Query(default=None),
     year_to: str | None = Query(default=None),
+    passable: bool = Query(default=False),
     sort: str = Query(default="year_desc"),
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=20, ge=1, le=100),
@@ -1239,6 +1382,7 @@ def catalog_modifications(
         transmission=transmission,
         parsed_year_from=parsed_year_from,
         parsed_year_to=parsed_year_to,
+        passable=passable,
     )
     query = query.filter(CatalogItem.source_site == "av.by")
     # If enriched source exists for selected generation, hide legacy duplicates.
@@ -1294,6 +1438,7 @@ def catalog_modifications(
         "transmission": transmission or "",
         "year_from": parsed_year_from if parsed_year_from is not None else "",
         "year_to": parsed_year_to if parsed_year_to is not None else "",
+        "passable": passable,
         "sort": sort,
     }
     base_params = {
@@ -1306,6 +1451,7 @@ def catalog_modifications(
         "transmission": transmission or None,
         "year_from": parsed_year_from,
         "year_to": parsed_year_to,
+        "passable": "1" if passable else None,
         "sort": sort if sort else None,
         "page_size": page_size,
     }
@@ -1351,6 +1497,17 @@ def catalog_modifications(
             ad_listings = listings_query.order_by(CarListing.created_at.desc()).limit(8).all()
     context["ad_listings"] = ad_listings
     context["ad_listing_cover_urls"] = _build_listing_catalog_cover_urls(ad_listings, generation_items, db)
+    listings_all_url = None
+    if make and canonical_model and generation and generation != "Без поколения":
+        year_from_values = [row.year_from for row in generation_items if row.year_from is not None]
+        year_to_values = [row.year_to for row in generation_items if row.year_to is not None]
+        listings_all_url = _build_listings_url(
+            brand=make,
+            model=canonical_model,
+            year_from=min(year_from_values) if year_from_values else None,
+            year_to=max(year_to_values) if year_to_values else None,
+        )
+    context["listings_all_url"] = listings_all_url
     context["catalog_sidebar"] = _catalog_sidebar_payload(request, db)
     return templates.TemplateResponse(request, "catalog_modifications.html", context)
 
@@ -1385,6 +1542,12 @@ def catalog_item_detail(request: Request, item_id: int, db: Session = Depends(ge
     spec_rows = _resolve_best_spec_rows(item, db)
     context["spec_rows"] = spec_rows
     context["spec_sections"] = _group_spec_rows(spec_rows)
+    context["listings_url"] = _build_listings_url(
+        brand=item.make,
+        model=item.model,
+        year_from=item.year_from,
+        year_to=item.year_to,
+    )
     return templates.TemplateResponse(request, "catalog_item_detail.html", context)
 
 

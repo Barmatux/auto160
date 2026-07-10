@@ -51,8 +51,9 @@
       {% if listing.transmission_type %}<p><strong>Коробка:</strong> {{ listing.transmission_type }}</p>{% endif %}
       {% if listing.drive_type %}<p><strong>Привод:</strong> {{ listing.drive_type }}</p>{% endif %}
       {% if listing.vin_indicated is not none %}
-        <p><strong>VIN:</strong> {% if listing.vin_indicated %}указан{% else %}не указан{% endif %}</p>
+        <p><strong>VIN на av.by:</strong> {% if listing.vin_indicated %}указан{% else %}не указан{% endif %}</p>
       {% endif %}
+      {% include "partials/listing_vin_admin.html" %}
       {% if listing.source_url %}
         <p><strong>Источник:</strong> <a href="{{ listing.source_url }}" target="_blank" rel="noopener">Открыть на av.by</a></p>
       {% endif %}
@@ -67,6 +68,7 @@
     <div class="actions-row">
       <a class="btn-link" href="/profile/edit-listing/{{ listing.id }}">Редактировать</a>
     </div>
+    {% include "partials/listing_vin_admin_script.html" %}
   {% endif %}
 {% else %}
   <h1>Объявление не найдено</h1>

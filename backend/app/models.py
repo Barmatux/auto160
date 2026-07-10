@@ -1,7 +1,7 @@
 import enum
-from datetime import datetime
+from datetime import date, datetime
 
-from sqlalchemy import JSON, DateTime, Enum, ForeignKey, Integer, Numeric, String, Text
+from sqlalchemy import JSON, Date, DateTime, Enum, ForeignKey, Integer, Numeric, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db import Base
@@ -54,6 +54,8 @@ class CarListing(Base):
     engine_capacity_l: Mapped[float | None] = mapped_column(Numeric(4, 1), nullable=True)
     engine_power_hp: Mapped[int | None] = mapped_column(Integer, nullable=True)
     vin_indicated: Mapped[bool | None] = mapped_column(nullable=True)
+    vin: Mapped[str | None] = mapped_column(String(17), nullable=True, index=True)
+    vin_fetched_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     seller_name: Mapped[str | None] = mapped_column(String(120), nullable=True)
     source_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     cover_photo_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
@@ -122,8 +124,14 @@ class AvbyServiceAccount(Base):
     avby_password: Mapped[str | None] = mapped_column(String(255), nullable=True)
     api_key: Mapped[str | None] = mapped_column(String(120), nullable=True, index=True)
     auth_token: Mapped[str | None] = mapped_column(Text, nullable=True)
+    refresh_token: Mapped[str | None] = mapped_column(Text, nullable=True)
+    auth_token_expires_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     email_token: Mapped[str | None] = mapped_column(String(64), nullable=True)
     status: Mapped[str] = mapped_column(String(30), default="pending", index=True)
+    purpose: Mapped[str] = mapped_column(String(30), default="parser", index=True)
+    daily_vin_limit: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    vin_checks_today: Mapped[int] = mapped_column(Integer, default=0)
+    vin_checks_day: Mapped[date | None] = mapped_column(Date, nullable=True)
     is_active: Mapped[bool] = mapped_column(default=False, index=True)
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)

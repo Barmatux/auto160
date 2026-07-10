@@ -1,10 +1,14 @@
 __pycache__/
 *.py[cod]
 *.sqlite3
+app.db
+*.b64
 .env
 .venv/
 venv/
 .pytest_cache/
 .mypy_cache/
 data/avby_service_accounts.json
+data/avby_vin_test_account.json
+data/avby_vin_test_credentials.json
 avby_service_accounts*.json

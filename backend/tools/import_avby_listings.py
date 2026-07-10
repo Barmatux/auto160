@@ -22,6 +22,16 @@ from app.security import hash_password
 AVBY_ID_RE = re.compile(r"AVBY_ID:\s*(\d+)")
 APPLY_URL = "https://web-api.av.by/offer-types/cars/filters/main/apply"
 INIT_URL = "https://web-api.av.by/offer-types/cars/filters/main/init"
+FILTER_REFERER = (
+    "https://cars.av.by/filter?"
+    "year%5Bmin%5D=2010&price_usd%5Bmin%5D=10000&engine_power_hp%5Bmax%5D=160&creation_date=10&sort=4"
+)
+
+DEFAULT_YEAR_MIN = 2010
+DEFAULT_PRICE_USD_MIN = 10_000
+DEFAULT_MAX_HP = 160
+DEFAULT_CREATION_DATE = 10
+DEFAULT_SORT = 4
 
 
 def _to_int(value: Any) -> int | None:
@@ -109,9 +119,10 @@ def _collect_target_models(
     model_filter: str | None,
     limit_models: int | None,
 ) -> list[tuple[str, str]]:
+    """Unique make/model pairs from catalog_items (all sources)."""
     db = SessionLocal()
     try:
-        query = db.query(CatalogItem).filter(CatalogItem.source_site == "av.by", CatalogItem.source_url.isnot(None))
+        query = db.query(CatalogItem)
         if make_filter:
             query = query.filter(CatalogItem.make.ilike(f"%{make_filter}%"))
         if model_filter:
@@ -133,6 +144,51 @@ def _collect_target_models(
         if limit_models is not None:
             result = result[:limit_models]
         return result
+    finally:
+        db.close()
+
+
+def _build_catalog_brand_models(targets: list[tuple[str, str]]) -> dict[str, set[str]]:
+    brand_to_models: dict[str, set[str]] = {}
+    for make_name, model_name in targets:
+        make_n = _normalize_name(make_name)
+        model_n = _normalize_name(model_name)
+        if not make_n or not model_n:
+            continue
+        brand_to_models.setdefault(make_n, set()).add(model_n)
+    return brand_to_models
+
+
+def _is_in_catalog(brand_n: str, model_n: str, brand_to_models: dict[str, set[str]]) -> bool:
+    return brand_n in brand_to_models and model_n in brand_to_models[brand_n]
+
+
+def _archive_non_catalog_avby_listings(
+    brand_to_models: dict[str, set[str]],
+    *,
+    dry_run: bool,
+) -> int:
+    db = SessionLocal()
+    try:
+        archived = 0
+        rows = (
+            db.query(CarListing)
+            .filter(
+                CarListing.avby_id.isnot(None),
+                CarListing.status == ListingStatus.published,
+            )
+            .all()
+        )
+        for listing in rows:
+            if _is_in_catalog(_normalize_name(listing.brand), _normalize_name(listing.model), brand_to_models):
+                continue
+            archived += 1
+            if dry_run:
+                continue
+            listing.status = ListingStatus.archived
+        if archived and not dry_run:
+            db.commit()
+        return archived
     finally:
         db.close()
 
@@ -258,6 +314,53 @@ def _load_existing_avby_map(db) -> dict[int, CarListing]:
     return mapped
 
 
+def _extract_price_usd(advert: dict[str, Any]) -> float | None:
+    usd = ((advert.get("price") or {}).get("usd") or {})
+    return _to_float(usd.get("amount") or usd.get("amountFiat"))
+
+
+def _build_apply_properties(
+    brand_id: int,
+    *,
+    year_min: int,
+    price_usd_min: int,
+    max_hp: int,
+    creation_date: int | None,
+) -> list[dict[str, Any]]:
+    properties: list[dict[str, Any]] = [
+        {"name": "price_currency", "value": 2},
+        {"name": "year", "value": {"min": year_min}},
+        {"name": "price_usd", "value": {"min": price_usd_min}},
+        {"name": "engine_power_hp", "value": {"max": max_hp}},
+        {"name": "brands", "value": [{"brand": brand_id}]},
+    ]
+    if creation_date is not None and creation_date > 0:
+        properties.append({"name": "creation_date", "value": creation_date})
+    return properties
+
+
+def _advert_matches_filters(
+    advert: dict[str, Any],
+    *,
+    year_min: int,
+    price_usd_min: int,
+    max_hp: int,
+) -> bool:
+    props = _extract_properties_map(advert)
+    year = _to_int(advert.get("year") or props.get("year"))
+    if year is not None and year < year_min:
+        return False
+
+    price_usd = _extract_price_usd(advert)
+    if price_usd is not None and price_usd < price_usd_min:
+        return False
+
+    power_hp = _to_int(props.get("engine_power"))
+    if power_hp is None or power_hp > max_hp:
+        return False
+    return True
+
+
 def _fetch_brand_id_map(user_agent: str) -> dict[str, int]:
     response = requests.get(
         INIT_URL,
@@ -266,7 +369,7 @@ def _fetch_brand_id_map(user_agent: str) -> dict[str, int]:
         headers={
             "User-Agent": user_agent,
             "Accept": "application/json, text/plain, */*",
-            "Referer": "https://av.by/",
+            "Referer": FILTER_REFERER,
         },
     )
     response.raise_for_status()
@@ -306,14 +409,27 @@ def _fetch_brand_id_map(user_agent: str) -> dict[str, int]:
     return mapping
 
 
-def _fetch_brand_page(brand_id: int, page: int, user_agent: str) -> dict[str, Any]:
+def _fetch_brand_page(
+    brand_id: int,
+    page: int,
+    user_agent: str,
+    *,
+    year_min: int,
+    price_usd_min: int,
+    max_hp: int,
+    creation_date: int | None,
+    sort: int = DEFAULT_SORT,
+) -> dict[str, Any]:
     payload = {
         "page": page,
-        "sorting": 4,
-        "properties": [
-            {"name": "price_currency", "value": 2},
-            {"name": "brands", "value": [{"brand": brand_id}]},
-        ],
+        "sorting": sort,
+        "properties": _build_apply_properties(
+            brand_id,
+            year_min=year_min,
+            price_usd_min=price_usd_min,
+            max_hp=max_hp,
+            creation_date=creation_date,
+        ),
     }
     response = requests.post(
         APPLY_URL,
@@ -325,7 +441,7 @@ def _fetch_brand_page(brand_id: int, page: int, user_agent: str) -> dict[str, An
             "Accept": "application/json, text/plain, */*",
             "x-device-type": "web.desktop",
             "Origin": "https://av.by",
-            "Referer": "https://av.by/",
+            "Referer": FILTER_REFERER,
         },
         json=payload,
     )
@@ -382,15 +498,22 @@ def run_import(
     limit_models: int | None = None,
     per_model_limit: int = 30,
     max_pages: int = 30,
-    max_hp: int = 160,
+    max_hp: int = DEFAULT_MAX_HP,
+    year_min: int = DEFAULT_YEAR_MIN,
+    price_usd_min: int = DEFAULT_PRICE_USD_MIN,
+    creation_date: int | None = DEFAULT_CREATION_DATE,
+    sort: int = DEFAULT_SORT,
     update_existing: bool = True,
     archive_overpowered: bool = False,
+    prune_non_catalog: bool = True,
     dry_run: bool = False,
     trigger: str = "manual",
 ) -> dict[str, Any]:
     targets = _collect_target_models(make, model, limit_models)
-    if not targets:
-        print("No target models found in catalog_items (source_site=av.by).")
+    catalog_targets = _collect_target_models(None, None, None)
+    fetch_targets = _collect_target_models(make, model, None)
+    if not catalog_targets:
+        print("No target models found in catalog_items.")
         db = SessionLocal()
         try:
             run = _start_sync_run(db, trigger=trigger, max_hp=max_hp, dry_run=dry_run)
@@ -411,19 +534,28 @@ def run_import(
             db.close()
         return {"status": "success", "models": 0, "brands": 0, "created": 0, "updated": 0}
 
-    brand_to_models: dict[str, set[str]] = {}
+    if not targets:
+        print("No fetch targets after --limit-models; using filtered catalog for this sync run.")
+        targets = fetch_targets or catalog_targets
+
+    catalog_brand_models = _build_catalog_brand_models(catalog_targets)
+    brand_to_models = _build_catalog_brand_models(targets)
     canonical_model_name: dict[tuple[str, str], str] = {}
     canonical_brand_name: dict[str, str] = {}
-    for make_name, model_name in targets:
+    for make_name, model_name in catalog_targets:
         make_n = _normalize_name(make_name)
         model_n = _normalize_name(model_name)
         if not make_n or not model_n:
             continue
-        brand_to_models.setdefault(make_n, set()).add(model_n)
         canonical_model_name[(make_n, model_n)] = model_name
         canonical_brand_name[make_n] = make_name
 
-    print(f"models: {len(targets)} brands: {len(brand_to_models)}")
+    print(
+        f"catalog: {len(catalog_targets)} make/model pairs ({len(targets)} fetch targets), "
+        f"{len(brand_to_models)} brands to sync "
+        f"filters: year>={year_min} price_usd>={price_usd_min} hp<={max_hp} "
+        f"creation_date={creation_date} sort={sort}"
+    )
     brand_id_map = _fetch_brand_id_map(user_agent)
 
     db = SessionLocal()
@@ -432,6 +564,8 @@ def run_import(
     updated = 0
     skipped = 0
     skipped_by_hp = 0
+    skipped_by_catalog = 0
+    archived_non_catalog = 0
     failed_brands = 0
     pages_fetched = 0
     try:
@@ -453,7 +587,16 @@ def run_import(
             print(f"fetch-brand: {brand_display} (id={brand_id})")
             while page <= min(page_count, max_pages):
                 try:
-                    page_data = _fetch_brand_page(brand_id=brand_id, page=page, user_agent=user_agent)
+                    page_data = _fetch_brand_page(
+                        brand_id=brand_id,
+                        page=page,
+                        user_agent=user_agent,
+                        year_min=year_min,
+                        price_usd_min=price_usd_min,
+                        max_hp=max_hp,
+                        creation_date=creation_date,
+                        sort=sort,
+                    )
                 except Exception as exc:
                     failed_brands += 1
                     print(f"fail-brand-page: {brand_display} page={page} -> {exc}")
@@ -478,12 +621,35 @@ def run_import(
                     advert_model_n = _normalize_name(advert_model)
                     target_key = (advert_brand_n, advert_model_n)
 
+                    if not _is_in_catalog(advert_brand_n, advert_model_n, catalog_brand_models):
+                        skipped += 1
+                        skipped_by_catalog += 1
+                        continue
+
                     if advert_brand_n != brand_n or advert_model_n not in model_set:
                         skipped += 1
+                        skipped_by_catalog += 1
                         continue
 
                     if per_model_limit > 0 and imported_per_model.get(target_key, 0) >= per_model_limit:
                         skipped += 1
+                        continue
+
+                    avby_id = _to_int(advert.get("id"))
+                    existing = existing_map.get(avby_id) if avby_id is not None else None
+
+                    if not _advert_matches_filters(
+                        advert,
+                        year_min=year_min,
+                        price_usd_min=price_usd_min,
+                        max_hp=max_hp,
+                    ):
+                        skipped += 1
+                        power_hp = _to_int(_extract_properties_map(advert).get("engine_power"))
+                        if power_hp is None or power_hp > max_hp:
+                            skipped_by_hp += 1
+                            if archive_overpowered and existing and not dry_run:
+                                existing.status = ListingStatus.archived
                         continue
 
                     payload = _avby_payload_to_listing(
@@ -495,25 +661,26 @@ def run_import(
                         skipped += 1
                         continue
                     avby_id = payload.pop("avby_id")
-                    power_hp = _to_int(payload.get("engine_power_hp"))
                     existing = existing_map.get(avby_id)
-
-                    if power_hp is None or power_hp > max_hp:
-                        skipped += 1
-                        skipped_by_hp += 1
-                        if archive_overpowered and existing:
-                            existing.status = ListingStatus.archived
-                        continue
 
                     if existing:
                         if not update_existing:
                             skipped += 1
+                            continue
+                        if dry_run:
+                            updated += 1
+                            imported_per_model[target_key] = imported_per_model.get(target_key, 0) + 1
                             continue
                         existing.avby_id = avby_id
                         for field, value in payload.items():
                             setattr(existing, field, value)
                         existing.status = ListingStatus.published
                         updated += 1
+                        imported_per_model[target_key] = imported_per_model.get(target_key, 0) + 1
+                        continue
+
+                    if dry_run:
+                        created += 1
                         imported_per_model[target_key] = imported_per_model.get(target_key, 0) + 1
                         continue
 
@@ -538,6 +705,12 @@ def run_import(
                     break
                 page += 1
 
+        if prune_non_catalog:
+            archived_non_catalog = _archive_non_catalog_avby_listings(
+                catalog_brand_models,
+                dry_run=dry_run,
+            )
+
         if dry_run:
             db.rollback()
 
@@ -558,8 +731,11 @@ def run_import(
         print(
             "summary: "
             f"created={created} updated={updated} skipped={skipped} "
-            f"skipped_by_hp={skipped_by_hp} failed_brands={failed_brands} "
-            f"pages_fetched={pages_fetched} max_hp={max_hp} dry_run={dry_run}"
+            f"skipped_by_catalog={skipped_by_catalog} skipped_by_hp={skipped_by_hp} "
+            f"archived_non_catalog={archived_non_catalog} failed_brands={failed_brands} "
+            f"pages_fetched={pages_fetched} "
+            f"year_min={year_min} price_usd_min={price_usd_min} max_hp={max_hp} "
+            f"creation_date={creation_date} dry_run={dry_run}"
         )
         return {
             "status": status,
@@ -568,7 +744,9 @@ def run_import(
             "created": created,
             "updated": updated,
             "skipped": skipped,
+            "skipped_by_catalog": skipped_by_catalog,
             "skipped_by_hp": skipped_by_hp,
+            "archived_non_catalog": archived_non_catalog,
             "failed_brands": failed_brands,
             "pages_fetched": pages_fetched,
         }
@@ -602,7 +780,16 @@ def main() -> None:
     parser.add_argument("--limit-models", type=int, default=None, help="Limit number of models to fetch")
     parser.add_argument("--per-model-limit", type=int, default=30, help="Limit adverts per model")
     parser.add_argument("--max-pages", type=int, default=30, help="Max paginated pages per brand")
-    parser.add_argument("--max-hp", type=int, default=160, help="Import only adverts with power <= this value")
+    parser.add_argument("--max-hp", type=int, default=DEFAULT_MAX_HP, help="engine_power_hp[max] filter")
+    parser.add_argument("--year-min", type=int, default=DEFAULT_YEAR_MIN, help="year[min] filter")
+    parser.add_argument("--price-usd-min", type=int, default=DEFAULT_PRICE_USD_MIN, help="price_usd[min] filter")
+    parser.add_argument(
+        "--creation-date",
+        type=int,
+        default=DEFAULT_CREATION_DATE,
+        help="creation_date filter (10 = за сутки on av.by); use 0 to disable",
+    )
+    parser.add_argument("--sort", type=int, default=DEFAULT_SORT, help="sorting id (4 = as on cars.av.by filter URL)")
     parser.add_argument(
         "--no-update-existing",
         action="store_true",
@@ -613,9 +800,16 @@ def main() -> None:
         action="store_true",
         help="Archive existing listing if the same AVBY_ID now has power above max-hp",
     )
+    parser.add_argument(
+        "--no-prune-non-catalog",
+        action="store_true",
+        help="Do not archive av.by listings whose make/model is absent from catalog_items",
+    )
     parser.add_argument("--dry-run", action="store_true", help="Do not write to DB")
     parser.add_argument("--trigger", default="manual", help="Sync trigger label: manual, scheduler, admin")
     args = parser.parse_args()
+
+    creation_date = args.creation_date if args.creation_date > 0 else None
 
     try:
         result = run_import(
@@ -626,8 +820,13 @@ def main() -> None:
             per_model_limit=args.per_model_limit,
             max_pages=args.max_pages,
             max_hp=args.max_hp,
+            year_min=args.year_min,
+            price_usd_min=args.price_usd_min,
+            creation_date=creation_date,
+            sort=args.sort,
             update_existing=not args.no_update_existing,
             archive_overpowered=args.archive_overpowered,
+            prune_non_catalog=not args.no_prune_non_catalog,
             dry_run=args.dry_run,
             trigger=args.trigger,
         )

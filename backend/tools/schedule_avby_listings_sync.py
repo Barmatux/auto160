@@ -20,6 +20,10 @@ def run_once(
     per_model_limit: int,
     update_existing: bool,
     archive_overpowered: bool,
+    year_min: int,
+    price_usd_min: int,
+    creation_date: int,
+    sort: int,
     trigger: str = "scheduler",
 ) -> int:
     cmd = [
@@ -27,6 +31,14 @@ def run_once(
         str(IMPORTER_PATH),
         "--max-hp",
         str(max_hp),
+        "--year-min",
+        str(year_min),
+        "--price-usd-min",
+        str(price_usd_min),
+        "--creation-date",
+        str(creation_date),
+        "--sort",
+        str(sort),
         "--max-pages",
         str(max_pages),
         "--per-model-limit",
@@ -48,7 +60,11 @@ def run_once(
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run AV.BY listings sync on a fixed interval")
     parser.add_argument("--interval-minutes", type=int, default=20, help="Sync interval in minutes")
-    parser.add_argument("--max-hp", type=int, default=160, help="Import only adverts with power <= this value")
+    parser.add_argument("--max-hp", type=int, default=160, help="engine_power_hp[max] filter")
+    parser.add_argument("--year-min", type=int, default=2010, help="year[min] filter")
+    parser.add_argument("--price-usd-min", type=int, default=10000, help="price_usd[min] filter")
+    parser.add_argument("--creation-date", type=int, default=10, help="creation_date filter (0 = disable)")
+    parser.add_argument("--sort", type=int, default=4, help="av.by sorting id")
     parser.add_argument("--max-pages", type=int, default=30, help="Max paginated pages per brand")
     parser.add_argument("--per-model-limit", type=int, default=30, help="Max adverts per model per sync run")
     parser.add_argument("--no-update-existing", action="store_true", help="Do not update existing AV.BY adverts")
@@ -69,6 +85,10 @@ def main() -> None:
                 per_model_limit=args.per_model_limit,
                 update_existing=update_existing,
                 archive_overpowered=args.archive_overpowered,
+                year_min=args.year_min,
+                price_usd_min=args.price_usd_min,
+                creation_date=args.creation_date,
+                sort=args.sort,
             )
         )
 
@@ -80,6 +100,10 @@ def main() -> None:
             per_model_limit=args.per_model_limit,
             update_existing=update_existing,
             archive_overpowered=args.archive_overpowered,
+            year_min=args.year_min,
+            price_usd_min=args.price_usd_min,
+            creation_date=args.creation_date,
+            sort=args.sort,
         )
         print(f"[{_ts()}] sleep: {interval_seconds}s")
         time.sleep(interval_seconds)

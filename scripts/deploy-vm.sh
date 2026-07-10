@@ -33,12 +33,18 @@ echo "==> Health check"
 for attempt in 1 2 3 4 5; do
   if curl -fsS http://127.0.0.1:8000/health >/dev/null; then
     echo "API is healthy"
-    exit 0
+    break
   fi
   echo "Waiting for API... ($attempt/5)"
   sleep 3
+  if [[ "$attempt" -eq 5 ]]; then
+    echo "Health check failed"
+    docker compose --env-file .env.vm -f docker-compose.vm.yml logs --tail=80 api
+    exit 1
+  fi
 done
 
-echo "Health check failed"
-docker compose --env-file .env.vm -f docker-compose.vm.yml logs --tail=80 api
-exit 1
+echo "==> Smoke tests"
+bash "$APP_DIR/scripts/smoke-vm.sh"
+
+exit 0

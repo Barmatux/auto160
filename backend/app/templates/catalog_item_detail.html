@@ -6,6 +6,9 @@
     <div class="catalog-main-head">
       <h1>{{ item.make }} {{ item.model }}</h1>
       <p class="hint">Поколение: {{ item.generation or "—" }}</p>
+      {% if listings_url %}
+        <p><a href="{{ listings_url }}">Объявления по этой комплектации</a></p>
+      {% endif %}
       {% if is_admin %}
         <div class="actions-row">
           <a class="btn-link" href="/admin/catalog/{{ item.id }}/photos">Управление фото</a>

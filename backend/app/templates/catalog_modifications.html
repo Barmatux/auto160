@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 {% block title %}Комплектации - Auto160{% endblock %}
 {% block content %}
-<div class="catalog-layout">
-  {% include "partials/catalog_filters_sidebar.html" %}
+<div class="catalog-page">
+  {% include "partials/catalog_quick_jump.html" %}
   <section class="catalog-main">
     <div class="catalog-main-head">
       <h1>Комплектации</h1>
@@ -43,7 +43,10 @@
       </div>
 
       <aside class="offers-panel offers-panel-right">
-        <h2>Лента объявлений</h2>
+        <h2>Объявления</h2>
+        {% if listings_all_url %}
+          <p><a href="{{ listings_all_url }}">Все объявления по поколению →</a></p>
+        {% endif %}
         {% if ad_listings %}
           <div class="offers-list">
             {% for ad in ad_listings %}
@@ -86,6 +89,7 @@
       {% endif %}
     </div>
   </section>
+  {% include "partials/catalog_filters_panel.html" %}
 </div>
 <script>
   const compareBtn = document.getElementById("compare-btn");

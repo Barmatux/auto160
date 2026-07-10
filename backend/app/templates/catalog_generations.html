@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 {% block title %}{% if make and model %}Поколения {{ make }} {{ model }}{% else %}Все поколения{% endif %} - Auto160{% endblock %}
 {% block content %}
-<div class="catalog-layout">
-  {% include "partials/catalog_filters_sidebar.html" %}
+<div class="catalog-page">
+  {% include "partials/catalog_quick_jump.html" %}
   <section class="catalog-main">
     <div class="catalog-main-head">
       <h1>{% if make and model %}{{ make }} {{ model }}{% else %}Все поколения{% endif %}</h1>
@@ -27,6 +27,9 @@
             <h3><a href="{{ item.mods_url }}">{{ item.generation }}</a></h3>
             <p>Годы: {{ item.year_from or "?" }} - {{ item.year_to or "?" }}</p>
             <p>Комплектаций: <strong>{{ item.count }}</strong></p>
+            {% if item.listings_url %}
+              <p><a href="{{ item.listings_url }}">Объявления по поколению</a></p>
+            {% endif %}
             <strong><a href="{{ item.mods_url }}">Открыть спецификации</a></strong>
           </article>
         {% endfor %}
@@ -35,5 +38,6 @@
       <p>Поколения для этой модели не найдены.</p>
     {% endif %}
   </section>
+  {% include "partials/catalog_filters_panel.html" %}
 </div>
 {% endblock %}

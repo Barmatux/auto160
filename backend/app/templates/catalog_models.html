@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 {% block title %}{% if make %}Модели {{ make }}{% else %}Все модели{% endif %} - Auto160{% endblock %}
 {% block content %}
-<div class="catalog-layout">
-  {% include "partials/catalog_filters_sidebar.html" %}
+<div class="catalog-page">
+  {% include "partials/catalog_quick_jump.html" %}
   <section class="catalog-main">
     <div class="catalog-main-head">
       <h1>{% if make %}Модели {{ make }}{% else %}Все модели{% endif %}</h1>
@@ -28,6 +28,9 @@
             <p>Поколений: {{ item.generation_count }}</p>
             <p>Годы: {{ item.year_from or "?" }} - {{ item.year_to or "?" }}</p>
             <p>Комплектаций: <strong>{{ item.count }}</strong></p>
+            {% if item.listings_url %}
+              <p><a href="{{ item.listings_url }}">Объявления {{ item.make }} {{ item.model }}</a></p>
+            {% endif %}
             {% if item.generation_previews %}
               <div class="generation-mini-grid">
                 {% for generation in item.generation_previews %}
@@ -56,5 +59,6 @@
       <p>Для этой марки модели не найдены.</p>
     {% endif %}
   </section>
+  {% include "partials/catalog_filters_panel.html" %}
 </div>
 {% endblock %}

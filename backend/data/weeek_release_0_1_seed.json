@@ -1,0 +1,2511 @@
+{
+  "boardId": 2,
+  "created": [
+    {
+      "type": "epic",
+      "id": 11,
+      "title": "R0.1 — Инфраструктура и деплой",
+      "response": {
+        "success": true,
+        "task": {
+          "id": 11,
+          "parentId": null,
+          "title": "R0.1 — Инфраструктура и деплой",
+          "description": "<p>Эпик Release-0.1 · доска Release-0.1 (boardId=2)</p>",
+          "overdue": 0,
+          "duration": null,
+          "type": "action",
+          "priority": null,
+          "isCompleted": false,
+          "isDeleted": false,
+          "authorId": "a23005eb-9bf4-4dd4-85ba-52048497268b",
+          "userId": null,
+          "assignees": [],
+          "projectId": 1,
+          "boardId": 2,
+          "boardColumnId": 6,
+          "locations": [
+            {
+              "projectId": 1,
+              "boardId": 2,
+              "boardColumnId": 6
+            }
+          ],
+          "image": null,
+          "isPrivate": false,
+          "date": null,
+          "time": null,
+          "dateStart": null,
+          "dateEnd": null,
+          "timeStart": null,
+          "timeEnd": null,
+          "startDate": null,
+          "startDateTime": null,
+          "dueDate": null,
+          "dueDateTime": null,
+          "createdAt": "2026-07-05T17:30:45Z",
+          "updatedAt": "2026-07-05T17:30:45Z",
+          "completedAt": null,
+          "tags": [],
+          "subscribers": [
+            "a23005eb-9bf4-4dd4-85ba-52048497268b"
+          ],
+          "subTasks": [],
+          "workloads": [],
+          "timeEntries": [],
+          "timer": null,
+          "customFields": [],
+          "attachments": []
+        }
+      }
+    },
+    {
+      "type": "task",
+      "epic": "R0.1 — Инфраструктура и деплой",
+      "id": 56,
+      "title": "Docker Compose (api + postgres + minio)",
+      "response": {
+        "success": true,
+        "task": {
+          "id": 12,
+          "parentId": 11,
+          "title": "Docker Compose (api + postgres + minio)",
+          "description": null,
+          "overdue": 0,
+          "duration": null,
+          "type": "action",
+          "priority": null,
+          "isCompleted": false,
+          "isDeleted": false,
+          "authorId": "a23005eb-9bf4-4dd4-85ba-52048497268b",
+          "userId": null,
+          "assignees": [],
+          "projectId": 1,
+          "boardId": 2,
+          "boardColumnId": 6,
+          "locations": [
+            {
+              "projectId": 1,
+              "boardId": 2,
+              "boardColumnId": 6
+            }
+          ],
+          "image": null,
+          "isPrivate": false,
+          "date": null,
+          "time": null,
+          "dateStart": null,
+          "dateEnd": null,
+          "timeStart": null,
+          "timeEnd": null,
+          "startDate": null,
+          "startDateTime": null,
+          "dueDate": null,
+          "dueDateTime": null,
+          "createdAt": "2026-07-05T17:30:46Z",
+          "updatedAt": "2026-07-05T17:30:46Z",
+          "completedAt": null,
+          "tags": [],
+          "subscribers": [
+            "a23005eb-9bf4-4dd4-85ba-52048497268b"
+          ],
+          "subTasks": [],
+          "workloads": [],
+          "timeEntries": [],
+          "timer": null,
+          "customFields": [],
+          "attachments": []
+        }
+      },
+      "previousId": 12
+    },
+    {
+      "type": "task",
+      "epic": "R0.1 — Инфраструктура и деплой",
+      "id": 57,
+      "title": "Деплой на VM (docker-compose.vm.yml)",
+      "response": {
+        "success": true,
+        "task": {
+          "id": 13,
+          "parentId": 11,
+          "title": "Деплой на VM (docker-compose.vm.yml)",
+          "description": null,
+          "overdue": 0,
+          "duration": null,
+          "type": "action",
+          "priority": null,
+          "isCompleted": false,
+          "isDeleted": false,
+          "authorId": "a23005eb-9bf4-4dd4-85ba-52048497268b",
+          "userId": null,
+          "assignees": [],
+          "projectId": 1,
+          "boardId": 2,
+          "boardColumnId": 6,
+          "locations": [
+            {
+              "projectId": 1,
+              "boardId": 2,
+              "boardColumnId": 6
+            }
+          ],
+          "image": null,
+          "isPrivate": false,
+          "date": null,
+          "time": null,
+          "dateStart": null,
+          "dateEnd": null,
+          "timeStart": null,
+          "timeEnd": null,
+          "startDate": null,
+          "startDateTime": null,
+          "dueDate": null,
+          "dueDateTime": null,
+          "createdAt": "2026-07-05T17:30:46Z",
+          "updatedAt": "2026-07-05T17:30:46Z",
+          "completedAt": null,
+          "tags": [],
+          "subscribers": [
+            "a23005eb-9bf4-4dd4-85ba-52048497268b"
+          ],
+          "subTasks": [],
+          "workloads": [],
+          "timeEntries": [],
+          "timer": null,
+          "customFields": [],
+          "attachments": []
+        }
+      },
+      "previousId": 13
+    },
+    {
+      "type": "task",
+      "epic": "R0.1 — Инфраструктура и деплой",
+      "id": 58,
+      "title": "CI/CD GitHub Actions → deploy-vm.sh",
+      "response": {
+        "success": true,
+        "task": {
+          "id": 14,
+          "parentId": 11,
+          "title": "CI/CD GitHub Actions → deploy-vm.sh",
+          "description": null,
+          "overdue": 0,
+          "duration": null,
+          "type": "action",
+          "priority": null,
+          "isCompleted": false,
+          "isDeleted": false,
+          "authorId": "a23005eb-9bf4-4dd4-85ba-52048497268b",
+          "userId": null,
+          "assignees": [],
+          "projectId": 1,
+          "boardId": 2,
+          "boardColumnId": 6,
+          "locations": [
+            {
+              "projectId": 1,
+              "boardId": 2,
+              "boardColumnId": 6
+            }
+          ],
+          "image": null,
+          "isPrivate": false,
+          "date": null,
+          "time": null,
+          "dateStart": null,
+          "dateEnd": null,
+          "timeStart": null,
+          "timeEnd": null,
+          "startDate": null,
+          "startDateTime": null,
+          "dueDate": null,
+          "dueDateTime": null,
+          "createdAt": "2026-07-05T17:30:47Z",
+          "updatedAt": "2026-07-05T17:30:47Z",
+          "completedAt": null,
+          "tags": [],
+          "subscribers": [
+            "a23005eb-9bf4-4dd4-85ba-52048497268b"
+          ],
+          "subTasks": [],
+          "workloads": [],
+          "timeEntries": [],
+          "timer": null,
+          "customFields": [],
+          "attachments": []
+        }
+      },
+      "previousId": 14
+    },
+    {
+      "type": "task",
+      "epic": "R0.1 — Инфраструктура и деплой",
+      "id": 59,
+      "title": "Alembic миграции и bootstrap admin",
+      "response": {
+        "success": true,
+        "task": {
+          "id": 15,
+          "parentId": 11,
+          "title": "Alembic миграции и bootstrap admin",
+          "description": null,
+          "overdue": 0,
+          "duration": null,
+          "type": "action",
+          "priority": null,
+          "isCompleted": false,
+          "isDeleted": false,
+          "authorId": "a23005eb-9bf4-4dd4-85ba-52048497268b",
+          "userId": null,
+          "assignees": [],
+          "projectId": 1,
+          "boardId": 2,
+          "boardColumnId": 6,
+          "locations": [
+            {
+              "projectId": 1,
+              "boardId": 2,
+              "boardColumnId": 6
+            }
+          ],
+          "image": null,
+          "isPrivate": false,
+          "date": null,
+          "time": null,
+          "dateStart": null,
+          "dateEnd": null,
+          "timeStart": null,
+          "timeEnd": null,
+          "startDate": null,
+          "startDateTime": null,
+          "dueDate": null,
+          "dueDateTime": null,
+          "createdAt": "2026-07-05T17:30:48Z",
+          "updatedAt": "2026-07-05T17:30:48Z",
+          "completedAt": null,
+          "tags": [],
+          "subscribers": [
+            "a23005eb-9bf4-4dd4-85ba-52048497268b"
+          ],
+          "subTasks": [],
+          "workloads": [],
+          "timeEntries": [],
+          "timer": null,
+          "customFields": [],
+          "attachments": []
+        }
+      },
+      "previousId": 15
+    },
+    {
+      "type": "epic",
+      "id": 16,
+      "title": "R0.1 — Каталог и UI",
+      "response": {
+        "success": true,
+        "task": {
+          "id": 16,
+          "parentId": null,
+          "title": "R0.1 — Каталог и UI",
+          "description": "<p>Эпик Release-0.1 · доска Release-0.1 (boardId=2)</p>",
+          "overdue": 0,
+          "duration": null,
+          "type": "action",
+          "priority": null,
+          "isCompleted": false,
+          "isDeleted": false,
+          "authorId": "a23005eb-9bf4-4dd4-85ba-52048497268b",
+          "userId": null,
+          "assignees": [],
+          "projectId": 1,
+          "boardId": 2,
+          "boardColumnId": 6,
+          "locations": [
+            {
+              "projectId": 1,
+              "boardId": 2,
+              "boardColumnId": 6
+            }
+          ],
+          "image": null,
+          "isPrivate": false,
+          "date": null,
+          "time": null,
+          "dateStart": null,
+          "dateEnd": null,
+          "timeStart": null,
+          "timeEnd": null,
+          "startDate": null,
+          "startDateTime": null,
+          "dueDate": null,
+          "dueDateTime": null,
+          "createdAt": "2026-07-05T17:30:48Z",
+          "updatedAt": "2026-07-05T17:30:48Z",
+          "completedAt": null,
+          "tags": [],
+          "subscribers": [
+            "a23005eb-9bf4-4dd4-85ba-52048497268b"
+          ],
+          "subTasks": [],
+          "workloads": [],
+          "timeEntries": [],
+          "timer": null,
+          "customFields": [],
+          "attachments": []
+        }
+      }
+    },
+    {
+      "type": "task",
+      "epic": "R0.1 — Каталог и UI",
+      "id": 60,
+      "title": "Каталог из CSV (catalog_items, фильтры, пагинация)",
+      "response": {
+        "success": true,
+        "task": {
+          "id": 17,
+          "parentId": 16,
+          "title": "Каталог из CSV (catalog_items, фильтры, пагинация)",
+          "description": null,
+          "overdue": 0,
+          "duration": null,
+          "type": "action",
+          "priority": null,
+          "isCompleted": false,
+          "isDeleted": false,
+          "authorId": "a23005eb-9bf4-4dd4-85ba-52048497268b",
+          "userId": null,
+          "assignees": [],
+          "projectId": 1,
+          "boardId": 2,
+          "boardColumnId": 6,
+          "locations": [
+            {
+              "projectId": 1,
+              "boardId": 2,
+              "boardColumnId": 6
+            }
+          ],
+          "image": null,
+          "isPrivate": false,
+          "date": null,
+          "time": null,
+          "dateStart": null,
+          "dateEnd": null,
+          "timeStart": null,
+          "timeEnd": null,
+          "startDate": null,
+          "startDateTime": null,
+          "dueDate": null,
+          "dueDateTime": null,
+          "createdAt": "2026-07-05T17:30:49Z",
+          "updatedAt": "2026-07-05T17:30:49Z",
+          "completedAt": null,
+          "tags": [],
+          "subscribers": [
+            "a23005eb-9bf4-4dd4-85ba-52048497268b"
+          ],
+          "subTasks": [],
+          "workloads": [],
+          "timeEntries": [],
+          "timer": null,
+          "customFields": [],
+          "attachments": []
+        }
+      },
+      "previousId": 17
+    },
+    {
+      "type": "task",
+      "epic": "R0.1 — Каталог и UI",
+      "id": 61,
+      "title": "Кликабельные обложки в listings/catalog",
+      "response": {
+        "success": true,
+        "task": {
+          "id": 18,
+          "parentId": 16,
+          "title": "Кликабельные обложки в listings/catalog",
+          "description": null,
+          "overdue": 0,
+          "duration": null,
+          "type": "action",
+          "priority": null,
+          "isCompleted": false,
+          "isDeleted": false,
+          "authorId": "a23005eb-9bf4-4dd4-85ba-52048497268b",
+          "userId": null,
+          "assignees": [],
+          "projectId": 1,
+          "boardId": 2,
+          "boardColumnId": 6,
+          "locations": [
+            {
+              "projectId": 1,
+              "boardId": 2,
+              "boardColumnId": 6
+            }
+          ],
+          "image": null,
+          "isPrivate": false,
+          "date": null,
+          "time": null,
+          "dateStart": null,
+          "dateEnd": null,
+          "timeStart": null,
+          "timeEnd": null,
+          "startDate": null,
+          "startDateTime": null,
+          "dueDate": null,
+          "dueDateTime": null,
+          "createdAt": "2026-07-05T17:30:50Z",
+          "updatedAt": "2026-07-05T17:30:50Z",
+          "completedAt": null,
+          "tags": [],
+          "subscribers": [
+            "a23005eb-9bf4-4dd4-85ba-52048497268b"
+          ],
+          "subTasks": [],
+          "workloads": [],
+          "timeEntries": [],
+          "timer": null,
+          "customFields": [],
+          "attachments": []
+        }
+      },
+      "previousId": 18
+    },
+    {
+      "type": "task",
+      "epic": "R0.1 — Каталог и UI",
+      "id": 62,
+      "title": "Фото комплектаций из объявлений av.by",
+      "response": {
+        "success": true,
+        "task": {
+          "id": 19,
+          "parentId": 16,
+          "title": "Фото комплектаций из объявлений av.by",
+          "description": null,
+          "overdue": 0,
+          "duration": null,
+          "type": "action",
+          "priority": null,
+          "isCompleted": false,
+          "isDeleted": false,
+          "authorId": "a23005eb-9bf4-4dd4-85ba-52048497268b",
+          "userId": null,
+          "assignees": [],
+          "projectId": 1,
+          "boardId": 2,
+          "boardColumnId": 6,
+          "locations": [
+            {
+              "projectId": 1,
+              "boardId": 2,
+              "boardColumnId": 6
+            }
+          ],
+          "image": null,
+          "isPrivate": false,
+          "date": null,
+          "time": null,
+          "dateStart": null,
+          "dateEnd": null,
+          "timeStart": null,
+          "timeEnd": null,
+          "startDate": null,
+          "startDateTime": null,
+          "dueDate": null,
+          "dueDateTime": null,
+          "createdAt": "2026-07-05T17:30:51Z",
+          "updatedAt": "2026-07-05T17:30:51Z",
+          "completedAt": null,
+          "tags": [],
+          "subscribers": [
+            "a23005eb-9bf4-4dd4-85ba-52048497268b"
+          ],
+          "subTasks": [],
+          "workloads": [],
+          "timeEntries": [],
+          "timer": null,
+          "customFields": [],
+          "attachments": []
+        }
+      },
+      "previousId": 19
+    },
+    {
+      "type": "task",
+      "epic": "R0.1 — Каталог и UI",
+      "id": 63,
+      "title": "sync_catalog_photos → MinIO/S3",
+      "response": {
+        "success": true,
+        "task": {
+          "id": 20,
+          "parentId": 16,
+          "title": "sync_catalog_photos → MinIO/S3",
+          "description": null,
+          "overdue": 0,
+          "duration": null,
+          "type": "action",
+          "priority": null,
+          "isCompleted": false,
+          "isDeleted": false,
+          "authorId": "a23005eb-9bf4-4dd4-85ba-52048497268b",
+          "userId": null,
+          "assignees": [],
+          "projectId": 1,
+          "boardId": 2,
+          "boardColumnId": 6,
+          "locations": [
+            {
+              "projectId": 1,
+              "boardId": 2,
+              "boardColumnId": 6
+            }
+          ],
+          "image": null,
+          "isPrivate": false,
+          "date": null,
+          "time": null,
+          "dateStart": null,
+          "dateEnd": null,
+          "timeStart": null,
+          "timeEnd": null,
+          "startDate": null,
+          "startDateTime": null,
+          "dueDate": null,
+          "dueDateTime": null,
+          "createdAt": "2026-07-05T17:30:52Z",
+          "updatedAt": "2026-07-05T17:30:52Z",
+          "completedAt": null,
+          "tags": [],
+          "subscribers": [
+            "a23005eb-9bf4-4dd4-85ba-52048497268b"
+          ],
+          "subTasks": [],
+          "workloads": [],
+          "timeEntries": [],
+          "timer": null,
+          "customFields": [],
+          "attachments": []
+        }
+      },
+      "previousId": 20
+    },
+    {
+      "type": "task",
+      "epic": "R0.1 — Каталог и UI",
+      "id": 64,
+      "title": "Главная страница и навигация (шаблоны Jinja)",
+      "response": {
+        "success": true,
+        "task": {
+          "id": 21,
+          "parentId": 16,
+          "title": "Главная страница и навигация (шаблоны Jinja)",
+          "description": null,
+          "overdue": 0,
+          "duration": null,
+          "type": "action",
+          "priority": null,
+          "isCompleted": false,
+          "isDeleted": false,
+          "authorId": "a23005eb-9bf4-4dd4-85ba-52048497268b",
+          "userId": null,
+          "assignees": [],
+          "projectId": 1,
+          "boardId": 2,
+          "boardColumnId": 6,
+          "locations": [
+            {
+              "projectId": 1,
+              "boardId": 2,
+              "boardColumnId": 6
+            }
+          ],
+          "image": null,
+          "isPrivate": false,
+          "date": null,
+          "time": null,
+          "dateStart": null,
+          "dateEnd": null,
+          "timeStart": null,
+          "timeEnd": null,
+          "startDate": null,
+          "startDateTime": null,
+          "dueDate": null,
+          "dueDateTime": null,
+          "createdAt": "2026-07-05T17:30:52Z",
+          "updatedAt": "2026-07-05T17:30:52Z",
+          "completedAt": null,
+          "tags": [],
+          "subscribers": [
+            "a23005eb-9bf4-4dd4-85ba-52048497268b"
+          ],
+          "subTasks": [],
+          "workloads": [],
+          "timeEntries": [],
+          "timer": null,
+          "customFields": [],
+          "attachments": []
+        }
+      },
+      "previousId": 21
+    },
+    {
+      "type": "epic",
+      "id": 22,
+      "title": "R0.1 — Auth и админка",
+      "response": {
+        "success": true,
+        "task": {
+          "id": 22,
+          "parentId": null,
+          "title": "R0.1 — Auth и админка",
+          "description": "<p>Эпик Release-0.1 · доска Release-0.1 (boardId=2)</p>",
+          "overdue": 0,
+          "duration": null,
+          "type": "action",
+          "priority": null,
+          "isCompleted": false,
+          "isDeleted": false,
+          "authorId": "a23005eb-9bf4-4dd4-85ba-52048497268b",
+          "userId": null,
+          "assignees": [],
+          "projectId": 1,
+          "boardId": 2,
+          "boardColumnId": 6,
+          "locations": [
+            {
+              "projectId": 1,
+              "boardId": 2,
+              "boardColumnId": 6
+            }
+          ],
+          "image": null,
+          "isPrivate": false,
+          "date": null,
+          "time": null,
+          "dateStart": null,
+          "dateEnd": null,
+          "timeStart": null,
+          "timeEnd": null,
+          "startDate": null,
+          "startDateTime": null,
+          "dueDate": null,
+          "dueDateTime": null,
+          "createdAt": "2026-07-05T17:30:53Z",
+          "updatedAt": "2026-07-05T17:30:53Z",
+          "completedAt": null,
+          "tags": [],
+          "subscribers": [
+            "a23005eb-9bf4-4dd4-85ba-52048497268b"
+          ],
+          "subTasks": [],
+          "workloads": [],
+          "timeEntries": [],
+          "timer": null,
+          "customFields": [],
+          "attachments": []
+        }
+      }
+    },
+    {
+      "type": "task",
+      "epic": "R0.1 — Auth и админка",
+      "id": 65,
+      "title": "JWT auth (login/register/refresh)",
+      "response": {
+        "success": true,
+        "task": {
+          "id": 23,
+          "parentId": 22,
+          "title": "JWT auth (login/register/refresh)",
+          "description": null,
+          "overdue": 0,
+          "duration": null,
+          "type": "action",
+          "priority": null,
+          "isCompleted": false,
+          "isDeleted": false,
+          "authorId": "a23005eb-9bf4-4dd4-85ba-52048497268b",
+          "userId": null,
+          "assignees": [],
+          "projectId": 1,
+          "boardId": 2,
+          "boardColumnId": 6,
+          "locations": [
+            {
+              "projectId": 1,
+              "boardId": 2,
+              "boardColumnId": 6
+            }
+          ],
+          "image": null,
+          "isPrivate": false,
+          "date": null,
+          "time": null,
+          "dateStart": null,
+          "dateEnd": null,
+          "timeStart": null,
+          "timeEnd": null,
+          "startDate": null,
+          "startDateTime": null,
+          "dueDate": null,
+          "dueDateTime": null,
+          "createdAt": "2026-07-05T17:30:53Z",
+          "updatedAt": "2026-07-05T17:30:53Z",
+          "completedAt": null,
+          "tags": [],
+          "subscribers": [
+            "a23005eb-9bf4-4dd4-85ba-52048497268b"
+          ],
+          "subTasks": [],
+          "workloads": [],
+          "timeEntries": [],
+          "timer": null,
+          "customFields": [],
+          "attachments": []
+        }
+      },
+      "previousId": 23
+    },
+    {
+      "type": "task",
+      "epic": "R0.1 — Auth и админка",
+      "id": 66,
+      "title": "Роли guest/seller/admin",
+      "response": {
+        "success": true,
+        "task": {
+          "id": 24,
+          "parentId": 22,
+          "title": "Роли guest/seller/admin",
+          "description": null,
+          "overdue": 0,
+          "duration": null,
+          "type": "action",
+          "priority": null,
+          "isCompleted": false,
+          "isDeleted": false,
+          "authorId": "a23005eb-9bf4-4dd4-85ba-52048497268b",
+          "userId": null,
+          "assignees": [],
+          "projectId": 1,
+          "boardId": 2,
+          "boardColumnId": 6,
+          "locations": [
+            {
+              "projectId": 1,
+              "boardId": 2,
+              "boardColumnId": 6
+            }
+          ],
+          "image": null,
+          "isPrivate": false,
+          "date": null,
+          "time": null,
+          "dateStart": null,
+          "dateEnd": null,
+          "timeStart": null,
+          "timeEnd": null,
+          "startDate": null,
+          "startDateTime": null,
+          "dueDate": null,
+          "dueDateTime": null,
+          "createdAt": "2026-07-05T17:30:54Z",
+          "updatedAt": "2026-07-05T17:30:54Z",
+          "completedAt": null,
+          "tags": [],
+          "subscribers": [
+            "a23005eb-9bf4-4dd4-85ba-52048497268b"
+          ],
+          "subTasks": [],
+          "workloads": [],
+          "timeEntries": [],
+          "timer": null,
+          "customFields": [],
+          "attachments": []
+        }
+      },
+      "previousId": 24
+    },
+    {
+      "type": "task",
+      "epic": "R0.1 — Auth и админка",
+      "id": 67,
+      "title": "Админка пользователей (/admin/users)",
+      "response": {
+        "success": true,
+        "task": {
+          "id": 25,
+          "parentId": 22,
+          "title": "Админка пользователей (/admin/users)",
+          "description": null,
+          "overdue": 0,
+          "duration": null,
+          "type": "action",
+          "priority": null,
+          "isCompleted": false,
+          "isDeleted": false,
+          "authorId": "a23005eb-9bf4-4dd4-85ba-52048497268b",
+          "userId": null,
+          "assignees": [],
+          "projectId": 1,
+          "boardId": 2,
+          "boardColumnId": 6,
+          "locations": [
+            {
+              "projectId": 1,
+              "boardId": 2,
+              "boardColumnId": 6
+            }
+          ],
+          "image": null,
+          "isPrivate": false,
+          "date": null,
+          "time": null,
+          "dateStart": null,
+          "dateEnd": null,
+          "timeStart": null,
+          "timeEnd": null,
+          "startDate": null,
+          "startDateTime": null,
+          "dueDate": null,
+          "dueDateTime": null,
+          "createdAt": "2026-07-05T17:30:55Z",
+          "updatedAt": "2026-07-05T17:30:55Z",
+          "completedAt": null,
+          "tags": [],
+          "subscribers": [
+            "a23005eb-9bf4-4dd4-85ba-52048497268b"
+          ],
+          "subTasks": [],
+          "workloads": [],
+          "timeEntries": [],
+          "timer": null,
+          "customFields": [],
+          "attachments": []
+        }
+      },
+      "previousId": 25
+    },
+    {
+      "type": "task",
+      "epic": "R0.1 — Auth и админка",
+      "id": 68,
+      "title": "CRUD объявлений (admin only)",
+      "response": {
+        "success": true,
+        "task": {
+          "id": 26,
+          "parentId": 22,
+          "title": "CRUD объявлений (admin only)",
+          "description": null,
+          "overdue": 0,
+          "duration": null,
+          "type": "action",
+          "priority": null,
+          "isCompleted": false,
+          "isDeleted": false,
+          "authorId": "a23005eb-9bf4-4dd4-85ba-52048497268b",
+          "userId": null,
+          "assignees": [],
+          "projectId": 1,
+          "boardId": 2,
+          "boardColumnId": 6,
+          "locations": [
+            {
+              "projectId": 1,
+              "boardId": 2,
+              "boardColumnId": 6
+            }
+          ],
+          "image": null,
+          "isPrivate": false,
+          "date": null,
+          "time": null,
+          "dateStart": null,
+          "dateEnd": null,
+          "timeStart": null,
+          "timeEnd": null,
+          "startDate": null,
+          "startDateTime": null,
+          "dueDate": null,
+          "dueDateTime": null,
+          "createdAt": "2026-07-05T17:30:55Z",
+          "updatedAt": "2026-07-05T17:30:55Z",
+          "completedAt": null,
+          "tags": [],
+          "subscribers": [
+            "a23005eb-9bf4-4dd4-85ba-52048497268b"
+          ],
+          "subTasks": [],
+          "workloads": [],
+          "timeEntries": [],
+          "timer": null,
+          "customFields": [],
+          "attachments": []
+        }
+      },
+      "previousId": 26
+    },
+    {
+      "type": "task",
+      "epic": "R0.1 — Auth и админка",
+      "id": 69,
+      "title": "Refresh token в Redis/БД (production)",
+      "response": {
+        "success": true,
+        "task": {
+          "id": 27,
+          "parentId": 22,
+          "title": "Refresh token в Redis/БД (production)",
+          "description": null,
+          "overdue": 0,
+          "duration": null,
+          "type": "action",
+          "priority": null,
+          "isCompleted": false,
+          "isDeleted": false,
+          "authorId": "a23005eb-9bf4-4dd4-85ba-52048497268b",
+          "userId": null,
+          "assignees": [],
+          "projectId": 1,
+          "boardId": 2,
+          "boardColumnId": 4,
+          "locations": [
+            {
+              "projectId": 1,
+              "boardId": 2,
+              "boardColumnId": 4
+            }
+          ],
+          "image": null,
+          "isPrivate": false,
+          "date": null,
+          "time": null,
+          "dateStart": null,
+          "dateEnd": null,
+          "timeStart": null,
+          "timeEnd": null,
+          "startDate": null,
+          "startDateTime": null,
+          "dueDate": null,
+          "dueDateTime": null,
+          "createdAt": "2026-07-05T17:30:56Z",
+          "updatedAt": "2026-07-05T17:30:56Z",
+          "completedAt": null,
+          "tags": [],
+          "subscribers": [
+            "a23005eb-9bf4-4dd4-85ba-52048497268b"
+          ],
+          "subTasks": [],
+          "workloads": [],
+          "timeEntries": [],
+          "timer": null,
+          "customFields": [],
+          "attachments": []
+        }
+      },
+      "previousId": 27
+    },
+    {
+      "type": "epic",
+      "id": 28,
+      "title": "R0.1 — Парсинг av.by (объявления)",
+      "response": {
+        "success": true,
+        "task": {
+          "id": 28,
+          "parentId": null,
+          "title": "R0.1 — Парсинг av.by (объявления)",
+          "description": "<p>Эпик Release-0.1 · доска Release-0.1 (boardId=2)</p>",
+          "overdue": 0,
+          "duration": null,
+          "type": "action",
+          "priority": null,
+          "isCompleted": false,
+          "isDeleted": false,
+          "authorId": "a23005eb-9bf4-4dd4-85ba-52048497268b",
+          "userId": null,
+          "assignees": [],
+          "projectId": 1,
+          "boardId": 2,
+          "boardColumnId": 5,
+          "locations": [
+            {
+              "projectId": 1,
+              "boardId": 2,
+              "boardColumnId": 5
+            }
+          ],
+          "image": null,
+          "isPrivate": false,
+          "date": null,
+          "time": null,
+          "dateStart": null,
+          "dateEnd": null,
+          "timeStart": null,
+          "timeEnd": null,
+          "startDate": null,
+          "startDateTime": null,
+          "dueDate": null,
+          "dueDateTime": null,
+          "createdAt": "2026-07-05T17:30:56Z",
+          "updatedAt": "2026-07-05T17:30:56Z",
+          "completedAt": null,
+          "tags": [],
+          "subscribers": [
+            "a23005eb-9bf4-4dd4-85ba-52048497268b"
+          ],
+          "subTasks": [],
+          "workloads": [],
+          "timeEntries": [],
+          "timer": null,
+          "customFields": [],
+          "attachments": []
+        }
+      }
+    },
+    {
+      "type": "task",
+      "epic": "R0.1 — Парсинг av.by (объявления)",
+      "id": 70,
+      "title": "import_avby_listings.py — импорт ≤160 л.с.",
+      "response": {
+        "success": true,
+        "task": {
+          "id": 29,
+          "parentId": 28,
+          "title": "import_avby_listings.py — импорт ≤160 л.с.",
+          "description": null,
+          "overdue": 0,
+          "duration": null,
+          "type": "action",
+          "priority": null,
+          "isCompleted": false,
+          "isDeleted": false,
+          "authorId": "a23005eb-9bf4-4dd4-85ba-52048497268b",
+          "userId": null,
+          "assignees": [],
+          "projectId": 1,
+          "boardId": 2,
+          "boardColumnId": 6,
+          "locations": [
+            {
+              "projectId": 1,
+              "boardId": 2,
+              "boardColumnId": 6
+            }
+          ],
+          "image": null,
+          "isPrivate": false,
+          "date": null,
+          "time": null,
+          "dateStart": null,
+          "dateEnd": null,
+          "timeStart": null,
+          "timeEnd": null,
+          "startDate": null,
+          "startDateTime": null,
+          "dueDate": null,
+          "dueDateTime": null,
+          "createdAt": "2026-07-05T17:30:57Z",
+          "updatedAt": "2026-07-05T17:30:57Z",
+          "completedAt": null,
+          "tags": [],
+          "subscribers": [
+            "a23005eb-9bf4-4dd4-85ba-52048497268b"
+          ],
+          "subTasks": [],
+          "workloads": [],
+          "timeEntries": [],
+          "timer": null,
+          "customFields": [],
+          "attachments": []
+        }
+      },
+      "previousId": 29
+    },
+    {
+      "type": "task",
+      "epic": "R0.1 — Парсинг av.by (объявления)",
+      "id": 71,
+      "title": "schedule_avby_listings_sync — каждые 20 мин",
+      "response": {
+        "success": true,
+        "task": {
+          "id": 30,
+          "parentId": 28,
+          "title": "schedule_avby_listings_sync — каждые 20 мин",
+          "description": null,
+          "overdue": 0,
+          "duration": null,
+          "type": "action",
+          "priority": null,
+          "isCompleted": false,
+          "isDeleted": false,
+          "authorId": "a23005eb-9bf4-4dd4-85ba-52048497268b",
+          "userId": null,
+          "assignees": [],
+          "projectId": 1,
+          "boardId": 2,
+          "boardColumnId": 6,
+          "locations": [
+            {
+              "projectId": 1,
+              "boardId": 2,
+              "boardColumnId": 6
+            }
+          ],
+          "image": null,
+          "isPrivate": false,
+          "date": null,
+          "time": null,
+          "dateStart": null,
+          "dateEnd": null,
+          "timeStart": null,
+          "timeEnd": null,
+          "startDate": null,
+          "startDateTime": null,
+          "dueDate": null,
+          "dueDateTime": null,
+          "createdAt": "2026-07-05T17:30:58Z",
+          "updatedAt": "2026-07-05T17:30:58Z",
+          "completedAt": null,
+          "tags": [],
+          "subscribers": [
+            "a23005eb-9bf4-4dd4-85ba-52048497268b"
+          ],
+          "subTasks": [],
+          "workloads": [],
+          "timeEntries": [],
+          "timer": null,
+          "customFields": [],
+          "attachments": []
+        }
+      },
+      "previousId": 30
+    },
+    {
+      "type": "task",
+      "epic": "R0.1 — Парсинг av.by (объявления)",
+      "id": 72,
+      "title": "Админка /admin/avby-sync (AvbySyncRun)",
+      "response": {
+        "success": true,
+        "task": {
+          "id": 31,
+          "parentId": 28,
+          "title": "Админка /admin/avby-sync (AvbySyncRun)",
+          "description": null,
+          "overdue": 0,
+          "duration": null,
+          "type": "action",
+          "priority": null,
+          "isCompleted": false,
+          "isDeleted": false,
+          "authorId": "a23005eb-9bf4-4dd4-85ba-52048497268b",
+          "userId": null,
+          "assignees": [],
+          "projectId": 1,
+          "boardId": 2,
+          "boardColumnId": 6,
+          "locations": [
+            {
+              "projectId": 1,
+              "boardId": 2,
+              "boardColumnId": 6
+            }
+          ],
+          "image": null,
+          "isPrivate": false,
+          "date": null,
+          "time": null,
+          "dateStart": null,
+          "dateEnd": null,
+          "timeStart": null,
+          "timeEnd": null,
+          "startDate": null,
+          "startDateTime": null,
+          "dueDate": null,
+          "dueDateTime": null,
+          "createdAt": "2026-07-05T17:30:58Z",
+          "updatedAt": "2026-07-05T17:30:58Z",
+          "completedAt": null,
+          "tags": [],
+          "subscribers": [
+            "a23005eb-9bf4-4dd4-85ba-52048497268b"
+          ],
+          "subTasks": [],
+          "workloads": [],
+          "timeEntries": [],
+          "timer": null,
+          "customFields": [],
+          "attachments": []
+        }
+      },
+      "previousId": 31
+    },
+    {
+      "type": "task",
+      "epic": "R0.1 — Парсинг av.by (объявления)",
+      "id": 73,
+      "title": "import_avby.py — каталог модификаций",
+      "response": {
+        "success": true,
+        "task": {
+          "id": 32,
+          "parentId": 28,
+          "title": "import_avby.py — каталог модификаций",
+          "description": null,
+          "overdue": 0,
+          "duration": null,
+          "type": "action",
+          "priority": null,
+          "isCompleted": false,
+          "isDeleted": false,
+          "authorId": "a23005eb-9bf4-4dd4-85ba-52048497268b",
+          "userId": null,
+          "assignees": [],
+          "projectId": 1,
+          "boardId": 2,
+          "boardColumnId": 6,
+          "locations": [
+            {
+              "projectId": 1,
+              "boardId": 2,
+              "boardColumnId": 6
+            }
+          ],
+          "image": null,
+          "isPrivate": false,
+          "date": null,
+          "time": null,
+          "dateStart": null,
+          "dateEnd": null,
+          "timeStart": null,
+          "timeEnd": null,
+          "startDate": null,
+          "startDateTime": null,
+          "dueDate": null,
+          "dueDateTime": null,
+          "createdAt": "2026-07-05T17:30:59Z",
+          "updatedAt": "2026-07-05T17:30:59Z",
+          "completedAt": null,
+          "tags": [],
+          "subscribers": [
+            "a23005eb-9bf4-4dd4-85ba-52048497268b"
+          ],
+          "subTasks": [],
+          "workloads": [],
+          "timeEntries": [],
+          "timer": null,
+          "customFields": [],
+          "attachments": []
+        }
+      },
+      "previousId": 32
+    },
+    {
+      "type": "task",
+      "epic": "R0.1 — Парсинг av.by (объявления)",
+      "id": 74,
+      "title": "avby_client.py — HTTP-клиент с авторизацией",
+      "response": {
+        "success": true,
+        "task": {
+          "id": 33,
+          "parentId": 28,
+          "title": "avby_client.py — HTTP-клиент с авторизацией",
+          "description": null,
+          "overdue": 0,
+          "duration": null,
+          "type": "action",
+          "priority": null,
+          "isCompleted": false,
+          "isDeleted": false,
+          "authorId": "a23005eb-9bf4-4dd4-85ba-52048497268b",
+          "userId": null,
+          "assignees": [],
+          "projectId": 1,
+          "boardId": 2,
+          "boardColumnId": 4,
+          "locations": [
+            {
+              "projectId": 1,
+              "boardId": 2,
+              "boardColumnId": 4
+            }
+          ],
+          "image": null,
+          "isPrivate": false,
+          "date": null,
+          "time": null,
+          "dateStart": null,
+          "dateEnd": null,
+          "timeStart": null,
+          "timeEnd": null,
+          "startDate": null,
+          "startDateTime": null,
+          "dueDate": null,
+          "dueDateTime": null,
+          "createdAt": "2026-07-05T17:31:00Z",
+          "updatedAt": "2026-07-05T17:31:00Z",
+          "completedAt": null,
+          "tags": [],
+          "subscribers": [
+            "a23005eb-9bf4-4dd4-85ba-52048497268b"
+          ],
+          "subTasks": [],
+          "workloads": [],
+          "timeEntries": [],
+          "timer": null,
+          "customFields": [],
+          "attachments": []
+        }
+      },
+      "previousId": 33
+    },
+    {
+      "type": "task",
+      "epic": "R0.1 — Парсинг av.by (объявления)",
+      "id": 75,
+      "title": "Парсинг под сервисным аккаунтом (ротация)",
+      "response": {
+        "success": true,
+        "task": {
+          "id": 34,
+          "parentId": 28,
+          "title": "Парсинг под сервисным аккаунтом (ротация)",
+          "description": null,
+          "overdue": 0,
+          "duration": null,
+          "type": "action",
+          "priority": null,
+          "isCompleted": false,
+          "isDeleted": false,
+          "authorId": "a23005eb-9bf4-4dd4-85ba-52048497268b",
+          "userId": null,
+          "assignees": [],
+          "projectId": 1,
+          "boardId": 2,
+          "boardColumnId": 4,
+          "locations": [
+            {
+              "projectId": 1,
+              "boardId": 2,
+              "boardColumnId": 4
+            }
+          ],
+          "image": null,
+          "isPrivate": false,
+          "date": null,
+          "time": null,
+          "dateStart": null,
+          "dateEnd": null,
+          "timeStart": null,
+          "timeEnd": null,
+          "startDate": null,
+          "startDateTime": null,
+          "dueDate": null,
+          "dueDateTime": null,
+          "createdAt": "2026-07-05T17:31:00Z",
+          "updatedAt": "2026-07-05T17:31:00Z",
+          "completedAt": null,
+          "tags": [],
+          "subscribers": [
+            "a23005eb-9bf4-4dd4-85ba-52048497268b"
+          ],
+          "subTasks": [],
+          "workloads": [],
+          "timeEntries": [],
+          "timer": null,
+          "customFields": [],
+          "attachments": []
+        }
+      },
+      "previousId": 34
+    },
+    {
+      "type": "task",
+      "epic": "R0.1 — Парсинг av.by (объявления)",
+      "id": 76,
+      "title": "refresh_token в AvbyServiceAccount",
+      "response": {
+        "success": true,
+        "task": {
+          "id": 35,
+          "parentId": 28,
+          "title": "refresh_token в AvbyServiceAccount",
+          "description": null,
+          "overdue": 0,
+          "duration": null,
+          "type": "action",
+          "priority": null,
+          "isCompleted": false,
+          "isDeleted": false,
+          "authorId": "a23005eb-9bf4-4dd4-85ba-52048497268b",
+          "userId": null,
+          "assignees": [],
+          "projectId": 1,
+          "boardId": 2,
+          "boardColumnId": 4,
+          "locations": [
+            {
+              "projectId": 1,
+              "boardId": 2,
+              "boardColumnId": 4
+            }
+          ],
+          "image": null,
+          "isPrivate": false,
+          "date": null,
+          "time": null,
+          "dateStart": null,
+          "dateEnd": null,
+          "timeStart": null,
+          "timeEnd": null,
+          "startDate": null,
+          "startDateTime": null,
+          "dueDate": null,
+          "dueDateTime": null,
+          "createdAt": "2026-07-05T17:31:01Z",
+          "updatedAt": "2026-07-05T17:31:01Z",
+          "completedAt": null,
+          "tags": [],
+          "subscribers": [
+            "a23005eb-9bf4-4dd4-85ba-52048497268b"
+          ],
+          "subTasks": [],
+          "workloads": [],
+          "timeEntries": [],
+          "timer": null,
+          "customFields": [],
+          "attachments": []
+        }
+      },
+      "previousId": 35
+    },
+    {
+      "type": "epic",
+      "id": 36,
+      "title": "R0.1 — Сервисные аккаунты av.by",
+      "response": {
+        "success": true,
+        "task": {
+          "id": 36,
+          "parentId": null,
+          "title": "R0.1 — Сервисные аккаунты av.by",
+          "description": "<p>Эпик Release-0.1 · доска Release-0.1 (boardId=2)</p>",
+          "overdue": 0,
+          "duration": null,
+          "type": "action",
+          "priority": null,
+          "isCompleted": false,
+          "isDeleted": false,
+          "authorId": "a23005eb-9bf4-4dd4-85ba-52048497268b",
+          "userId": null,
+          "assignees": [],
+          "projectId": 1,
+          "boardId": 2,
+          "boardColumnId": 5,
+          "locations": [
+            {
+              "projectId": 1,
+              "boardId": 2,
+              "boardColumnId": 5
+            }
+          ],
+          "image": null,
+          "isPrivate": false,
+          "date": null,
+          "time": null,
+          "dateStart": null,
+          "dateEnd": null,
+          "timeStart": null,
+          "timeEnd": null,
+          "startDate": null,
+          "startDateTime": null,
+          "dueDate": null,
+          "dueDateTime": null,
+          "createdAt": "2026-07-05T17:31:02Z",
+          "updatedAt": "2026-07-05T17:31:02Z",
+          "completedAt": null,
+          "tags": [],
+          "subscribers": [
+            "a23005eb-9bf4-4dd4-85ba-52048497268b"
+          ],
+          "subTasks": [],
+          "workloads": [],
+          "timeEntries": [],
+          "timer": null,
+          "customFields": [],
+          "attachments": []
+        }
+      }
+    },
+    {
+      "type": "task",
+      "epic": "R0.1 — Сервисные аккаунты av.by",
+      "id": 77,
+      "title": "register_avby_accounts.py (Mail.tm + email)",
+      "response": {
+        "success": true,
+        "task": {
+          "id": 37,
+          "parentId": 36,
+          "title": "register_avby_accounts.py (Mail.tm + email)",
+          "description": null,
+          "overdue": 0,
+          "duration": null,
+          "type": "action",
+          "priority": null,
+          "isCompleted": false,
+          "isDeleted": false,
+          "authorId": "a23005eb-9bf4-4dd4-85ba-52048497268b",
+          "userId": null,
+          "assignees": [],
+          "projectId": 1,
+          "boardId": 2,
+          "boardColumnId": 6,
+          "locations": [
+            {
+              "projectId": 1,
+              "boardId": 2,
+              "boardColumnId": 6
+            }
+          ],
+          "image": null,
+          "isPrivate": false,
+          "date": null,
+          "time": null,
+          "dateStart": null,
+          "dateEnd": null,
+          "timeStart": null,
+          "timeEnd": null,
+          "startDate": null,
+          "startDateTime": null,
+          "dueDate": null,
+          "dueDateTime": null,
+          "createdAt": "2026-07-05T17:31:02Z",
+          "updatedAt": "2026-07-05T17:31:02Z",
+          "completedAt": null,
+          "tags": [],
+          "subscribers": [
+            "a23005eb-9bf4-4dd4-85ba-52048497268b"
+          ],
+          "subTasks": [],
+          "workloads": [],
+          "timeEntries": [],
+          "timer": null,
+          "customFields": [],
+          "attachments": []
+        }
+      },
+      "previousId": 37
+    },
+    {
+      "type": "task",
+      "epic": "R0.1 — Сервисные аккаунты av.by",
+      "id": 78,
+      "title": "Админка /admin/avby-accounts",
+      "response": {
+        "success": true,
+        "task": {
+          "id": 38,
+          "parentId": 36,
+          "title": "Админка /admin/avby-accounts",
+          "description": null,
+          "overdue": 0,
+          "duration": null,
+          "type": "action",
+          "priority": null,
+          "isCompleted": false,
+          "isDeleted": false,
+          "authorId": "a23005eb-9bf4-4dd4-85ba-52048497268b",
+          "userId": null,
+          "assignees": [],
+          "projectId": 1,
+          "boardId": 2,
+          "boardColumnId": 6,
+          "locations": [
+            {
+              "projectId": 1,
+              "boardId": 2,
+              "boardColumnId": 6
+            }
+          ],
+          "image": null,
+          "isPrivate": false,
+          "date": null,
+          "time": null,
+          "dateStart": null,
+          "dateEnd": null,
+          "timeStart": null,
+          "timeEnd": null,
+          "startDate": null,
+          "startDateTime": null,
+          "dueDate": null,
+          "dueDateTime": null,
+          "createdAt": "2026-07-05T17:31:03Z",
+          "updatedAt": "2026-07-05T17:31:03Z",
+          "completedAt": null,
+          "tags": [],
+          "subscribers": [
+            "a23005eb-9bf4-4dd4-85ba-52048497268b"
+          ],
+          "subTasks": [],
+          "workloads": [],
+          "timeEntries": [],
+          "timer": null,
+          "customFields": [],
+          "attachments": []
+        }
+      },
+      "previousId": 38
+    },
+    {
+      "type": "task",
+      "epic": "R0.1 — Сервисные аккаунты av.by",
+      "id": 79,
+      "title": "2captcha для регистрации на VM",
+      "response": {
+        "success": true,
+        "task": {
+          "id": 39,
+          "parentId": 36,
+          "title": "2captcha для регистрации на VM",
+          "description": null,
+          "overdue": 0,
+          "duration": null,
+          "type": "action",
+          "priority": null,
+          "isCompleted": false,
+          "isDeleted": false,
+          "authorId": "a23005eb-9bf4-4dd4-85ba-52048497268b",
+          "userId": null,
+          "assignees": [],
+          "projectId": 1,
+          "boardId": 2,
+          "boardColumnId": 6,
+          "locations": [
+            {
+              "projectId": 1,
+              "boardId": 2,
+              "boardColumnId": 6
+            }
+          ],
+          "image": null,
+          "isPrivate": false,
+          "date": null,
+          "time": null,
+          "dateStart": null,
+          "dateEnd": null,
+          "timeStart": null,
+          "timeEnd": null,
+          "startDate": null,
+          "startDateTime": null,
+          "dueDate": null,
+          "dueDateTime": null,
+          "createdAt": "2026-07-05T17:31:03Z",
+          "updatedAt": "2026-07-05T17:31:03Z",
+          "completedAt": null,
+          "tags": [],
+          "subscribers": [
+            "a23005eb-9bf4-4dd4-85ba-52048497268b"
+          ],
+          "subTasks": [],
+          "workloads": [],
+          "timeEntries": [],
+          "timer": null,
+          "customFields": [],
+          "attachments": []
+        }
+      },
+      "previousId": 39
+    },
+    {
+      "type": "task",
+      "epic": "R0.1 — Сервисные аккаунты av.by",
+      "id": 80,
+      "title": "HeroSMS: верификация телефона (+375)",
+      "response": {
+        "success": true,
+        "task": {
+          "id": 40,
+          "parentId": 36,
+          "title": "HeroSMS: верификация телефона (+375)",
+          "description": "<p>Ждём пополнения баланса HeroSMS (~$0.30/номер). Скрипт: tools/verify_avby_phone.py</p>",
+          "overdue": 0,
+          "duration": null,
+          "type": "action",
+          "priority": null,
+          "isCompleted": false,
+          "isDeleted": false,
+          "authorId": "a23005eb-9bf4-4dd4-85ba-52048497268b",
+          "userId": null,
+          "assignees": [],
+          "projectId": 1,
+          "boardId": 2,
+          "boardColumnId": 4,
+          "locations": [
+            {
+              "projectId": 1,
+              "boardId": 2,
+              "boardColumnId": 4
+            }
+          ],
+          "image": null,
+          "isPrivate": false,
+          "date": null,
+          "time": null,
+          "dateStart": null,
+          "dateEnd": null,
+          "timeStart": null,
+          "timeEnd": null,
+          "startDate": null,
+          "startDateTime": null,
+          "dueDate": null,
+          "dueDateTime": null,
+          "createdAt": "2026-07-05T17:31:04Z",
+          "updatedAt": "2026-07-05T17:31:04Z",
+          "completedAt": null,
+          "tags": [],
+          "subscribers": [
+            "a23005eb-9bf4-4dd4-85ba-52048497268b"
+          ],
+          "subTasks": [],
+          "workloads": [],
+          "timeEntries": [],
+          "timer": null,
+          "customFields": [],
+          "attachments": []
+        }
+      },
+      "previousId": 40
+    },
+    {
+      "type": "task",
+      "epic": "R0.1 — Сервисные аккаунты av.by",
+      "id": 81,
+      "title": "verify_avby_phone.py — автоматизация SMS",
+      "response": {
+        "success": true,
+        "task": {
+          "id": 41,
+          "parentId": 36,
+          "title": "verify_avby_phone.py — автоматизация SMS",
+          "description": null,
+          "overdue": 0,
+          "duration": null,
+          "type": "action",
+          "priority": null,
+          "isCompleted": false,
+          "isDeleted": false,
+          "authorId": "a23005eb-9bf4-4dd4-85ba-52048497268b",
+          "userId": null,
+          "assignees": [],
+          "projectId": 1,
+          "boardId": 2,
+          "boardColumnId": 4,
+          "locations": [
+            {
+              "projectId": 1,
+              "boardId": 2,
+              "boardColumnId": 4
+            }
+          ],
+          "image": null,
+          "isPrivate": false,
+          "date": null,
+          "time": null,
+          "dateStart": null,
+          "dateEnd": null,
+          "timeStart": null,
+          "timeEnd": null,
+          "startDate": null,
+          "startDateTime": null,
+          "dueDate": null,
+          "dueDateTime": null,
+          "createdAt": "2026-07-05T17:31:05Z",
+          "updatedAt": "2026-07-05T17:31:05Z",
+          "completedAt": null,
+          "tags": [],
+          "subscribers": [
+            "a23005eb-9bf4-4dd4-85ba-52048497268b"
+          ],
+          "subTasks": [],
+          "workloads": [],
+          "timeEntries": [],
+          "timer": null,
+          "customFields": [],
+          "attachments": []
+        }
+      },
+      "previousId": 41
+    },
+    {
+      "type": "epic",
+      "id": 42,
+      "title": "R0.1 — VIN проверка",
+      "response": {
+        "success": true,
+        "task": {
+          "id": 42,
+          "parentId": null,
+          "title": "R0.1 — VIN проверка",
+          "description": "<p>Эпик Release-0.1 · доска Release-0.1 (boardId=2)</p>",
+          "overdue": 0,
+          "duration": null,
+          "type": "action",
+          "priority": null,
+          "isCompleted": false,
+          "isDeleted": false,
+          "authorId": "a23005eb-9bf4-4dd4-85ba-52048497268b",
+          "userId": null,
+          "assignees": [],
+          "projectId": 1,
+          "boardId": 2,
+          "boardColumnId": 4,
+          "locations": [
+            {
+              "projectId": 1,
+              "boardId": 2,
+              "boardColumnId": 4
+            }
+          ],
+          "image": null,
+          "isPrivate": false,
+          "date": null,
+          "time": null,
+          "dateStart": null,
+          "dateEnd": null,
+          "timeStart": null,
+          "timeEnd": null,
+          "startDate": null,
+          "startDateTime": null,
+          "dueDate": null,
+          "dueDateTime": null,
+          "createdAt": "2026-07-05T17:31:05Z",
+          "updatedAt": "2026-07-05T17:31:05Z",
+          "completedAt": null,
+          "tags": [],
+          "subscribers": [
+            "a23005eb-9bf4-4dd4-85ba-52048497268b"
+          ],
+          "subTasks": [],
+          "workloads": [],
+          "timeEntries": [],
+          "timer": null,
+          "customFields": [],
+          "attachments": []
+        }
+      }
+    },
+    {
+      "type": "task",
+      "epic": "R0.1 — VIN проверка",
+      "id": 82,
+      "title": "Страница /inspection (mock-отчёт)",
+      "response": {
+        "success": true,
+        "task": {
+          "id": 43,
+          "parentId": 42,
+          "title": "Страница /inspection (mock-отчёт)",
+          "description": null,
+          "overdue": 0,
+          "duration": null,
+          "type": "action",
+          "priority": null,
+          "isCompleted": false,
+          "isDeleted": false,
+          "authorId": "a23005eb-9bf4-4dd4-85ba-52048497268b",
+          "userId": null,
+          "assignees": [],
+          "projectId": 1,
+          "boardId": 2,
+          "boardColumnId": 6,
+          "locations": [
+            {
+              "projectId": 1,
+              "boardId": 2,
+              "boardColumnId": 6
+            }
+          ],
+          "image": null,
+          "isPrivate": false,
+          "date": null,
+          "time": null,
+          "dateStart": null,
+          "dateEnd": null,
+          "timeStart": null,
+          "timeEnd": null,
+          "startDate": null,
+          "startDateTime": null,
+          "dueDate": null,
+          "dueDateTime": null,
+          "createdAt": "2026-07-05T17:31:06Z",
+          "updatedAt": "2026-07-05T17:31:06Z",
+          "completedAt": null,
+          "tags": [],
+          "subscribers": [
+            "a23005eb-9bf4-4dd4-85ba-52048497268b"
+          ],
+          "subTasks": [],
+          "workloads": [],
+          "timeEntries": [],
+          "timer": null,
+          "customFields": [],
+          "attachments": []
+        }
+      },
+      "previousId": 43
+    },
+    {
+      "type": "task",
+      "epic": "R0.1 — VIN проверка",
+      "id": 83,
+      "title": "vin_indicated при импорте объявлений",
+      "response": {
+        "success": true,
+        "task": {
+          "id": 44,
+          "parentId": 42,
+          "title": "vin_indicated при импорте объявлений",
+          "description": null,
+          "overdue": 0,
+          "duration": null,
+          "type": "action",
+          "priority": null,
+          "isCompleted": false,
+          "isDeleted": false,
+          "authorId": "a23005eb-9bf4-4dd4-85ba-52048497268b",
+          "userId": null,
+          "assignees": [],
+          "projectId": 1,
+          "boardId": 2,
+          "boardColumnId": 6,
+          "locations": [
+            {
+              "projectId": 1,
+              "boardId": 2,
+              "boardColumnId": 6
+            }
+          ],
+          "image": null,
+          "isPrivate": false,
+          "date": null,
+          "time": null,
+          "dateStart": null,
+          "dateEnd": null,
+          "timeStart": null,
+          "timeEnd": null,
+          "startDate": null,
+          "startDateTime": null,
+          "dueDate": null,
+          "dueDateTime": null,
+          "createdAt": "2026-07-05T17:31:07Z",
+          "updatedAt": "2026-07-05T17:31:07Z",
+          "completedAt": null,
+          "tags": [],
+          "subscribers": [
+            "a23005eb-9bf4-4dd4-85ba-52048497268b"
+          ],
+          "subTasks": [],
+          "workloads": [],
+          "timeEntries": [],
+          "timer": null,
+          "customFields": [],
+          "attachments": []
+        }
+      },
+      "previousId": 44
+    },
+    {
+      "type": "task",
+      "epic": "R0.1 — VIN проверка",
+      "id": 84,
+      "title": "VIN-метаданные: GET /offers/{id} при парсинге",
+      "response": {
+        "success": true,
+        "task": {
+          "id": 45,
+          "parentId": 42,
+          "title": "VIN-метаданные: GET /offers/{id} при парсинге",
+          "description": null,
+          "overdue": 0,
+          "duration": null,
+          "type": "action",
+          "priority": null,
+          "isCompleted": false,
+          "isDeleted": false,
+          "authorId": "a23005eb-9bf4-4dd4-85ba-52048497268b",
+          "userId": null,
+          "assignees": [],
+          "projectId": 1,
+          "boardId": 2,
+          "boardColumnId": 4,
+          "locations": [
+            {
+              "projectId": 1,
+              "boardId": 2,
+              "boardColumnId": 4
+            }
+          ],
+          "image": null,
+          "isPrivate": false,
+          "date": null,
+          "time": null,
+          "dateStart": null,
+          "dateEnd": null,
+          "timeStart": null,
+          "timeEnd": null,
+          "startDate": null,
+          "startDateTime": null,
+          "dueDate": null,
+          "dueDateTime": null,
+          "createdAt": "2026-07-05T17:31:07Z",
+          "updatedAt": "2026-07-05T17:31:07Z",
+          "completedAt": null,
+          "tags": [],
+          "subscribers": [
+            "a23005eb-9bf4-4dd4-85ba-52048497268b"
+          ],
+          "subTasks": [],
+          "workloads": [],
+          "timeEntries": [],
+          "timer": null,
+          "customFields": [],
+          "attachments": []
+        }
+      },
+      "previousId": 45
+    },
+    {
+      "type": "task",
+      "epic": "R0.1 — VIN проверка",
+      "id": 85,
+      "title": "Реальный отчёт av.by (платно ~18.5 BYN)",
+      "response": {
+        "success": true,
+        "task": {
+          "id": 46,
+          "parentId": 42,
+          "title": "Реальный отчёт av.by (платно ~18.5 BYN)",
+          "description": "<p>После phone verify + баланс vinReportBalance</p>",
+          "overdue": 0,
+          "duration": null,
+          "type": "action",
+          "priority": null,
+          "isCompleted": false,
+          "isDeleted": false,
+          "authorId": "a23005eb-9bf4-4dd4-85ba-52048497268b",
+          "userId": null,
+          "assignees": [],
+          "projectId": 1,
+          "boardId": 2,
+          "boardColumnId": 4,
+          "locations": [
+            {
+              "projectId": 1,
+              "boardId": 2,
+              "boardColumnId": 4
+            }
+          ],
+          "image": null,
+          "isPrivate": false,
+          "date": null,
+          "time": null,
+          "dateStart": null,
+          "dateEnd": null,
+          "timeStart": null,
+          "timeEnd": null,
+          "startDate": null,
+          "startDateTime": null,
+          "dueDate": null,
+          "dueDateTime": null,
+          "createdAt": "2026-07-05T17:31:08Z",
+          "updatedAt": "2026-07-05T17:31:08Z",
+          "completedAt": null,
+          "tags": [],
+          "subscribers": [
+            "a23005eb-9bf4-4dd4-85ba-52048497268b"
+          ],
+          "subTasks": [],
+          "workloads": [],
+          "timeEntries": [],
+          "timer": null,
+          "customFields": [],
+          "attachments": []
+        }
+      },
+      "previousId": 46
+    },
+    {
+      "type": "task",
+      "epic": "R0.1 — VIN проверка",
+      "id": 86,
+      "title": "Отображение VIN-отчёта на listing_detail",
+      "response": {
+        "success": true,
+        "task": {
+          "id": 47,
+          "parentId": 42,
+          "title": "Отображение VIN-отчёта на listing_detail",
+          "description": null,
+          "overdue": 0,
+          "duration": null,
+          "type": "action",
+          "priority": null,
+          "isCompleted": false,
+          "isDeleted": false,
+          "authorId": "a23005eb-9bf4-4dd4-85ba-52048497268b",
+          "userId": null,
+          "assignees": [],
+          "projectId": 1,
+          "boardId": 2,
+          "boardColumnId": 4,
+          "locations": [
+            {
+              "projectId": 1,
+              "boardId": 2,
+              "boardColumnId": 4
+            }
+          ],
+          "image": null,
+          "isPrivate": false,
+          "date": null,
+          "time": null,
+          "dateStart": null,
+          "dateEnd": null,
+          "timeStart": null,
+          "timeEnd": null,
+          "startDate": null,
+          "startDateTime": null,
+          "dueDate": null,
+          "dueDateTime": null,
+          "createdAt": "2026-07-05T17:31:09Z",
+          "updatedAt": "2026-07-05T17:31:09Z",
+          "completedAt": null,
+          "tags": [],
+          "subscribers": [
+            "a23005eb-9bf4-4dd4-85ba-52048497268b"
+          ],
+          "subTasks": [],
+          "workloads": [],
+          "timeEntries": [],
+          "timer": null,
+          "customFields": [],
+          "attachments": []
+        }
+      },
+      "previousId": 47
+    },
+    {
+      "type": "epic",
+      "id": 48,
+      "title": "R0.1 — Качество и релиз",
+      "response": {
+        "success": true,
+        "task": {
+          "id": 48,
+          "parentId": null,
+          "title": "R0.1 — Качество и релиз",
+          "description": "<p>Эпик Release-0.1 · доска Release-0.1 (boardId=2)</p>",
+          "overdue": 0,
+          "duration": null,
+          "type": "action",
+          "priority": null,
+          "isCompleted": false,
+          "isDeleted": false,
+          "authorId": "a23005eb-9bf4-4dd4-85ba-52048497268b",
+          "userId": null,
+          "assignees": [],
+          "projectId": 1,
+          "boardId": 2,
+          "boardColumnId": 4,
+          "locations": [
+            {
+              "projectId": 1,
+              "boardId": 2,
+              "boardColumnId": 4
+            }
+          ],
+          "image": null,
+          "isPrivate": false,
+          "date": null,
+          "time": null,
+          "dateStart": null,
+          "dateEnd": null,
+          "timeStart": null,
+          "timeEnd": null,
+          "startDate": null,
+          "startDateTime": null,
+          "dueDate": null,
+          "dueDateTime": null,
+          "createdAt": "2026-07-05T17:31:10Z",
+          "updatedAt": "2026-07-05T17:31:10Z",
+          "completedAt": null,
+          "tags": [],
+          "subscribers": [
+            "a23005eb-9bf4-4dd4-85ba-52048497268b"
+          ],
+          "subTasks": [],
+          "workloads": [],
+          "timeEntries": [],
+          "timer": null,
+          "customFields": [],
+          "attachments": []
+        }
+      }
+    },
+    {
+      "type": "task",
+      "epic": "R0.1 — Качество и релиз",
+      "id": 87,
+      "title": "pytest — базовые тесты API",
+      "response": {
+        "success": true,
+        "task": {
+          "id": 49,
+          "parentId": 48,
+          "title": "pytest — базовые тесты API",
+          "description": null,
+          "overdue": 0,
+          "duration": null,
+          "type": "action",
+          "priority": null,
+          "isCompleted": false,
+          "isDeleted": false,
+          "authorId": "a23005eb-9bf4-4dd4-85ba-52048497268b",
+          "userId": null,
+          "assignees": [],
+          "projectId": 1,
+          "boardId": 2,
+          "boardColumnId": 4,
+          "locations": [
+            {
+              "projectId": 1,
+              "boardId": 2,
+              "boardColumnId": 4
+            }
+          ],
+          "image": null,
+          "isPrivate": false,
+          "date": null,
+          "time": null,
+          "dateStart": null,
+          "dateEnd": null,
+          "timeStart": null,
+          "timeEnd": null,
+          "startDate": null,
+          "startDateTime": null,
+          "dueDate": null,
+          "dueDateTime": null,
+          "createdAt": "2026-07-05T17:31:11Z",
+          "updatedAt": "2026-07-05T17:31:11Z",
+          "completedAt": null,
+          "tags": [],
+          "subscribers": [
+            "a23005eb-9bf4-4dd4-85ba-52048497268b"
+          ],
+          "subTasks": [],
+          "workloads": [],
+          "timeEntries": [],
+          "timer": null,
+          "customFields": [],
+          "attachments": []
+        }
+      },
+      "previousId": 49
+    },
+    {
+      "type": "task",
+      "epic": "R0.1 — Качество и релиз",
+      "id": 88,
+      "title": "Секреты только в .env.vm (не в git)",
+      "response": {
+        "success": true,
+        "task": {
+          "id": 50,
+          "parentId": 48,
+          "title": "Секреты только в .env.vm (не в git)",
+          "description": null,
+          "overdue": 0,
+          "duration": null,
+          "type": "action",
+          "priority": null,
+          "isCompleted": false,
+          "isDeleted": false,
+          "authorId": "a23005eb-9bf4-4dd4-85ba-52048497268b",
+          "userId": null,
+          "assignees": [],
+          "projectId": 1,
+          "boardId": 2,
+          "boardColumnId": 4,
+          "locations": [
+            {
+              "projectId": 1,
+              "boardId": 2,
+              "boardColumnId": 4
+            }
+          ],
+          "image": null,
+          "isPrivate": false,
+          "date": null,
+          "time": null,
+          "dateStart": null,
+          "dateEnd": null,
+          "timeStart": null,
+          "timeEnd": null,
+          "startDate": null,
+          "startDateTime": null,
+          "dueDate": null,
+          "dueDateTime": null,
+          "createdAt": "2026-07-05T17:31:11Z",
+          "updatedAt": "2026-07-05T17:31:11Z",
+          "completedAt": null,
+          "tags": [],
+          "subscribers": [
+            "a23005eb-9bf4-4dd4-85ba-52048497268b"
+          ],
+          "subTasks": [],
+          "workloads": [],
+          "timeEntries": [],
+          "timer": null,
+          "customFields": [],
+          "attachments": []
+        }
+      },
+      "previousId": 50
+    },
+    {
+      "type": "task",
+      "epic": "R0.1 — Качество и релиз",
+      "id": 89,
+      "title": "Smoke-тест после деплоя (/health, catalog)",
+      "response": {
+        "success": true,
+        "task": {
+          "id": 51,
+          "parentId": 48,
+          "title": "Smoke-тест после деплоя (/health, catalog)",
+          "description": null,
+          "overdue": 0,
+          "duration": null,
+          "type": "action",
+          "priority": null,
+          "isCompleted": false,
+          "isDeleted": false,
+          "authorId": "a23005eb-9bf4-4dd4-85ba-52048497268b",
+          "userId": null,
+          "assignees": [],
+          "projectId": 1,
+          "boardId": 2,
+          "boardColumnId": 4,
+          "locations": [
+            {
+              "projectId": 1,
+              "boardId": 2,
+              "boardColumnId": 4
+            }
+          ],
+          "image": null,
+          "isPrivate": false,
+          "date": null,
+          "time": null,
+          "dateStart": null,
+          "dateEnd": null,
+          "timeStart": null,
+          "timeEnd": null,
+          "startDate": null,
+          "startDateTime": null,
+          "dueDate": null,
+          "dueDateTime": null,
+          "createdAt": "2026-07-05T17:31:12Z",
+          "updatedAt": "2026-07-05T17:31:12Z",
+          "completedAt": null,
+          "tags": [],
+          "subscribers": [
+            "a23005eb-9bf4-4dd4-85ba-52048497268b"
+          ],
+          "subTasks": [],
+          "workloads": [],
+          "timeEntries": [],
+          "timer": null,
+          "customFields": [],
+          "attachments": []
+        }
+      },
+      "previousId": 51
+    },
+    {
+      "type": "task",
+      "epic": "R0.1 — Качество и релиз",
+      "id": 90,
+      "title": "Документация README / runbook VM",
+      "response": {
+        "success": true,
+        "task": {
+          "id": 52,
+          "parentId": 48,
+          "title": "Документация README / runbook VM",
+          "description": null,
+          "overdue": 0,
+          "duration": null,
+          "type": "action",
+          "priority": null,
+          "isCompleted": false,
+          "isDeleted": false,
+          "authorId": "a23005eb-9bf4-4dd4-85ba-52048497268b",
+          "userId": null,
+          "assignees": [],
+          "projectId": 1,
+          "boardId": 2,
+          "boardColumnId": 4,
+          "locations": [
+            {
+              "projectId": 1,
+              "boardId": 2,
+              "boardColumnId": 4
+            }
+          ],
+          "image": null,
+          "isPrivate": false,
+          "date": null,
+          "time": null,
+          "dateStart": null,
+          "dateEnd": null,
+          "timeStart": null,
+          "timeEnd": null,
+          "startDate": null,
+          "startDateTime": null,
+          "dueDate": null,
+          "dueDateTime": null,
+          "createdAt": "2026-07-05T17:31:13Z",
+          "updatedAt": "2026-07-05T17:31:13Z",
+          "completedAt": null,
+          "tags": [],
+          "subscribers": [
+            "a23005eb-9bf4-4dd4-85ba-52048497268b"
+          ],
+          "subTasks": [],
+          "workloads": [],
+          "timeEntries": [],
+          "timer": null,
+          "customFields": [],
+          "attachments": []
+        }
+      },
+      "previousId": 52
+    }
+  ]
+}

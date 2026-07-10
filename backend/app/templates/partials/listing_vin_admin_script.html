@@ -1,0 +1,82 @@
+{% include "partials/auth_script.html" %}
+<script>
+  async function adminFetch(url, options = {}) {
+    let token = getCookie("access_token");
+    if (!token) {
+      const refreshed = await refreshAccessTokenIfNeeded();
+      if (!refreshed) {
+        window.location.href = "/login";
+        return null;
+      }
+      token = getCookie("access_token");
+    }
+    return fetch(url, {
+      ...options,
+      headers: {
+        ...(options.headers || {}),
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  }
+
+  async function revealListingVin(container) {
+    const listingId = container.dataset.listingId;
+    const existingVin = container.dataset.vin;
+    const valueBlock = container.querySelector(".listing-vin-value");
+    const codeEl = container.querySelector(".listing-vin-code");
+    const errEl = container.querySelector(".listing-vin-error");
+    const btn = container.querySelector(".show-vin-btn");
+
+    if (existingVin && codeEl) {
+      codeEl.textContent = existingVin;
+      if (valueBlock) valueBlock.hidden = false;
+      if (btn) btn.hidden = true;
+      return;
+    }
+
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = "Загрузка…";
+    }
+    if (errEl) errEl.hidden = true;
+
+    const response = await adminFetch(`/api/v1/admin/listings/${listingId}/vin`, { method: "POST" });
+    if (!response) return;
+
+    let data = {};
+    try {
+      data = await response.json();
+    } catch (_) {
+      data = {};
+    }
+
+    if (!response.ok) {
+      if (errEl) {
+        errEl.textContent = data.detail || "Не удалось получить VIN";
+        errEl.hidden = false;
+      }
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = "Показать VIN";
+      }
+      return;
+    }
+
+    container.dataset.vin = data.vin;
+    if (codeEl) codeEl.textContent = data.vin;
+    if (valueBlock) valueBlock.hidden = false;
+    if (btn) btn.hidden = true;
+
+    const hint = data.cached ? " (из базы)" : data.checks_remaining != null ? ` (осталось ${data.checks_remaining} проверок)` : "";
+    if (valueBlock && hint && !existingVin && data.source === "avby") {
+      const note = document.createElement("span");
+      note.className = "hint";
+      note.textContent = hint;
+      valueBlock.appendChild(note);
+    }
+  }
+
+  document.querySelectorAll(".listing-vin-admin .show-vin-btn").forEach((btn) => {
+    btn.addEventListener("click", () => revealListingVin(btn.closest(".listing-vin-admin")));
+  });
+</script>

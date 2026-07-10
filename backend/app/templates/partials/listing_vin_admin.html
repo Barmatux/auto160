@@ -1,0 +1,11 @@
+{% if is_admin and listing.avby_id %}
+  <div class="listing-vin-admin" data-listing-id="{{ listing.id }}"{% if listing.vin %} data-vin="{{ listing.vin }}"{% endif %}>
+    {% if listing.vin %}
+      <p class="listing-vin-value"><strong>VIN:</strong> <code class="listing-vin-code">{{ listing.vin }}</code></p>
+    {% else %}
+      <button type="button" class="btn-link-like show-vin-btn">Показать VIN</button>
+      <p class="listing-vin-value" hidden><strong>VIN:</strong> <code class="listing-vin-code"></code></p>
+      <p class="listing-vin-error sync-error" hidden></p>
+    {% endif %}
+  </div>
+{% endif %}
