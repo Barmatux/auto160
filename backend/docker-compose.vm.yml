@@ -7,6 +7,11 @@ services:
     restart: unless-stopped
     env_file:
       - .env.vm
+    environment:
+      LOG_DIR: /app/logs
+      LOG_SERVICE: api
+    volumes:
+      - ../logs:/app/logs
     ports:
       - "127.0.0.1:8000:8000"
     depends_on:
@@ -53,6 +58,11 @@ services:
     restart: unless-stopped
     env_file:
       - .env.vm
+    environment:
+      LOG_DIR: /app/logs
+      LOG_SERVICE: avby-sync
+    volumes:
+      - ../logs:/app/logs
     depends_on:
       db:
         condition: service_healthy
@@ -76,6 +86,11 @@ services:
     restart: unless-stopped
     env_file:
       - .env.vm
+    environment:
+      LOG_DIR: /app/logs
+      LOG_SERVICE: avby-vin-session
+    volumes:
+      - ../logs:/app/logs
     depends_on:
       db:
         condition: service_healthy

@@ -1,6 +1,6 @@
 import hashlib
 import re
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from urllib.parse import urlencode
 
 from fastapi import APIRouter, Depends, Query, Request
@@ -11,6 +11,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from app.config import settings
+from app.logging_setup import LOG_SERVICES, log_dir, tail_log
 from app.avby_accounts import list_active_vin_accounts, serialize_account_public
 from app.db import get_db
 from app.models import AvbyServiceAccount, AvbySyncRun, CarListing, CatalogItem, CatalogItemPhoto, ListingStatus, User, UserRole
@@ -1902,6 +1903,45 @@ def admin_avby_accounts_page(request: Request, db: Session = Depends(get_db)):
         }
     )
     return templates.TemplateResponse(request, "admin_avby_accounts.html", context)
+
+
+@router.get("/admin/logs")
+def admin_logs_page(
+    request: Request,
+    service: str = Query(default="api"),
+    lines: int = Query(default=200, ge=10, le=2000),
+    db: Session = Depends(get_db),
+):
+    current_user = _resolve_user_from_request(request, db)
+    if not current_user:
+        return RedirectResponse(url="/login", status_code=302)
+    if current_user.role != UserRole.admin:
+        return RedirectResponse(url="/", status_code=302)
+
+    if service not in LOG_SERVICES:
+        service = "api"
+    content, path = tail_log(service, lines=lines)
+
+    services = [
+        {"id": "api", "label": "API (uvicorn)"},
+        {"id": "avby-sync", "label": "Парсинг av.by"},
+        {"id": "avby-vin-session", "label": "VIN session keeper"},
+    ]
+    context = _template_context(request, current_user)
+    context.update(
+        {
+            "service": service,
+            "lines": lines,
+            "line_options": [100, 200, 500, 1000],
+            "services": services,
+            "log_content": content,
+            "log_path": str(path) if path else None,
+            "log_dir": str(log_dir()),
+            "refresh_seconds": 5,
+            "fetched_at": datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S UTC"),
+        }
+    )
+    return templates.TemplateResponse(request, "admin_logs.html", context)
 
 
 @router.get("/logout")

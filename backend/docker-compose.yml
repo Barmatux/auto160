@@ -21,8 +21,12 @@ services:
       S3_BUCKET: auto160-media
       S3_REGION: us-east-1
       S3_PRESIGN_EXPIRES_SECONDS: 3600
+      LOG_DIR: /app/logs
+      LOG_SERVICE: api
     ports:
       - "8000:8000"
+    volumes:
+      - ../logs:/app/logs
     depends_on:
       db:
         condition: service_healthy
@@ -67,6 +71,11 @@ services:
       dockerfile: Dockerfile
     container_name: auto160-avby-sync
     restart: unless-stopped
+    environment:
+      LOG_DIR: /app/logs
+      LOG_SERVICE: avby-sync
+    volumes:
+      - ../logs:/app/logs
     depends_on:
       db:
         condition: service_healthy

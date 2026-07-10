@@ -1,6 +1,6 @@
-from datetime import datetime
+from datetime import UTC, datetime
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.avby_accounts import (
@@ -15,6 +15,7 @@ from app.avby_session import AvbySessionError, get_avby_session
 from app.avby_vin import AvbyVinError, get_or_fetch_listing_vin
 from app.db import get_db
 from app.deps import require_admin
+from app.logging_setup import LOG_SERVICES, log_dir, tail_log
 from app.models import AvbyServiceAccount, CarListing, User
 from app.schemas import (
     AvbyAccountsImportResult,
@@ -22,12 +23,35 @@ from app.schemas import (
     AvbyServiceAccountPublic,
     AvbyServiceAccountSecrets,
     AvbyServiceAccountUpdateRequest,
+    AppLogTailResponse,
     ListingVinResponse,
     UserPublic,
     UserRoleUpdateRequest,
 )
 
 router = APIRouter(prefix="/api/v1/admin", tags=["admin"])
+
+
+@router.get("/logs", response_model=AppLogTailResponse)
+def tail_application_logs(
+    service: str = Query(default="api"),
+    lines: int = Query(default=200, ge=10, le=2000),
+    _: User = Depends(require_admin),
+):
+    if service not in LOG_SERVICES:
+        raise HTTPException(status_code=400, detail=f"Unknown service. Allowed: {', '.join(LOG_SERVICES)}")
+    try:
+        content, path = tail_log(service, lines=lines)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return AppLogTailResponse(
+        service=service,
+        lines=lines,
+        content=content,
+        path=str(path) if path else None,
+        log_dir=str(log_dir()),
+        fetched_at=datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S UTC"),
+    )
 
 
 @router.get("/users", response_model=list[UserPublic])

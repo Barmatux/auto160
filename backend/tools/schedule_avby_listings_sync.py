@@ -1,17 +1,18 @@
 import argparse
+import logging
 import subprocess
 import sys
 import time
-from datetime import UTC, datetime
 from pathlib import Path
 
-
 ROOT_DIR = Path(__file__).resolve().parents[1]
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+
+from app.logging_setup import setup_logging
+
 IMPORTER_PATH = ROOT_DIR / "tools" / "import_avby_listings.py"
-
-
-def _ts() -> str:
-    return datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S UTC")
+logger = logging.getLogger(__name__)
 
 
 def run_once(
@@ -51,13 +52,20 @@ def run_once(
     if archive_overpowered:
         cmd.append("--archive-overpowered")
 
-    print(f"[{_ts()}] sync-start: {' '.join(cmd)}")
-    result = subprocess.run(cmd, cwd=str(ROOT_DIR))
-    print(f"[{_ts()}] sync-finish: exit_code={result.returncode}")
+    logger.info("sync-start: %s", " ".join(cmd))
+    result = subprocess.run(cmd, cwd=str(ROOT_DIR), capture_output=True, text=True)
+    if result.stdout:
+        for line in result.stdout.splitlines()[-30:]:
+            logger.info("importer | %s", line)
+    if result.stderr:
+        for line in result.stderr.splitlines()[-20:]:
+            logger.warning("importer ! %s", line)
+    logger.info("sync-finish: exit_code=%s", result.returncode)
     return result.returncode
 
 
 def main() -> None:
+    setup_logging("avby-sync")
     parser = argparse.ArgumentParser(description="Run AV.BY listings sync on a fixed interval")
     parser.add_argument("--interval-minutes", type=int, default=20, help="Sync interval in minutes")
     parser.add_argument("--max-hp", type=int, default=160, help="engine_power_hp[max] filter")
@@ -105,7 +113,7 @@ def main() -> None:
             creation_date=args.creation_date,
             sort=args.sort,
         )
-        print(f"[{_ts()}] sleep: {interval_seconds}s")
+        logger.info("sleep: %ss", interval_seconds)
         time.sleep(interval_seconds)
 
 

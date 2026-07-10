@@ -3,6 +3,8 @@ __pycache__/
 *.sqlite3
 app.db
 *.b64
+logs/
+../logs/
 .env
 .venv/
 venv/

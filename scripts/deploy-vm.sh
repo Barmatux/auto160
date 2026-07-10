@@ -17,6 +17,7 @@ git fetch origin master
 git reset --hard origin/master
 
 cd "$BACKEND_DIR"
+mkdir -p "$APP_DIR/logs"
 if [[ ! -f "$ENV_FILE" ]]; then
   echo "Missing $ENV_FILE"
   echo "Create it once on the VM: cp .env.vm.example .env.vm"

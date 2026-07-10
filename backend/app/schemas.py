@@ -228,3 +228,12 @@ class ListingVinResponse(BaseModel):
     cached: bool
     checks_remaining: int | None = None
     fetched_at: datetime | None = None
+
+
+class AppLogTailResponse(BaseModel):
+    service: str
+    lines: int
+    content: str
+    path: str | None = None
+    log_dir: str
+    fetched_at: str

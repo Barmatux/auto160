@@ -14,6 +14,7 @@ On VM (docker service avby-vin-session):
 from __future__ import annotations
 
 import argparse
+import logging
 import os
 import signal
 import sys
@@ -29,17 +30,15 @@ os.chdir(ROOT_DIR)
 from app.avby_accounts import list_vin_accounts_for_keepalive
 from app.avby_session import AvbySessionError, ensure_avby_session_fresh
 from app.db import SessionLocal
+from app.logging_setup import setup_logging
 
+logger = logging.getLogger(__name__)
 _stop = False
-
-
-def _ts() -> str:
-    return datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S UTC")
 
 
 def _handle_stop(signum: int, _frame) -> None:
     global _stop
-    print(f"[{_ts()}] received signal {signum}, stopping...")
+    logger.warning("received signal %s, stopping...", signum)
     _stop = True
 
 
@@ -52,7 +51,7 @@ def tick(*, refresh_if_minutes: int) -> int:
     try:
         accounts = list_vin_accounts_for_keepalive(db)
         if not accounts:
-            print(f"[{_ts()}] error: no active vin_test accounts in DB")
+            logger.error("no active vin_test accounts in DB")
             return 1
 
         for account in accounts:
@@ -63,15 +62,16 @@ def tick(*, refresh_if_minutes: int) -> int:
                     refresh_if_within=timedelta(minutes=refresh_if_minutes),
                 )
                 remaining = session.expires_at - datetime.now(UTC).replace(tzinfo=None)
-                print(
-                    f"[{_ts()}] session ok account={account.email} "
-                    f"expires_utc={session.expires_at.isoformat()} "
-                    f"ttl_min={max(0, int(remaining.total_seconds() // 60))}"
+                logger.info(
+                    "session ok account=%s expires_utc=%s ttl_min=%s",
+                    account.email or account.phone,
+                    session.expires_at.isoformat(),
+                    max(0, int(remaining.total_seconds() // 60)),
                 )
                 refreshed += 1
             except AvbySessionError as exc:
                 errors += 1
-                print(f"[{_ts()}] session error account={account.email}: {exc}")
+                logger.error("session error account=%s: %s", account.email or account.phone, exc)
 
         if refreshed == 0:
             return 1
@@ -81,6 +81,7 @@ def tick(*, refresh_if_minutes: int) -> int:
 
 
 def main() -> int:
+    setup_logging("avby-vin-session")
     parser = argparse.ArgumentParser(description="Keep av.by VIN session alive")
     parser.add_argument(
         "--interval-minutes",
@@ -103,9 +104,10 @@ def main() -> int:
     signal.signal(signal.SIGINT, _handle_stop)
     signal.signal(signal.SIGTERM, _handle_stop)
 
-    print(
-        f"[{_ts()}] avby session keeper started "
-        f"interval={args.interval_minutes}m refresh_if_within={args.refresh_if_within_minutes}m"
+    logger.info(
+        "avby session keeper started interval=%sm refresh_if_within=%sm",
+        args.interval_minutes,
+        args.refresh_if_within_minutes,
     )
 
     while not _stop:
@@ -118,7 +120,7 @@ def main() -> int:
         while time.time() < deadline and not _stop:
             time.sleep(min(5, deadline - time.time()))
 
-    print(f"[{_ts()}] avby session keeper stopped")
+    logger.info("avby session keeper stopped")
     return 0
 
 

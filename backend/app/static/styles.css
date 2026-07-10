@@ -711,6 +711,24 @@ body {
   margin-bottom: 8px;
 }
 
+.admin-log-toolbar {
+  margin-bottom: 12px;
+}
+
+.admin-log-view {
+  background: #0f172a;
+  color: #e2e8f0;
+  border-radius: 12px;
+  padding: 14px;
+  max-height: 70vh;
+  overflow: auto;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 12px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 .listing-vin-admin {
   margin-top: 0.35rem;
 }

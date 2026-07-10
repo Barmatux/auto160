@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}Админка — Логи{% endblock %}
+{% block content %}
+{% set admin_section = "logs" %}
+{% include "partials/admin_nav.html" %}
+
+<h1>Логи приложения</h1>
+<p class="hint">
+  Файлы на VM: <code>{{ log_dir }}</code> · обновление каждые {{ refresh_seconds }} сек.
+  С хоста: <code>bash ~/auto160/scripts/logs-vm.sh api</code> или
+  <code>bash ~/auto160/scripts/logs-vm.sh docker api</code>
+</p>
+
+<form class="filters admin-log-toolbar" method="get" action="/admin/logs">
+  <label>
+    Сервис
+    <select name="service" id="log-service">
+      {% for item in services %}
+        <option value="{{ item.id }}" {% if item.id == service %}selected{% endif %}>{{ item.label }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>
+    Строк
+    <select name="lines" id="log-lines">
+      {% for n in line_options %}
+        <option value="{{ n }}" {% if n == lines %}selected{% endif %}>{{ n }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label class="inline-checkbox">
+    <input type="checkbox" id="auto-refresh" checked />
+    Автообновление
+  </label>
+  <button type="submit">Обновить</button>
+</form>
+
+<p class="hint" id="log-meta">
+  {% if log_path %}Источник: {{ log_path }}{% else %}Лог пока пуст{% endif %}
+  · {{ fetched_at }}
+</p>
+
+<pre class="admin-log-view" id="log-output">{{ log_content }}</pre>
+
+{% include "partials/auth_script.html" %}
+<script>
+  const refreshSeconds = {{ refresh_seconds }};
+  let timer = null;
+
+  async function adminFetch(url, options = {}) {
+    let token = getCookie("access_token");
+    if (!token) {
+      const refreshed = await refreshAccessTokenIfNeeded();
+      if (!refreshed) {
+        window.location.href = "/login";
+        return null;
+      }
+      token = getCookie("access_token");
+    }
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        ...(options.headers || {}),
+      },
+    });
+    if (response.status === 401) {
+      const refreshed = await refreshAccessTokenIfNeeded();
+      if (refreshed) return adminFetch(url, options);
+    }
+    return response;
+  }
+
+  async function refreshLogs() {
+    const service = document.getElementById("log-service").value;
+    const lines = document.getElementById("log-lines").value;
+    const response = await adminFetch(`/api/v1/admin/logs?service=${encodeURIComponent(service)}&lines=${lines}`);
+    if (!response || !response.ok) return;
+    const data = await response.json();
+    document.getElementById("log-output").textContent = data.content || "";
+    document.getElementById("log-meta").textContent =
+      `${data.path ? "Источник: " + data.path : "Лог пуст"} · ${data.fetched_at}`;
+  }
+
+  function syncAutoRefresh() {
+    if (timer) {
+      clearInterval(timer);
+      timer = null;
+    }
+    if (document.getElementById("auto-refresh").checked) {
+      timer = setInterval(refreshLogs, refreshSeconds * 1000);
+    }
+  }
+
+  document.getElementById("auto-refresh").addEventListener("change", syncAutoRefresh);
+  syncAutoRefresh();
+</script>
+{% endblock %}
