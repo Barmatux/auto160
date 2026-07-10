@@ -3,7 +3,9 @@
 {% block content %}
 <div class="catalog-page">
   {% include "partials/catalog_quick_jump.html" %}
-  <section class="catalog-main">
+  <div class="catalog-layout">
+    {% include "partials/catalog_filters_panel.html" %}
+    <section class="catalog-main">
     <div class="catalog-main-head">
       <h1>Каталог автомобилей</h1>
       <p class="hint">Шаг 1 из 4: выбери марку.</p>
@@ -29,7 +31,7 @@
     {% else %}
       <p>В каталоге нет марок.</p>
     {% endif %}
-  </section>
-  {% include "partials/catalog_filters_panel.html" %}
+    </section>
+  </div>
 </div>
 {% endblock %}

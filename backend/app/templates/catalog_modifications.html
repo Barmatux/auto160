@@ -3,7 +3,9 @@
 {% block content %}
 <div class="catalog-page">
   {% include "partials/catalog_quick_jump.html" %}
-  <section class="catalog-main">
+  <div class="catalog-layout">
+    {% include "partials/catalog_filters_panel.html" %}
+    <section class="catalog-main">
     <div class="catalog-main-head">
       <h1>Комплектации</h1>
       <p class="hint">
@@ -88,8 +90,8 @@
         <span class="page-link disabled">Вперед →</span>
       {% endif %}
     </div>
-  </section>
-  {% include "partials/catalog_filters_panel.html" %}
+    </section>
+  </div>
 </div>
 <script>
   const compareBtn = document.getElementById("compare-btn");

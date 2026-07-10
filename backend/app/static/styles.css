@@ -148,8 +148,8 @@ body {
 
 .catalog-layout {
   display: grid;
-  grid-template-columns: 290px minmax(0, 1fr);
-  gap: 10px;
+  grid-template-columns: minmax(240px, 290px) minmax(0, 1fr);
+  gap: 12px;
   align-items: start;
 }
 

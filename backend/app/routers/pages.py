@@ -167,6 +167,7 @@ MAKE_LOGO_URLS = {
     "audi": "https://cdn.simpleicons.org/audi/111827",
     "bmw": "https://cdn.simpleicons.org/bmw/111827",
     "citroen": "https://cdn.simpleicons.org/citroen/111827",
+    "ford": "https://cdn.simpleicons.org/ford/111827",
     "honda": "https://cdn.simpleicons.org/honda/111827",
     "mini": "https://cdn.simpleicons.org/mini/111827",
     "nissan": "https://cdn.simpleicons.org/nissan/111827",

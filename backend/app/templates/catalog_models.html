@@ -3,7 +3,9 @@
 {% block content %}
 <div class="catalog-page">
   {% include "partials/catalog_quick_jump.html" %}
-  <section class="catalog-main">
+  <div class="catalog-layout">
+    {% include "partials/catalog_filters_panel.html" %}
+    <section class="catalog-main">
     <div class="catalog-main-head">
       <h1>{% if make %}Модели {{ make }}{% else %}Все модели{% endif %}</h1>
       <p class="hint">
@@ -58,7 +60,7 @@
     {% else %}
       <p>Для этой марки модели не найдены.</p>
     {% endif %}
-  </section>
-  {% include "partials/catalog_filters_panel.html" %}
+    </section>
+  </div>
 </div>
 {% endblock %}
