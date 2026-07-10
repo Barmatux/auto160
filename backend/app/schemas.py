@@ -1,7 +1,7 @@
 from datetime import datetime
 from decimal import Decimal
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, model_validator
 
 from app.models import ListingStatus, UserRole
 
@@ -154,12 +154,20 @@ class CatalogPhotoOut(BaseModel):
 
 class AvbyServiceAccountPublic(BaseModel):
     id: int
-    email: str
+    email: str | None = None
+    phone: str | None = None
+    phone_display: str | None = None
+    login: str
     name: str
     status: str
+    purpose: str = "parser"
+    daily_vin_limit: int | None = None
+    vin_checks_today: int = 0
+    vin_checks_remaining: int | None = None
     is_active: bool
     api_key_masked: str | None = None
     has_auth_token: bool = False
+    has_refresh_token: bool = False
     error_message: str | None = None
     notes: str | None = None
     registered_at: datetime | None = None
@@ -171,12 +179,40 @@ class AvbyServiceAccountSecrets(AvbyServiceAccountPublic):
     avby_password: str | None = None
     api_key: str | None = None
     auth_token: str | None = None
+    refresh_token: str | None = None
     email_token: str | None = None
+
+
+class AvbyServiceAccountCreateRequest(BaseModel):
+    email: str | None = None
+    phone: str | None = None
+    avby_password: str
+    name: str | None = None
+    api_key: str | None = None
+    auth_token: str | None = None
+    refresh_token: str | None = None
+    phone_verified: bool = True
+    purpose: str = "vin_test"
+    daily_vin_limit: int = 30
+    is_active: bool | None = None
+    login_on_create: bool = True
+    notes: str | None = None
+
+    @model_validator(mode="after")
+    def require_email_or_phone(self) -> "AvbyServiceAccountCreateRequest":
+        email = (self.email or "").strip()
+        phone = (self.phone or "").strip()
+        if not email and not phone:
+            raise ValueError("Укажите email или номер телефона")
+        if email and "@" not in email:
+            raise ValueError("Некорректный email")
+        return self
 
 
 class AvbyServiceAccountUpdateRequest(BaseModel):
     is_active: bool | None = None
     notes: str | None = None
+    daily_vin_limit: int | None = None
 
 
 class AvbyAccountsImportResult(BaseModel):

@@ -6,9 +6,8 @@
 
 <h1>Аккаунты av.by</h1>
 <p class="hint">
-  Сервисные аккаунты для парсера. Импортируйте из JSON после запуска
-  <code>python tools/register_avby_accounts.py</code>.
-  Файл по умолчанию: <code>{{ json_path }}</code>
+  Сервисные аккаунты для парсера и ротации VIN. Верифицированные аккаунты добавляйте формой ниже —
+  они сразу попадут в пул VIN (purpose=vin_test, активные).
 </p>
 
 <section class="admin-stats-grid">
@@ -22,14 +21,86 @@
     <div class="sub">с api_key: {{ stats.with_api_key }}</div>
   </article>
   <article class="admin-stat-card">
-    <div class="label">Активных</div>
-    <div class="value">{{ stats.active }}</div>
-    <div class="sub">используются парсером</div>
+    <div class="label">В ротации VIN</div>
+    <div class="value">{{ stats.vin_rotation }}</div>
+    <div class="sub">активных с лимитом</div>
   </article>
   <article class="admin-stat-card">
     <div class="label">Ошибки</div>
     <div class="value">{{ stats.failed }}</div>
   </article>
+</section>
+
+<section class="form admin-account-form">
+  <h2>Добавить верифицированный аккаунт</h2>
+  <p class="hint">Логин на av.by выполняется сразу — сохранятся api_key и JWT для ротации.</p>
+  <form id="create-account-form">
+    <div class="actions-row login-mode-row">
+      <label class="inline-checkbox">
+        <input type="radio" name="login_mode" value="phone" checked />
+        По телефону
+      </label>
+      <label class="inline-checkbox">
+        <input type="radio" name="login_mode" value="email" />
+        По email
+      </label>
+    </div>
+    <label id="phone-field-label">
+      Телефон av.by (+375)
+      <input type="tel" name="phone" inputmode="tel" placeholder="291234567 или +375291234567" autocomplete="tel" />
+    </label>
+    <label id="email-field-label" hidden>
+      Email av.by
+      <input type="email" name="email" autocomplete="username" />
+    </label>
+    <label>
+      Пароль av.by
+      <input type="password" name="avby_password" required autocomplete="new-password" />
+    </label>
+    <label>
+      Имя (необязательно)
+      <input type="text" name="name" maxlength="120" />
+    </label>
+    <label>
+      Лимит VIN / сутки
+      <input type="number" name="daily_vin_limit" min="1" max="100" value="30" />
+    </label>
+    <label class="inline-checkbox">
+      <input type="checkbox" name="phone_verified" checked />
+      Телефон уже верифицирован на av.by
+    </label>
+    <label class="inline-checkbox">
+      <input type="checkbox" name="is_active" checked />
+      Включить в ротацию VIN
+    </label>
+    <label class="inline-checkbox">
+      <input type="checkbox" name="login_on_create" checked />
+      Войти на av.by и сохранить токены
+    </label>
+    <label>
+      Заметка
+      <input type="text" name="notes" placeholder="например: личный аккаунт Roman" />
+    </label>
+    <details class="admin-advanced-block">
+      <summary>Уже есть токены (необязательно)</summary>
+      <label>
+        API key
+        <input type="text" name="api_key" autocomplete="off" />
+      </label>
+      <label>
+        auth_token (JWT)
+        <textarea name="auth_token" rows="2"></textarea>
+      </label>
+      <label>
+        refresh_token
+        <textarea name="refresh_token" rows="2"></textarea>
+      </label>
+    </details>
+    <div class="actions-row">
+      <button type="submit">Добавить аккаунт</button>
+      <span id="create-result" class="hint"></span>
+    </div>
+  </form>
 </section>
 
 <div class="actions-row admin-actions-bar">
@@ -42,9 +113,10 @@
     <thead>
       <tr>
         <th>ID</th>
-        <th>Email</th>
-        <th>Имя</th>
+        <th>Логин</th>
+        <th>Назначение</th>
         <th>Статус</th>
+        <th>VIN сегодня</th>
         <th>API key</th>
         <th>Активен</th>
         <th>Создан</th>
@@ -55,12 +127,28 @@
       {% for account in accounts %}
         <tr data-account-id="{{ account.id }}">
           <td>{{ account.id }}</td>
-          <td>{{ account.email }}</td>
-          <td>{{ account.name or "—" }}</td>
+          <td>
+            {{ account.login or account.email or account.phone_display or "—" }}
+            {% if account.email and account.phone_display %}
+              <div class="hint">{{ account.email }} · {{ account.phone_display }}</div>
+            {% endif %}
+            <br /><span class="hint">{{ account.name or "—" }}</span>
+          </td>
+          <td>{{ purpose_labels.get(account.purpose, account.purpose) }}</td>
           <td>
             <span class="status-pill {{ account.status }}">{{ status_labels.get(account.status, account.status) }}</span>
             {% if account.error_message %}
               <div class="sync-error" title="{{ account.error_message }}">{{ account.error_message[:60] }}{% if account.error_message|length > 60 %}…{% endif %}</div>
+            {% endif %}
+          </td>
+          <td>
+            {% if account.daily_vin_limit is not none %}
+              {{ account.vin_checks_today or 0 }} / {{ account.daily_vin_limit }}
+              {% if account.vin_checks_remaining is not none %}
+                <div class="hint">осталось {{ account.vin_checks_remaining }}</div>
+              {% endif %}
+            {% else %}
+              —
             {% endif %}
           </td>
           <td>{{ account.api_key_masked or "—" }}</td>
@@ -90,7 +178,7 @@
     </tbody>
   </table>
 {% else %}
-  <p class="hint">Аккаунтов пока нет. Запустите регистратор или нажмите «Импорт из JSON».</p>
+  <p class="hint">Аккаунтов пока нет. Добавьте через форму выше или импорт из JSON.</p>
 {% endif %}
 
 <pre id="secrets-output" class="result" hidden></pre>
@@ -121,6 +209,56 @@
     }
     return response;
   }
+
+  document.getElementById("create-account-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const form = event.target;
+    const resultEl = document.getElementById("create-result");
+    const loginMode = form.login_mode.value;
+    const payload = {
+      email: loginMode === "email" ? form.email.value.trim() || null : null,
+      phone: loginMode === "phone" ? form.phone.value.trim() || null : null,
+      avby_password: form.avby_password.value,
+      name: form.name.value.trim() || null,
+      daily_vin_limit: Number(form.daily_vin_limit.value || 30),
+      phone_verified: form.phone_verified.checked,
+      is_active: form.is_active.checked,
+      login_on_create: form.login_on_create.checked,
+      purpose: "vin_test",
+      notes: form.notes.value.trim() || null,
+      api_key: form.api_key.value.trim() || null,
+      auth_token: form.auth_token.value.trim() || null,
+      refresh_token: form.refresh_token.value.trim() || null,
+    };
+    if (!payload.email && !payload.phone) {
+      resultEl.textContent = loginMode === "phone" ? "Укажите телефон" : "Укажите email";
+      return;
+    }
+    resultEl.textContent = "Добавление и вход на av.by…";
+    const response = await adminFetch("/api/v1/admin/avby-accounts", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+    if (!response) return;
+    const data = await response.json().catch(() => ({}));
+    if (response.ok) {
+      resultEl.textContent = `Аккаунт #${data.id} добавлен`;
+      window.location.reload();
+      return;
+    }
+    resultEl.textContent = data.detail || "Ошибка добавления";
+  });
+
+  const createForm = document.getElementById("create-account-form");
+  const phoneLabel = document.getElementById("phone-field-label");
+  const emailLabel = document.getElementById("email-field-label");
+  createForm.querySelectorAll('input[name="login_mode"]').forEach((radio) => {
+    radio.addEventListener("change", () => {
+      const phoneMode = createForm.login_mode.value === "phone";
+      phoneLabel.hidden = !phoneMode;
+      emailLabel.hidden = phoneMode;
+    });
+  });
 
   document.getElementById("import-json-btn").addEventListener("click", async () => {
     const resultEl = document.getElementById("import-result");
@@ -158,11 +296,6 @@
       const response = await adminFetch(`/api/v1/admin/avby-accounts/${accountId}/secrets`);
       if (!response) return;
       const data = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        output.hidden = false;
-        output.textContent = JSON.stringify(data, null, 2);
-        return;
-      }
       output.hidden = false;
       output.textContent = JSON.stringify(data, null, 2);
     });

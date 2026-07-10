@@ -26,7 +26,7 @@ if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 os.chdir(ROOT_DIR)
 
-from app.avby_accounts import get_vin_test_account
+from app.avby_accounts import list_vin_accounts_for_keepalive
 from app.avby_session import AvbySessionError, ensure_avby_session_fresh
 from app.db import SessionLocal
 
@@ -47,27 +47,35 @@ def tick(*, refresh_if_minutes: int) -> int:
     from datetime import timedelta
 
     db = SessionLocal()
+    errors = 0
+    refreshed = 0
     try:
-        account = get_vin_test_account(db)
-        if account is None:
-            print(f"[{_ts()}] error: no vin_test account in DB")
+        accounts = list_vin_accounts_for_keepalive(db)
+        if not accounts:
+            print(f"[{_ts()}] error: no active vin_test accounts in DB")
             return 1
 
-        session = ensure_avby_session_fresh(
-            db,
-            account,
-            refresh_if_within=timedelta(minutes=refresh_if_minutes),
-        )
-        remaining = session.expires_at - datetime.now(UTC).replace(tzinfo=None)
-        print(
-            f"[{_ts()}] session ok account={account.email} "
-            f"expires_utc={session.expires_at.isoformat()} "
-            f"ttl_min={max(0, int(remaining.total_seconds() // 60))}"
-        )
+        for account in accounts:
+            try:
+                session = ensure_avby_session_fresh(
+                    db,
+                    account,
+                    refresh_if_within=timedelta(minutes=refresh_if_minutes),
+                )
+                remaining = session.expires_at - datetime.now(UTC).replace(tzinfo=None)
+                print(
+                    f"[{_ts()}] session ok account={account.email} "
+                    f"expires_utc={session.expires_at.isoformat()} "
+                    f"ttl_min={max(0, int(remaining.total_seconds() // 60))}"
+                )
+                refreshed += 1
+            except AvbySessionError as exc:
+                errors += 1
+                print(f"[{_ts()}] session error account={account.email}: {exc}")
+
+        if refreshed == 0:
+            return 1
         return 0
-    except AvbySessionError as exc:
-        print(f"[{_ts()}] session error: {exc}")
-        return 1
     finally:
         db.close()
 

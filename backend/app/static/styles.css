@@ -668,6 +668,11 @@ body {
   color: #166534;
 }
 
+.status-pill.phone_verified {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
 .status-pill.mailtm_only,
 .status-pill.pending {
   background: #fef3c7;
@@ -675,8 +680,35 @@ body {
 }
 
 .admin-actions-bar {
-  margin: 16px 0 20px;
+  margin: 14px 0;
   align-items: center;
+}
+
+.login-mode-row {
+  grid-column: 1 / -1;
+  gap: 16px;
+}
+
+.admin-account-form {
+  margin: 16px 0 20px;
+}
+
+.admin-account-form h2 {
+  margin-top: 0;
+}
+
+.admin-advanced-block {
+  grid-column: 1 / -1;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: var(--surface-soft);
+}
+
+.admin-advanced-block summary {
+  cursor: pointer;
+  font-weight: 600;
+  margin-bottom: 8px;
 }
 
 .listing-vin-admin {

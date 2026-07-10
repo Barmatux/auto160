@@ -118,7 +118,8 @@ class AvbyServiceAccount(Base):
     __tablename__ = "avby_service_accounts"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    email: Mapped[str | None] = mapped_column(String(255), unique=True, index=True, nullable=True)
+    phone: Mapped[str | None] = mapped_column(String(20), unique=True, index=True, nullable=True)
     name: Mapped[str] = mapped_column(String(120), default="")
     mailtm_password: Mapped[str | None] = mapped_column(String(255), nullable=True)
     avby_password: Mapped[str | None] = mapped_column(String(255), nullable=True)

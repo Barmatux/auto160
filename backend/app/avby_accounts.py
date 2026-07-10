@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any
@@ -17,6 +18,38 @@ def mask_secret(value: str | None, visible: int = 4) -> str | None:
     if len(value) <= visible * 2:
         return "*" * len(value)
     return f"{value[:visible]}…{value[-visible:]}"
+
+
+def normalize_avby_phone(raw: str | None) -> str | None:
+    """Normalize Belarus mobile to 9 national digits (e.g. 291234567)."""
+    if not raw:
+        return None
+    digits = re.sub(r"\D", "", raw.strip())
+    if digits.startswith("375"):
+        digits = digits[3:]
+    if len(digits) != 9:
+        raise ValueError(f"Expected 9-digit BY number, got: {raw!r}")
+    return digits
+
+
+def format_avby_phone_display(national: str | None) -> str | None:
+    if not national:
+        return None
+    return f"+375{national}"
+
+
+def avby_login_identifier(account: AvbyServiceAccount) -> str:
+    if account.phone:
+        return format_avby_phone_display(account.phone) or account.phone
+    if account.email:
+        return account.email.strip()
+    raise ValueError("Account has no email or phone for av.by login")
+
+
+def account_display_login(account: AvbyServiceAccount) -> str:
+    if account.phone:
+        return format_avby_phone_display(account.phone) or account.phone
+    return account.email or "—"
 
 
 def _parse_registered_at(raw: str | None) -> datetime | None:
@@ -56,20 +89,31 @@ def account_payload_from_dict(data: dict[str, Any]) -> dict[str, Any]:
         payload["vin_checks_today"] = int(data["vin_checks_today"])
     if data.get("vin_checks_day"):
         payload["vin_checks_day"] = date.fromisoformat(str(data["vin_checks_day"]))
-    return {"email": (data.get("email") or "").strip().lower(), **payload}
+    if data.get("phone"):
+        payload["phone"] = normalize_avby_phone(str(data["phone"]))
+    return {"email": (data.get("email") or "").strip().lower() or None, **payload}
 
 
 def upsert_avby_service_account(db: Session, data: dict[str, Any]) -> AvbyServiceAccount:
     payload = account_payload_from_dict(data)
-    email = payload.pop("email")
-    if not email:
-        raise ValueError("Account email is required")
+    email = payload.pop("email", None)
+    phone = payload.pop("phone", None)
+    if not email and not phone:
+        raise ValueError("Account email or phone is required")
 
-    account = db.query(AvbyServiceAccount).filter(AvbyServiceAccount.email == email).first()
+    account = None
+    if email:
+        account = db.query(AvbyServiceAccount).filter(AvbyServiceAccount.email == email).first()
+    if account is None and phone:
+        account = db.query(AvbyServiceAccount).filter(AvbyServiceAccount.phone == phone).first()
     if account is None:
-        account = AvbyServiceAccount(email=email, **payload)
+        account = AvbyServiceAccount(email=email, phone=phone, **payload)
         db.add(account)
     else:
+        if email:
+            account.email = email
+        if phone:
+            account.phone = phone
         for field, value in payload.items():
             if value is not None and value != "":
                 setattr(account, field, value)
@@ -91,7 +135,7 @@ def import_avby_accounts_from_json(db: Session, json_path: Path | None = None) -
     imported = 0
     skipped = 0
     for row in rows:
-        if not isinstance(row, dict) or not row.get("email"):
+        if not isinstance(row, dict) or (not row.get("email") and not row.get("phone")):
             skipped += 1
             continue
         upsert_avby_service_account(db, row)
@@ -100,17 +144,23 @@ def import_avby_accounts_from_json(db: Session, json_path: Path | None = None) -
 
 
 def serialize_account_public(account: AvbyServiceAccount) -> dict[str, Any]:
+    reset_vin_checks_if_needed(account)
     return {
         "id": account.id,
         "email": account.email,
+        "phone": account.phone,
+        "phone_display": format_avby_phone_display(account.phone),
+        "login": account_display_login(account),
         "name": account.name,
         "status": account.status,
         "purpose": account.purpose,
         "daily_vin_limit": account.daily_vin_limit,
         "vin_checks_today": account.vin_checks_today,
+        "vin_checks_remaining": vin_checks_remaining(account),
         "is_active": account.is_active,
         "api_key_masked": mask_secret(account.api_key),
         "has_auth_token": bool(account.auth_token),
+        "has_refresh_token": bool(account.refresh_token),
         "error_message": account.error_message,
         "notes": account.notes,
         "registered_at": account.registered_at,
@@ -154,13 +204,48 @@ def consume_vin_check(db: Session, account: AvbyServiceAccount) -> bool:
     return True
 
 
-def get_vin_test_account(db: Session) -> AvbyServiceAccount | None:
+VIN_ACCOUNT_STATUSES = ("confirmed", "phone_verified")
+
+
+def list_active_vin_accounts(db: Session) -> list[AvbyServiceAccount]:
+    rows = (
+        db.query(AvbyServiceAccount)
+        .filter(
+            AvbyServiceAccount.purpose == "vin_test",
+            AvbyServiceAccount.is_active.is_(True),
+            AvbyServiceAccount.status.in_(VIN_ACCOUNT_STATUSES),
+            AvbyServiceAccount.api_key.isnot(None),
+        )
+        .order_by(AvbyServiceAccount.vin_checks_today.asc(), AvbyServiceAccount.id.asc())
+        .all()
+    )
+    return [account for account in rows if can_consume_vin_check(account)]
+
+
+def select_vin_account(db: Session, *, exclude_ids: set[int] | None = None) -> AvbyServiceAccount | None:
+    excluded = exclude_ids or set()
+    for account in list_active_vin_accounts(db):
+        if account.id not in excluded:
+            return account
+    return None
+
+
+def list_vin_accounts_for_keepalive(db: Session) -> list[AvbyServiceAccount]:
     return (
         db.query(AvbyServiceAccount)
-        .filter(AvbyServiceAccount.purpose == "vin_test")
-        .order_by(AvbyServiceAccount.id.desc())
-        .first()
+        .filter(
+            AvbyServiceAccount.purpose == "vin_test",
+            AvbyServiceAccount.is_active.is_(True),
+            AvbyServiceAccount.status.in_(VIN_ACCOUNT_STATUSES),
+        )
+        .order_by(AvbyServiceAccount.id.asc())
+        .all()
     )
+
+
+def get_vin_test_account(db: Session) -> AvbyServiceAccount | None:
+    """Pick next account from the active VIN pool (lowest usage first)."""
+    return select_vin_account(db)
 
 
 def serialize_account_secrets(account: AvbyServiceAccount) -> dict[str, Any]:
@@ -171,6 +256,7 @@ def serialize_account_secrets(account: AvbyServiceAccount) -> dict[str, Any]:
             "avby_password": account.avby_password,
             "api_key": account.api_key,
             "auth_token": account.auth_token,
+            "refresh_token": account.refresh_token,
             "email_token": account.email_token,
         }
     )

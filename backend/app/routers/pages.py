@@ -11,7 +11,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from app.config import settings
-from app.avby_accounts import serialize_account_public
+from app.avby_accounts import list_active_vin_accounts, serialize_account_public
 from app.db import get_db
 from app.models import AvbyServiceAccount, AvbySyncRun, CarListing, CatalogItem, CatalogItemPhoto, ListingStatus, User, UserRole
 from app.security import decode_token, is_token_revoked
@@ -1854,9 +1854,15 @@ def admin_avby_sync_page(request: Request, db: Session = Depends(get_db)):
 
 AVBY_ACCOUNT_STATUS_LABELS = {
     "confirmed": "Подтверждён",
+    "phone_verified": "Телефон OK",
     "failed": "Ошибка",
     "mailtm_only": "Только почта",
     "pending": "Ожидает",
+}
+
+AVBY_ACCOUNT_PURPOSE_LABELS = {
+    "parser": "Парсер",
+    "vin_test": "VIN",
 }
 
 
@@ -1876,18 +1882,21 @@ def admin_avby_accounts_page(request: Request, db: Session = Depends(get_db)):
         item["created_at"] = account.created_at
         accounts.append(item)
 
-    confirmed = sum(1 for row in rows if row.status == "confirmed")
+    confirmed = sum(1 for row in rows if row.status in {"confirmed", "phone_verified"})
+    vin_pool = list_active_vin_accounts(db)
     context = _template_context(request, current_user)
     context.update(
         {
             "accounts": accounts,
             "json_path": settings.avby_accounts_json_path,
             "status_labels": AVBY_ACCOUNT_STATUS_LABELS,
+            "purpose_labels": AVBY_ACCOUNT_PURPOSE_LABELS,
             "stats": {
                 "total": len(rows),
                 "confirmed": confirmed,
                 "with_api_key": sum(1 for row in rows if row.api_key),
                 "active": sum(1 for row in rows if row.is_active),
+                "vin_rotation": len(vin_pool),
                 "failed": sum(1 for row in rows if row.status == "failed"),
             },
         }

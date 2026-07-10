@@ -1,13 +1,24 @@
+from datetime import datetime
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.avby_accounts import import_avby_accounts_from_json, serialize_account_public, serialize_account_secrets
+from app.avby_accounts import (
+    VIN_TEST_DAILY_LIMIT,
+    import_avby_accounts_from_json,
+    list_active_vin_accounts,
+    normalize_avby_phone,
+    serialize_account_public,
+    serialize_account_secrets,
+)
+from app.avby_session import AvbySessionError, get_avby_session
 from app.avby_vin import AvbyVinError, get_or_fetch_listing_vin
 from app.db import get_db
 from app.deps import require_admin
 from app.models import AvbyServiceAccount, CarListing, User
 from app.schemas import (
     AvbyAccountsImportResult,
+    AvbyServiceAccountCreateRequest,
     AvbyServiceAccountPublic,
     AvbyServiceAccountSecrets,
     AvbyServiceAccountUpdateRequest,
@@ -71,6 +82,78 @@ def import_avby_accounts_json(_: User = Depends(require_admin), db: Session = De
     return result
 
 
+@router.post("/avby-accounts", response_model=AvbyServiceAccountPublic)
+def create_avby_account(
+    payload: AvbyServiceAccountCreateRequest,
+    _: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    email_raw = (payload.email or "").strip().lower()
+    email = email_raw if email_raw and "@" in email_raw else None
+    phone = None
+    if payload.phone and payload.phone.strip():
+        try:
+            phone = normalize_avby_phone(payload.phone)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    if not email and not phone:
+        raise HTTPException(status_code=400, detail="Укажите email или номер телефона")
+    if not payload.avby_password.strip():
+        raise HTTPException(status_code=400, detail="av.by password is required")
+
+    if email:
+        existing = db.query(AvbyServiceAccount).filter(AvbyServiceAccount.email == email).first()
+        if existing:
+            raise HTTPException(status_code=409, detail="Account with this email already exists")
+    if phone:
+        existing = db.query(AvbyServiceAccount).filter(AvbyServiceAccount.phone == phone).first()
+        if existing:
+            raise HTTPException(status_code=409, detail="Account with this phone already exists")
+
+    purpose = (payload.purpose or "vin_test").strip() or "vin_test"
+    status = "phone_verified" if payload.phone_verified else "confirmed"
+    is_active = payload.is_active if payload.is_active is not None else payload.phone_verified
+    if purpose == "vin_test" and not payload.phone_verified:
+        is_active = False
+
+    account = AvbyServiceAccount(
+        email=email,
+        phone=phone,
+        name=(payload.name or "").strip()[:120],
+        avby_password=payload.avby_password,
+        api_key=(payload.api_key or "").strip() or None,
+        auth_token=(payload.auth_token or "").strip() or None,
+        refresh_token=(payload.refresh_token or "").strip() or None,
+        status=status,
+        purpose=purpose,
+        daily_vin_limit=payload.daily_vin_limit or VIN_TEST_DAILY_LIMIT,
+        vin_checks_today=0,
+        is_active=is_active,
+        notes=(payload.notes or "").strip() or None,
+        registered_at=datetime.utcnow(),
+    )
+    db.add(account)
+    db.commit()
+    db.refresh(account)
+
+    if payload.login_on_create:
+        try:
+            get_avby_session(db, account)
+        except AvbySessionError as exc:
+            db.delete(account)
+            db.commit()
+            raise HTTPException(status_code=502, detail=f"av.by login failed: {exc}") from exc
+        db.refresh(account)
+        if payload.phone_verified and purpose == "vin_test":
+            account.is_active = True
+            account.status = "phone_verified"
+            db.commit()
+            db.refresh(account)
+
+    return serialize_account_public(account)
+
+
 @router.patch("/avby-accounts/{account_id}", response_model=AvbyServiceAccountPublic)
 def update_avby_account(
     account_id: int,
@@ -85,6 +168,10 @@ def update_avby_account(
         account.is_active = payload.is_active
     if payload.notes is not None:
         account.notes = payload.notes.strip() or None
+    if payload.daily_vin_limit is not None:
+        if payload.daily_vin_limit < 1:
+            raise HTTPException(status_code=400, detail="daily_vin_limit must be >= 1")
+        account.daily_vin_limit = payload.daily_vin_limit
     db.commit()
     db.refresh(account)
     return serialize_account_public(account)

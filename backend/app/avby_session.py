@@ -18,7 +18,7 @@ from typing import Any
 from curl_cffi import requests
 from sqlalchemy.orm import Session
 
-from app.avby_accounts import get_vin_test_account
+from app.avby_accounts import avby_login_identifier, list_vin_accounts_for_keepalive, select_vin_account
 from app.models import AvbyServiceAccount
 
 AVBY_BASE = "https://web-api.av.by"
@@ -158,14 +158,14 @@ def _session_from_login_response(data: dict[str, Any], *, fallback_api_key: str)
     )
 
 
-def _login_avby(*, api_key: str, email: str, password: str, captcha_token: str = "") -> AvbySession:
+def _login_avby(*, api_key: str, login: str, password: str, captcha_token: str = "") -> AvbySession:
     resp = requests.post(
         f"{AVBY_BASE}/auth/login/sign-in",
         impersonate="chrome124",
         timeout=30,
         headers=_avby_headers(api_key),
         json={
-            "login": email,
+            "login": login,
             "password": password,
             "googleRecaptcha2InvisibleToken": captcha_token,
         },
@@ -190,20 +190,42 @@ def _refresh_avby_session(session: AvbySession) -> AvbySession:
 
 def _full_login(account: AvbyServiceAccount | None) -> AvbySession:
     if account and account.avby_password:
-        email, password = account.email, account.avby_password
+        login = avby_login_identifier(account)
         api_key = account.api_key or AVBY_PUBLIC_API_KEY
+        password = account.avby_password
     else:
         email, password = _load_credentials()
+        login = email
         api_key = AVBY_PUBLIC_API_KEY
 
-    try:
-        return _login_avby(api_key=api_key, email=email, password=password)
-    except AvbySessionError as first_error:
+    login_variants = [login]
+    if account and account.phone and login.startswith("+375"):
+        login_variants.append(account.phone)
+
+    last_error: AvbySessionError | None = None
+    for candidate in login_variants:
+        try:
+            return _login_avby(api_key=api_key, login=candidate, password=password)
+        except AvbySessionError as err:
+            last_error = err
+
+    if last_error:
         captcha_key = _captcha_api_key()
-        if not captcha_key:
-            raise
-        captcha_token = _solve_recaptcha(captcha_key)
-        return _login_avby(api_key=api_key, email=email, password=password, captcha_token=captcha_token)
+        if captcha_key:
+            captcha_token = _solve_recaptcha(captcha_key)
+            for candidate in login_variants:
+                try:
+                    return _login_avby(
+                        api_key=api_key,
+                        login=candidate,
+                        password=password,
+                        captcha_token=captcha_token,
+                    )
+                except AvbySessionError as err:
+                    last_error = err
+        raise last_error
+
+    raise AvbySessionError("av.by login failed")
 
 
 def _session_from_account_row(account: AvbyServiceAccount) -> AvbySession | None:
@@ -300,11 +322,16 @@ def ensure_avby_session_fresh(
 def warm_vin_test_session(db_factory) -> None:
     db = db_factory()
     try:
-        account = get_vin_test_account(db)
-        if account is None:
-            return
-        get_avby_session(db, account)
-    except Exception:
-        pass
+        accounts = list_vin_accounts_for_keepalive(db)
+        if not accounts:
+            account = select_vin_account(db)
+            if account is None:
+                return
+            accounts = [account]
+        for account in accounts:
+            try:
+                get_avby_session(db, account)
+            except Exception:
+                pass
     finally:
         db.close()
