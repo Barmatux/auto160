@@ -976,8 +976,8 @@ def listings_page(
     brand: str | None = Query(default=None),
     model: str | None = Query(default=None),
     city: str | None = Query(default=None),
-    year_from: int | None = Query(default=None, ge=1950, le=2100),
-    year_to: int | None = Query(default=None, ge=1950, le=2100),
+    year_from: str | None = Query(default=None),
+    year_to: str | None = Query(default=None),
     passable: bool = Query(default=False),
     freshness: str = Query(default="all"),
     sort: str = Query(default="newest"),
@@ -986,6 +986,8 @@ def listings_page(
     db: Session = Depends(get_db),
 ):
     current_user = _resolve_user_from_request(request, db)
+    parsed_year_from = _parse_optional_year(year_from)
+    parsed_year_to = _parse_optional_year(year_to)
     query = db.query(CarListing)
     if current_user is None or current_user.role != UserRole.admin:
         query = query.filter(CarListing.status == ListingStatus.published)
@@ -996,10 +998,10 @@ def listings_page(
         query = query.filter(CarListing.model.ilike(f"%{_canonical_model_name(model)}%"))
     if city:
         query = query.filter(CarListing.city.ilike(f"%{city}%"))
-    if year_from is not None:
-        query = query.filter(CarListing.year >= year_from)
-    if year_to is not None:
-        query = query.filter(CarListing.year <= year_to)
+    if parsed_year_from is not None:
+        query = query.filter(CarListing.year >= parsed_year_from)
+    if parsed_year_to is not None:
+        query = query.filter(CarListing.year <= parsed_year_to)
     if passable:
         query = query.filter(CarListing.year <= _passable_year_max())
     query = _apply_freshness_filter(query, freshness)
@@ -1031,8 +1033,8 @@ def listings_page(
         "brand": brand or "",
         "model": model or "",
         "city": city or "",
-        "year_from": year_from or "",
-        "year_to": year_to or "",
+        "year_from": parsed_year_from if parsed_year_from is not None else "",
+        "year_to": parsed_year_to if parsed_year_to is not None else "",
         "passable": passable,
         "freshness": freshness,
         "sort": sort,
@@ -1042,8 +1044,8 @@ def listings_page(
         "brand": brand or None,
         "model": model or None,
         "city": city or None,
-        "year_from": year_from,
-        "year_to": year_to,
+        "year_from": parsed_year_from,
+        "year_to": parsed_year_to,
         "passable": "1" if passable else None,
         "freshness": freshness if freshness and freshness != "all" else None,
         "sort": sort if sort else None,
