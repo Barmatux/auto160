@@ -26,6 +26,8 @@ SKIP_PATH_PREFIXES = (
     "/api/",
     "/health",
     "/favicon.ico",
+    "/robots.txt",
+    "/sitemap.xml",
 )
 
 EVENT_LABELS = {

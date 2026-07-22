@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" role="img" aria-label="Auto160">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#eaf1ff"/>
+      <stop offset="100%" stop-color="#dce8fb"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <rect x="80" y="80" width="1040" height="470" rx="32" fill="#ffffff" stroke="#c9dcff" stroke-width="4"/>
+  <text x="120" y="220" font-family="Arial, sans-serif" font-size="72" font-weight="700" fill="#1e3a8a">Auto160</text>
+  <text x="120" y="310" font-family="Arial, sans-serif" font-size="40" fill="#54637f">>41>@ 02B> 4> 160 ;.A. 2 5;0@CA8</text>
+  <text x="120" y="390" font-family="Arial, sans-serif" font-size="30" fill="#1d4ed8">0B0;>3 · 1JO2;5=8O av.by · @>25@:0 VIN</text>
+</svg>

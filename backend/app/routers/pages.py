@@ -3,7 +3,7 @@ from datetime import UTC, datetime, timedelta
 from urllib.parse import urlencode
 
 from fastapi import APIRouter, Depends, Query, Request
-from fastapi.responses import RedirectResponse
+from fastapi.responses import PlainTextResponse, RedirectResponse, Response
 from jose import JWTError
 from sqlalchemy import and_, case, desc, func, or_
 from fastapi.templating import Jinja2Templates
@@ -17,6 +17,19 @@ from app.db import get_db
 from app.logging_setup import LOG_SERVICES, log_dir, tail_log
 from app.models import AvbyServiceAccount, AvbySyncRun, CarListing, CatalogItem, CatalogItemPhoto, ListingStatus, User, UserRole
 from app.security import decode_token, is_token_revoked
+from app.seo import (
+    SeoMeta,
+    build_robots_txt,
+    build_seo_context,
+    build_sitemap_entries,
+    catalog_generations_seo_meta,
+    catalog_item_seo_meta,
+    catalog_models_seo_meta,
+    catalog_modifications_seo_meta,
+    listing_seo_meta,
+    render_sitemap_xml,
+    site_base_url,
+)
 from app.storage import build_app_download_url, normalize_display_image_url
 
 router = APIRouter(tags=["pages"])
@@ -196,13 +209,15 @@ def _resolve_user_from_request(request: Request, db: Session) -> User | None:
     return db.query(User).filter(User.email == email).first()
 
 
-def _template_context(request: Request, current_user: User | None) -> dict:
-    return {
+def _template_context(request: Request, current_user: User | None, seo: SeoMeta | None = None) -> dict:
+    context = {
         "request": request,
         "current_user": current_user,
         "is_authenticated": current_user is not None,
         "is_admin": current_user is not None and current_user.role == UserRole.admin,
     }
+    context.update(build_seo_context(request, seo))
+    return context
 
 
 def _normalize_match_text(value: str | None) -> str:
@@ -1163,6 +1178,20 @@ def home(request: Request, db: Session = Depends(get_db)):
     return templates.TemplateResponse(request, "index.html", context)
 
 
+@router.get("/robots.txt", include_in_schema=False)
+def robots_txt(request: Request):
+    base = site_base_url(request)
+    return PlainTextResponse(build_robots_txt(base), media_type="text/plain; charset=utf-8")
+
+
+@router.get("/sitemap.xml", include_in_schema=False)
+def sitemap_xml(request: Request, db: Session = Depends(get_db)):
+    base = site_base_url(request)
+    entries = build_sitemap_entries(db, base)
+    xml = render_sitemap_xml(entries)
+    return Response(content=xml, media_type="application/xml; charset=utf-8")
+
+
 @router.get("/listings")
 def listings_page(
     request: Request,
@@ -1267,7 +1296,18 @@ def listing_item(request: Request, listing_id: int, db: Session = Depends(get_db
     if listing and listing.status != ListingStatus.published:
         if current_user is None or current_user.role != UserRole.admin:
             listing = None
-    context = _template_context(request, current_user)
+    seo = None
+    if listing:
+        cover_urls = _resolve_listing_cover_urls([listing], db)
+        seo = listing_seo_meta(listing, cover_url=cover_urls.get(listing.id))
+    else:
+        seo = SeoMeta(
+            title="Объявление не найдено — Auto160",
+            description="Объявление не найдено или снято с публикации.",
+            path=f"/listings/{listing_id}",
+            noindex=True,
+        )
+    context = _template_context(request, current_user, seo)
     context["listing"] = listing
     return templates.TemplateResponse(request, "listing_detail.html", context)
 
@@ -1441,7 +1481,11 @@ def catalog_models(
         model_item["generation_previews"] = generation_cards[:3]
         generation_preview_ids.extend([g["first_id"] for g in model_item["generation_previews"]])
 
-    context = _template_context(request, current_user)
+    context = _template_context(
+        request,
+        current_user,
+        catalog_models_seo_meta(make, total=len(models)),
+    )
     context["make"] = make
     context["models"] = models
     context["cover_urls"] = _build_cover_url_map([item["first_id"] for item in models], db)
@@ -1510,7 +1554,11 @@ def catalog_generations(
             year_to=generation_item.get("year_to"),
         )
 
-    context = _template_context(request, current_user)
+    context = _template_context(
+        request,
+        current_user,
+        catalog_generations_seo_meta(make, canonical_model or None, total=len(generations)),
+    )
     context["make"] = make
     context["model"] = canonical_model
     context["generations"] = generations
@@ -1594,7 +1642,11 @@ def catalog_modifications(
     total = len(deduped_items)
     offset = (page - 1) * page_size
     items = deduped_items[offset : offset + page_size]
-    context = _template_context(request, current_user)
+    context = _template_context(
+        request,
+        current_user,
+        catalog_modifications_seo_meta(make, model, generation, total=total),
+    )
     context["items"] = items
     context["mod_titles"] = _build_modification_titles(items)
     context["cover_urls"] = _build_cover_url_map([item.id for item in items], db)
@@ -1693,7 +1745,19 @@ def catalog_item_detail(request: Request, item_id: int, db: Session = Depends(ge
     current_user = _resolve_user_from_request(request, db)
     item = db.query(CatalogItem).filter(CatalogItem.id == item_id).first()
     if not item or (item.engine_power_hp is not None and item.engine_power_hp > 160):
-        return templates.TemplateResponse(request, "catalog_item_detail.html", {"request": request, "item": None, "photos": []})
+        context = _template_context(
+            request,
+            _resolve_user_from_request(request, db),
+            SeoMeta(
+                title="Комплектация не найдена — Auto160",
+                description="Позиция каталога не найдена или не подходит под фильтр до 160 л.с.",
+                path=f"/catalog/item/{item_id}",
+                noindex=True,
+            ),
+        )
+        context["item"] = None
+        context["photos"] = []
+        return templates.TemplateResponse(request, "catalog_item_detail.html", context)
 
     photos = (
         db.query(CatalogItemPhoto)
@@ -1713,7 +1777,8 @@ def catalog_item_detail(request: Request, item_id: int, db: Session = Depends(ge
         elif resolved_cover:
             photo_urls = [resolved_cover]
     photo_urls = [normalize_display_image_url(url) or url for url in photo_urls]
-    context = _template_context(request, current_user)
+    cover_url = photo_urls[0] if photo_urls else None
+    context = _template_context(request, current_user, catalog_item_seo_meta(item, cover_url=cover_url))
     context["item"] = item
     context["photos"] = photo_urls
     spec_rows = _resolve_best_spec_rows(item, db)

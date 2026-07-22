@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     s3_bucket: str = "auto160-media"
     s3_region: str = "us-east-1"
     s3_presign_expires_seconds: int = 3600
+    public_site_url: str = ""
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
