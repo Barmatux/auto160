@@ -28,8 +28,6 @@
               <p>Марка: {{ item.make }}</p>
             {% endif %}
             <p>Поколений: {{ item.generation_count }}</p>
-            <p>Годы: {{ item.year_from or "?" }} - {{ item.year_to or "?" }}</p>
-            <p>Комплектаций: <strong>{{ item.count }}</strong></p>
             {% if item.listings_url %}
               <p><a href="{{ item.listings_url }}">Объявления {{ item.make }} {{ item.model }}</a></p>
             {% endif %}
@@ -46,8 +44,6 @@
                     {% endif %}
                     <div class="generation-mini-info">
                       <strong>{{ generation.generation }}</strong>
-                      <span>{{ generation.year_from or "?" }}-{{ generation.year_to or "?" }}</span>
-                      <span>{{ generation.count }} компл.</span>
                     </div>
                   </a>
                 {% endfor %}

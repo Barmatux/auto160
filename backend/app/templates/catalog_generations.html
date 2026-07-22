@@ -27,8 +27,6 @@
               <p><strong>{{ item.make }} {{ item.model }}</strong></p>
             {% endif %}
             <h3><a href="{{ item.mods_url }}">{{ item.generation }}</a></h3>
-            <p>Годы: {{ item.year_from or "?" }} - {{ item.year_to or "?" }}</p>
-            <p>Комплектаций: <strong>{{ item.count }}</strong></p>
             {% if item.listings_url %}
               <p><a href="{{ item.listings_url }}">Объявления по поколению</a></p>
             {% endif %}
