@@ -1,5 +1,5 @@
 from functools import lru_cache
-from urllib.parse import quote
+from urllib.parse import quote, urlparse
 
 import boto3
 from botocore.client import Config
@@ -70,3 +70,30 @@ def object_exists(storage_key: str) -> bool:
 
 def build_app_download_url(storage_key: str) -> str:
     return f"/media/object?key={quote(storage_key, safe='')}"
+
+
+_REMOTE_IMAGE_HOSTS = {"avcdn.av.by"}
+
+
+def is_remote_catalog_image_url(url: str | None) -> bool:
+    if not url:
+        return False
+    parsed = urlparse(url.strip())
+    return parsed.scheme in {"http", "https"} and parsed.netloc in _REMOTE_IMAGE_HOSTS
+
+
+def build_remote_image_url(url: str) -> str:
+    return f"/media/remote?url={quote(url.strip(), safe='')}"
+
+
+def normalize_display_image_url(url: str | None) -> str | None:
+    if not url:
+        return None
+    cleaned = url.strip()
+    if not cleaned:
+        return None
+    if cleaned.startswith("/media/"):
+        return cleaned
+    if is_remote_catalog_image_url(cleaned):
+        return build_remote_image_url(cleaned)
+    return cleaned

@@ -16,7 +16,7 @@ from app.db import get_db
 from app.logging_setup import LOG_SERVICES, log_dir, tail_log
 from app.models import AvbyServiceAccount, AvbySyncRun, CarListing, CatalogItem, CatalogItemPhoto, ListingStatus, User, UserRole
 from app.security import decode_token, is_token_revoked
-from app.storage import build_app_download_url
+from app.storage import build_app_download_url, normalize_display_image_url
 
 router = APIRouter(tags=["pages"])
 templates = Jinja2Templates(directory="app/templates")
@@ -343,6 +343,45 @@ def _resolve_catalog_item_cover(
     return _extract_raw_photo_url(item.raw_specs or {})
 
 
+def _find_sibling_stored_cover(item: CatalogItem, db: Session) -> str | None:
+    scopes: list[tuple[str, str, str | None]] = []
+    if item.generation:
+        scopes.append((item.make or "", item.model or "", item.generation))
+    scopes.append((item.make or "", item.model or "", None))
+
+    seen: set[tuple[str, str, str | None]] = set()
+    for make, model, generation in scopes:
+        if not make or not model:
+            continue
+        scope_key = (make, model, generation)
+        if scope_key in seen:
+            continue
+        seen.add(scope_key)
+
+        query = (
+            db.query(CatalogItemPhoto)
+            .join(CatalogItem, CatalogItem.id == CatalogItemPhoto.catalog_item_id)
+            .filter(
+                CatalogItem.make == make,
+                CatalogItem.model == model,
+                CatalogItem.source_site == "av.by",
+            )
+        )
+        if generation:
+            query = query.filter(CatalogItem.generation == generation)
+        photo = (
+            query.order_by(
+                CatalogItemPhoto.is_cover.desc(),
+                CatalogItemPhoto.sort_order.asc(),
+                CatalogItemPhoto.id.asc(),
+            )
+            .first()
+        )
+        if photo:
+            return build_app_download_url(photo.storage_key)
+    return None
+
+
 def _build_cover_url_map(item_ids: list[int], db: Session) -> dict[int, str]:
     if not item_ids:
         return {}
@@ -365,7 +404,11 @@ def _build_cover_url_map(item_ids: list[int], db: Session) -> dict[int, str]:
     items = db.query(CatalogItem).filter(CatalogItem.id.in_(missing_ids)).all()
     listings_cache = _fetch_listings_for_catalog_items(items, db)
     for item in items:
-        cover_url = _resolve_catalog_item_cover(item, listings_cache)
+        sibling_cover = _find_sibling_stored_cover(item, db)
+        if sibling_cover:
+            cover_map[item.id] = sibling_cover
+            continue
+        cover_url = normalize_display_image_url(_resolve_catalog_item_cover(item, listings_cache))
         if cover_url:
             cover_map[item.id] = cover_url
     return cover_map
@@ -401,7 +444,7 @@ def _build_listing_catalog_cover_urls(
     result: dict[int, str] = {}
     for listing in listings:
         if listing.cover_photo_url:
-            result[listing.id] = listing.cover_photo_url
+            result[listing.id] = normalize_display_image_url(listing.cover_photo_url) or listing.cover_photo_url
             continue
         catalog_id = listing_to_catalog.get(listing.id)
         if catalog_id and catalog_id in cover_by_catalog:
@@ -630,22 +673,23 @@ def _resolve_listing_cover_urls(listings: list[CarListing], db: Session) -> dict
     result: dict[int, str] = {}
     for listing in listings:
         if listing.cover_photo_url:
-            result[listing.id] = listing.cover_photo_url
+            result[listing.id] = normalize_display_image_url(listing.cover_photo_url) or listing.cover_photo_url
             continue
         if listing.raw_photos and isinstance(listing.raw_photos, list):
             for photo in listing.raw_photos:
                 if isinstance(photo, str) and photo.strip():
-                    result[listing.id] = photo.strip()
+                    result[listing.id] = normalize_display_image_url(photo.strip()) or photo.strip()
                     break
                 if isinstance(photo, dict):
                     url = photo.get("url")
                     if isinstance(url, str) and url.strip():
-                        result[listing.id] = url.strip()
+                        result[listing.id] = normalize_display_image_url(url.strip()) or url.strip()
                         break
                     for key in ("big", "medium", "small"):
                         variant = photo.get(key)
                         if isinstance(variant, dict) and variant.get("url"):
-                            result[listing.id] = str(variant["url"])
+                            normalized = normalize_display_image_url(str(variant["url"]))
+                            result[listing.id] = normalized or str(variant["url"])
                             break
                     if listing.id in result:
                         break
@@ -1601,6 +1645,7 @@ def catalog_item_detail(request: Request, item_id: int, db: Session = Depends(ge
             photo_urls = raw_urls
         elif resolved_cover:
             photo_urls = [resolved_cover]
+    photo_urls = [normalize_display_image_url(url) or url for url in photo_urls]
     context = _template_context(request, current_user)
     context["item"] = item
     context["photos"] = photo_urls
