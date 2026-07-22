@@ -5,7 +5,7 @@ from urllib.parse import urlencode
 from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import RedirectResponse
 from jose import JWTError
-from sqlalchemy import and_, case, desc, or_
+from sqlalchemy import and_, case, desc, func, or_
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
@@ -1088,14 +1088,78 @@ def _apply_max_hp_filter(query, max_hp: int = 160):
     return query.filter(or_(CatalogItem.engine_power_hp.is_(None), CatalogItem.engine_power_hp <= max_hp))
 
 
+def _home_stats(db: Session) -> dict:
+    hp_filter = or_(CatalogItem.engine_power_hp.is_(None), CatalogItem.engine_power_hp <= 160)
+    catalog_filters = (
+        CatalogItem.source_site == "av.by",
+        hp_filter,
+    )
+    catalog_items_count = (
+        db.query(CatalogItem)
+        .filter(*catalog_filters)
+        .count()
+    )
+    catalog_makes_count = int(
+        db.query(func.count(func.distinct(CatalogItem.make)))
+        .filter(CatalogItem.make.isnot(None), *catalog_filters)
+        .scalar()
+        or 0
+    )
+    listings_query = db.query(CarListing).filter(CarListing.status == ListingStatus.published)
+    listings_count = listings_query.count()
+    year_min, year_max = _passable_year_bounds()
+    passable_listings_count = listings_query.filter(
+        CarListing.year.isnot(None),
+        CarListing.year >= year_min,
+        CarListing.year <= year_max,
+    ).count()
+    return {
+        "catalog_items_count": catalog_items_count,
+        "catalog_makes_count": catalog_makes_count,
+        "listings_count": listings_count,
+        "passable_listings_count": passable_listings_count,
+        "passable_year_from": year_min,
+        "passable_year_to": year_max,
+    }
+
+
+def _home_popular_makes(db: Session, *, limit: int = 8) -> list[dict]:
+    rows = (
+        _apply_max_hp_filter(db.query(CatalogItem))
+        .filter(CatalogItem.make.isnot(None), CatalogItem.source_site == "av.by")
+        .order_by(CatalogItem.make.asc(), CatalogItem.created_at.desc())
+        .all()
+    )
+    grouped: dict[str, dict] = {}
+    for item in rows:
+        make = (item.make or "").strip()
+        if not make:
+            continue
+        if make not in grouped:
+            grouped[make] = {"make": make, "count": 0, "first_id": item.id}
+        grouped[make]["count"] += 1
+    makes = sorted(grouped.values(), key=lambda row: (-row["count"], row["make"]))[:limit]
+    for make in makes:
+        make["models_url"] = "/catalog/models?" + urlencode({"make": make["make"]})
+        make["logo_url"] = _make_logo_url(make["make"])
+    return makes
+
+
 @router.get("/")
 def home(request: Request, db: Session = Depends(get_db)):
     current_user = _resolve_user_from_request(request, db)
-    query = _apply_max_hp_filter(db.query(CatalogItem))
-    latest = query.order_by(desc(CatalogItem.created_at)).limit(5).all()
+    latest_listings = (
+        db.query(CarListing)
+        .filter(CarListing.status == ListingStatus.published)
+        .order_by(desc(CarListing.created_at))
+        .limit(6)
+        .all()
+    )
     context = _template_context(request, current_user)
-    context["latest"] = latest
-    context["cover_urls"] = _build_cover_url_map([item.id for item in latest], db)
+    context.update(_home_stats(db))
+    context["popular_makes"] = _home_popular_makes(db)
+    context["latest_listings"] = latest_listings
+    context["listing_cover_urls"] = _resolve_listing_cover_urls(latest_listings, db)
     return templates.TemplateResponse(request, "index.html", context)
 
 

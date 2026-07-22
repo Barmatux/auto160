@@ -1,35 +1,139 @@
 {% extends "base.html" %}
-{% block title %}Главная - Auto160{% endblock %}
+{% block title %}Auto160 — подбор авто до 160 л.с.{% endblock %}
 {% block content %}
 <section class="home-hero">
-  <p class="home-badge">Лучшая платформа для продажи авто в регионе</p>
-  <h1>Продайте или купите автомобиль выгодно</h1>
+  <p class="home-badge">Каталог и объявления av.by · до 160 л.с.</p>
+  <h1>Подбор авто до 160 л.с. в Беларуси</h1>
   <p class="home-subtitle">
-    Тысячи предложений от дилеров и частных лиц. Проверяйте историю авто, сравнивайте цены и выбирайте без риска.
+    Сравнивай комплектации в каталоге, смотри актуальные объявления с av.by и проверяй VIN
+    в базе таможни перед покупкой.
   </p>
 
+  <div class="home-actions">
+    <a class="btn-primary" href="/catalog">Каталог</a>
+    <a class="btn-secondary" href="/listings">Лента объявлений</a>
+    <a class="btn-secondary" href="/listings?passable=1">Проходные авто</a>
+    <a class="btn-secondary" href="/inspection">Проверка VIN</a>
+  </div>
+
   <div class="home-stats">
-    <div><strong>50 000+</strong><span>активных объявлений</span></div>
-    <div><strong>12 000+</strong><span>продавцов по всей стране</span></div>
-    <div><strong>98%</strong><span>довольных пользователей</span></div>
+    <div>
+      <strong>{{ listings_count }}</strong>
+      <span>объявлений в ленте</span>
+    </div>
+    <div>
+      <strong>{{ catalog_items_count }}</strong>
+      <span>комплектаций в каталоге</span>
+    </div>
+    <div>
+      <strong>{{ catalog_makes_count }}</strong>
+      <span>марок · до 160 л.с.</span>
+    </div>
+    {% if passable_listings_count %}
+    <div>
+      <strong>{{ passable_listings_count }}</strong>
+      <span>проходных ({{ passable_year_from }}–{{ passable_year_to }} г.в.)</span>
+    </div>
+    {% endif %}
   </div>
 </section>
 
 <section class="home-features">
-  <a class="card" href="/catalog">
-    <h2>Каталог</h2>
-    <p>Тысячи автомобилей от официальных дилеров и частных лиц. Удобная фильтрация и детальные карточки.</p>
-    <span class="home-link">Перейти в каталог →</span>
+  <a class="card home-feature-card" href="/catalog">
+    <h2>Каталог комплектаций</h2>
+    <p>
+      Марка → модель → поколение → комплектация. Характеристики, фото и сравнение версий.
+      Показываем только авто до 160 л.с. из каталога av.by.
+    </p>
+    <span class="home-link">Открыть каталог →</span>
   </a>
-  <a class="card" href="/listings">
+  <a class="card home-feature-card" href="/listings">
     <h2>Лента объявлений</h2>
-    <p>Объявления напрямую от продавцов. Быстрый доступ к цене, пробегу и истории владения.</p>
-    <span class="home-link">Открыть ленту →</span>
+    <p>
+      Актуальные объявления с av.by: цена, пробег, город, двигатель и ссылка на источник.
+      Фильтры по марке, городу, году и чекбокс «проходные».
+    </p>
+    <span class="home-link">Смотреть объявления →</span>
   </a>
-  <a class="card" href="/inspection">
-    <h2>Проверка авто</h2>
-    <p>Проверь VIN перед покупкой: ограничения, ДТП, пробег и ключевые риски по автомобилю.</p>
+  <a class="card home-feature-card" href="/inspection">
+    <h2>Проверка VIN</h2>
+    <p>
+      Поиск по базе ввезённого автотранспорта ГТК Беларуси — был ли автомобиль
+      выпущен в свободное обращение. Можно проверить VIN прямо из карточки объявления.
+    </p>
     <span class="home-link">Проверить VIN →</span>
   </a>
+</section>
+
+<section class="home-section">
+  <div class="home-section-head">
+    <h2>Популярные марки</h2>
+    <a class="home-link" href="/catalog">Все марки →</a>
+  </div>
+  {% if popular_makes %}
+    <div class="home-makes">
+      {% for item in popular_makes %}
+        <a class="home-make-card" href="{{ item.models_url }}">
+          {% if item.logo_url %}
+            <img class="make-logo" src="{{ item.logo_url }}" alt="{{ item.make }}" loading="lazy" />
+          {% else %}
+            <span class="home-make-fallback">{{ item.make[:1] }}</span>
+          {% endif %}
+          <strong>{{ item.make }}</strong>
+          <span>{{ item.count }} комплектаций</span>
+        </a>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="hint">Каталог пока пуст — данные подгружаются с av.by.</p>
+  {% endif %}
+</section>
+
+<section class="home-section">
+  <div class="home-section-head">
+    <h2>Новые объявления</h2>
+    <a class="home-link" href="/listings">Вся лента →</a>
+  </div>
+  {% if latest_listings %}
+    <div class="catalog home-listings">
+      {% for listing in latest_listings %}
+        <article class="listing-card avby-listing-card">
+          {% set cover_url = listing.cover_photo_url or listing_cover_urls.get(listing.id) %}
+          {% if cover_url %}
+            <a class="card-cover-link" href="/listings/{{ listing.id }}" aria-label="Открыть {{ listing.brand }} {{ listing.model }}">
+              <img class="catalog-cover" src="{{ cover_url }}" alt="{{ listing.brand }} {{ listing.model }}" loading="lazy" />
+            </a>
+          {% endif %}
+          <h3><a href="/listings/{{ listing.id }}">{{ listing.title }}</a></h3>
+          <p><strong>{{ listing.brand }} {{ listing.model }}</strong> · {{ listing.year }}{% if listing.generation %} · {{ listing.generation }}{% endif %}</p>
+          <p><strong>Цена:</strong> {{ listing.price }} ₽ · <strong>{{ listing.city }}</strong></p>
+          {% if listing.engine_power_hp %}
+            <p class="hint">{{ listing.engine_power_hp }} л.с.{% if listing.engine_type %} · {{ listing.engine_type }}{% endif %}</p>
+          {% endif %}
+          <div class="actions-row">
+            <a href="/listings/{{ listing.id }}">Подробнее</a>
+            <a href="/inspection?listing_id={{ listing.id }}">VIN</a>
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="hint">Объявления ещё не загружены. Синхронизация с av.by выполняется автоматически.</p>
+  {% endif %}
+</section>
+
+<section class="home-how">
+  <h2>Как пользоваться</h2>
+  <ol class="home-steps">
+    <li>
+      <strong>Каталог</strong> — выбери марку и комплектацию, сравни характеристики и посмотри связанные объявления.
+    </li>
+    <li>
+      <strong>Лента</strong> — фильтруй по марке, городу и «проходным» авто ({{ passable_year_from }}–{{ passable_year_to }} г.в.).
+    </li>
+    <li>
+      <strong>Проверка VIN</strong> — перед сделкой проверь авто в базе таможни РБ или перейди на av.by по ссылке из объявления.
+    </li>
+  </ol>
 </section>
 {% endblock %}
