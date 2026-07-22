@@ -168,6 +168,11 @@ body {
 .catalog-sidebar {
   position: sticky;
   top: 82px;
+  align-self: start;
+  max-height: calc(100vh - 96px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
 }
 
 .catalog-sidebar h3 {
