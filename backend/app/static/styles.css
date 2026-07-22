@@ -612,6 +612,18 @@ body {
   line-height: 1.35;
 }
 
+.admin-analytics-columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 24px;
+  margin: 24px 0;
+}
+
+.admin-analytics-columns h2 {
+  margin: 0 0 12px;
+  font-size: 1rem;
+}
+
 .admin-last-success {
   margin-bottom: 24px;
   padding: 14px 16px;

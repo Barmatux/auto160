@@ -1,10 +1,11 @@
 import re
 
-from fastapi import APIRouter, Depends, Header, HTTPException, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
 from jose import JWTError
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from app.analytics import record_auth_event
 from app.db import get_db
 from app.deps import get_current_user
 from app.models import User, UserRole
@@ -34,7 +35,7 @@ def _generate_unique_username(db: Session, email: str) -> str:
 
 
 @router.post("/register", response_model=UserPublic, status_code=status.HTTP_201_CREATED)
-def register(payload: RegisterRequest, db: Session = Depends(get_db)):
+def register(payload: RegisterRequest, request: Request, db: Session = Depends(get_db)):
     if payload.role == UserRole.admin:
         raise HTTPException(status_code=403, detail="Admin registration is not allowed")
 
@@ -52,17 +53,19 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)):
     db.add(user)
     db.commit()
     db.refresh(user)
+    record_auth_event(request, user, "register")
     return user
 
 
 @router.post("/login", response_model=TokenResponse)
-def login(payload: LoginRequest, db: Session = Depends(get_db)):
+def login(payload: LoginRequest, request: Request, db: Session = Depends(get_db)):
     user = db.query(User).filter(func.lower(User.username) == payload.login.lower()).first()
     if not user or not verify_password(payload.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Invalid login or password")
 
     access_token = create_access_token(subject=user.email)
     refresh_token = create_refresh_token(subject=user.email)
+    record_auth_event(request, user, "login")
     return TokenResponse(access_token=access_token, refresh_token=refresh_token)
 
 

@@ -155,6 +155,25 @@ class CatalogItemPhoto(Base):
     catalog_item: Mapped[CatalogItem] = relationship(back_populates="photos")
 
 
+class SiteEvent(Base):
+    __tablename__ = "site_events"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    event_type: Mapped[str] = mapped_column(String(40), index=True)
+    method: Mapped[str] = mapped_column(String(10))
+    path: Mapped[str] = mapped_column(String(500), index=True)
+    query_string: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    status_code: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), index=True, nullable=True)
+    user_email: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    session_id: Mapped[str | None] = mapped_column(String(64), index=True, nullable=True)
+    ip_address: Mapped[str | None] = mapped_column(String(45), nullable=True)
+    user_agent: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    referrer: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    details: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+
+
 class VinCustomsCheck(Base):
     __tablename__ = "vin_customs_checks"
 

@@ -1,0 +1,221 @@
+{% extends "base.html" %}
+{% block title %}Админка — Аналитика{% endblock %}
+{% block content %}
+{% set admin_section = "analytics" %}
+{% include "partials/admin_nav.html" %}
+
+<h1>Аналитика сайта</h1>
+<p class="hint">
+  Просмотры страниц и действия пользователей. Анонимные посетители отслечаются по cookie
+  <code>auto160_sid</code>, авторизованные — по email.
+</p>
+
+<form class="filters admin-log-toolbar" method="get" action="/admin/analytics">
+  <label>
+    Период
+    <select name="days" id="analytics-days">
+      {% for n in day_options %}
+        <option value="{{ n }}" {% if n == days %}selected{% endif %}>
+          {% if n == 1 %}Сегодня (24 ч){% else %}{{ n }} дней{% endif %}
+        </option>
+      {% endfor %}
+    </select>
+  </label>
+  <label class="inline-checkbox">
+    <input type="checkbox" id="auto-refresh" checked />
+    Автообновление
+  </label>
+  <button type="submit">Применить</button>
+</form>
+
+<p class="hint" id="analytics-meta">Обновлено: {{ fetched_at }}</p>
+
+<section class="admin-stats-grid" id="stats-grid">
+  <article class="admin-stat-card">
+    <div class="label">Просмотры сегодня</div>
+    <div class="value" id="views-today">{{ views_today }}</div>
+    <div class="sub">уник. сессий: <span id="sessions-today">{{ sessions_today }}</span></div>
+  </article>
+  <article class="admin-stat-card">
+    <div class="label">Просмотры за период</div>
+    <div class="value" id="views-period">{{ views_period }}</div>
+    <div class="sub">уник. сессий: <span id="sessions-period">{{ sessions_period }}</span></div>
+  </article>
+  <article class="admin-stat-card">
+    <div class="label">Действия за период</div>
+    <div class="value" id="actions-period">{{ actions_period }}</div>
+    <div class="sub">вход, регистрация, выход</div>
+  </article>
+</section>
+
+<div class="admin-analytics-columns">
+  <section>
+    <h2>Топ страниц</h2>
+    <table class="sync-table" id="top-pages">
+      <thead>
+        <tr><th>Страница</th><th>Просмотры</th></tr>
+      </thead>
+      <tbody>
+        {% for row in top_pages %}
+        <tr>
+          <td><code>{{ row.path }}</code></td>
+          <td>{{ row.views }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="2">Пока нет данных</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>Активные пользователи</h2>
+    <table class="sync-table" id="top-users">
+      <thead>
+        <tr><th>Email</th><th>Событий</th></tr>
+      </thead>
+      <tbody>
+        {% for row in top_users %}
+        <tr>
+          <td>{{ row.email }}</td>
+          <td>{{ row.events }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="2">Пока нет данных</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+</div>
+
+<section>
+  <h2>Последние события</h2>
+  <table class="sync-table" id="recent-events">
+    <thead>
+      <tr>
+        <th>Время</th>
+        <th>Тип</th>
+        <th>Страница</th>
+        <th>Пользователь</th>
+        <th>IP</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for event in recent_events %}
+      <tr>
+        <td>{{ event.created_at.strftime('%d.%m.%Y %H:%M:%S') }}</td>
+        <td>{{ event_labels.get(event.event_type, event.event_type) }}</td>
+        <td><code>{{ event.path }}{% if event.query_string %}?{{ event.query_string }}{% endif %}</code></td>
+        <td>{{ event.user_email or "—" }}</td>
+        <td>{{ event.ip_address or "—" }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5">Событий пока нет</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+{% include "partials/auth_script.html" %}
+<script>
+  const refreshSeconds = {{ refresh_seconds }};
+  const eventLabels = {{ event_labels | tojson }};
+  let timer = null;
+
+  async function adminFetch(url, options = {}) {
+    let token = getCookie("access_token");
+    if (!token) {
+      const refreshed = await refreshAccessTokenIfNeeded();
+      if (!refreshed) {
+        window.location.href = "/login";
+        return null;
+      }
+      token = getCookie("access_token");
+    }
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        ...(options.headers || {}),
+      },
+    });
+    if (response.status === 401) {
+      const refreshed = await refreshAccessTokenIfNeeded();
+      if (refreshed) return adminFetch(url, options);
+    }
+    return response;
+  }
+
+  function renderTopPages(rows) {
+    const tbody = document.querySelector("#top-pages tbody");
+    if (!rows.length) {
+      tbody.innerHTML = "<tr><td colspan=\"2\">Пока нет данных</td></tr>";
+      return;
+    }
+    tbody.innerHTML = rows.map((row) =>
+      `<tr><td><code>${row.path}</code></td><td>${row.views}</td></tr>`
+    ).join("");
+  }
+
+  function renderTopUsers(rows) {
+    const tbody = document.querySelector("#top-users tbody");
+    if (!rows.length) {
+      tbody.innerHTML = "<tr><td colspan=\"2\">Пока нет данных</td></tr>";
+      return;
+    }
+    tbody.innerHTML = rows.map((row) =>
+      `<tr><td>${row.email}</td><td>${row.events}</td></tr>`
+    ).join("");
+  }
+
+  function renderRecentEvents(rows) {
+    const tbody = document.querySelector("#recent-events tbody");
+    if (!rows.length) {
+      tbody.innerHTML = "<tr><td colspan=\"5\">Событий пока нет</td></tr>";
+      return;
+    }
+    tbody.innerHTML = rows.map((event) => {
+      const created = new Date(event.created_at);
+      const time = created.toLocaleString("ru-RU");
+      const label = eventLabels[event.event_type] || event.event_type;
+      const query = event.query_string ? "?" + event.query_string : "";
+      return `<tr>
+        <td>${time}</td>
+        <td>${label}</td>
+        <td><code>${event.path}${query}</code></td>
+        <td>${event.user_email || "—"}</td>
+        <td>${event.ip_address || "—"}</td>
+      </tr>`;
+    }).join("");
+  }
+
+  async function refreshAnalytics() {
+    const days = document.getElementById("analytics-days").value;
+    const response = await adminFetch(`/api/v1/admin/analytics?days=${encodeURIComponent(days)}`);
+    if (!response || !response.ok) return;
+    const data = await response.json();
+    document.getElementById("views-today").textContent = data.views_today;
+    document.getElementById("sessions-today").textContent = data.sessions_today;
+    document.getElementById("views-period").textContent = data.views_period;
+    document.getElementById("sessions-period").textContent = data.sessions_period;
+    document.getElementById("actions-period").textContent = data.actions_period;
+    document.getElementById("analytics-meta").textContent = "Обновлено: " + data.fetched_at;
+    renderTopPages(data.top_pages || []);
+    renderTopUsers(data.top_users || []);
+    renderRecentEvents(data.recent_events || []);
+  }
+
+  function syncAutoRefresh() {
+    if (timer) {
+      clearInterval(timer);
+      timer = null;
+    }
+    if (document.getElementById("auto-refresh").checked) {
+      timer = setInterval(refreshAnalytics, refreshSeconds * 1000);
+    }
+  }
+
+  document.getElementById("auto-refresh").addEventListener("change", syncAutoRefresh);
+  syncAutoRefresh();
+</script>
+{% endblock %}

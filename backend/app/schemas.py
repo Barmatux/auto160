@@ -237,3 +237,47 @@ class AppLogTailResponse(BaseModel):
     path: str | None = None
     log_dir: str
     fetched_at: str
+
+
+class AnalyticsTopPage(BaseModel):
+    path: str
+    views: int
+
+
+class AnalyticsTopUser(BaseModel):
+    email: str
+    events: int
+
+
+class SiteEventOut(BaseModel):
+    id: int
+    event_type: str
+    method: str
+    path: str
+    query_string: str | None = None
+    status_code: int | None = None
+    user_id: int | None = None
+    user_email: str | None = None
+    session_id: str | None = None
+    ip_address: str | None = None
+    user_agent: str | None = None
+    referrer: str | None = None
+    details: dict | None = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class AnalyticsSummaryResponse(BaseModel):
+    days: int
+    views_today: int
+    views_period: int
+    sessions_today: int
+    sessions_period: int
+    actions_period: int
+    top_pages: list[AnalyticsTopPage]
+    top_users: list[AnalyticsTopUser]
+    recent_events: list[SiteEventOut]
+    event_labels: dict[str, str]
+    fetched_at: str

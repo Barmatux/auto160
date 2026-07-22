@@ -9,6 +9,7 @@ from sqlalchemy import and_, case, desc, or_
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
+from app.analytics import EVENT_LABELS, build_analytics_summary, record_auth_event
 from app.config import settings
 from app.customs_vin import CustomsVinError, lookup_customs_vin, normalize_vin, report_rows, vin_is_valid
 from app.avby_accounts import list_active_vin_accounts, serialize_account_public
@@ -2016,6 +2017,32 @@ def admin_avby_accounts_page(request: Request, db: Session = Depends(get_db)):
     return templates.TemplateResponse(request, "admin_avby_accounts.html", context)
 
 
+@router.get("/admin/analytics")
+def admin_analytics_page(
+    request: Request,
+    days: int = Query(default=7, ge=1, le=90),
+    db: Session = Depends(get_db),
+):
+    current_user = _resolve_user_from_request(request, db)
+    if not current_user:
+        return RedirectResponse(url="/login", status_code=302)
+    if current_user.role != UserRole.admin:
+        return RedirectResponse(url="/", status_code=302)
+
+    summary = build_analytics_summary(db, days=days)
+    context = _template_context(request, current_user)
+    context.update(
+        {
+            "days": days,
+            "day_options": [1, 7, 14, 30],
+            "event_labels": EVENT_LABELS,
+            "refresh_seconds": 30,
+            **summary,
+        }
+    )
+    return templates.TemplateResponse(request, "admin_analytics.html", context)
+
+
 @router.get("/admin/logs")
 def admin_logs_page(
     request: Request,
@@ -2056,7 +2083,10 @@ def admin_logs_page(
 
 
 @router.get("/logout")
-def logout_page():
+def logout_page(request: Request, db: Session = Depends(get_db)):
+    current_user = _resolve_user_from_request(request, db)
+    if current_user:
+        record_auth_event(request, current_user, "logout")
     response = RedirectResponse(url="/login", status_code=302)
     response.delete_cookie("access_token", path="/")
     response.delete_cookie("refresh_token", path="/")

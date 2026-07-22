@@ -3,6 +3,7 @@ from datetime import UTC, datetime
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
+from app.analytics import build_analytics_summary
 from app.avby_accounts import (
     VIN_TEST_DAILY_LIMIT,
     import_avby_accounts_from_json,
@@ -18,6 +19,7 @@ from app.deps import require_admin
 from app.logging_setup import LOG_SERVICES, log_dir, tail_log
 from app.models import AvbyServiceAccount, CarListing, User
 from app.schemas import (
+    AnalyticsSummaryResponse,
     AvbyAccountsImportResult,
     AvbyServiceAccountCreateRequest,
     AvbyServiceAccountPublic,
@@ -52,6 +54,15 @@ def tail_application_logs(
         log_dir=str(log_dir()),
         fetched_at=datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S UTC"),
     )
+
+
+@router.get("/analytics", response_model=AnalyticsSummaryResponse)
+def get_analytics_summary(
+    days: int = Query(default=7, ge=1, le=90),
+    _: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    return build_analytics_summary(db, days=days)
 
 
 @router.get("/users", response_model=list[UserPublic])
