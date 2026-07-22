@@ -5,7 +5,7 @@ from urllib.parse import urlencode
 from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import RedirectResponse
 from jose import JWTError
-from sqlalchemy import case, desc, or_
+from sqlalchemy import and_, case, desc, or_
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
@@ -453,15 +453,29 @@ def _make_model_map(db: Session) -> dict[str, list[str]]:
     return mapping
 
 
-def _passable_year_max() -> int:
-    """Max manufacture year for cars older than 3 years."""
-    return datetime.utcnow().year - 4
+def _passable_year_bounds() -> tuple[int, int]:
+    """Manufacture years for passable cars: age >= 3 and <= 5 years."""
+    current = datetime.utcnow().year
+    return current - 5, current - 3
 
 
 def _is_passable_year(year: int | None) -> bool:
     if year is None:
         return False
-    return year <= _passable_year_max()
+    year_min, year_max = _passable_year_bounds()
+    return year_min <= year <= year_max
+
+
+def _apply_passable_catalog_filter(query):
+    year_min, year_max = _passable_year_bounds()
+    return query.filter(
+        CatalogItem.year_from.isnot(None),
+        CatalogItem.year_from <= year_max,
+        or_(
+            and_(CatalogItem.year_to.isnot(None), CatalogItem.year_to >= year_min),
+            and_(CatalogItem.year_to.is_(None), CatalogItem.year_from >= year_min),
+        ),
+    )
 
 
 def _listing_brand_model_map(db: Session, *, published_only: bool = True) -> dict[str, list[str]]:
@@ -1019,7 +1033,7 @@ def _apply_catalog_item_filters(
     if parsed_year_to is not None:
         query = query.filter(CatalogItem.year_to <= parsed_year_to)
     if passable:
-        query = query.filter(or_(CatalogItem.year_from.is_(None), CatalogItem.year_from <= _passable_year_max()))
+        query = _apply_passable_catalog_filter(query)
     return query
 
 
@@ -1081,7 +1095,8 @@ def listings_page(
     if parsed_year_to is not None:
         query = query.filter(CarListing.year <= parsed_year_to)
     if passable:
-        query = query.filter(CarListing.year <= _passable_year_max())
+        year_min, year_max = _passable_year_bounds()
+        query = query.filter(CarListing.year >= year_min, CarListing.year <= year_max)
     query = _apply_freshness_filter(query, freshness)
 
     if sort == "price_asc":
