@@ -1,0 +1,143 @@
+<aside class="catalog-filters-panel catalog-sidebar">
+  <h3>Фильтры</h3>
+  <form class="filters filters-sidebar" method="get" action="/listings" id="listings-filters-form">
+    <label>
+      Марка
+      <select name="brand" id="listings-filter-brand">
+        <option value="" {% if listings_filters.filters.brand == "" %}selected{% endif %}>Любая</option>
+        {% for value in listings_filters.options.brands %}
+          <option value="{{ value }}" {% if listings_filters.filters.brand == value %}selected{% endif %}>{{ value }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>
+      Модель
+      <select name="model" id="listings-filter-model">
+        <option value="" {% if listings_filters.filters.model == "" %}selected{% endif %}>Любая</option>
+        {% for value in listings_filters.options.models %}
+          <option value="{{ value }}" {% if listings_filters.filters.model == value %}selected{% endif %}>{{ value }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>
+      Город
+      <select name="city">
+        <option value="" {% if listings_filters.filters.city == "" %}selected{% endif %}>Любой</option>
+        {% for value in listings_filters.options.cities %}
+          <option value="{{ value }}" {% if listings_filters.filters.city == value %}selected{% endif %}>{{ value }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>
+      Тип кузова
+      <select name="body_type">
+        <option value="" {% if listings_filters.filters.body_type == "" %}selected{% endif %}>Любой</option>
+        {% for value in listings_filters.options.body_type %}
+          <option value="{{ value }}" {% if listings_filters.filters.body_type == value %}selected{% endif %}>{{ value }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>
+      Топливо
+      <select name="engine_type">
+        <option value="" {% if listings_filters.filters.engine_type == "" %}selected{% endif %}>Любое</option>
+        {% for value in listings_filters.options.engine_type %}
+          <option value="{{ value }}" {% if listings_filters.filters.engine_type == value %}selected{% endif %}>{{ value }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>
+      КПП
+      <select name="transmission_type">
+        <option value="" {% if listings_filters.filters.transmission_type == "" %}selected{% endif %}>Любая</option>
+        {% for value in listings_filters.options.transmission_type %}
+          <option value="{{ value }}" {% if listings_filters.filters.transmission_type == value %}selected{% endif %}>{{ value }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>
+      Год от
+      <select name="year_from">
+        <option value="" {% if listings_filters.filters.year_from == "" %}selected{% endif %}>Не важно</option>
+        {% for year in listings_filters.options.years %}
+          <option value="{{ year }}" {% if listings_filters.filters.year_from == year %}selected{% endif %}>{{ year }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>
+      Год до
+      <select name="year_to">
+        <option value="" {% if listings_filters.filters.year_to == "" %}selected{% endif %}>Не важно</option>
+        {% for year in listings_filters.options.years %}
+          <option value="{{ year }}" {% if listings_filters.filters.year_to == year %}selected{% endif %}>{{ year }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label class="inline-checkbox">
+      <input type="checkbox" name="passable" value="1" {% if listings_filters.filters.passable %}checked{% endif %} />
+      Только проходные (старше 3 лет)
+    </label>
+    <label>
+      Актуальность
+      <select name="freshness">
+        <option value="all" {% if listings_filters.filters.freshness == "all" %}selected{% endif %}>Все</option>
+        <option value="day" {% if listings_filters.filters.freshness == "day" %}selected{% endif %}>За сутки</option>
+        <option value="week" {% if listings_filters.filters.freshness == "week" %}selected{% endif %}>За неделю</option>
+        <option value="month" {% if listings_filters.filters.freshness == "month" %}selected{% endif %}>За месяц</option>
+      </select>
+    </label>
+    <label>
+      Сортировка
+      <select name="sort">
+        <option value="newest" {% if listings_filters.filters.sort == "newest" %}selected{% endif %}>Сначала новые</option>
+        <option value="price_asc" {% if listings_filters.filters.sort == "price_asc" %}selected{% endif %}>Цена по возрастанию</option>
+        <option value="price_desc" {% if listings_filters.filters.sort == "price_desc" %}selected{% endif %}>Цена по убыванию</option>
+        <option value="year_desc" {% if listings_filters.filters.sort == "year_desc" %}selected{% endif %}>Год по убыванию</option>
+        <option value="year_asc" {% if listings_filters.filters.sort == "year_asc" %}selected{% endif %}>Год по возрастанию</option>
+      </select>
+    </label>
+    <label>
+      На странице
+      <select name="page_size">
+        <option value="12" {% if page_size == 12 %}selected{% endif %}>12</option>
+        <option value="20" {% if page_size == 20 %}selected{% endif %}>20</option>
+        <option value="40" {% if page_size == 40 %}selected{% endif %}>40</option>
+      </select>
+    </label>
+    <button type="submit">Применить</button>
+    <a class="page-link" href="/listings">Сбросить</a>
+  </form>
+</aside>
+<script>
+  (function () {
+    const brandSelect = document.getElementById("listings-filter-brand");
+    const modelSelect = document.getElementById("listings-filter-model");
+    if (!brandSelect || !modelSelect) return;
+    const modelMap = {{ listings_filters.options.brand_model_map | tojson }};
+    const selectedModel = {{ listings_filters.filters.model | tojson }};
+
+    function rebuildModels() {
+      const brand = brandSelect.value;
+      const models = brand ? (modelMap[brand] || []) : Object.values(modelMap).flat().sort();
+      const unique = [...new Set(models)];
+      modelSelect.innerHTML = "";
+      const anyOpt = document.createElement("option");
+      anyOpt.value = "";
+      anyOpt.textContent = "Любая";
+      modelSelect.appendChild(anyOpt);
+      unique.forEach((model) => {
+        const opt = document.createElement("option");
+        opt.value = model;
+        opt.textContent = model;
+        if (model === selectedModel) opt.selected = true;
+        modelSelect.appendChild(opt);
+      });
+    }
+
+    brandSelect.addEventListener("change", () => {
+      modelSelect.value = "";
+      rebuildModels();
+    });
+    rebuildModels();
+  })();
+</script>

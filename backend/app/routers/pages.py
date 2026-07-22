@@ -454,14 +454,82 @@ def _make_model_map(db: Session) -> dict[str, list[str]]:
 
 
 def _passable_year_max() -> int:
-    """Cars at least 3 years old (common 'проходной' criterion for EAEU import)."""
-    return datetime.utcnow().year - 3
+    """Max manufacture year for cars older than 3 years."""
+    return datetime.utcnow().year - 4
 
 
 def _is_passable_year(year: int | None) -> bool:
     if year is None:
         return False
     return year <= _passable_year_max()
+
+
+def _listing_brand_model_map(db: Session, *, published_only: bool = True) -> dict[str, list[str]]:
+    query = db.query(CarListing.brand, CarListing.model).filter(
+        CarListing.brand.isnot(None),
+        CarListing.model.isnot(None),
+    )
+    if published_only:
+        query = query.filter(CarListing.status == ListingStatus.published)
+    rows = query.distinct().order_by(CarListing.brand.asc(), CarListing.model.asc()).all()
+    mapping: dict[str, list[str]] = {}
+    for brand, model in rows:
+        if not brand or not model:
+            continue
+        mapping.setdefault(brand, []).append(_canonical_model_name(model))
+    for brand, models in mapping.items():
+        mapping[brand] = sorted(set(models))
+    return mapping
+
+
+def _listing_year_options(db: Session, *, published_only: bool = True) -> list[int]:
+    query = db.query(CarListing.year).filter(CarListing.year.isnot(None))
+    if published_only:
+        query = query.filter(CarListing.status == ListingStatus.published)
+    years = sorted({row[0] for row in query.distinct().all() if row[0]})
+    return years
+
+
+def _distinct_listing_values(db: Session, column, *, published_only: bool = True) -> list[str]:
+    query = db.query(column).filter(column.isnot(None))
+    if published_only:
+        query = query.filter(CarListing.status == ListingStatus.published)
+    return [row[0] for row in query.distinct().order_by(column.asc()).all() if row[0]]
+
+
+def _listings_filters_payload(request: Request, db: Session, *, published_only: bool = True) -> dict:
+    query = request.query_params
+    parsed_year_from = _parse_optional_year(query.get("year_from"))
+    parsed_year_to = _parse_optional_year(query.get("year_to"))
+    brand = (query.get("brand") or "").strip()
+    model = _canonical_model_name(query.get("model") or "")
+    brand_model_map = _listing_brand_model_map(db, published_only=published_only)
+    model_options = brand_model_map.get(brand, []) if brand else sorted({m for models in brand_model_map.values() for m in models})
+    return {
+        "filters": {
+            "brand": brand,
+            "model": model,
+            "city": (query.get("city") or "").strip(),
+            "body_type": (query.get("body_type") or "").strip(),
+            "engine_type": (query.get("engine_type") or "").strip(),
+            "transmission_type": (query.get("transmission_type") or "").strip(),
+            "year_from": parsed_year_from if parsed_year_from is not None else "",
+            "year_to": parsed_year_to if parsed_year_to is not None else "",
+            "passable": query.get("passable") in ("1", "true", "on"),
+            "freshness": query.get("freshness") or "all",
+            "sort": query.get("sort") or "newest",
+        },
+        "options": {
+            "brands": sorted(brand_model_map.keys()),
+            "models": model_options,
+            "brand_model_map": brand_model_map,
+            "cities": _distinct_listing_values(db, CarListing.city, published_only=published_only),
+            "body_type": _distinct_listing_values(db, CarListing.body_type, published_only=published_only),
+            "engine_type": _distinct_listing_values(db, CarListing.engine_type, published_only=published_only),
+            "transmission_type": _distinct_listing_values(db, CarListing.transmission_type, published_only=published_only),
+            "years": _listing_year_options(db, published_only=published_only),
+        },
+    }
 
 
 def _build_listings_url(
@@ -976,6 +1044,9 @@ def listings_page(
     brand: str | None = Query(default=None),
     model: str | None = Query(default=None),
     city: str | None = Query(default=None),
+    body_type: str | None = Query(default=None),
+    engine_type: str | None = Query(default=None),
+    transmission_type: str | None = Query(default=None),
     year_from: str | None = Query(default=None),
     year_to: str | None = Query(default=None),
     passable: bool = Query(default=False),
@@ -989,15 +1060,22 @@ def listings_page(
     parsed_year_from = _parse_optional_year(year_from)
     parsed_year_to = _parse_optional_year(year_to)
     query = db.query(CarListing)
-    if current_user is None or current_user.role != UserRole.admin:
+    is_admin = current_user is not None and current_user.role == UserRole.admin
+    if not is_admin:
         query = query.filter(CarListing.status == ListingStatus.published)
 
     if brand:
-        query = query.filter(CarListing.brand.ilike(f"%{brand}%"))
+        query = query.filter(CarListing.brand == brand)
     if model:
-        query = query.filter(CarListing.model.ilike(f"%{_canonical_model_name(model)}%"))
+        query = query.filter(CarListing.model.ilike(_canonical_model_name(model)))
     if city:
-        query = query.filter(CarListing.city.ilike(f"%{city}%"))
+        query = query.filter(CarListing.city == city)
+    if body_type:
+        query = query.filter(CarListing.body_type == body_type)
+    if engine_type:
+        query = query.filter(CarListing.engine_type == engine_type)
+    if transmission_type:
+        query = query.filter(CarListing.transmission_type == transmission_type)
     if parsed_year_from is not None:
         query = query.filter(CarListing.year >= parsed_year_from)
     if parsed_year_to is not None:
@@ -1029,27 +1107,21 @@ def listings_page(
     context["total_pages"] = max(1, (total + page_size - 1) // page_size)
     context["has_prev"] = page > 1
     context["has_next"] = offset + len(listings) < total
-    context["filters"] = {
-        "brand": brand or "",
-        "model": model or "",
-        "city": city or "",
-        "year_from": parsed_year_from if parsed_year_from is not None else "",
-        "year_to": parsed_year_to if parsed_year_to is not None else "",
-        "passable": passable,
-        "freshness": freshness,
-        "sort": sort,
-    }
+    context["listings_filters"] = _listings_filters_payload(request, db, published_only=not is_admin)
 
     query_params = {
         "brand": brand or None,
         "model": model or None,
         "city": city or None,
+        "body_type": body_type or None,
+        "engine_type": engine_type or None,
+        "transmission_type": transmission_type or None,
         "year_from": parsed_year_from,
         "year_to": parsed_year_to,
         "passable": "1" if passable else None,
         "freshness": freshness if freshness and freshness != "all" else None,
         "sort": sort if sort else None,
-        "page_size": page_size,
+        "page_size": page_size if page_size != 20 else None,
     }
 
     def build_page_url(page_num: int) -> str:
