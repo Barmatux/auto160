@@ -159,6 +159,19 @@ body {
   border-radius: 14px;
   padding: 14px;
   box-shadow: var(--shadow);
+  min-width: 0;
+  overflow-x: hidden;
+}
+
+.catalog-filters-panel .filters {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  margin-bottom: 0;
+  box-shadow: none;
+  width: 100%;
+  min-width: 0;
 }
 
 .catalog-filters-panel h3 {
@@ -293,7 +306,9 @@ body {
 }
 
 .filters-sidebar {
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
+  width: 100%;
+  min-width: 0;
 }
 
 .quick-jump {
@@ -308,10 +323,14 @@ body {
   display: grid;
   gap: 6px;
   font-size: 14px;
+  min-width: 0;
 }
 
 .filters input,
 .filters select {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   border: 1px solid #cbd5e1;
   border-radius: 6px;
   padding: 8px;
@@ -841,8 +860,16 @@ body {
 
 .inline-checkbox {
   display: flex !important;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
+  line-height: 1.35;
+}
+
+.inline-checkbox input {
+  width: auto;
+  max-width: none;
+  flex: 0 0 auto;
+  margin-top: 2px;
 }
 
 .dropzone {
