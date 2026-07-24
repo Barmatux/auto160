@@ -1,0 +1,13 @@
+[
+  {
+    "make": "BMW",
+    "model": "X1",
+    "rating": 8.5
+  },
+  {
+    "make": "Renault",
+    "model": "Captur",
+    "generation": "II",
+    "rating": 7.2
+  }
+]

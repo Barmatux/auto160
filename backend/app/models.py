@@ -89,6 +89,7 @@ class CatalogItem(Base):
     source_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     source_external_id: Mapped[str | None] = mapped_column(String(120), nullable=True, index=True)
     raw_specs: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    rating: Mapped[float | None] = mapped_column(Numeric(6, 2), nullable=True, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
     photos: Mapped[list["CatalogItemPhoto"]] = relationship(back_populates="catalog_item", cascade="all, delete-orphan")
 
