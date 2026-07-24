@@ -188,7 +188,9 @@ MAKE_LOGO_URLS = {
     "mini": "https://cdn.simpleicons.org/mini/111827",
     "nissan": "https://cdn.simpleicons.org/nissan/111827",
     "opel": "https://cdn.simpleicons.org/opel/111827",
+    "peugeot": "https://cdn.simpleicons.org/peugeot/111827",
     "renault": "https://cdn.simpleicons.org/renault/111827",
+    "toyota": "https://cdn.simpleicons.org/toyota/111827",
     "volvo": "https://cdn.simpleicons.org/volvo/111827",
 }
 
