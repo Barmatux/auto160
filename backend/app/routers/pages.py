@@ -1449,6 +1449,7 @@ def catalog_models(
                     "year_to": item.year_to,
                     "make": make_name,
                     "model": canonical_model,
+                    "rating": None,
                 }
             cards[generation_key]["count"] += 1
             _apply_group_rating(cards[generation_key], item)
@@ -1536,6 +1537,7 @@ def catalog_generations(
                 "first_id": item.id,
                 "year_from": item.year_from,
                 "year_to": item.year_to,
+                "rating": None,
             }
         grouped[group_key]["count"] += 1
         _apply_group_rating(grouped[group_key], item)

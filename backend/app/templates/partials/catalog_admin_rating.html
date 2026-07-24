@@ -1,7 +1,7 @@
 {% if is_admin %}
   <p class="catalog-admin-rating{% if compact %} catalog-admin-rating--compact{% endif %}">
     <span class="catalog-admin-rating-label">Рейтинг</span>
-    {% if rating is not none %}
+    {% if rating is defined and rating is not none %}
       {% set rating_int = rating|int %}
       <strong class="catalog-admin-rating-value catalog-admin-rating-value--{{ rating_int }}">
         {%- if rating == rating_int -%}{{ rating_int }}{%- else -%}{{ rating }}{%- endif -%}
