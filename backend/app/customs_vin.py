@@ -208,6 +208,25 @@ def _persist_result(db: Session, result: CustomsVinResult) -> VinCustomsCheck:
     return row
 
 
+def has_fresh_customs_check(
+    db: Session,
+    vin: str,
+    *,
+    database: str = DATABASE_PERSONAL,
+) -> bool:
+    normalized = normalize_vin(vin)
+    if not vin_is_valid(normalized):
+        return False
+    cached = (
+        db.query(VinCustomsCheck)
+        .filter(VinCustomsCheck.vin == normalized, VinCustomsCheck.database == database)
+        .first()
+    )
+    if cached is None:
+        return False
+    return cached.checked_at >= datetime.utcnow() - CACHE_TTL
+
+
 def lookup_customs_vin(
     db: Session,
     vin: str,

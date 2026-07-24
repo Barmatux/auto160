@@ -15,7 +15,7 @@ if str(ROOT_DIR) not in sys.path:
 os.chdir(ROOT_DIR)
 
 from app.db import SessionLocal
-from app.listing_enrichment import build_rating_one_targets, enrich_rating_one_listings
+from app.listing_enrichment import build_rating_one_targets, enrich_rating_one_listings, listing_needs_enrichment
 from app.models import AvbySyncRun, CarListing, CatalogItem, ListingStatus, User, UserRole
 from app.security import hash_password
 
@@ -33,6 +33,7 @@ DEFAULT_PRICE_USD_MIN = 10_000
 DEFAULT_MAX_HP = 160
 DEFAULT_CREATION_DATE = 10
 DEFAULT_SORT = 4
+PRESERVE_ON_UPDATE_FIELDS = frozenset({"vin", "vin_fetched_at"})
 
 
 def _to_int(value: Any) -> int | None:
@@ -679,11 +680,14 @@ def run_import(
                             continue
                         existing.avby_id = avby_id
                         for field, value in payload.items():
+                            if field in PRESERVE_ON_UPDATE_FIELDS:
+                                continue
                             setattr(existing, field, value)
                         existing.status = ListingStatus.published
                         updated += 1
                         imported_per_model[target_key] = imported_per_model.get(target_key, 0) + 1
-                        touched_listings[avby_id] = existing
+                        if listing_needs_enrichment(db, existing):
+                            touched_listings[avby_id] = existing
                         continue
 
                     if dry_run:
@@ -731,7 +735,9 @@ def run_import(
                 "enrich-rating-1: "
                 f"eligible={enrich_stats.eligible} attempted={enrich_stats.attempted} "
                 f"vin_fetched={enrich_stats.vin_fetched} vin_cached={enrich_stats.vin_cached} "
-                f"customs_checked={enrich_stats.customs_checked} skipped_limit={enrich_stats.skipped_limit} "
+                f"customs_checked={enrich_stats.customs_checked} "
+                f"skipped_already_enriched={enrich_stats.skipped_already_enriched} "
+                f"skipped_limit={enrich_stats.skipped_limit} "
                 f"errors={len(enrich_stats.errors)}"
             )
             for err in enrich_stats.errors[:5]:
@@ -782,6 +788,7 @@ def run_import(
                 "attempted": enrich_stats.attempted,
                 "vin_fetched": enrich_stats.vin_fetched,
                 "customs_checked": enrich_stats.customs_checked,
+                "skipped_already_enriched": enrich_stats.skipped_already_enriched,
                 "errors": len(enrich_stats.errors),
             }
         return result

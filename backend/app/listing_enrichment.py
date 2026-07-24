@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 from sqlalchemy.orm import Session
 
 from app.avby_vin import AvbyVinError, get_or_fetch_listing_vin
-from app.customs_vin import DATABASE_PERSONAL, CustomsVinError, lookup_customs_vin
+from app.customs_vin import DATABASE_PERSONAL, CustomsVinError, has_fresh_customs_check, lookup_customs_vin
 from app.models import CarListing, CatalogItem, VinCustomsCheck
 
 
@@ -37,6 +37,7 @@ class ListingEnrichmentStats:
     vin_cached: int = 0
     customs_checked: int = 0
     customs_cached: int = 0
+    skipped_already_enriched: int = 0
     skipped_limit: int = 0
     errors: list[str] = field(default_factory=list)
 
@@ -97,30 +98,48 @@ def listing_matches_rating_one(listing: CarListing, targets: list[RatingOneTarge
     return False
 
 
+def listing_has_saved_vin(listing: CarListing) -> bool:
+    return len((listing.vin or "").strip()) == 17
+
+
+def listing_needs_enrichment(db: Session, listing: CarListing) -> bool:
+    if not listing_has_saved_vin(listing):
+        return True
+    return not has_fresh_customs_check(db, listing.vin or "", database=DATABASE_PERSONAL)
+
+
 def enrich_listing_vin_and_customs(db: Session, listing: CarListing) -> ListingEnrichmentStats:
     stats = ListingEnrichmentStats(attempted=1)
     if not listing.avby_id:
         stats.errors.append(f"listing {listing.id}: no av.by id")
         return stats
 
-    had_vin = bool(listing.vin)
-    try:
-        vin_result = get_or_fetch_listing_vin(db, listing)
-    except AvbyVinError as exc:
-        stats.errors.append(f"listing {listing.id}: {exc}")
-        return stats
-
-    if not vin_result.vin:
-        stats.errors.append(f"listing {listing.id}: empty VIN")
-        return stats
-
-    if had_vin or vin_result.cached:
+    vin = (listing.vin or "").strip().upper()
+    if listing_has_saved_vin(listing):
         stats.vin_cached += 1
     else:
-        stats.vin_fetched += 1
+        try:
+            vin_result = get_or_fetch_listing_vin(db, listing)
+        except AvbyVinError as exc:
+            stats.errors.append(f"listing {listing.id}: {exc}")
+            return stats
+
+        vin = (vin_result.vin or "").strip().upper()
+        if not vin:
+            stats.errors.append(f"listing {listing.id}: empty VIN")
+            return stats
+
+        if vin_result.cached:
+            stats.vin_cached += 1
+        else:
+            stats.vin_fetched += 1
+
+    if has_fresh_customs_check(db, vin, database=DATABASE_PERSONAL):
+        stats.customs_cached += 1
+        return stats
 
     try:
-        customs_result = lookup_customs_vin(db, vin_result.vin, database=DATABASE_PERSONAL)
+        customs_result = lookup_customs_vin(db, vin, database=DATABASE_PERSONAL)
     except CustomsVinError as exc:
         stats.errors.append(f"listing {listing.id}: customs {exc}")
         return stats
@@ -149,6 +168,11 @@ def enrich_rating_one_listings(
         if not listing_matches_rating_one(listing, rating_targets):
             continue
         total.eligible += 1
+
+        if not listing_needs_enrichment(db, listing):
+            total.skipped_already_enriched += 1
+            continue
+
         if limit is not None and processed >= limit:
             total.skipped_limit += 1
             continue
