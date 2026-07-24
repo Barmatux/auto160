@@ -778,6 +778,11 @@ body {
   margin: 0.35rem 0 0;
 }
 
+.listing-customs-admin {
+  margin: 0.25rem 0 0;
+  font-size: 0.9rem;
+}
+
 .catalog-admin-rating {
   display: flex;
   align-items: center;

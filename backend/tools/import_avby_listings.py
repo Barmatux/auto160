@@ -15,6 +15,7 @@ if str(ROOT_DIR) not in sys.path:
 os.chdir(ROOT_DIR)
 
 from app.db import SessionLocal
+from app.listing_enrichment import build_rating_one_targets, enrich_rating_one_listings
 from app.models import AvbySyncRun, CarListing, CatalogItem, ListingStatus, User, UserRole
 from app.security import hash_password
 
@@ -508,6 +509,7 @@ def run_import(
     prune_non_catalog: bool = True,
     dry_run: bool = False,
     trigger: str = "manual",
+    vin_enrich_limit: int = 20,
 ) -> dict[str, Any]:
     targets = _collect_target_models(make, model, limit_models)
     catalog_targets = _collect_target_models(None, None, None)
@@ -568,11 +570,15 @@ def run_import(
     archived_non_catalog = 0
     failed_brands = 0
     pages_fetched = 0
+    touched_listings: dict[int, CarListing] = {}
+    rating_one_targets = None
     try:
         run = _start_sync_run(db, trigger=trigger, max_hp=max_hp, dry_run=dry_run)
         seller = _ensure_importer_user(db)
         existing_map = _load_existing_avby_map(db)
         imported_per_model: dict[tuple[str, str], int] = {}
+        if not dry_run and vin_enrich_limit != 0:
+            rating_one_targets = build_rating_one_targets(db)
 
         for brand_n, model_set in brand_to_models.items():
             brand_id = brand_id_map.get(brand_n)
@@ -677,6 +683,7 @@ def run_import(
                         existing.status = ListingStatus.published
                         updated += 1
                         imported_per_model[target_key] = imported_per_model.get(target_key, 0) + 1
+                        touched_listings[avby_id] = existing
                         continue
 
                     if dry_run:
@@ -694,6 +701,7 @@ def run_import(
                     existing_map[avby_id] = listing
                     created += 1
                     imported_per_model[target_key] = imported_per_model.get(target_key, 0) + 1
+                    touched_listings[avby_id] = listing
 
                 if not dry_run:
                     db.commit()
@@ -710,6 +718,24 @@ def run_import(
                 catalog_brand_models,
                 dry_run=dry_run,
             )
+
+        enrich_stats = None
+        if not dry_run and vin_enrich_limit != 0 and touched_listings:
+            enrich_stats = enrich_rating_one_listings(
+                db,
+                list(touched_listings.values()),
+                targets=rating_one_targets,
+                limit=vin_enrich_limit if vin_enrich_limit > 0 else None,
+            )
+            print(
+                "enrich-rating-1: "
+                f"eligible={enrich_stats.eligible} attempted={enrich_stats.attempted} "
+                f"vin_fetched={enrich_stats.vin_fetched} vin_cached={enrich_stats.vin_cached} "
+                f"customs_checked={enrich_stats.customs_checked} skipped_limit={enrich_stats.skipped_limit} "
+                f"errors={len(enrich_stats.errors)}"
+            )
+            for err in enrich_stats.errors[:5]:
+                print(f"  enrich-error: {err}")
 
         if dry_run:
             db.rollback()
@@ -737,7 +763,7 @@ def run_import(
             f"year_min={year_min} price_usd_min={price_usd_min} max_hp={max_hp} "
             f"creation_date={creation_date} dry_run={dry_run}"
         )
-        return {
+        result = {
             "status": status,
             "models": len(targets),
             "brands": len(brand_to_models),
@@ -750,6 +776,15 @@ def run_import(
             "failed_brands": failed_brands,
             "pages_fetched": pages_fetched,
         }
+        if enrich_stats is not None:
+            result["enrich_rating_one"] = {
+                "eligible": enrich_stats.eligible,
+                "attempted": enrich_stats.attempted,
+                "vin_fetched": enrich_stats.vin_fetched,
+                "customs_checked": enrich_stats.customs_checked,
+                "errors": len(enrich_stats.errors),
+            }
+        return result
     except Exception as exc:
         if dry_run:
             db.rollback()
@@ -806,6 +841,12 @@ def main() -> None:
         help="Do not archive av.by listings whose make/model is absent from catalog_items",
     )
     parser.add_argument("--dry-run", action="store_true", help="Do not write to DB")
+    parser.add_argument(
+        "--vin-enrich-limit",
+        type=int,
+        default=20,
+        help="Auto-fetch VIN+customs for rating=1 listings touched in this run (0=off, -1=no limit)",
+    )
     parser.add_argument("--trigger", default="manual", help="Sync trigger label: manual, scheduler, admin")
     args = parser.parse_args()
 
@@ -829,6 +870,7 @@ def main() -> None:
             prune_non_catalog=not args.no_prune_non_catalog,
             dry_run=args.dry_run,
             trigger=args.trigger,
+            vin_enrich_limit=args.vin_enrich_limit,
         )
     except Exception:
         raise SystemExit(1) from None

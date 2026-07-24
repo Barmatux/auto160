@@ -54,10 +54,17 @@
         <p><strong>VIN на av.by:</strong> {% if listing.vin_indicated %}указан{% else %}не указан{% endif %}</p>
       {% endif %}
       {% include "partials/listing_vin_admin.html" %}
+      {% if is_admin %}
+        {% with customs=listing_customs %}
+          {% include "partials/listing_customs_admin.html" %}
+        {% endwith %}
+      {% endif %}
       {% if listing.source_url %}
         <p><strong>Источник:</strong> <a href="{{ listing.source_url }}" target="_blank" rel="noopener">Открыть на av.by</a></p>
       {% endif %}
-      <p><strong>Статус:</strong> {{ listing.status.value }}</p>
+      {% if is_admin %}
+        <p><strong>Статус:</strong> {{ listing.status.value }}</p>
+      {% endif %}
       <p><strong>Описание:</strong> {{ listing.description }}</p>
     </div>
   </section>

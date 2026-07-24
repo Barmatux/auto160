@@ -14,7 +14,7 @@ from app.config import settings
 from app.customs_vin import CustomsVinError, lookup_customs_vin, normalize_vin, report_rows, vin_is_valid
 from app.avby_accounts import list_active_vin_accounts, serialize_account_public
 from app.db import get_db
-from app.logging_setup import LOG_SERVICES, log_dir, tail_log
+from app.listing_enrichment import build_listing_customs_map, get_listing_customs_summary
 from app.models import AvbyServiceAccount, AvbySyncRun, CarListing, CatalogItem, CatalogItemPhoto, ListingStatus, User, UserRole
 from app.security import decode_token, is_token_revoked
 from app.seo import (
@@ -1294,6 +1294,10 @@ def listings_page(
 
     context["prev_url"] = build_page_url(page - 1) if context["has_prev"] else None
     context["next_url"] = build_page_url(page + 1) if context["has_next"] else None
+    if is_admin and listings:
+        context["listing_customs_map"] = build_listing_customs_map(db, listings)
+    else:
+        context["listing_customs_map"] = {}
     return templates.TemplateResponse(request, "listings.html", context)
 
 
@@ -1317,6 +1321,8 @@ def listing_item(request: Request, listing_id: int, db: Session = Depends(get_db
         )
     context = _template_context(request, current_user, seo)
     context["listing"] = listing
+    is_admin = current_user is not None and current_user.role == UserRole.admin
+    context["listing_customs"] = get_listing_customs_summary(db, listing) if listing and is_admin else None
     return templates.TemplateResponse(request, "listing_detail.html", context)
 
 

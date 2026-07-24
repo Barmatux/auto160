@@ -1,0 +1,12 @@
+{% if is_admin and customs %}
+  <p class="listing-customs-admin">
+    <strong>Дата выпуска в РБ:</strong>
+    {% if customs.found and customs.release_date %}
+      <span>{{ customs.release_date }}</span>
+    {% elif customs.found %}
+      <span class="hint">найдено в ГТК, дата не распознана</span>
+    {% else %}
+      <span class="hint">не найдено в базе ГТК</span>
+    {% endif %}
+  </p>
+{% endif %}

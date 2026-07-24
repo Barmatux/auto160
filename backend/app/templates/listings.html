@@ -45,6 +45,9 @@
               {% if is_admin %}
                 <p><strong>Статус:</strong> {{ listing.status.value }}</p>
                 {% include "partials/listing_vin_admin.html" %}
+                {% with customs=listing_customs_map.get(listing.id) %}
+                  {% include "partials/listing_customs_admin.html" %}
+                {% endwith %}
               {% endif %}
               <div class="actions-row">
                 <a href="/listings/{{ listing.id }}">Открыть объявление</a>
