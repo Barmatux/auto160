@@ -4,6 +4,8 @@
 {% set admin_section = "avby-accounts" %}
 {% include "partials/admin_nav.html" %}
 
+<div id="account-action-notice" class="admin-alert admin-alert-error" hidden role="alert"></div>
+
 <h1>Аккаунты av.by</h1>
 <p class="hint">
   Сервисные аккаунты для парсера и ротации VIN. Верифицированные аккаунты добавляйте формой ниже —
@@ -125,7 +127,7 @@
     </thead>
     <tbody>
       {% for account in accounts %}
-        <tr data-account-id="{{ account.id }}">
+        <tr data-account-id="{{ account.id }}"{% if account.error_message %} class="account-row-has-error"{% endif %}>
           <td>{{ account.id }}</td>
           <td>
             {{ account.login or account.email or account.phone_display or "—" }}
@@ -135,10 +137,10 @@
             <br /><span class="hint">{{ account.name or "—" }}</span>
           </td>
           <td>{{ purpose_labels.get(account.purpose, account.purpose) }}</td>
-          <td>
+          <td class="account-status-cell">
             <span class="status-pill {{ account.status }}">{{ status_labels.get(account.status, account.status) }}</span>
             {% if account.error_message %}
-              <div class="sync-error" title="{{ account.error_message }}">{{ account.error_message[:60] }}{% if account.error_message|length > 60 %}…{% endif %}</div>
+              <div class="account-error-box" id="account-error-{{ account.id }}">{{ account.error_message }}</div>
             {% endif %}
           </td>
           <td>
@@ -186,6 +188,53 @@
 
 {% include "partials/auth_script.html" %}
 <script>
+  const ACCOUNT_NOTICE_KEY = "avbyAccountNotice";
+
+  function saveAccountNotice(payload) {
+    try {
+      sessionStorage.setItem(ACCOUNT_NOTICE_KEY, JSON.stringify(payload));
+    } catch (_err) {
+      /* ignore quota errors */
+    }
+  }
+
+  function showStoredAccountNotice() {
+    let raw = null;
+    try {
+      raw = sessionStorage.getItem(ACCOUNT_NOTICE_KEY);
+    } catch (_err) {
+      return;
+    }
+    if (!raw) return;
+    sessionStorage.removeItem(ACCOUNT_NOTICE_KEY);
+
+    let notice;
+    try {
+      notice = JSON.parse(raw);
+    } catch (_err) {
+      return;
+    }
+
+    const banner = document.getElementById("account-action-notice");
+    if (!banner || !notice?.message) return;
+
+    const accountLabel = notice.accountId ? `Аккаунт #${notice.accountId}` : "Аккаунт";
+    banner.hidden = false;
+    banner.classList.remove("admin-alert-success", "admin-alert-error");
+    banner.classList.add(notice.type === "success" ? "admin-alert-success" : "admin-alert-error");
+    banner.textContent = `${accountLabel}: ${notice.message}`;
+
+    if (notice.accountId) {
+      const row = document.querySelector(`tr[data-account-id="${notice.accountId}"]`);
+      if (row) {
+        row.classList.add("account-row-highlight");
+        row.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    }
+  }
+
+  showStoredAccountNotice();
+
   async function adminFetch(url, options = {}) {
     let token = getCookie("access_token");
     if (!token) {
@@ -244,9 +293,9 @@
     const data = await response.json().catch(() => ({}));
     if (response.ok) {
       if (data.login_error) {
-        resultEl.textContent = `Аккаунт #${data.id} сохранён, но вход av.by не удался: ${data.login_error}`;
+        saveAccountNotice({ accountId: data.id, message: data.login_error });
       } else {
-        resultEl.textContent = `Аккаунт #${data.id} добавлен`;
+        saveAccountNotice({ accountId: data.id, message: "Аккаунт добавлен.", type: "success" });
       }
       window.location.reload();
       return;
@@ -303,13 +352,13 @@
       if (!response) return;
       const data = await response.json().catch(() => ({}));
       if (response.ok && !data.login_error) {
+        saveAccountNotice({ accountId: Number(accountId), message: "Вход на av.by выполнен успешно.", type: "success" });
         window.location.reload();
         return;
       }
-      window.alert(data.login_error || data.detail || "Не удалось войти на av.by");
-      if (response.ok) {
-        window.location.reload();
-      }
+      const message = data.login_error || data.detail || data.error_message || "Не удалось войти на av.by";
+      saveAccountNotice({ accountId: Number(accountId), message });
+      window.location.reload();
     });
   });
 
