@@ -13,6 +13,11 @@
       </p>
       <p class="hint">Шаг 4 из 4: выбери комплектацию и открой спецификацию.</p>
       <p class="hint">Найдено комплектаций: {{ total }} · Страница {{ page }} из {{ total_pages }}</p>
+      {% if is_admin %}
+        {% with rating=generation_rating %}
+          {% include "partials/catalog_admin_rating.html" %}
+        {% endwith %}
+      {% endif %}
     </div>
     <div class="actions-row">
       <button id="compare-btn" type="button" disabled>Сравнить выбранные</button>
@@ -35,6 +40,11 @@
                   </a>
                 {% endif %}
                 <h3><a href="/catalog/item/{{ item.id }}">{{ mod_titles.get(item.id, item.make ~ " " ~ item.model) }}</a></h3>
+                {% if is_admin %}
+                  {% with rating=item.rating %}
+                    {% include "partials/catalog_admin_rating.html" %}
+                  {% endwith %}
+                {% endif %}
                 <strong><a href="/catalog/item/{{ item.id }}">Открыть спецификацию</a></strong>
               </article>
             {% endfor %}

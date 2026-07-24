@@ -17,6 +17,11 @@
               <th>
                 <a href="/catalog/item/{{ item.id }}">{{ item.make }} {{ item.model }}</a><br />
                 <span class="hint">{{ item.generation or "—" }}</span>
+                {% if is_admin %}
+                  {% with rating=item.rating, compact=true %}
+                    {% include "partials/catalog_admin_rating.html" %}
+                  {% endwith %}
+                {% endif %}
               </th>
             {% endfor %}
           </tr>

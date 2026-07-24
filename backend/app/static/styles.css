@@ -777,6 +777,56 @@ body {
 .listing-vin-value {
   margin: 0.35rem 0 0;
 }
+
+.catalog-admin-rating {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0.35rem 0 0;
+  font-size: 0.85rem;
+}
+
+.catalog-admin-rating--compact {
+  margin: 0.15rem 0 0;
+  font-size: 0.78rem;
+}
+
+.catalog-admin-rating-label {
+  color: var(--muted, #64748b);
+}
+
+.catalog-admin-rating-value {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.35rem;
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+  font-size: 0.82em;
+  line-height: 1.35;
+}
+
+.catalog-admin-rating-value--1 {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.catalog-admin-rating-value--2 {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.catalog-admin-rating-value--3 {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.catalog-admin-rating-missing {
+  color: var(--muted, #94a3b8);
+  font-style: italic;
+}
+
+.btn-link-like {
   border: none;
   background: transparent;
   color: var(--primary);

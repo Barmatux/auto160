@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Import internal catalog ratings from JSON or CSV into catalog_items.rating.
 
-The rating is stored per catalog item row and is not shown in the public UI.
+The rating is stored per catalog item row and is visible in the catalog UI for admin users only.
 
 JSON format (array of objects):
 [

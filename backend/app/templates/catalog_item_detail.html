@@ -6,6 +6,11 @@
     <div class="catalog-main-head">
       <h1>{{ item.make }} {{ item.model }}</h1>
       <p class="hint">Поколение: {{ item.generation or "—" }}</p>
+      {% if is_admin %}
+        {% with rating=item.rating %}
+          {% include "partials/catalog_admin_rating.html" %}
+        {% endwith %}
+      {% endif %}
       {% if listings_url %}
         <p><a href="{{ listings_url }}">Объявления по этой комплектации</a></p>
       {% endif %}

@@ -27,6 +27,11 @@
               <p><strong>{{ item.make }} {{ item.model }}</strong></p>
             {% endif %}
             <h3><a href="{{ item.mods_url }}">{{ item.generation }}</a></h3>
+            {% if is_admin %}
+              {% with rating=item.rating, compact=true %}
+                {% include "partials/catalog_admin_rating.html" %}
+              {% endwith %}
+            {% endif %}
             {% if item.listings_url %}
               <p><a href="{{ item.listings_url }}">Объявления по поколению</a></p>
             {% endif %}

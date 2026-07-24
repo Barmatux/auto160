@@ -44,6 +44,11 @@
                     {% endif %}
                     <div class="generation-mini-info">
                       <strong>{{ generation.generation }}</strong>
+                      {% if is_admin %}
+                        {% with rating=generation.rating, compact=true %}
+                          {% include "partials/catalog_admin_rating.html" %}
+                        {% endwith %}
+                      {% endif %}
                     </div>
                   </a>
                 {% endfor %}

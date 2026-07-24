@@ -1037,6 +1037,12 @@ def _build_modification_titles(items: list[CatalogItem]) -> dict[int, str]:
     return result
 
 
+def _apply_group_rating(group: dict, item: CatalogItem) -> None:
+    if group.get("rating") is not None or item.rating is None:
+        return
+    group["rating"] = float(item.rating)
+
+
 def _dedupe_modifications(items: list[CatalogItem]) -> list[CatalogItem]:
     unique: dict[tuple[str, str, str, str], CatalogItem] = {}
     for item in items:
@@ -1445,6 +1451,7 @@ def catalog_models(
                     "model": canonical_model,
                 }
             cards[generation_key]["count"] += 1
+            _apply_group_rating(cards[generation_key], item)
             if cards[generation_key]["year_from"] is None or (
                 item.year_from is not None and item.year_from < cards[generation_key]["year_from"]
             ):
@@ -1531,6 +1538,7 @@ def catalog_generations(
                 "year_to": item.year_to,
             }
         grouped[group_key]["count"] += 1
+        _apply_group_rating(grouped[group_key], item)
         if grouped[group_key]["year_from"] is None or (
             item.year_from is not None and item.year_from < grouped[group_key]["year_from"]
         ):
@@ -1642,6 +1650,7 @@ def catalog_modifications(
 
     deduped_items = _dedupe_modifications(query.all())
     total = len(deduped_items)
+    generation_rating = next((item.rating for item in deduped_items if item.rating is not None), None)
     offset = (page - 1) * page_size
     items = deduped_items[offset : offset + page_size]
     context = _template_context(
@@ -1650,6 +1659,7 @@ def catalog_modifications(
         catalog_modifications_seo_meta(make, model, generation, total=total),
     )
     context["items"] = items
+    context["generation_rating"] = float(generation_rating) if generation_rating is not None else None
     context["mod_titles"] = _build_modification_titles(items)
     context["cover_urls"] = _build_cover_url_map([item.id for item in items], db)
     context["total"] = total
