@@ -172,20 +172,59 @@ def create_avby_account(
     db.commit()
     db.refresh(account)
 
+    login_error: str | None = None
     if payload.login_on_create:
         try:
             get_avby_session(db, account)
-        except AvbySessionError as exc:
-            db.delete(account)
+            account.error_message = None
+            if payload.phone_verified and purpose == "vin_test":
+                account.is_active = True
+                account.status = "phone_verified"
             db.commit()
-            raise HTTPException(status_code=502, detail=f"av.by login failed: {exc}") from exc
-        db.refresh(account)
-        if payload.phone_verified and purpose == "vin_test":
-            account.is_active = True
-            account.status = "phone_verified"
+            db.refresh(account)
+        except AvbySessionError as exc:
+            login_error = str(exc)
+            account.is_active = False
+            account.error_message = login_error[:500]
+            if account.status not in {"phone_verified", "confirmed"}:
+                account.status = "failed"
             db.commit()
             db.refresh(account)
 
+    result = serialize_account_public(account)
+    if login_error:
+        result["login_error"] = login_error
+    return result
+
+
+@router.post("/avby-accounts/{account_id}/login", response_model=AvbyServiceAccountPublic)
+def login_avby_account(
+    account_id: int,
+    _: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    account = db.query(AvbyServiceAccount).filter(AvbyServiceAccount.id == account_id).first()
+    if not account:
+        raise HTTPException(status_code=404, detail="Account not found")
+    if not account.avby_password:
+        raise HTTPException(status_code=400, detail="Account has no av.by password")
+
+    try:
+        get_avby_session(db, account)
+    except AvbySessionError as exc:
+        account.is_active = False
+        account.error_message = str(exc)[:500]
+        db.commit()
+        db.refresh(account)
+        result = serialize_account_public(account)
+        result["login_error"] = str(exc)
+        return result
+
+    account.error_message = None
+    if account.status in {"failed", "pending", "mailtm_only"}:
+        account.status = "phone_verified" if account.phone else "confirmed"
+    db.commit()
+    db.refresh(account)
     return serialize_account_public(account)
 
 

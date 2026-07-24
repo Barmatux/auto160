@@ -172,6 +172,7 @@ class AvbyServiceAccountPublic(BaseModel):
     notes: str | None = None
     registered_at: datetime | None = None
     created_at: datetime
+    login_error: str | None = None
 
 
 class AvbyServiceAccountSecrets(AvbyServiceAccountPublic):

@@ -33,7 +33,7 @@
 
 <section class="form admin-account-form">
   <h2>Добавить верифицированный аккаунт</h2>
-  <p class="hint">Логин на av.by выполняется сразу — сохранятся api_key и JWT для ротации.</p>
+  <p class="hint">Логин на av.by выполняется сразу — сохранятся api_key и JWT для ротации. Если вход не удался, аккаунт всё равно сохранится — можно повторить кнопкой «Войти на av.by».</p>
   <form id="create-account-form">
     <div class="actions-row login-mode-row">
       <label class="inline-checkbox">
@@ -169,6 +169,7 @@
           </td>
           <td>
             <div class="actions-row account-row-actions">
+              <button type="button" class="btn-link-like login-account-btn">Войти на av.by</button>
               <button type="button" class="btn-link-like show-secrets-btn">Секреты</button>
               <button type="button" class="btn-link-like danger delete-account-btn">Удалить</button>
             </div>
@@ -242,7 +243,11 @@
     if (!response) return;
     const data = await response.json().catch(() => ({}));
     if (response.ok) {
-      resultEl.textContent = `Аккаунт #${data.id} добавлен`;
+      if (data.login_error) {
+        resultEl.textContent = `Аккаунт #${data.id} сохранён, но вход av.by не удался: ${data.login_error}`;
+      } else {
+        resultEl.textContent = `Аккаунт #${data.id} добавлен`;
+      }
       window.location.reload();
       return;
     }
@@ -284,6 +289,26 @@
       });
       if (!response || !response.ok) {
         event.target.checked = !event.target.checked;
+      }
+    });
+  });
+
+  document.querySelectorAll(".login-account-btn").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const row = button.closest("tr");
+      const accountId = row.dataset.accountId;
+      button.disabled = true;
+      const response = await adminFetch(`/api/v1/admin/avby-accounts/${accountId}/login`, { method: "POST" });
+      button.disabled = false;
+      if (!response) return;
+      const data = await response.json().catch(() => ({}));
+      if (response.ok && !data.login_error) {
+        window.location.reload();
+        return;
+      }
+      window.alert(data.login_error || data.detail || "Не удалось войти на av.by");
+      if (response.ok) {
+        window.location.reload();
       }
     });
   });
