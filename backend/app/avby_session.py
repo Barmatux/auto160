@@ -18,11 +18,12 @@ from typing import Any
 from curl_cffi import requests
 from sqlalchemy.orm import Session
 
-from app.avby_accounts import avby_login_identifier, list_vin_accounts_for_keepalive, select_vin_account
+from app.avby_accounts import list_vin_accounts_for_keepalive, select_vin_account
 from app.models import AvbyServiceAccount
 
 AVBY_BASE = "https://web-api.av.by"
 AVBY_PUBLIC_API_KEY = "x6ba5b05f090d4441cd4fac"
+AVBY_BELARUS_COUNTRY_ID = 1
 UA = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
@@ -144,6 +145,24 @@ def _solve_recaptcha(api_key: str) -> str:
     raise AvbySessionError("2captcha timeout", status_code=504)
 
 
+def _avby_error_message(resp: requests.Response) -> str:
+    try:
+        data = resp.json()
+    except (ValueError, json.JSONDecodeError):
+        return resp.text[:200]
+    text = data.get("messageText") or data.get("message") or resp.text[:200]
+    code = data.get("message") or ""
+    if code == "exception.auth.invalid_sign_in":
+        return (
+            "av.by: неверный логин или пароль. "
+            "Если на сайте входите по email — добавьте email в аккаунт (кнопка «Email/пароль»). "
+            f"({text})"
+        )
+    if code == "exception.auth.invalid_captcha_token":
+        return f"av.by: неверная капча ({text})"
+    return f"av.by login failed: {resp.status_code} {text}"
+
+
 def _session_from_login_response(data: dict[str, Any], *, fallback_api_key: str) -> AvbySession:
     token = data.get("token") or ""
     refresh_token = data.get("refreshToken") or ""
@@ -158,7 +177,13 @@ def _session_from_login_response(data: dict[str, Any], *, fallback_api_key: str)
     )
 
 
-def _login_avby(*, api_key: str, login: str, password: str, captcha_token: str = "") -> AvbySession:
+def _login_avby_email(
+    *,
+    api_key: str,
+    login: str,
+    password: str,
+    captcha_token: str = "",
+) -> AvbySession:
     resp = requests.post(
         f"{AVBY_BASE}/auth/login/sign-in",
         impersonate="chrome124",
@@ -171,8 +196,64 @@ def _login_avby(*, api_key: str, login: str, password: str, captcha_token: str =
         },
     )
     if resp.status_code != 200:
-        raise AvbySessionError(f"av.by login failed: {resp.status_code} {resp.text[:200]}")
+        raise AvbySessionError(_avby_error_message(resp))
     return _session_from_login_response(resp.json(), fallback_api_key=api_key)
+
+
+def _login_avby_phone(
+    *,
+    api_key: str,
+    phone: str,
+    password: str,
+    captcha_token: str = "",
+) -> AvbySession:
+    resp = requests.post(
+        f"{AVBY_BASE}/auth/phone/sign-in",
+        impersonate="chrome124",
+        timeout=30,
+        headers=_avby_headers(api_key),
+        json={
+            "phone": {"country": AVBY_BELARUS_COUNTRY_ID, "number": phone},
+            "password": password,
+            "googleRecaptcha2InvisibleToken": captcha_token,
+        },
+    )
+    if resp.status_code != 200:
+        raise AvbySessionError(_avby_error_message(resp))
+    return _session_from_login_response(resp.json(), fallback_api_key=api_key)
+
+
+def _login_avby_account(
+    *,
+    api_key: str,
+    account: AvbyServiceAccount,
+    password: str,
+    captcha_token: str = "",
+) -> AvbySession:
+    if account.email:
+        return _login_avby_email(
+            api_key=api_key,
+            login=account.email.strip(),
+            password=password,
+            captcha_token=captcha_token,
+        )
+    if account.phone:
+        return _login_avby_phone(
+            api_key=api_key,
+            phone=account.phone,
+            password=password,
+            captcha_token=captcha_token,
+        )
+    raise AvbySessionError("Account has no email or phone for av.by login", status_code=400)
+
+
+def _login_avby(*, api_key: str, login: str, password: str, captcha_token: str = "") -> AvbySession:
+    return _login_avby_email(
+        api_key=api_key,
+        login=login,
+        password=password,
+        captcha_token=captcha_token,
+    )
 
 
 def _refresh_avby_session(session: AvbySession) -> AvbySession:
@@ -190,39 +271,48 @@ def _refresh_avby_session(session: AvbySession) -> AvbySession:
 
 def _full_login(account: AvbyServiceAccount | None) -> AvbySession:
     if account and account.avby_password:
-        login = avby_login_identifier(account)
         api_key = account.api_key or AVBY_PUBLIC_API_KEY
         password = account.avby_password
     else:
         email, password = _load_credentials()
-        login = email
         api_key = AVBY_PUBLIC_API_KEY
-
-    login_variants = [login]
-    if account and account.phone and login.startswith("+375"):
-        login_variants.append(account.phone)
-
-    last_error: AvbySessionError | None = None
-    for candidate in login_variants:
+        last_error: AvbySessionError | None = None
         try:
-            return _login_avby(api_key=api_key, login=candidate, password=password)
+            return _login_avby_email(api_key=api_key, login=email, password=password)
         except AvbySessionError as err:
             last_error = err
+        if last_error:
+            captcha_key = _captcha_api_key()
+            if captcha_key:
+                captcha_token = _solve_recaptcha(captcha_key)
+                return _login_avby_email(
+                    api_key=api_key,
+                    login=email,
+                    password=password,
+                    captcha_token=captcha_token,
+                )
+            raise last_error
+        raise AvbySessionError("av.by login failed")
+
+    last_error: AvbySessionError | None = None
+    try:
+        return _login_avby_account(api_key=api_key, account=account, password=password)
+    except AvbySessionError as err:
+        last_error = err
 
     if last_error:
         captcha_key = _captcha_api_key()
         if captcha_key:
             captcha_token = _solve_recaptcha(captcha_key)
-            for candidate in login_variants:
-                try:
-                    return _login_avby(
-                        api_key=api_key,
-                        login=candidate,
-                        password=password,
-                        captcha_token=captcha_token,
-                    )
-                except AvbySessionError as err:
-                    last_error = err
+            try:
+                return _login_avby_account(
+                    api_key=api_key,
+                    account=account,
+                    password=password,
+                    captcha_token=captcha_token,
+                )
+            except AvbySessionError as err:
+                last_error = err
         raise last_error
 
     raise AvbySessionError("av.by login failed")

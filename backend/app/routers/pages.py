@@ -14,6 +14,7 @@ from app.config import settings
 from app.customs_vin import CustomsVinError, lookup_customs_vin, normalize_vin, report_rows, vin_is_valid
 from app.avby_accounts import list_active_vin_accounts, serialize_account_public
 from app.db import get_db
+from app.logging_setup import LOG_SERVICES, log_dir, tail_log
 from app.listing_enrichment import build_listing_customs_map, get_listing_customs_summary
 from app.models import AvbyServiceAccount, AvbySyncRun, CarListing, CatalogItem, CatalogItemPhoto, ListingStatus, User, UserRole
 from app.security import decode_token, is_token_revoked

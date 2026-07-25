@@ -78,6 +78,27 @@ services:
       --per-model-limit 30
       --archive-overpowered
 
+  avby-archive:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: auto160-avby-archive
+    restart: unless-stopped
+    env_file:
+      - .env.vm
+    environment:
+      LOG_DIR: /app/logs
+      LOG_SERVICE: avby-archive
+    volumes:
+      - ../logs:/app/logs
+    depends_on:
+      db:
+        condition: service_healthy
+    command: >
+      python tools/schedule_avby_archive_check.py
+      --run-at-hour 3
+      --delay 0.5
+
   avby-vin-session:
     build:
       context: .

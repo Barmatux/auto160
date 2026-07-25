@@ -35,25 +35,25 @@
 
 <section class="form admin-account-form">
   <h2>Добавить верифицированный аккаунт</h2>
-  <p class="hint">Логин на av.by выполняется сразу — сохранятся api_key и JWT для ротации. Если вход не удался, аккаунт всё равно сохранится — можно повторить кнопкой «Войти на av.by».</p>
+  <p class="hint">Для входа на av.by через API используется <strong>email</strong>, если он указан; иначе телефон (9 цифр). Укажите тот же логин, что на сайте av.by.</p>
   <form id="create-account-form">
-    <div class="actions-row login-mode-row">
-      <label class="inline-checkbox">
-        <input type="radio" name="login_mode" value="phone" checked />
-        По телефону
-      </label>
-      <label class="inline-checkbox">
-        <input type="radio" name="login_mode" value="email" />
-        По email
-      </label>
-    </div>
-    <label id="phone-field-label">
-      Телефон av.by (+375)
-      <input type="tel" name="phone" inputmode="tel" placeholder="291234567 или +375291234567" autocomplete="tel" />
+    <label>
+      Email av.by (для входа)
+      <input type="email" name="email" autocomplete="username" placeholder="user@gmail.com" />
+      <span class="hint">Если на av.by входите по почте — обязательно укажите email</span>
     </label>
-    <label id="email-field-label" hidden>
-      Email av.by
-      <input type="email" name="email" autocomplete="username" />
+    <label>
+      Телефон av.by
+      <input
+        type="tel"
+        name="phone"
+        inputmode="numeric"
+        pattern="[0-9]{9}"
+        maxlength="9"
+        placeholder="291234567"
+        autocomplete="tel-national"
+      />
+      <span class="hint">9 цифр без +375. Нужен хотя бы email или телефон</span>
     </label>
     <label>
       Пароль av.by
@@ -131,6 +131,9 @@
           <td>{{ account.id }}</td>
           <td>
             {{ account.login or account.email or account.phone_display or "—" }}
+            {% if account.avby_login %}
+              <div class="hint">Вход на av.by: {{ account.avby_login }}</div>
+            {% endif %}
             {% if account.email and account.phone_display %}
               <div class="hint">{{ account.email }} · {{ account.phone_display }}</div>
             {% endif %}
@@ -171,10 +174,12 @@
           </td>
           <td>
             <div class="actions-row account-row-actions">
-              <button type="button" class="btn-link-like login-account-btn">Войти на av.by</button>
+              <button type="button" class="btn-link-like edit-credentials-btn">Email/пароль</button>
+              <button type="button" class="btn-link-like login-account-btn" data-default-label="Войти на av.by">Войти на av.by</button>
               <button type="button" class="btn-link-like show-secrets-btn">Секреты</button>
               <button type="button" class="btn-link-like danger delete-account-btn">Удалить</button>
             </div>
+            <div class="account-login-status hint" aria-live="polite"></div>
           </td>
         </tr>
       {% endfor %}
@@ -198,6 +203,89 @@
     }
   }
 
+  function showAccountActionNotice(accountId, message, type = "error") {
+    const banner = document.getElementById("account-action-notice");
+    if (!banner) return;
+    banner.hidden = false;
+    banner.classList.remove("admin-alert-success", "admin-alert-error", "admin-alert-info");
+    if (type === "success") {
+      banner.classList.add("admin-alert-success");
+    } else if (type === "info") {
+      banner.classList.add("admin-alert-info");
+    } else {
+      banner.classList.add("admin-alert-error");
+    }
+    const accountLabel = accountId ? `Аккаунт #${accountId}` : "Аккаунт";
+    banner.textContent = `${accountLabel}: ${message}`;
+  }
+
+  function formatElapsed(seconds) {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    if (mins > 0) {
+      return `${mins}:${String(secs).padStart(2, "0")}`;
+    }
+    return `${secs} сек`;
+  }
+
+  function startAccountLoginProgress(row, accountId) {
+    const button = row.querySelector(".login-account-btn");
+    const statusEl = row.querySelector(".account-login-status");
+    const defaultLabel = button?.dataset.defaultLabel || "Войти на av.by";
+    const startedAt = Date.now();
+
+    row.classList.add("account-row-in-progress");
+    if (button) {
+      button.disabled = true;
+      button.classList.add("is-loading");
+      button.textContent = "Вход…";
+    }
+
+    const stages = [
+      { after: 0, text: "Запрос отправлен на сервер…" },
+      { after: 2, text: "Решаем reCAPTCHA через 2captcha (обычно 30–90 сек)…" },
+      { after: 45, text: "Капча ещё решается, 2captcha работает…" },
+      { after: 90, text: "Долгое ожидание 2captcha, процесс не завис — подождите…" },
+      { after: 150, text: "Почти готово: вход на av.by…" },
+    ];
+
+    function renderStage() {
+      const elapsedSec = Math.floor((Date.now() - startedAt) / 1000);
+      let stageText = stages[0].text;
+      for (const stage of stages) {
+        if (elapsedSec >= stage.after) {
+          stageText = stage.text;
+        }
+      }
+      const message = `${stageText} (${formatElapsed(elapsedSec)})`;
+      showAccountActionNotice(accountId, message, "info");
+      if (statusEl) {
+        statusEl.textContent = message;
+      }
+    }
+
+    renderStage();
+    const timerId = window.setInterval(renderStage, 1000);
+
+    return {
+      stop(finalMessage, type = "error") {
+        window.clearInterval(timerId);
+        row.classList.remove("account-row-in-progress");
+        if (button) {
+          button.disabled = false;
+          button.classList.remove("is-loading");
+          button.textContent = defaultLabel;
+        }
+        if (statusEl) {
+          statusEl.textContent = finalMessage || "";
+        }
+        if (finalMessage) {
+          showAccountActionNotice(accountId, finalMessage, type);
+        }
+      },
+    };
+  }
+
   function showStoredAccountNotice() {
     let raw = null;
     try {
@@ -219,10 +307,11 @@
     if (!banner || !notice?.message) return;
 
     const accountLabel = notice.accountId ? `Аккаунт #${notice.accountId}` : "Аккаунт";
-    banner.hidden = false;
-    banner.classList.remove("admin-alert-success", "admin-alert-error");
-    banner.classList.add(notice.type === "success" ? "admin-alert-success" : "admin-alert-error");
-    banner.textContent = `${accountLabel}: ${notice.message}`;
+    showAccountActionNotice(
+      notice.accountId,
+      notice.message,
+      notice.type === "success" ? "success" : "error",
+    );
 
     if (notice.accountId) {
       const row = document.querySelector(`tr[data-account-id="${notice.accountId}"]`);
@@ -260,14 +349,29 @@
     return response;
   }
 
+  function normalizePhoneInput(raw) {
+    const digits = String(raw || "").replace(/\D/g, "");
+    if (digits.startsWith("375") && digits.length === 12) {
+      return digits.slice(3);
+    }
+    return digits;
+  }
+
+  function validatePhoneInput(raw) {
+    const digits = normalizePhoneInput(raw);
+    if (!/^\d{9}$/.test(digits)) {
+      return "Телефон: ровно 9 цифр без +375 (например 291234567)";
+    }
+    return null;
+  }
+
   document.getElementById("create-account-form").addEventListener("submit", async (event) => {
     event.preventDefault();
     const form = event.target;
     const resultEl = document.getElementById("create-result");
-    const loginMode = form.login_mode.value;
     const payload = {
-      email: loginMode === "email" ? form.email.value.trim() || null : null,
-      phone: loginMode === "phone" ? form.phone.value.trim() || null : null,
+      email: form.email.value.trim() || null,
+      phone: normalizePhoneInput(form.phone.value) || null,
       avby_password: form.avby_password.value,
       name: form.name.value.trim() || null,
       daily_vin_limit: Number(form.daily_vin_limit.value || 30),
@@ -281,7 +385,18 @@
       refresh_token: form.refresh_token.value.trim() || null,
     };
     if (!payload.email && !payload.phone) {
-      resultEl.textContent = loginMode === "phone" ? "Укажите телефон" : "Укажите email";
+      resultEl.textContent = "Укажите email или телефон";
+      return;
+    }
+    if (payload.phone) {
+      const phoneError = validatePhoneInput(form.phone.value);
+      if (phoneError) {
+        resultEl.textContent = phoneError;
+        return;
+      }
+    }
+    if (!payload.avby_password?.trim()) {
+      resultEl.textContent = "Укажите пароль av.by";
       return;
     }
     resultEl.textContent = "Добавление и вход на av.by…";
@@ -301,17 +416,6 @@
       return;
     }
     resultEl.textContent = data.detail || "Ошибка добавления";
-  });
-
-  const createForm = document.getElementById("create-account-form");
-  const phoneLabel = document.getElementById("phone-field-label");
-  const emailLabel = document.getElementById("email-field-label");
-  createForm.querySelectorAll('input[name="login_mode"]').forEach((radio) => {
-    radio.addEventListener("change", () => {
-      const phoneMode = createForm.login_mode.value === "phone";
-      phoneLabel.hidden = !phoneMode;
-      emailLabel.hidden = phoneMode;
-    });
   });
 
   document.getElementById("import-json-btn").addEventListener("click", async () => {
@@ -342,14 +446,58 @@
     });
   });
 
+  document.querySelectorAll(".edit-credentials-btn").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const row = button.closest("tr");
+      const accountId = row.dataset.accountId;
+      const loginHint = row.querySelector(".hint")?.textContent?.replace("Вход на av.by: ", "") || "";
+      const email = window.prompt(
+        "Email для входа на av.by (оставьте пустым, если вход только по телефону):",
+        loginHint.includes("@") ? loginHint : "",
+      );
+      if (email === null) return;
+      const password = window.prompt("Новый пароль av.by (оставьте пустым, чтобы не менять):");
+      if (password === null) return;
+      const body = {};
+      if (email.trim()) body.email = email.trim();
+      if (password.trim()) body.avby_password = password;
+      if (!body.email && !body.avby_password) return;
+
+      const response = await adminFetch(`/api/v1/admin/avby-accounts/${accountId}`, {
+        method: "PATCH",
+        body: JSON.stringify(body),
+      });
+      if (!response) return;
+      const data = await response.json().catch(() => ({}));
+      if (response.ok) {
+        saveAccountNotice({
+          accountId: Number(accountId),
+          message: "Email/пароль обновлены. Нажмите «Войти на av.by».",
+          type: "success",
+        });
+        window.location.reload();
+        return;
+      }
+      showAccountActionNotice(accountId, data.detail || "Не удалось обновить", "error");
+    });
+  });
+
   document.querySelectorAll(".login-account-btn").forEach((button) => {
     button.addEventListener("click", async () => {
       const row = button.closest("tr");
       const accountId = row.dataset.accountId;
-      button.disabled = true;
-      const response = await adminFetch(`/api/v1/admin/avby-accounts/${accountId}/login`, { method: "POST" });
-      button.disabled = false;
-      if (!response) return;
+      const progress = startAccountLoginProgress(row, accountId);
+      let response;
+      try {
+        response = await adminFetch(`/api/v1/admin/avby-accounts/${accountId}/login`, { method: "POST" });
+      } catch (_err) {
+        progress.stop("Сеть недоступна или сервер не ответил.", "error");
+        return;
+      }
+      if (!response) {
+        progress.stop("Не удалось выполнить запрос (проверьте авторизацию).", "error");
+        return;
+      }
       const data = await response.json().catch(() => ({}));
       if (response.ok && !data.login_error) {
         saveAccountNotice({ accountId: Number(accountId), message: "Вход на av.by выполнен успешно.", type: "success" });

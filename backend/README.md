@@ -241,6 +241,40 @@ cat ~/.ssh/auto160_deploy.pub >> ~/.ssh/authorized_keys
   - `python tools/schedule_avby_listings_sync.py --interval-minutes 20 --archive-overpowered`
 - В Docker Compose уже добавлен сервис `avby-sync`, который запускает импорт каждые 20 минут.
 
+### Актуальность объявлений (снятые с av.by)
+
+- Скрипт: `tools/archive_removed_avby_listings.py` — проверяет публичные страницы av.by без авторизации.
+- Scheduler: `tools/schedule_avby_archive_check.py` — ночной прогон (сервис `avby-archive` в compose).
+- Отчёт: `python tools/report_listing_freshness.py` — published/archived, последний archive-run из лога.
+
+### Фото объявлений
+
+- Аудит: `python tools/audit_listing_photos.py`
+- Догрузка с av.by: `python tools/backfill_listing_photos.py` (публичные страницы, без auth)
+
+### Runbook VM (ops)
+
+```bash
+# Статус контейнеров
+docker compose --env-file .env.vm -f docker-compose.vm.yml ps
+
+# Логи сервисов
+bash ~/auto160/scripts/logs-vm.sh avby-sync 200
+bash ~/auto160/scripts/logs-vm.sh avby-archive 200
+
+# Smoke после деплоя
+bash ~/auto160/scripts/smoke-vm.sh
+
+# Свежесть объявлений
+docker compose --env-file .env.vm -f docker-compose.vm.yml exec -T api python tools/report_listing_freshness.py
+
+# Разовая архивация снятых с av.by
+docker compose --env-file .env.vm -f docker-compose.vm.yml exec -T api python tools/archive_removed_avby_listings.py
+
+# Догрузка фото
+docker compose --env-file .env.vm -f docker-compose.vm.yml exec -T api python tools/backfill_listing_photos.py
+```
+
 ## Предсозданный админ
 
 - При старте приложения автоматически создается админ, если его еще нет.

@@ -1,0 +1,180 @@
+{
+  "title": "Каталог av.by — пропуски и ручная доработка",
+  "created_at": "2026-07-25",
+  "source": "Роман (Telegram, 25.07.2026)",
+  "notes": [
+    "После добавления URL: avby_urls.txt → import_avby.py → catalog_ratings.json → import_catalog_ratings.py",
+    "Если поколение импортировалось с 0 модификаций — нужен ручной разбор страницы av.by или другой slug"
+  ],
+  "items": [
+    {
+      "id": "catalog-001",
+      "status": "pending",
+      "kind": "zero_modifications",
+      "label": "DS 5 I, 2015–2018",
+      "source_url": "https://av.by/catalog/ds_5",
+      "note": "Импорт раскрыл поколение ds_5_i-2015-2018, но 0 модификаций"
+    },
+    {
+      "id": "catalog-002",
+      "status": "pending",
+      "kind": "zero_modifications",
+      "label": "Fiat Qubo I · Рестайлинг, 2016–2020",
+      "source_url": "https://av.by/catalog/fiat_qubo",
+      "note": "Поколение fiat_qubo_i-restajling-2016-2020 — 0 модификаций"
+    },
+    {
+      "id": "catalog-003",
+      "status": "pending",
+      "kind": "zero_modifications",
+      "label": "Fiat Tipo II · Рестайлинг, 2020–",
+      "source_url": "https://av.by/catalog/fiat_tipo",
+      "note": "Поколение fiat_tipo_ii-restajling-2020- — 0 модификаций"
+    },
+    {
+      "id": "catalog-004",
+      "status": "pending",
+      "kind": "needs_rating",
+      "label": "DS 5",
+      "source_url": "https://av.by/catalog/ds_5",
+      "note": "URL в avby_urls.txt, рейтинг не задан"
+    },
+    {
+      "id": "catalog-005",
+      "status": "pending",
+      "kind": "needs_rating",
+      "label": "Fiat Qubo",
+      "source_url": "https://av.by/catalog/fiat_qubo",
+      "note": "URL в avby_urls.txt, рейтинг не задан"
+    },
+    {
+      "id": "catalog-006",
+      "status": "pending",
+      "kind": "needs_rating",
+      "label": "Fiat Tipo",
+      "source_url": "https://av.by/catalog/fiat_tipo",
+      "note": "URL в avby_urls.txt, рейтинг не задан"
+    },
+    {
+      "id": "catalog-007",
+      "status": "pending",
+      "kind": "needs_url",
+      "label": "Volkswagen Taigo",
+      "note": "Добавить вручную модификации с av.by"
+    },
+    {
+      "id": "catalog-008",
+      "status": "pending",
+      "kind": "needs_url",
+      "label": "Volkswagen T-Cross",
+      "note": "Добавить вручную модификации с av.by"
+    },
+    {
+      "id": "catalog-009",
+      "status": "done",
+      "kind": "needs_url",
+      "label": "Skoda Karoq I · Рестайлинг, 2021…",
+      "source_url": "https://av.by/catalog/skoda_karoq_i-2017-2022",
+      "note": "Импортировано 25.07.2026"
+    },
+    {
+      "id": "catalog-010",
+      "status": "pending",
+      "kind": "needs_url",
+      "label": "Skoda Fabia IV, 2021…",
+      "note": "Добавить вручную модификации с av.by"
+    },
+    {
+      "id": "catalog-011",
+      "status": "done",
+      "kind": "needs_url",
+      "label": "Skoda Citigo I · 2-й рестайлинг, 2019…2020",
+      "source_url": "https://av.by/catalog/skoda_citigo_i-restajling-2017-2019",
+      "note": "Импортировано 25.07.2026"
+    },
+    {
+      "id": "catalog-012",
+      "status": "pending",
+      "kind": "needs_url",
+      "label": "Subaru Levorg",
+      "note": "Добавить вручную модификации с av.by"
+    },
+    {
+      "id": "catalog-013",
+      "status": "pending",
+      "kind": "needs_url",
+      "label": "Subaru Forester IV, 2012…2015",
+      "note": "Добавить вручную модификации с av.by"
+    },
+    {
+      "id": "catalog-014",
+      "status": "pending",
+      "kind": "needs_url",
+      "label": "Subaru Forester IV · Рестайлинг, 2015…2016",
+      "note": "Добавить вручную модификации с av.by"
+    },
+    {
+      "id": "catalog-015",
+      "status": "pending",
+      "kind": "needs_url",
+      "label": "Hyundai H-1 (Starex) II · Рестайлинг, 2015…2017",
+      "note": "Добавить вручную модификации с av.by"
+    },
+    {
+      "id": "catalog-016",
+      "status": "pending",
+      "kind": "needs_url",
+      "label": "Hyundai Bayon",
+      "note": "Добавить вручную модификации с av.by"
+    },
+    {
+      "id": "catalog-017",
+      "status": "pending",
+      "kind": "needs_url",
+      "label": "Hyundai Elantra AD · Рестайлинг, 2018…2020",
+      "note": "Добавить вручную модификации с av.by"
+    },
+    {
+      "id": "catalog-018",
+      "status": "pending",
+      "kind": "needs_url",
+      "label": "Hyundai Avante",
+      "note": "Добавить вручную модификации с av.by"
+    },
+    {
+      "id": "catalog-019",
+      "status": "pending",
+      "kind": "needs_url",
+      "label": "Hyundai Sonata LF · Рестайлинг",
+      "note": "Добавить вручную модификации с av.by"
+    },
+    {
+      "id": "catalog-020",
+      "status": "pending",
+      "kind": "needs_url",
+      "label": "Toyota Auris III (E210), 2018…",
+      "note": "Добавить вручную модификации с av.by"
+    },
+    {
+      "id": "catalog-021",
+      "status": "pending",
+      "kind": "needs_url",
+      "label": "Peugeot 308, 2021",
+      "note": "Добавить вручную модификации с av.by"
+    },
+    {
+      "id": "catalog-022",
+      "status": "pending",
+      "kind": "needs_url",
+      "label": "Peugeot Bipper",
+      "note": "Добавить вручную модификации с av.by"
+    },
+    {
+      "id": "catalog-023",
+      "status": "pending",
+      "kind": "needs_url",
+      "label": "Peugeot e-208",
+      "note": "Добавить вручную модификации с av.by"
+    }
+  ]
+}

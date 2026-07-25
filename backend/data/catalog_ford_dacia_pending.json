@@ -1,0 +1,8 @@
+{
+  "title": "Каталог av.by — Ford и Dacia",
+  "created_at": "2026-07-25",
+  "source": "Weeek #104",
+  "status": "blocked",
+  "note": "Ждём URL поколений от Романа (как Hyundai/Skoda/VW). После получения: avby_urls.txt → import_avby.py → catalog_ratings.json → import_catalog_ratings.py",
+  "items": []
+}

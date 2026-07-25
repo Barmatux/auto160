@@ -214,6 +214,8 @@ class AvbyServiceAccountUpdateRequest(BaseModel):
     is_active: bool | None = None
     notes: str | None = None
     daily_vin_limit: int | None = None
+    email: str | None = None
+    avby_password: str | None = None
 
 
 class AvbyAccountsImportResult(BaseModel):

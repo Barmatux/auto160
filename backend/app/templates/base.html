@@ -27,7 +27,7 @@
     {% if seo_title %}<meta name="twitter:title" content="{{ seo_title }}" />{% endif %}
     {% if seo_description %}<meta name="twitter:description" content="{{ seo_description }}" />{% endif %}
     {% if seo_og_image %}<meta name="twitter:image" content="{{ seo_og_image }}" />{% endif %}
-    <link rel="stylesheet" href="/static/styles.css?v=20260724-03" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260724-04" />
   </head>
   <body>
     <header class="header">
@@ -43,6 +43,8 @@
           <a href="/admin/users">Пользователи</a>
           <a href="/admin/avby-accounts">Аккаунты</a>
           <a href="/admin/avby-sync">Парсинг</a>
+          <a href="/admin/analytics">Аналитика</a>
+          <a href="/admin/logs">Логи</a>
         {% endif %}
         {% if is_authenticated %}
           <span class="user-badge">{{ current_user.email }} ({{ current_user.role.value }})</span>

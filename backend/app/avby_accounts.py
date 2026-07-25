@@ -39,10 +39,11 @@ def format_avby_phone_display(national: str | None) -> str | None:
 
 
 def avby_login_identifier(account: AvbyServiceAccount) -> str:
-    if account.phone:
-        return format_avby_phone_display(account.phone) or account.phone
+    """Login string for av.by sign-in: email if set, otherwise national phone (9 digits)."""
     if account.email:
         return account.email.strip()
+    if account.phone:
+        return account.phone
     raise ValueError("Account has no email or phone for av.by login")
 
 
@@ -145,12 +146,20 @@ def import_avby_accounts_from_json(db: Session, json_path: Path | None = None) -
 
 def serialize_account_public(account: AvbyServiceAccount) -> dict[str, Any]:
     reset_vin_checks_if_needed(account)
+    avby_login = None
+    if account.email or account.phone:
+        avby_login = avby_login_identifier(account)
+        if account.phone and not account.email:
+            avby_login = f"{account.phone} (phone API)"
+        elif account.email:
+            avby_login = f"{account.email} (email API)"
     return {
         "id": account.id,
         "email": account.email,
         "phone": account.phone,
         "phone_display": format_avby_phone_display(account.phone),
         "login": account_display_login(account),
+        "avby_login": avby_login,
         "name": account.name,
         "status": account.status,
         "purpose": account.purpose,

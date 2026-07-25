@@ -8,7 +8,7 @@ import sys
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
-LOG_SERVICES = ("api", "avby-sync", "avby-vin-session")
+LOG_SERVICES = ("api", "avby-sync", "avby-vin-session", "avby-archive")
 
 _configured = False
 

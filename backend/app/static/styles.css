@@ -862,6 +862,24 @@ body {
   margin-top: 0;
 }
 
+.login-account-btn.is-loading {
+  opacity: 0.75;
+  cursor: wait;
+}
+
+.account-login-status {
+  margin-top: 6px;
+  max-width: 280px;
+  line-height: 1.35;
+  color: #1e3a8a;
+}
+
+.account-row-in-progress {
+  background: #f8fbff;
+  outline: 2px solid #93c5fd;
+  outline-offset: -2px;
+}
+
 .account-active-toggle {
   display: inline-flex;
   align-items: center;

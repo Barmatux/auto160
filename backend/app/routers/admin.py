@@ -156,7 +156,7 @@ def create_avby_account(
         email=email,
         phone=phone,
         name=(payload.name or "").strip()[:120],
-        avby_password=payload.avby_password,
+        avby_password=payload.avby_password.strip(),
         api_key=(payload.api_key or "").strip() or None,
         auth_token=(payload.auth_token or "").strip() or None,
         refresh_token=(payload.refresh_token or "").strip() or None,
@@ -246,6 +246,24 @@ def update_avby_account(
         if payload.daily_vin_limit < 1:
             raise HTTPException(status_code=400, detail="daily_vin_limit must be >= 1")
         account.daily_vin_limit = payload.daily_vin_limit
+    if payload.email is not None:
+        email_raw = payload.email.strip().lower()
+        email = email_raw if email_raw and "@" in email_raw else None
+        if email:
+            existing = (
+                db.query(AvbyServiceAccount)
+                .filter(AvbyServiceAccount.email == email, AvbyServiceAccount.id != account_id)
+                .first()
+            )
+            if existing:
+                raise HTTPException(status_code=409, detail="Account with this email already exists")
+        account.email = email
+    if payload.avby_password is not None:
+        password = payload.avby_password.strip()
+        if not password:
+            raise HTTPException(status_code=400, detail="av.by password cannot be empty")
+        account.avby_password = password
+        account.error_message = None
     db.commit()
     db.refresh(account)
     return serialize_account_public(account)
