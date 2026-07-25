@@ -392,5 +392,8 @@
   {"source_url": "https://av.by/catalog/volkswagen_jetta_vi-restajling-2014-2018", "rating": 2},
   {"source_url": "https://av.by/catalog/volkswagen_jetta_vi-2010-2015", "rating": 3},
   {"source_url": "https://av.by/catalog/volkswagen_eos_i-restajling-2011-2015", "rating": 3},
-  {"source_url": "https://av.by/catalog/volkswagen_eos_i-2006-2011", "rating": 3}
+  {"source_url": "https://av.by/catalog/volkswagen_eos_i-2006-2011", "rating": 3},
+
+  {"source_url": "https://av.by/catalog/fiat_qubo_i-2007-2016", "rating": 2},
+  {"source_url": "https://av.by/catalog/fiat_tipo_ii-2015-2020", "rating": 2}
 ]

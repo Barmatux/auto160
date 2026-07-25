@@ -214,6 +214,15 @@ cat ~/.ssh/auto160_deploy.pub >> ~/.ssh/authorized_keys
 - Можно указывать как URL модели (`/catalog/bmw_x1`), так и URL поколения (`/catalog/bmw_x1_u11-2022-`).
 - Для URL модели скрипт сам раскроет поколения и импортирует их модификации.
 
+### Пропуски каталога (#130)
+
+- Трекер: `data/catalog_backlog.json` (статусы `done` / `blocked`).
+- URL для догрузки: `data/avby_urls_catalog_backlog.txt`
+- Импорт + рейтинги:
+  - `python tools/import_avby.py --urls-file data/avby_urls_catalog_backlog.txt`
+  - `python tools/import_catalog_ratings.py data/catalog_ratings.json`
+- Если на av.by у поколения **0 модификаций** в каталоге — импорт невозможен; пункт помечается `blocked` с фактическим slug.
+
 ### Импорт объявлений с AV.BY под наши модели
 
 - Скрипт: `tools/import_avby_listings.py`

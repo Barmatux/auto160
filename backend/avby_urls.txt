@@ -332,3 +332,5 @@ https://av.by/catalog/volkswagen_eos_i-2006-2011
 https://av.by/catalog/ds_5
 https://av.by/catalog/fiat_qubo
 https://av.by/catalog/fiat_tipo
+https://av.by/catalog/fiat_qubo_i-2007-2016
+https://av.by/catalog/fiat_tipo_ii-2015-2020
