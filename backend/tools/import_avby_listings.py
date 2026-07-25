@@ -17,6 +17,7 @@ os.chdir(ROOT_DIR)
 from app.db import SessionLocal
 from app.listing_enrichment import build_rating_one_targets, enrich_rating_one_listings, listing_needs_enrichment
 from app.listing_catalog_link import link_listing_to_catalog
+from app.avby_offer_metadata import enrich_listings_vin_metadata
 from app.models import AvbySyncRun, CarListing, CatalogItem, ListingStatus, User, UserRole
 from app.security import hash_password
 
@@ -511,6 +512,7 @@ def run_import(
     prune_non_catalog: bool = True,
     dry_run: bool = False,
     trigger: str = "manual",
+    vin_metadata_limit: int = 100,
     vin_enrich_limit: int = 20,
 ) -> dict[str, Any]:
     targets = _collect_target_models(make, model, limit_models)
@@ -724,10 +726,29 @@ def run_import(
             )
 
         enrich_stats = None
+        metadata_stats = None
         if not dry_run and touched_listings:
             for listing in touched_listings.values():
                 link_listing_to_catalog(db, listing)
             db.commit()
+        if not dry_run and vin_metadata_limit != 0 and touched_listings:
+            metadata_stats = enrich_listings_vin_metadata(
+                db,
+                list(touched_listings.values()),
+                limit=vin_metadata_limit if vin_metadata_limit > 0 else None,
+            )
+            print(
+                "enrich-vin-metadata: "
+                f"eligible={metadata_stats.eligible} attempted={metadata_stats.attempted} "
+                f"fetched={metadata_stats.fetched} vin_saved={metadata_stats.vin_saved} "
+                f"indicated_updated={metadata_stats.indicated_updated} "
+                f"skipped_has_vin={metadata_stats.skipped_has_vin} "
+                f"skipped_limit={metadata_stats.skipped_limit} "
+                f"skipped_no_account={metadata_stats.skipped_no_account} "
+                f"errors={len(metadata_stats.errors)}"
+            )
+            for err in metadata_stats.errors[:5]:
+                print(f"  vin-metadata-error: {err}")
         if not dry_run and vin_enrich_limit != 0 and touched_listings:
             enrich_stats = enrich_rating_one_listings(
                 db,
@@ -795,6 +816,16 @@ def run_import(
                 "skipped_already_enriched": enrich_stats.skipped_already_enriched,
                 "errors": len(enrich_stats.errors),
             }
+        if metadata_stats is not None:
+            result["enrich_vin_metadata"] = {
+                "eligible": metadata_stats.eligible,
+                "attempted": metadata_stats.attempted,
+                "fetched": metadata_stats.fetched,
+                "vin_saved": metadata_stats.vin_saved,
+                "indicated_updated": metadata_stats.indicated_updated,
+                "skipped_has_vin": metadata_stats.skipped_has_vin,
+                "errors": len(metadata_stats.errors),
+            }
         return result
     except Exception as exc:
         if dry_run:
@@ -853,6 +884,12 @@ def main() -> None:
     )
     parser.add_argument("--dry-run", action="store_true", help="Do not write to DB")
     parser.add_argument(
+        "--vin-metadata-limit",
+        type=int,
+        default=100,
+        help="Fetch GET /offers/{id} VIN metadata for touched listings (0=off, -1=no limit)",
+    )
+    parser.add_argument(
         "--vin-enrich-limit",
         type=int,
         default=20,
@@ -881,6 +918,7 @@ def main() -> None:
             prune_non_catalog=not args.no_prune_non_catalog,
             dry_run=args.dry_run,
             trigger=args.trigger,
+            vin_metadata_limit=args.vin_metadata_limit,
             vin_enrich_limit=args.vin_enrich_limit,
         )
     except Exception:

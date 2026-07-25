@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 
 from sqlalchemy.orm import Session
 
+from app.avby_offer_metadata import fetch_and_apply_offer_vin_metadata
 from app.avby_vin import AvbyVinError, get_or_fetch_listing_vin
 from app.customs_vin import DATABASE_PERSONAL, CustomsVinError, has_fresh_customs_check, lookup_customs_vin
 from app.models import CarListing, CatalogItem, VinCustomsCheck
@@ -118,21 +119,30 @@ def enrich_listing_vin_and_customs(db: Session, listing: CarListing) -> ListingE
     if listing_has_saved_vin(listing):
         stats.vin_cached += 1
     else:
-        try:
-            vin_result = get_or_fetch_listing_vin(db, listing)
-        except AvbyVinError as exc:
-            stats.errors.append(f"listing {listing.id}: {exc}")
-            return stats
-
-        vin = (vin_result.vin or "").strip().upper()
-        if not vin:
-            stats.errors.append(f"listing {listing.id}: empty VIN")
-            return stats
-
-        if vin_result.cached:
-            stats.vin_cached += 1
-        else:
+        meta_result = fetch_and_apply_offer_vin_metadata(db, listing)
+        if meta_result.error:
+            stats.errors.append(f"listing {listing.id}: metadata {meta_result.error}")
+        elif meta_result.vin_saved:
             stats.vin_fetched += 1
+
+        if listing_has_saved_vin(listing):
+            vin = (listing.vin or "").strip().upper()
+        else:
+            try:
+                vin_result = get_or_fetch_listing_vin(db, listing)
+            except AvbyVinError as exc:
+                stats.errors.append(f"listing {listing.id}: {exc}")
+                return stats
+
+            vin = (vin_result.vin or "").strip().upper()
+            if not vin:
+                stats.errors.append(f"listing {listing.id}: empty VIN")
+                return stats
+
+            if vin_result.cached:
+                stats.vin_cached += 1
+            else:
+                stats.vin_fetched += 1
 
     if has_fresh_customs_check(db, vin, database=DATABASE_PERSONAL):
         stats.customs_cached += 1

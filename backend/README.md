@@ -231,6 +231,8 @@ cat ~/.ssh/auto160_deploy.pub >> ~/.ssh/authorized_keys
   - `--no-update-existing` — не обновлять уже импортированные объявления.
   - `--archive-overpowered` — архивировать существующие объявления, если текущая мощность на источнике выше лимита.
   - `--dry-run` — проверить импорт без записи в БД.
+  - `--vin-metadata-limit 100` — для затронутых объявлений запросить `GET /offers/{id}` под сервисным аккаунтом и сохранить VIN-метаданные (`0` — выкл., `-1` — без лимита).
+  - `--vin-enrich-limit 20` — для rating=1: VIN через платный `/offers/{id}/vin` + таможня (если metadata не дала полный VIN).
 
 ### Scheduler импорта объявлений (каждые 20 минут)
 
@@ -276,6 +278,9 @@ docker compose --env-file .env.vm -f docker-compose.vm.yml exec -T api python to
 
 # Связка объявлений с комплектациями каталога
 docker compose --env-file .env.vm -f docker-compose.vm.yml exec -T api python tools/link_listings_to_catalog.py
+
+# VIN-метаданные с av.by (GET /offers/{id}, нужен верифицированный аккаунт)
+docker compose --env-file .env.vm -f docker-compose.vm.yml exec -T api python tools/enrich_listings_vin_metadata.py --limit 200
 ```
 
 ## Предсозданный админ

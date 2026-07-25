@@ -216,6 +216,28 @@ def consume_vin_check(db: Session, account: AvbyServiceAccount) -> bool:
 VIN_ACCOUNT_STATUSES = ("confirmed", "phone_verified")
 
 
+def list_active_auth_accounts(db: Session) -> list[AvbyServiceAccount]:
+    """Verified active accounts for authenticated av.by API (no VIN quota check)."""
+    return (
+        db.query(AvbyServiceAccount)
+        .filter(
+            AvbyServiceAccount.is_active.is_(True),
+            AvbyServiceAccount.status.in_(VIN_ACCOUNT_STATUSES),
+            AvbyServiceAccount.api_key.isnot(None),
+        )
+        .order_by(AvbyServiceAccount.id.asc())
+        .all()
+    )
+
+
+def select_auth_account(db: Session, *, exclude_ids: set[int] | None = None) -> AvbyServiceAccount | None:
+    excluded = exclude_ids or set()
+    for account in list_active_auth_accounts(db):
+        if account.id not in excluded:
+            return account
+    return None
+
+
 def list_active_vin_accounts(db: Session) -> list[AvbyServiceAccount]:
     rows = (
         db.query(AvbyServiceAccount)
