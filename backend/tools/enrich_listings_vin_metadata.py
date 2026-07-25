@@ -33,7 +33,7 @@ def main() -> int:
                 CarListing.avby_id.isnot(None),
                 CarListing.status == ListingStatus.published,
             )
-            .order_by(CarListing.updated_at.desc())
+            .order_by(CarListing.created_at.desc())
         )
         if args.only_missing_vin:
             rows = [row for row in query.all() if not listing_has_saved_vin(row)]
