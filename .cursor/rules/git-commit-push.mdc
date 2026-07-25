@@ -1,0 +1,30 @@
+---
+description: Always commit and push code changes to git after completing work
+alwaysApply: true
+---
+
+# Git: commit and push
+
+After completing any implementation task that changes files in the repo:
+
+1. **Always commit** relevant changes when the task is done (do not leave completed work uncommitted).
+2. **Always push** to the remote after a successful commit (`git push origin <branch>`).
+3. Do **not** commit secrets: `.env`, `.env.vm`, `app.db`, credentials JSON, `*.b64`.
+4. Do **not** commit unless the user explicitly asked to skip git for this task.
+
+## Workflow
+
+```bash
+git status -sb
+git diff --stat HEAD
+git add <relevant files>
+git commit -m "Concise message explaining why"
+git push origin HEAD
+git status -sb
+```
+
+Use a commit message file (`git commit -F .commit-msg.txt`) on Windows if HEREDOC is unavailable.
+
+## Deploy note
+
+If VM deploy used SCP before push, still commit and push so git remains the source of truth.
