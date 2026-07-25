@@ -69,6 +69,9 @@
     </div>
   </section>
   <div class="actions-row">
+    {% if catalog_item %}
+      <a class="btn-link" href="/catalog/item/{{ catalog_item.id }}">Комплектация в каталоге</a>
+    {% endif %}
     <a class="btn-link" href="/inspection?listing_id={{ listing.id }}">Проверить VIN</a>
   </div>
   {% if is_admin %}

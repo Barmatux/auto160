@@ -65,6 +65,8 @@ class CarListing(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
 
     seller: Mapped[User] = relationship(back_populates="listings")
+    catalog_item_id: Mapped[int | None] = mapped_column(ForeignKey("catalog_items.id"), nullable=True, index=True)
+    catalog_item: Mapped["CatalogItem | None"] = relationship(foreign_keys=[catalog_item_id])
 
 
 class CatalogItem(Base):

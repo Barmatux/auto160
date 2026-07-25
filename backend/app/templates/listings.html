@@ -51,6 +51,10 @@
               {% endif %}
               <div class="actions-row">
                 <a href="/listings/{{ listing.id }}">Открыть объявление</a>
+                {% set catalog_item = listing_catalog_items.get(listing.id) %}
+                {% if catalog_item %}
+                  <a href="/catalog/item/{{ catalog_item.id }}">Комплектация в каталоге</a>
+                {% endif %}
                 <a href="/inspection?listing_id={{ listing.id }}">Проверить VIN</a>
               </div>
             </article>

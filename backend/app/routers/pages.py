@@ -16,6 +16,13 @@ from app.avby_accounts import list_active_vin_accounts, serialize_account_public
 from app.db import get_db
 from app.logging_setup import LOG_SERVICES, log_dir, tail_log
 from app.listing_enrichment import build_listing_customs_map, get_listing_customs_summary
+from app.listing_catalog_link import (
+    canonical_model_name as _canonical_model_name,
+    fetch_listings_for_catalog_items,
+    find_best_catalog_item as _match_catalog_item_for_listing,
+    resolve_catalog_items_for_listings,
+    score_listing_catalog_match,
+)
 from app.models import AvbyServiceAccount, AvbySyncRun, CarListing, CatalogItem, CatalogItemPhoto, ListingStatus, User, UserRole
 from app.security import decode_token, is_token_revoked
 from app.seo import (
@@ -223,20 +230,8 @@ def _template_context(request: Request, current_user: User | None, seo: SeoMeta 
     return context
 
 
-def _normalize_match_text(value: str | None) -> str:
-    if not value:
-        return ""
-    return value.strip().lower().replace("ё", "е")
-
-
-def _body_types_compatible(catalog_body: str | None, listing_body: str | None) -> bool:
-    left = _normalize_match_text(catalog_body)
-    right = _normalize_match_text(listing_body)
-    if not left or not right:
-        return True
-    if left == right:
-        return True
-    return left in right or right in left
+def _listing_match_score(listing: CarListing, item: CatalogItem) -> int:
+    return score_listing_catalog_match(listing, item, require_cover=True)
 
 
 def _extract_photo_url_from_entry(photo: dict) -> str | None:
@@ -276,44 +271,6 @@ def _extract_photo_urls_from_raw_specs(raw_specs: dict) -> list[str]:
 def _extract_raw_photo_url(raw_specs: dict) -> str | None:
     urls = _extract_photo_urls_from_raw_specs(raw_specs)
     return urls[0] if urls else None
-
-
-def _listing_match_score(listing: CarListing, item: CatalogItem) -> int:
-    if not listing.cover_photo_url:
-        return -1
-    if _normalize_match_text(listing.brand) != _normalize_match_text(item.make):
-        return -1
-    if _canonical_model_name(listing.model) != _canonical_model_name(item.model):
-        return -1
-    if not _body_types_compatible(item.body_type, listing.body_type):
-        return -1
-
-    score = 10
-    if item.body_type and listing.body_type:
-        if _normalize_match_text(item.body_type) == _normalize_match_text(listing.body_type):
-            score += 40
-        else:
-            score += 25
-    if item.generation and listing.generation:
-        if _normalize_match_text(item.generation) == _normalize_match_text(listing.generation):
-            score += 20
-        elif _normalize_match_text(listing.generation) in _normalize_match_text(item.generation):
-            score += 10
-    if item.year_from is not None and listing.year is not None:
-        year_to = item.year_to if item.year_to is not None else item.year_from
-        if item.year_from <= listing.year <= year_to:
-            score += 15
-        elif abs(listing.year - item.year_from) <= 1 or abs(listing.year - year_to) <= 1:
-            score += 5
-    if item.engine_power_hp is not None and listing.engine_power_hp is not None:
-        diff = abs(item.engine_power_hp - listing.engine_power_hp)
-        if diff <= 5:
-            score += 25
-        elif diff <= 15:
-            score += 12
-        elif diff <= 30:
-            score += 5
-    return score
 
 
 def _fetch_listings_for_catalog_items(items: list[CatalogItem], db: Session) -> dict[tuple[str, str], list[CarListing]]:
@@ -433,18 +390,6 @@ def _build_cover_url_map(item_ids: list[int], db: Session) -> dict[int, str]:
         if cover_url:
             cover_map[item.id] = cover_url
     return cover_map
-
-
-def _match_catalog_item_for_listing(listing: CarListing, catalog_items: list[CatalogItem]) -> CatalogItem | None:
-    if not catalog_items:
-        return None
-    if listing.year is not None:
-        for item in catalog_items:
-            year_from = item.year_from
-            year_to = item.year_to if item.year_to is not None else year_from
-            if year_from is not None and year_from <= listing.year <= (year_to or year_from):
-                return item
-    return catalog_items[0]
 
 
 def _build_listing_catalog_cover_urls(
@@ -806,36 +751,6 @@ def _make_logo_url(make: str | None) -> str | None:
         return None
     key = make.strip().lower()
     return MAKE_LOGO_URLS.get(key)
-
-
-def _normalize_model_name(name: str) -> str:
-    raw = (name or "").strip().lower().replace("ё", "е")
-    raw = re.sub(r"[-_]+", " ", raw)
-    raw = re.sub(r"\s+", " ", raw)
-    return raw
-
-
-def _canonical_model_name(name: str | None) -> str:
-    if not name:
-        return ""
-    source = (name or "").strip()
-    normalized = _normalize_model_name(source)
-    m = re.match(r"^(\d+)\s*(series|серия)$", normalized)
-    if m:
-        return f"{m.group(1)} серия"
-    m = re.match(r"^(\d+)\s*(series|серия)\s*gran\s*tourer$", normalized)
-    if m:
-        return f"{m.group(1)} серия Gran Tourer"
-    m = re.match(r"^(\d+)\s*(series|серия)\s*active\s*tourer$", normalized)
-    if m:
-        return f"{m.group(1)} серия Active Tourer"
-    m = re.match(r"^x\s*([0-9]+)$", normalized)
-    if m:
-        return f"X{m.group(1)}"
-    m = re.match(r"^i\s*([0-9]+)$", normalized)
-    if m:
-        return f"i{m.group(1)}"
-    return source
 
 
 def _distinct_canonical_models(db: Session) -> list[str]:
@@ -1265,6 +1180,7 @@ def listings_page(
     context = _template_context(request, current_user)
     context["listings"] = listings
     context["listing_cover_urls"] = _resolve_listing_cover_urls(listings, db)
+    context["listing_catalog_items"] = resolve_catalog_items_for_listings(db, listings)
     context["total"] = total
     context["page"] = page
     context["page_size"] = page_size
@@ -1322,6 +1238,11 @@ def listing_item(request: Request, listing_id: int, db: Session = Depends(get_db
         )
     context = _template_context(request, current_user, seo)
     context["listing"] = listing
+    if listing:
+        catalog_items = resolve_catalog_items_for_listings(db, [listing])
+        context["catalog_item"] = catalog_items.get(listing.id)
+    else:
+        context["catalog_item"] = None
     is_admin = current_user is not None and current_user.role == UserRole.admin
     context["listing_customs"] = get_listing_customs_summary(db, listing) if listing and is_admin else None
     return templates.TemplateResponse(request, "listing_detail.html", context)
@@ -1729,21 +1650,33 @@ def catalog_modifications(
         )
         generation_items = generation_items_query.all()
         if generation_items:
-            year_from_values = [row.year_from for row in generation_items if row.year_from is not None]
-            year_to_values = [row.year_to for row in generation_items if row.year_to is not None]
-            generation_year_from = min(year_from_values) if year_from_values else None
-            generation_year_to = max(year_to_values) if year_to_values else None
-
-            listings_query = db.query(CarListing).filter(
-                CarListing.status == ListingStatus.published,
-                CarListing.brand.ilike(make),
-                CarListing.model.ilike(canonical_model),
-            )
-            if generation_year_from is not None:
-                listings_query = listings_query.filter(CarListing.year >= generation_year_from)
-            if generation_year_to is not None:
-                listings_query = listings_query.filter(CarListing.year <= generation_year_to)
-            ad_listings = listings_query.order_by(CarListing.created_at.desc()).limit(8).all()
+            listings_by_item = fetch_listings_for_catalog_items(db, generation_items, limit_per_item=8)
+            seen_ids: set[int] = set()
+            for item in generation_items:
+                for listing in listings_by_item.get(item.id, []):
+                    if listing.id in seen_ids:
+                        continue
+                    seen_ids.add(listing.id)
+                    ad_listings.append(listing)
+                    if len(ad_listings) >= 8:
+                        break
+                if len(ad_listings) >= 8:
+                    break
+            if not ad_listings:
+                year_from_values = [row.year_from for row in generation_items if row.year_from is not None]
+                year_to_values = [row.year_to for row in generation_items if row.year_to is not None]
+                generation_year_from = min(year_from_values) if year_from_values else None
+                generation_year_to = max(year_to_values) if year_to_values else None
+                listings_query = db.query(CarListing).filter(
+                    CarListing.status == ListingStatus.published,
+                    CarListing.brand.ilike(make),
+                    CarListing.model.ilike(canonical_model),
+                )
+                if generation_year_from is not None:
+                    listings_query = listings_query.filter(CarListing.year >= generation_year_from)
+                if generation_year_to is not None:
+                    listings_query = listings_query.filter(CarListing.year <= generation_year_to)
+                ad_listings = listings_query.order_by(CarListing.created_at.desc()).limit(8).all()
     context["ad_listings"] = ad_listings
     context["ad_listing_cover_urls"] = _build_listing_catalog_cover_urls(ad_listings, generation_items, db)
     listings_all_url = None
@@ -1811,6 +1744,9 @@ def catalog_item_detail(request: Request, item_id: int, db: Session = Depends(ge
         year_from=item.year_from,
         year_to=item.year_to,
     )
+    related_listings = fetch_listings_for_catalog_items(db, [item], limit_per_item=8).get(item.id, [])
+    context["related_listings"] = related_listings
+    context["related_listing_cover_urls"] = _resolve_listing_cover_urls(related_listings, db)
     return templates.TemplateResponse(request, "catalog_item_detail.html", context)
 
 

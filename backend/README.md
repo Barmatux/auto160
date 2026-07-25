@@ -273,6 +273,9 @@ docker compose --env-file .env.vm -f docker-compose.vm.yml exec -T api python to
 
 # Догрузка фото
 docker compose --env-file .env.vm -f docker-compose.vm.yml exec -T api python tools/backfill_listing_photos.py
+
+# Связка объявлений с комплектациями каталога
+docker compose --env-file .env.vm -f docker-compose.vm.yml exec -T api python tools/link_listings_to_catalog.py
 ```
 
 ## Предсозданный админ

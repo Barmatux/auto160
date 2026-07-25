@@ -16,6 +16,7 @@ os.chdir(ROOT_DIR)
 
 from app.db import SessionLocal
 from app.listing_enrichment import build_rating_one_targets, enrich_rating_one_listings, listing_needs_enrichment
+from app.listing_catalog_link import link_listing_to_catalog
 from app.models import AvbySyncRun, CarListing, CatalogItem, ListingStatus, User, UserRole
 from app.security import hash_password
 
@@ -686,8 +687,7 @@ def run_import(
                         existing.status = ListingStatus.published
                         updated += 1
                         imported_per_model[target_key] = imported_per_model.get(target_key, 0) + 1
-                        if listing_needs_enrichment(db, existing):
-                            touched_listings[avby_id] = existing
+                        touched_listings[avby_id] = existing
                         continue
 
                     if dry_run:
@@ -724,6 +724,10 @@ def run_import(
             )
 
         enrich_stats = None
+        if not dry_run and touched_listings:
+            for listing in touched_listings.values():
+                link_listing_to_catalog(db, listing)
+            db.commit()
         if not dry_run and vin_enrich_limit != 0 and touched_listings:
             enrich_stats = enrich_rating_one_listings(
                 db,

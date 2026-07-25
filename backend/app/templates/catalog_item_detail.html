@@ -48,6 +48,28 @@
     {% else %}
       <p class="hint">Характеристики парсера для этой комплектации не найдены.</p>
     {% endif %}
+
+    {% if related_listings %}
+      <div class="offers-panel">
+        <h2>Связанные объявления</h2>
+        <div class="offers-list">
+          {% for ad in related_listings %}
+            <article class="listing-card offer-feed-card">
+              {% if related_listing_cover_urls.get(ad.id) %}
+                <a class="offer-feed-thumb-wrap card-cover-link" href="/listings/{{ ad.id }}">
+                  <img class="offer-feed-thumb" src="{{ related_listing_cover_urls.get(ad.id) }}" alt="{{ ad.brand }} {{ ad.model }}" />
+                </a>
+              {% endif %}
+              <div class="offer-feed-body">
+                <h3><a href="/listings/{{ ad.id }}">{{ ad.title }}</a></h3>
+                <p><strong>{{ ad.brand }} {{ ad.model }}</strong> · {{ ad.year }}</p>
+                <p><strong>Цена:</strong> {{ ad.price }} ₽</p>
+              </div>
+            </article>
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
   </section>
 {% else %}
   <h1>Позиция каталога не найдена</h1>
