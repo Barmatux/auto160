@@ -18,6 +18,24 @@ LOG_SERVICE_LABELS: dict[str, str] = {
 }
 
 _configured = False
+_handlers: list[logging.Handler] = []
+_log_level = logging.INFO
+
+
+def _attach_uvicorn_handlers(handlers: list[logging.Handler], level: int) -> None:
+    for name in ("uvicorn", "uvicorn.error", "uvicorn.access"):
+        logger = logging.getLogger(name)
+        logger.setLevel(level)
+        logger.propagate = False
+        for handler in handlers:
+            if handler not in logger.handlers:
+                logger.addHandler(handler)
+
+
+def ensure_uvicorn_file_logging() -> None:
+    """Re-attach file/stdout handlers after uvicorn configures its loggers."""
+    if _handlers:
+        _attach_uvicorn_handlers(_handlers, _log_level)
 
 
 def log_dir() -> Path:
@@ -29,7 +47,7 @@ def log_dir() -> Path:
 
 
 def setup_logging(service: str | None = None) -> logging.Logger:
-    global _configured
+    global _configured, _handlers, _log_level
     service_name = (service or os.environ.get("LOG_SERVICE") or "api").strip()
     if service_name not in LOG_SERVICES:
         service_name = "api"
@@ -64,8 +82,10 @@ def setup_logging(service: str | None = None) -> logging.Logger:
     file_handler.setFormatter(formatter)
     root.addHandler(file_handler)
 
-    logging.getLogger("uvicorn.access").setLevel(logging.INFO)
-    logging.getLogger("uvicorn.error").setLevel(logging.INFO)
+    _handlers = [stream_handler, file_handler]
+    _log_level = level
+    if service_name == "api":
+        _attach_uvicorn_handlers(_handlers, level)
 
     _configured = True
     logger = logging.getLogger(service_name)

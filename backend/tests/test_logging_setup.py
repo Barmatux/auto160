@@ -1,6 +1,20 @@
 from pathlib import Path
 
-from app.logging_setup import tail_log
+from app.logging_setup import _attach_uvicorn_handlers, tail_log
+
+
+def test_attach_uvicorn_handlers_writes_access_log_to_file(tmp_path: Path, monkeypatch):
+    import logging
+
+    monkeypatch.setenv("LOG_DIR", str(tmp_path))
+    log_file = tmp_path / "api.log"
+    handler = logging.FileHandler(log_file, encoding="utf-8")
+    handler.setFormatter(logging.Formatter("%(message)s"))
+
+    _attach_uvicorn_handlers([handler], logging.INFO)
+    logging.getLogger("uvicorn.access").info('127.0.0.1:8000 - "GET /health HTTP/1.1" 200')
+
+    assert 'GET /health HTTP/1.1" 200' in log_file.read_text(encoding="utf-8")
 
 
 def test_tail_log_prefers_active_file_over_rotated_backup(tmp_path: Path, monkeypatch):
