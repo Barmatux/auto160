@@ -1,9 +1,10 @@
 import re
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 from urllib.parse import urlencode
 
-from fastapi import APIRouter, Depends, Query, Request
-from fastapi.responses import PlainTextResponse, RedirectResponse, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi.responses import HTMLResponse, PlainTextResponse, RedirectResponse, Response
 from jose import JWTError
 from sqlalchemy import and_, case, desc, func, or_
 from fastapi.templating import Jinja2Templates
@@ -42,6 +43,7 @@ from app.storage import build_app_download_url, normalize_display_image_url
 
 router = APIRouter(tags=["pages"])
 templates = Jinja2Templates(directory="app/templates")
+VERIFICATION_DIR = Path(__file__).resolve().parents[1] / "verification"
 
 
 SPEC_LABELS_RU = {
@@ -1111,6 +1113,14 @@ def home(request: Request, db: Session = Depends(get_db)):
 def robots_txt(request: Request):
     base = site_base_url(request)
     return PlainTextResponse(build_robots_txt(base), media_type="text/plain; charset=utf-8")
+
+
+@router.get("/yandex_{code}.html", include_in_schema=False)
+def yandex_webmaster_verification(code: str):
+    path = VERIFICATION_DIR / f"yandex_{code}.html"
+    if not path.is_file():
+        raise HTTPException(status_code=404, detail="Not found")
+    return HTMLResponse(path.read_text(encoding="utf-8"), media_type="text/html; charset=utf-8")
 
 
 @router.get("/sitemap.xml", include_in_schema=False)
