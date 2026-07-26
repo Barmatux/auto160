@@ -60,6 +60,7 @@ def tick(*, refresh_if_minutes: int) -> int:
                     db,
                     account,
                     refresh_if_within=timedelta(minutes=refresh_if_minutes),
+                    allow_captcha=False,
                 )
                 remaining = session.expires_at - datetime.now(UTC).replace(tzinfo=None)
                 logger.info(

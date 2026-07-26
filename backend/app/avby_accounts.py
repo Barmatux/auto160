@@ -217,10 +217,11 @@ VIN_ACCOUNT_STATUSES = ("confirmed", "phone_verified")
 
 
 def list_active_auth_accounts(db: Session) -> list[AvbyServiceAccount]:
-    """Verified active accounts for authenticated av.by API (no VIN quota check)."""
+    """Verified vin_test accounts for automated authenticated av.by API calls."""
     return (
         db.query(AvbyServiceAccount)
         .filter(
+            AvbyServiceAccount.purpose == "vin_test",
             AvbyServiceAccount.is_active.is_(True),
             AvbyServiceAccount.status.in_(VIN_ACCOUNT_STATUSES),
             AvbyServiceAccount.api_key.isnot(None),

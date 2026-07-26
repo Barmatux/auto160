@@ -175,7 +175,7 @@ def create_avby_account(
     login_error: str | None = None
     if payload.login_on_create:
         try:
-            get_avby_session(db, account)
+            get_avby_session(db, account, allow_captcha=True)
             account.error_message = None
             if payload.phone_verified and purpose == "vin_test":
                 account.is_active = True
@@ -210,7 +210,7 @@ def login_avby_account(
         raise HTTPException(status_code=400, detail="Account has no av.by password")
 
     try:
-        get_avby_session(db, account)
+        get_avby_session(db, account, allow_captcha=True)
     except AvbySessionError as exc:
         account.is_active = False
         account.error_message = str(exc)[:500]

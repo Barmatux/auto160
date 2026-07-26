@@ -29,6 +29,7 @@ if str(ROOT_DIR) not in sys.path:
 os.chdir(ROOT_DIR)
 
 from app.avby_accounts import upsert_avby_service_account
+from app.avby_session import AvbySessionError, _check_captcha_allowed, _is_zero_balance_response, _mark_captcha_attempt
 from app.db import SessionLocal
 
 MAILTM_BASE = "https://api.mail.tm"
@@ -116,6 +117,11 @@ def solve_recaptcha_invisible(
     timeout_seconds: int = 180,
 ) -> str:
     """Solve Google reCAPTCHA v2 invisible via 2captcha-compatible API."""
+    try:
+        _check_captcha_allowed(force=False)
+    except AvbySessionError as exc:
+        raise RuntimeError(str(exc)) from exc
+    _mark_captcha_attempt()
     api_base = api_base.rstrip("/")
     submit_resp = requests.post(
         f"{api_base}/in.php",
@@ -132,6 +138,8 @@ def solve_recaptcha_invisible(
     submit_resp.raise_for_status()
     submit_payload = submit_resp.json()
     if submit_payload.get("status") != 1:
+        if _is_zero_balance_response(submit_payload):
+            _mark_captcha_attempt(zero_balance=True)
         raise RuntimeError(f"captcha submit failed: {submit_payload.get('request') or submit_payload}")
 
     task_id = str(submit_payload["request"])

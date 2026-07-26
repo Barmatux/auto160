@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import base64
 import json
+import logging
 import os
 import threading
 import time
@@ -14,6 +15,8 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 from curl_cffi import requests
 from sqlalchemy.orm import Session
@@ -35,6 +38,13 @@ SESSION_KEEPALIVE_REFRESH_WITHIN = timedelta(minutes=15)
 _account_locks: dict[int, threading.Lock] = {}
 _memory_sessions: dict[int, AvbySession] = {}
 _global_lock = threading.Lock()
+_captcha_state_lock = threading.Lock()
+_captcha_blocked_until: float = 0.0
+_last_captcha_attempt: float = 0.0
+CAPTCHA_MIN_INTERVAL_SECONDS = max(60, int(os.environ.get("CAPTCHA_MIN_INTERVAL_SECONDS", "300")))
+CAPTCHA_ZERO_BALANCE_BACKOFF_SECONDS = max(
+    60, int(os.environ.get("CAPTCHA_ZERO_BALANCE_BACKOFF_SECONDS", "3600"))
+)
 
 
 @dataclass
@@ -113,7 +123,56 @@ def _captcha_api_key() -> str | None:
     return None
 
 
-def _solve_recaptcha(api_key: str) -> str:
+def _is_zero_balance_response(payload: dict[str, Any]) -> bool:
+    request_msg = str(payload.get("request") or "")
+    return "ZERO_BALANCE" in request_msg.upper()
+
+
+def _check_captcha_allowed(*, force: bool = False) -> None:
+    now = time.time()
+    with _captcha_state_lock:
+        blocked_until = _captcha_blocked_until
+        last_attempt = _last_captcha_attempt
+    if now < blocked_until:
+        wait_min = max(1, int((blocked_until - now) // 60))
+        raise AvbySessionError(
+            f"2captcha backoff active ({wait_min} min left, zero balance or rate limit)",
+            status_code=503,
+        )
+    if not force and now - last_attempt < CAPTCHA_MIN_INTERVAL_SECONDS:
+        wait_sec = max(1, int(CAPTCHA_MIN_INTERVAL_SECONDS - (now - last_attempt)))
+        raise AvbySessionError(
+            f"2captcha rate limit: wait {wait_sec}s between captcha requests",
+            status_code=503,
+        )
+
+
+def _mark_captcha_attempt(*, zero_balance: bool = False) -> None:
+    global _last_captcha_attempt, _captcha_blocked_until
+    now = time.time()
+    with _captcha_state_lock:
+        _last_captcha_attempt = now
+        if zero_balance:
+            _captcha_blocked_until = now + CAPTCHA_ZERO_BALANCE_BACKOFF_SECONDS
+            logger.warning(
+                "2captcha zero balance: blocking captcha for %ss",
+                CAPTCHA_ZERO_BALANCE_BACKOFF_SECONDS,
+            )
+
+
+def _resolve_allow_captcha(account: AvbyServiceAccount | None, explicit: bool | None) -> bool:
+    if explicit is not None:
+        return explicit
+    if account is None:
+        return True
+    if account.purpose != "vin_test":
+        return False
+    return not (account.refresh_token or "").strip()
+
+
+def _solve_recaptcha(api_key: str, *, force: bool = False, pageurl: str = "https://av.by/") -> str:
+    _check_captcha_allowed(force=force)
+    _mark_captcha_attempt()
     api_base = os.environ.get("CAPTCHA_API_URL", "https://2captcha.com").rstrip("/")
     submit = requests.post(
         f"{api_base}/in.php",
@@ -121,13 +180,15 @@ def _solve_recaptcha(api_key: str) -> str:
             "key": api_key,
             "method": "userrecaptcha",
             "googlekey": "6LewiPMbAAAAAGivApIOmNe4pIjnoWgi5gjRdcW2",
-            "pageurl": "https://av.by/",
+            "pageurl": pageurl,
             "invisible": 1,
             "json": 1,
         },
         timeout=30,
     ).json()
     if submit.get("status") != 1:
+        if _is_zero_balance_response(submit):
+            _mark_captcha_attempt(zero_balance=True)
         raise AvbySessionError(f"2captcha submit failed: {submit}")
     task_id = submit["request"]
     deadline = time.time() + 180
@@ -269,7 +330,14 @@ def _refresh_avby_session(session: AvbySession) -> AvbySession:
     return _session_from_login_response(resp.json(), fallback_api_key=session.api_key)
 
 
-def _full_login(account: AvbyServiceAccount | None) -> AvbySession:
+def _full_login(
+    account: AvbyServiceAccount | None,
+    *,
+    allow_captcha: bool | None = None,
+) -> AvbySession:
+    use_captcha = _resolve_allow_captcha(account, allow_captcha)
+    force_captcha = allow_captcha is True
+
     if account and account.avby_password:
         api_key = account.api_key or AVBY_PUBLIC_API_KEY
         password = account.avby_password
@@ -282,9 +350,11 @@ def _full_login(account: AvbyServiceAccount | None) -> AvbySession:
         except AvbySessionError as err:
             last_error = err
         if last_error:
+            if not use_captcha:
+                raise last_error
             captcha_key = _captcha_api_key()
             if captcha_key:
-                captcha_token = _solve_recaptcha(captcha_key)
+                captcha_token = _solve_recaptcha(captcha_key, force=force_captcha)
                 return _login_avby_email(
                     api_key=api_key,
                     login=email,
@@ -301,9 +371,14 @@ def _full_login(account: AvbyServiceAccount | None) -> AvbySession:
         last_error = err
 
     if last_error:
+        if not use_captcha:
+            raise AvbySessionError(
+                f"{last_error} (captcha skipped for automated login; use admin login if needed)",
+                status_code=last_error.status_code,
+            )
         captcha_key = _captcha_api_key()
         if captcha_key:
-            captcha_token = _solve_recaptcha(captcha_key)
+            captcha_token = _solve_recaptcha(captcha_key, force=force_captcha)
             try:
                 return _login_avby_account(
                     api_key=api_key,
@@ -348,7 +423,12 @@ def _account_lock(account_id: int) -> threading.Lock:
         return _account_locks[account_id]
 
 
-def get_avby_session(db: Session, account: AvbyServiceAccount) -> AvbySession:
+def get_avby_session(
+    db: Session,
+    account: AvbyServiceAccount,
+    *,
+    allow_captcha: bool | None = None,
+) -> AvbySession:
     lock = _account_lock(account.id)
     with lock:
         db.expire(account)
@@ -373,7 +453,7 @@ def get_avby_session(db: Session, account: AvbyServiceAccount) -> AvbySession:
             except AvbySessionError:
                 pass
 
-        session = _full_login(account)
+        session = _full_login(account, allow_captcha=allow_captcha)
         _persist_session(db, account, session)
         return session
 
@@ -383,6 +463,7 @@ def ensure_avby_session_fresh(
     account: AvbyServiceAccount,
     *,
     refresh_if_within: timedelta = SESSION_KEEPALIVE_REFRESH_WITHIN,
+    allow_captcha: bool | None = None,
 ) -> AvbySession:
     """Refresh JWT proactively before it expires (for session keeper daemon)."""
     lock = _account_lock(account.id)
@@ -404,7 +485,7 @@ def ensure_avby_session_fresh(
             except AvbySessionError:
                 pass
 
-        session = _full_login(account)
+        session = _full_login(account, allow_captcha=allow_captcha)
         _persist_session(db, account, session)
         return session
 
@@ -420,7 +501,7 @@ def warm_vin_test_session(db_factory) -> None:
             accounts = [account]
         for account in accounts:
             try:
-                get_avby_session(db, account)
+                get_avby_session(db, account, allow_captcha=False)
             except Exception:
                 pass
     finally:
