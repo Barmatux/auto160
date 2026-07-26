@@ -248,7 +248,7 @@ class AnalyticsTopPage(BaseModel):
 
 
 class AnalyticsTopUser(BaseModel):
-    email: str
+    name: str
     events: int
 
 
@@ -266,6 +266,7 @@ class SiteEventOut(BaseModel):
     user_agent: str | None = None
     referrer: str | None = None
     details: dict | None = None
+    actor_label: str | None = None
     created_at: datetime
 
     class Config:

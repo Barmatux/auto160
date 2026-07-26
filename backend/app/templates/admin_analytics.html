@@ -6,8 +6,9 @@
 
 <h1>Аналитика сайта</h1>
 <p class="hint">
-  Просмотры страниц и действия пользователей. Анонимные посетители отслечаются по cookie
-  <code>auto160_sid</code>, авторизованные — по email.
+  Просмотры страниц и действия пользователей. Авторизованные — по email, остальные — с меткой:
+  бот, сервис, скрипт или анонимный посетитель. Сервисы могут передавать заголовок
+  <code>X-Auto160-Client</code> или User-Agent <code>Auto160Internal/имя</code>.
 </p>
 
 <form class="filters admin-log-toolbar" method="get" action="/admin/analytics">
@@ -69,15 +70,15 @@
   </section>
 
   <section>
-    <h2>Активные пользователи</h2>
+    <h2>Кто заходил</h2>
     <table class="sync-table" id="top-users">
       <thead>
-        <tr><th>Email</th><th>Событий</th></tr>
+        <tr><th>Имя / email</th><th>Событий</th></tr>
       </thead>
       <tbody>
         {% for row in top_users %}
         <tr>
-          <td>{{ row.email }}</td>
+          <td>{{ row.name }}</td>
           <td>{{ row.events }}</td>
         </tr>
         {% else %}
@@ -96,7 +97,7 @@
         <th>Время</th>
         <th>Тип</th>
         <th>Страница</th>
-        <th>Пользователь</th>
+        <th>Кто</th>
         <th>IP</th>
       </tr>
     </thead>
@@ -106,7 +107,7 @@
         <td>{{ event.created_at.strftime('%d.%m.%Y %H:%M:%S') }}</td>
         <td>{{ event_labels.get(event.event_type, event.event_type) }}</td>
         <td><code>{{ event.path }}{% if event.query_string %}?{{ event.query_string }}{% endif %}</code></td>
-        <td>{{ event.user_email or "—" }}</td>
+        <td>{{ event.actor_label or event.user_email or "—" }}</td>
         <td>{{ event.ip_address or "—" }}</td>
       </tr>
       {% else %}
@@ -164,7 +165,7 @@
       return;
     }
     tbody.innerHTML = rows.map((row) =>
-      `<tr><td>${row.email}</td><td>${row.events}</td></tr>`
+      `<tr><td>${row.name}</td><td>${row.events}</td></tr>`
     ).join("");
   }
 
@@ -183,7 +184,7 @@
         <td>${time}</td>
         <td>${label}</td>
         <td><code>${event.path}${query}</code></td>
-        <td>${event.user_email || "—"}</td>
+        <td>${event.actor_label || event.user_email || "—"}</td>
         <td>${event.ip_address || "—"}</td>
       </tr>`;
     }).join("");

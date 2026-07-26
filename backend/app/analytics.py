@@ -8,14 +8,14 @@ from datetime import UTC, datetime, timedelta
 
 from fastapi import Request
 from jose import JWTError
-from sqlalchemy import desc, func
+from sqlalchemy import String, cast, desc, func
 from sqlalchemy.orm import Session
 
 from app.db import SessionLocal
 from app.models import SiteEvent, User
 from app.security import decode_token, is_token_revoked
 
-logger = logging.getLogger(__name__)
+from app.visitor_labels import classify_visitor, event_actor_label
 
 SESSION_COOKIE = "auto160_sid"
 SESSION_MAX_AGE = 60 * 60 * 24 * 365
@@ -102,6 +102,9 @@ def record_site_event(
     session_id: str | None = None,
 ) -> None:
     sid = session_id or request.cookies.get(SESSION_COOKIE)
+    merged_details = dict(details or {})
+    if user is None:
+        merged_details.update(classify_visitor(request))
     event = SiteEvent(
         event_type=event_type,
         method=request.method[:10],
@@ -114,25 +117,27 @@ def record_site_event(
         ip_address=_client_ip(request),
         user_agent=_truncate(request.headers.get("user-agent"), 500),
         referrer=_truncate(request.headers.get("referer"), 500),
-        details=details or None,
+        details=merged_details or None,
         created_at=datetime.now(UTC),
     )
     db.add(event)
     if event_type == "page_view":
         logger.debug(
-            "site-event: type=%s path=%s user=%s session=%s ip=%s",
+            "site-event: type=%s path=%s user=%s actor=%s session=%s ip=%s",
             event_type,
             event.path,
             event.user_email or "-",
+            event_actor_label(user_email=event.user_email, details=merged_details),
             event.session_id or "-",
             event.ip_address or "-",
         )
     else:
         logger.info(
-            "site-event: type=%s path=%s user=%s session=%s ip=%s",
+            "site-event: type=%s path=%s user=%s actor=%s session=%s ip=%s",
             event_type,
             event.path,
             event.user_email or "-",
+            event_actor_label(user_email=event.user_email, details=merged_details),
             event.session_id or "-",
             event.ip_address or "-",
         )
@@ -213,24 +218,31 @@ def build_analytics_summary(db: Session, *, days: int = 7) -> dict:
         .all()
     )
 
+    actor_name = func.coalesce(
+        SiteEvent.user_email,
+        cast(SiteEvent.details["visitor_name"], String),
+    )
+
     top_users = (
-        db.query(SiteEvent.user_email, func.count(SiteEvent.id).label("events"))
-        .filter(
-            SiteEvent.created_at >= since,
-            SiteEvent.user_email.isnot(None),
-        )
-        .group_by(SiteEvent.user_email)
+        db.query(actor_name.label("name"), func.count(SiteEvent.id).label("events"))
+        .filter(SiteEvent.created_at >= since)
+        .group_by(actor_name)
         .order_by(desc("events"))
-        .limit(10)
+        .limit(12)
         .all()
     )
 
-    recent_events = (
+    recent_rows = (
         db.query(SiteEvent)
         .order_by(SiteEvent.created_at.desc())
         .limit(100)
         .all()
     )
+    recent_events = []
+    for row in recent_rows:
+        event = SiteEventOut.model_validate(row)
+        event.actor_label = event_actor_label(user_email=row.user_email, details=row.details)
+        recent_events.append(event)
 
     return {
         "days": days,
@@ -240,7 +252,7 @@ def build_analytics_summary(db: Session, *, days: int = 7) -> dict:
         "sessions_period": unique_sessions(since),
         "actions_period": count_events(None, since) - count_events("page_view", since),
         "top_pages": [{"path": path, "views": views} for path, views in top_pages],
-        "top_users": [{"email": email, "events": events} for email, events in top_users],
+        "top_users": [{"name": name or "—", "events": events} for name, events in top_users],
         "recent_events": recent_events,
         "event_labels": EVENT_LABELS,
         "fetched_at": datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S UTC"),
