@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 
 from app.db import SessionLocal
 from app.models import SiteEvent, User
+from app.schemas import SiteEventOut
 from app.security import decode_token, is_token_revoked
 
 from app.visitor_labels import classify_visitor, event_actor_label
