@@ -11,11 +11,15 @@
   <button type="submit">Создать аккаунт</button>
 </form>
 
-<pre id="result" class="result"></pre>
+<p id="form-message" class="hint" hidden role="alert"></p>
 
 {% include "partials/auth_script.html" %}
 <script>
   async function registerByApi() {
+    const messageEl = document.getElementById("form-message");
+    messageEl.hidden = true;
+    messageEl.textContent = "";
+
     const payload = {
       name: document.getElementById("name").value,
       email: document.getElementById("email").value,
@@ -28,19 +32,25 @@
       body: JSON.stringify(payload),
     });
     const data = await response.json();
-    document.getElementById("result").textContent = JSON.stringify(data, null, 2);
-    if (response.ok) {
-      const loginResp = await fetch("/api/v1/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ login: data.username, password: payload.password }),
-      });
-      const loginData = await loginResp.json();
-      if (loginResp.ok && loginData.access_token && loginData.refresh_token) {
-        setAuthCookies(loginData.access_token, loginData.refresh_token);
-        window.location.href = "/";
-      }
+    if (!response.ok) {
+      messageEl.textContent = data.detail || "Не удалось создать аккаунт";
+      messageEl.hidden = false;
+      return;
     }
+
+    const loginResp = await fetch("/api/v1/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ login: data.username, password: payload.password }),
+    });
+    const loginData = await loginResp.json();
+    if (loginResp.ok && loginData.access_token && loginData.refresh_token) {
+      setAuthCookies(loginData.access_token, loginData.refresh_token);
+      window.location.href = "/";
+      return;
+    }
+    messageEl.textContent = `Аккаунт создан. Ваш логин: ${data.username}. Войдите вручную на странице входа.`;
+    messageEl.hidden = false;
   }
 </script>
 {% endblock %}

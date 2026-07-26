@@ -2,7 +2,7 @@
 {% block title %}Вход - Auto160{% endblock %}
 {% block content %}
 <h1>Вход в кабинет</h1>
-<p class="hint">После входа токены сохраняются в cookie и интерфейс переключается по роли.</p>
+<p class="hint">После входа вы будете перенаправлены в кабинет.</p>
 
 <form class="form" onsubmit="event.preventDefault(); loginByApi();">
   <label>Логин <input id="login" required /></label>
@@ -10,11 +10,15 @@
   <button type="submit">Войти</button>
 </form>
 
-<pre id="result" class="result"></pre>
+<p id="form-message" class="hint" hidden role="alert"></p>
 
 {% include "partials/auth_script.html" %}
 <script>
   async function loginByApi() {
+    const messageEl = document.getElementById("form-message");
+    messageEl.hidden = true;
+    messageEl.textContent = "";
+
     const payload = {
       login: document.getElementById("login").value,
       password: document.getElementById("password").value,
@@ -25,11 +29,13 @@
       body: JSON.stringify(payload),
     });
     const data = await response.json();
-    document.getElementById("result").textContent = JSON.stringify(data, null, 2);
     if (response.ok && data.access_token && data.refresh_token) {
       setAuthCookies(data.access_token, data.refresh_token);
       window.location.href = "/";
+      return;
     }
+    messageEl.textContent = data.detail || "Неверный логин или пароль";
+    messageEl.hidden = false;
   }
 </script>
 {% endblock %}
