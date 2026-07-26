@@ -16,7 +16,7 @@ from app.avby_session import AvbySessionError, get_avby_session
 from app.avby_vin import AvbyVinError, get_or_fetch_listing_vin
 from app.db import get_db
 from app.deps import require_admin, require_admin_flexible
-from app.logging_setup import LOG_SERVICES, log_dir, tail_log
+from app.logging_setup import LOG_SERVICES, format_log_time, log_dir, log_timezone, tail_log
 from app.models import AvbyServiceAccount, CarListing, User
 from app.schemas import (
     AnalyticsSummaryResponse,
@@ -52,7 +52,7 @@ def tail_application_logs(
         content=content,
         path=str(path) if path else None,
         log_dir=str(log_dir()),
-        fetched_at=datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S UTC"),
+        fetched_at=format_log_time(),
     )
 
 

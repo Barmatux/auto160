@@ -5,8 +5,10 @@ from __future__ import annotations
 import logging
 import os
 import sys
+from datetime import datetime
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 LOG_SERVICES = ("api", "avby-sync", "avby-vin-session", "avby-archive")
 
@@ -17,19 +19,54 @@ LOG_SERVICE_LABELS: dict[str, str] = {
     "avby-archive": "Архивация av.by",
 }
 
+LOG_RECORD_FORMAT = "%(asctime)s %(levelname)s [%(name)s] %(message)s"
+LOG_DATE_FORMAT = "%Y-%m-%d %H:%M:%S %z"
+DEFAULT_LOG_TIMEZONE = "Europe/Minsk"
+
 _configured = False
 _handlers: list[logging.Handler] = []
 _log_level = logging.INFO
 
 
+class TZFormatter(logging.Formatter):
+    def __init__(self, fmt: str, datefmt: str, tz: ZoneInfo):
+        super().__init__(fmt=fmt, datefmt=datefmt)
+        self._tz = tz
+
+    def formatTime(self, record, datefmt=None):
+        dt = datetime.fromtimestamp(record.created, tz=self._tz)
+        return dt.strftime(datefmt or self.datefmt or LOG_DATE_FORMAT)
+
+
+def log_timezone() -> ZoneInfo:
+    name = (os.environ.get("LOG_TIMEZONE") or DEFAULT_LOG_TIMEZONE).strip()
+    try:
+        return ZoneInfo(name)
+    except ZoneInfoNotFoundError:
+        return ZoneInfo("UTC")
+
+
+def format_log_time(when: datetime | None = None) -> str:
+    moment = when or datetime.now(log_timezone())
+    if moment.tzinfo is None:
+        moment = moment.replace(tzinfo=log_timezone())
+    else:
+        moment = moment.astimezone(log_timezone())
+    return moment.strftime(LOG_DATE_FORMAT)
+
+
+def build_log_formatter() -> TZFormatter:
+    return TZFormatter(fmt=LOG_RECORD_FORMAT, datefmt=LOG_DATE_FORMAT, tz=log_timezone())
+
+
 def _attach_uvicorn_handlers(handlers: list[logging.Handler], level: int) -> None:
     for name in ("uvicorn", "uvicorn.error", "uvicorn.access"):
         logger = logging.getLogger(name)
+        logger.handlers.clear()
         logger.setLevel(level)
         logger.propagate = False
         for handler in handlers:
-            if handler not in logger.handlers:
-                logger.addHandler(handler)
+            logger.addHandler(handler)
 
 
 def ensure_uvicorn_file_logging() -> None:
@@ -55,10 +92,7 @@ def setup_logging(service: str | None = None) -> logging.Logger:
     level_name = (os.environ.get("LOG_LEVEL") or "INFO").upper()
     level = getattr(logging, level_name, logging.INFO)
 
-    formatter = logging.Formatter(
-        fmt="%(asctime)s %(levelname)s [%(name)s] %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
-    )
+    formatter = build_log_formatter()
 
     root = logging.getLogger()
     if _configured:

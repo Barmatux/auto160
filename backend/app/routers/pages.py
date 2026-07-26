@@ -14,7 +14,7 @@ from app.config import settings
 from app.customs_vin import CustomsVinError, lookup_customs_vin, normalize_vin, report_rows, vin_is_valid
 from app.avby_accounts import list_active_vin_accounts, serialize_account_public
 from app.db import get_db
-from app.logging_setup import LOG_SERVICES, LOG_SERVICE_LABELS, log_dir, tail_log
+from app.logging_setup import LOG_SERVICES, LOG_SERVICE_LABELS, format_log_time, log_dir, log_timezone, tail_log
 from app.listing_enrichment import build_listing_customs_map, get_listing_customs_summary
 from app.listing_catalog_link import (
     canonical_model_name as _canonical_model_name,
@@ -2162,8 +2162,9 @@ def admin_logs_page(
             "log_content": content,
             "log_path": str(path) if path else None,
             "log_dir": str(log_dir()),
+            "log_timezone": str(log_timezone()),
             "refresh_seconds": 5,
-            "fetched_at": datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S UTC"),
+            "fetched_at": format_log_time(),
         }
     )
     return templates.TemplateResponse(request, "admin_logs.html", context)

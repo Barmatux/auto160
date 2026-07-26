@@ -10,6 +10,7 @@ services:
     environment:
       LOG_DIR: /app/logs
       LOG_SERVICE: api
+      LOG_TIMEZONE: Europe/Minsk
     volumes:
       - ../logs:/app/logs
     ports:
@@ -61,6 +62,7 @@ services:
     environment:
       LOG_DIR: /app/logs
       LOG_SERVICE: avby-sync
+      LOG_TIMEZONE: Europe/Minsk
     volumes:
       - ../logs:/app/logs
     depends_on:
@@ -89,6 +91,7 @@ services:
     environment:
       LOG_DIR: /app/logs
       LOG_SERVICE: avby-archive
+      LOG_TIMEZONE: Europe/Minsk
     volumes:
       - ../logs:/app/logs
     depends_on:
@@ -110,6 +113,7 @@ services:
     environment:
       LOG_DIR: /app/logs
       LOG_SERVICE: avby-vin-session
+      LOG_TIMEZONE: Europe/Minsk
     volumes:
       - ../logs:/app/logs
     depends_on:

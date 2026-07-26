@@ -1,6 +1,43 @@
 from pathlib import Path
+from datetime import UTC, datetime
+import logging
 
-from app.logging_setup import _attach_uvicorn_handlers, tail_log
+from app.logging_setup import _attach_uvicorn_handlers, build_log_formatter, format_log_time, tail_log
+
+
+def test_log_formatter_includes_timezone_offset(monkeypatch):
+    monkeypatch.setenv("LOG_TIMEZONE", "Europe/Minsk")
+    formatter = build_log_formatter()
+    record = logging.LogRecord(
+        name="test",
+        level=logging.INFO,
+        pathname=__file__,
+        lineno=1,
+        msg="hello",
+        args=(),
+        exc_info=None,
+    )
+    formatted = formatter.format(record)
+    assert " INFO [test] hello" in formatted
+    assert formatted[:4].isdigit()
+    assert "+0300" in formatted or "+0200" in formatted
+
+
+def test_format_log_time_uses_configured_timezone(monkeypatch):
+    monkeypatch.setenv("LOG_TIMEZONE", "Europe/Minsk")
+    text = format_log_time(datetime(2026, 7, 26, 12, 0, 0, tzinfo=UTC))
+    assert text.endswith("+0300") or text.endswith("+0200")
+    assert text.startswith("2026-07-26")
+
+
+def test_attach_uvicorn_handlers_clears_default_uvicorn_handlers():
+    import logging
+
+    logging.getLogger("uvicorn.access").addHandler(logging.StreamHandler())
+    handler = logging.NullHandler()
+    _attach_uvicorn_handlers([handler], logging.INFO)
+    logger = logging.getLogger("uvicorn.access")
+    assert logger.handlers == [handler]
 
 
 def test_attach_uvicorn_handlers_writes_access_log_to_file(tmp_path: Path, monkeypatch):
