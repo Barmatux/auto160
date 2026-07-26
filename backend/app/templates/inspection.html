@@ -69,5 +69,8 @@
       Сведения официальные, но носят справочный характер. Для юридически значимого подтверждения обращайтесь в таможню.
     </p>
   </div>
+  {% if yandex_metrika_id %}
+    <script>if (typeof reachMetrikaGoal === "function") reachMetrikaGoal("vin_check");</script>
+  {% endif %}
 {% endif %}
 {% endblock %}

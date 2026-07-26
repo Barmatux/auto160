@@ -16,7 +16,7 @@ from app.customs_vin import CustomsVinError, lookup_customs_vin, normalize_vin, 
 from app.avby_accounts import list_active_vin_accounts, serialize_account_public
 from app.db import get_db
 from app.logging_setup import LOG_SERVICES, LOG_SERVICE_LABELS, format_log_time, log_dir, log_timezone, tail_log
-from app.listing_enrichment import build_listing_customs_map, get_listing_customs_summary
+from app.metrics import yandex_metrika_context
 from app.listing_catalog_link import (
     canonical_model_name as _canonical_model_name,
     fetch_listings_for_catalog_items,
@@ -234,6 +234,7 @@ def _template_context(request: Request, current_user: User | None, seo: SeoMeta 
         "is_admin": current_user is not None and current_user.role == UserRole.admin,
     }
     context.update(build_seo_context(request, seo))
+    context.update(yandex_metrika_context(request))
     return context
 
 
