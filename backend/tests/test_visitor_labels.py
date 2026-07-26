@@ -1,6 +1,6 @@
 from starlette.requests import Request
 
-from app.visitor_labels import classify_visitor, event_actor_label
+from app.visitor_labels import classify_visitor, event_actor_label, format_actor_name
 
 
 def _request(
@@ -42,6 +42,14 @@ def test_classify_internal_user_agent():
 def test_classify_script_user_agent():
     result = classify_visitor(_request(user_agent="python-requests/2.32.3"))
     assert result["visitor_name"] == "Скрипт (curl/Python)"
+
+
+def test_format_actor_name_decodes_json_string():
+    assert format_actor_name('"\\u042f\\u043d\\u0434\\u0435\\u043a\\u0441-\\u0431\\u043e\\u0442"') == "Яндекс-бот"
+
+
+def test_format_actor_name_empty():
+    assert format_actor_name(None) == "Без метки (старые записи)"
 
 
 def test_event_actor_label_prefers_email():

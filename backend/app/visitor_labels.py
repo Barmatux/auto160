@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import re
 
 from fastapi import Request
@@ -80,9 +81,25 @@ def classify_visitor(request: Request) -> dict[str, str]:
     return {"visitor_label": "visitor:anonymous", "visitor_name": "Анонимный посетитель"}
 
 
+def format_actor_name(name: str | None) -> str:
+    if not name:
+        return "Без метки (старые записи)"
+    cleaned = str(name).strip()
+    if not cleaned:
+        return "Без метки (старые записи)"
+    if cleaned.startswith('"') and cleaned.endswith('"'):
+        try:
+            decoded = json.loads(cleaned)
+            if isinstance(decoded, str):
+                return decoded
+        except json.JSONDecodeError:
+            cleaned = cleaned.strip('"')
+    return cleaned
+
+
 def event_actor_label(*, user_email: str | None, details: dict | None) -> str:
     if user_email:
         return user_email
     if details and details.get("visitor_name"):
-        return str(details["visitor_name"])
-    return "—"
+        return format_actor_name(str(details["visitor_name"]))
+    return "Без метки (старые записи)"

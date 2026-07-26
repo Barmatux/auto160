@@ -8,7 +8,7 @@ from datetime import UTC, datetime, timedelta
 
 from fastapi import Request
 from jose import JWTError
-from sqlalchemy import String, cast, desc, func
+from sqlalchemy import desc, func
 from sqlalchemy.orm import Session
 
 from app.db import SessionLocal
@@ -16,7 +16,7 @@ from app.models import SiteEvent, User
 from app.schemas import SiteEventOut
 from app.security import decode_token, is_token_revoked
 
-from app.visitor_labels import classify_visitor, event_actor_label
+from app.visitor_labels import classify_visitor, event_actor_label, format_actor_name
 
 logger = logging.getLogger(__name__)
 
@@ -223,7 +223,7 @@ def build_analytics_summary(db: Session, *, days: int = 7) -> dict:
 
     actor_name = func.coalesce(
         SiteEvent.user_email,
-        cast(SiteEvent.details["visitor_name"], String),
+        SiteEvent.details["visitor_name"].as_string(),
     )
 
     top_users = (
@@ -255,7 +255,7 @@ def build_analytics_summary(db: Session, *, days: int = 7) -> dict:
         "sessions_period": unique_sessions(since),
         "actions_period": count_events(None, since) - count_events("page_view", since),
         "top_pages": [{"path": path, "views": views} for path, views in top_pages],
-        "top_users": [{"name": name or "—", "events": events} for name, events in top_users],
+        "top_users": [{"name": format_actor_name(name), "events": events} for name, events in top_users],
         "recent_events": recent_events,
         "event_labels": EVENT_LABELS,
         "fetched_at": datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S UTC"),
