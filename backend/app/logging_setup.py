@@ -10,6 +10,13 @@ from pathlib import Path
 
 LOG_SERVICES = ("api", "avby-sync", "avby-vin-session", "avby-archive")
 
+LOG_SERVICE_LABELS: dict[str, str] = {
+    "api": "API (uvicorn)",
+    "avby-sync": "Парсинг av.by",
+    "avby-vin-session": "VIN session keeper",
+    "avby-archive": "Архивация av.by",
+}
+
 _configured = False
 
 
@@ -66,39 +73,33 @@ def setup_logging(service: str | None = None) -> logging.Logger:
     return logger
 
 
+def _log_file_candidates(directory: Path, service: str) -> list[Path]:
+    """Oldest → newest: .5 … .1, then the active log file."""
+    paths: list[Path] = []
+    for suffix in (".5", ".4", ".3", ".2", ".1", ""):
+        path = directory / f"{service}.log{suffix}"
+        if path.exists():
+            paths.append(path)
+    return paths
+
+
 def tail_log(service: str, *, lines: int = 200) -> tuple[str, Path | None]:
     if service not in LOG_SERVICES:
         raise ValueError(f"Unknown service: {service}")
 
     safe_lines = max(10, min(lines, 2000))
     directory = log_dir()
-    candidates = [directory / f"{service}.log"]
-    for suffix in (".1", ".2", ".3", ".4", ".5"):
-        rotated = directory / f"{service}.log{suffix}"
-        if rotated.exists():
-            candidates.append(rotated)
+    main_path = directory / f"{service}.log"
+    candidates = _log_file_candidates(directory, service)
 
-    chunks: list[str] = []
-    used_path: Path | None = None
+    all_lines: list[str] = []
     for path in candidates:
-        if not path.exists():
-            continue
         text = path.read_text(encoding="utf-8", errors="replace")
-        if not text.strip():
-            continue
-        file_lines = text.splitlines()
-        if len(file_lines) >= safe_lines:
-            chunks = file_lines[-safe_lines:]
-            used_path = path
-            break
-        chunks = file_lines + chunks
-        used_path = path
-        if len(chunks) >= safe_lines:
-            chunks = chunks[-safe_lines:]
-            break
+        if text.strip():
+            all_lines.extend(text.splitlines())
 
-    if not chunks:
-        main_path = directory / f"{service}.log"
+    if not all_lines:
         return f"(log empty or missing: {main_path})", main_path if main_path.exists() else None
 
-    return "\n".join(chunks), used_path
+    used_path = main_path if main_path.exists() else candidates[-1]
+    return "\n".join(all_lines[-safe_lines:]), used_path

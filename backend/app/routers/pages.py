@@ -14,7 +14,7 @@ from app.config import settings
 from app.customs_vin import CustomsVinError, lookup_customs_vin, normalize_vin, report_rows, vin_is_valid
 from app.avby_accounts import list_active_vin_accounts, serialize_account_public
 from app.db import get_db
-from app.logging_setup import LOG_SERVICES, log_dir, tail_log
+from app.logging_setup import LOG_SERVICES, LOG_SERVICE_LABELS, log_dir, tail_log
 from app.listing_enrichment import build_listing_customs_map, get_listing_customs_summary
 from app.listing_catalog_link import (
     canonical_model_name as _canonical_model_name,
@@ -2151,11 +2151,7 @@ def admin_logs_page(
         service = "api"
     content, path = tail_log(service, lines=lines)
 
-    services = [
-        {"id": "api", "label": "API (uvicorn)"},
-        {"id": "avby-sync", "label": "Парсинг av.by"},
-        {"id": "avby-vin-session", "label": "VIN session keeper"},
-    ]
+    services = [{"id": service_id, "label": LOG_SERVICE_LABELS[service_id]} for service_id in LOG_SERVICES]
     context = _template_context(request, current_user)
     context.update(
         {

@@ -15,7 +15,7 @@ from app.avby_accounts import (
 from app.avby_session import AvbySessionError, get_avby_session
 from app.avby_vin import AvbyVinError, get_or_fetch_listing_vin
 from app.db import get_db
-from app.deps import require_admin
+from app.deps import require_admin, require_admin_flexible
 from app.logging_setup import LOG_SERVICES, log_dir, tail_log
 from app.models import AvbyServiceAccount, CarListing, User
 from app.schemas import (
@@ -38,7 +38,7 @@ router = APIRouter(prefix="/api/v1/admin", tags=["admin"])
 def tail_application_logs(
     service: str = Query(default="api"),
     lines: int = Query(default=200, ge=10, le=2000),
-    _: User = Depends(require_admin),
+    _: User = Depends(require_admin_flexible),
 ):
     if service not in LOG_SERVICES:
         raise HTTPException(status_code=400, detail=f"Unknown service. Allowed: {', '.join(LOG_SERVICES)}")

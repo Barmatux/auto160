@@ -36,8 +36,9 @@
 </form>
 
 <p class="hint" id="log-meta">
-  {% if log_path %}Источник: {{ log_path }}{% else %}Лог пока пуст{% endif %}
-  · {{ fetched_at }}
+  <span id="log-meta-source">{% if log_path %}Источник: {{ log_path }}{% else %}Лог пока пуст{% endif %}</span>
+  · <span id="log-meta-time">{{ fetched_at }}</span>
+  <span id="log-refresh-status"></span>
 </p>
 
 <pre class="admin-log-view" id="log-output">{{ log_content }}</pre>
@@ -59,27 +60,42 @@
     }
     const response = await fetch(url, {
       ...options,
+      credentials: "same-origin",
       headers: {
-        "Authorization": `Bearer ${token}`,
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...(options.headers || {}),
       },
     });
     if (response.status === 401) {
       const refreshed = await refreshAccessTokenIfNeeded();
       if (refreshed) return adminFetch(url, options);
+      window.location.href = "/login";
+      return null;
     }
     return response;
+  }
+
+  function setRefreshStatus(text, isError = false) {
+    const el = document.getElementById("log-refresh-status");
+    el.textContent = text ? ` · ${text}` : "";
+    el.style.color = isError ? "#c0392b" : "";
   }
 
   async function refreshLogs() {
     const service = document.getElementById("log-service").value;
     const lines = document.getElementById("log-lines").value;
     const response = await adminFetch(`/api/v1/admin/logs?service=${encodeURIComponent(service)}&lines=${lines}`);
-    if (!response || !response.ok) return;
+    if (!response) return;
+    if (!response.ok) {
+      setRefreshStatus(`ошибка обновления (${response.status})`, true);
+      return;
+    }
     const data = await response.json();
     document.getElementById("log-output").textContent = data.content || "";
-    document.getElementById("log-meta").textContent =
-      `${data.path ? "Источник: " + data.path : "Лог пуст"} · ${data.fetched_at}`;
+    document.getElementById("log-meta-source").textContent =
+      data.path ? `Источник: ${data.path}` : "Лог пуст";
+    document.getElementById("log-meta-time").textContent = data.fetched_at;
+    setRefreshStatus("обновлено");
   }
 
   function syncAutoRefresh() {
@@ -93,6 +109,8 @@
   }
 
   document.getElementById("auto-refresh").addEventListener("change", syncAutoRefresh);
+  document.getElementById("log-service").addEventListener("change", refreshLogs);
   syncAutoRefresh();
+  refreshLogs();
 </script>
 {% endblock %}
