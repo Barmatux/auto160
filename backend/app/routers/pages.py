@@ -17,6 +17,7 @@ from app.avby_accounts import list_active_vin_accounts, serialize_account_public
 from app.db import get_db
 from app.logging_setup import LOG_SERVICES, LOG_SERVICE_LABELS, format_log_time, log_dir, log_timezone, tail_log
 from app.metrics import yandex_metrika_context
+from app.listing_enrichment import build_listing_customs_map, get_listing_customs_summary
 from app.listing_catalog_link import (
     canonical_model_name as _canonical_model_name,
     fetch_listings_for_catalog_items,
