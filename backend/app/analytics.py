@@ -17,6 +17,8 @@ from app.security import decode_token, is_token_revoked
 
 from app.visitor_labels import classify_visitor, event_actor_label
 
+logger = logging.getLogger(__name__)
+
 SESSION_COOKIE = "auto160_sid"
 SESSION_MAX_AGE = 60 * 60 * 24 * 365
 
