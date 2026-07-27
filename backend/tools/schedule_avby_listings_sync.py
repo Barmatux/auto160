@@ -3,16 +3,36 @@ import logging
 import subprocess
 import sys
 import time
+from datetime import UTC, datetime
 from pathlib import Path
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
+from app.db import SessionLocal
 from app.logging_setup import setup_logging
+from app.models import AvbySyncRun
 
 IMPORTER_PATH = ROOT_DIR / "tools" / "import_avby_listings.py"
 logger = logging.getLogger(__name__)
+
+
+def _fail_stale_running_runs() -> None:
+    db = SessionLocal()
+    try:
+        stale = db.query(AvbySyncRun).filter(AvbySyncRun.status == "running").all()
+        if not stale:
+            return
+        now = datetime.now(UTC).replace(tzinfo=None)
+        for run in stale:
+            run.status = "failed"
+            run.finished_at = now
+            run.error_message = "Interrupted: scheduler restarted"
+        db.commit()
+        logger.warning("marked %s stale sync run(s) as failed", len(stale))
+    finally:
+        db.close()
 
 
 def run_once(
@@ -66,6 +86,7 @@ def run_once(
 
 def main() -> None:
     setup_logging("avby-sync")
+    _fail_stale_running_runs()
     parser = argparse.ArgumentParser(description="Run AV.BY listings sync on a fixed interval")
     parser.add_argument("--interval-minutes", type=int, default=20, help="Sync interval in minutes")
     parser.add_argument("--max-hp", type=int, default=160, help="engine_power_hp[max] filter")

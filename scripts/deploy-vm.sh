@@ -24,6 +24,9 @@ if [[ ! -f "$ENV_FILE" ]]; then
   exit 1
 fi
 
+echo "==> Remove stale compose containers (name conflicts after partial deploys)"
+docker ps -a --format '{{.Names}}' | grep '_auto160-' | xargs -r docker rm -f || true
+
 echo "==> Rebuild and restart containers"
 docker compose --env-file .env.vm -f docker-compose.vm.yml up --build -d --remove-orphans
 
