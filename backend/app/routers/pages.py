@@ -22,6 +22,7 @@ from app.listing_catalog_link import (
     canonical_model_name as _canonical_model_name,
     fetch_listings_for_catalog_items,
     find_best_catalog_item as _match_catalog_item_for_listing,
+    normalize_match_text,
     resolve_catalog_items_for_listings,
     score_listing_catalog_match,
 )
@@ -471,6 +472,53 @@ def _make_model_map(db: Session) -> dict[str, list[str]]:
     return mapping
 
 
+def _make_model_generation_map(db: Session) -> dict[str, dict[str, list[str]]]:
+    rows = (
+        db.query(CatalogItem.make, CatalogItem.model, CatalogItem.generation)
+        .filter(
+            CatalogItem.make.isnot(None),
+            CatalogItem.model.isnot(None),
+            CatalogItem.generation.isnot(None),
+            CatalogItem.source_site == "av.by",
+        )
+        .distinct()
+        .order_by(CatalogItem.make.asc(), CatalogItem.model.asc(), CatalogItem.generation.asc())
+        .all()
+    )
+    mapping: dict[str, dict[str, set[str]]] = {}
+    for make, model, generation in rows:
+        if not make or not model or not generation:
+            continue
+        canonical_model = _canonical_model_name(model)
+        mapping.setdefault(make, {}).setdefault(canonical_model, set()).add(generation)
+    return {
+        make: {model: sorted(generations) for model, generations in models.items()}
+        for make, models in mapping.items()
+    }
+
+
+def _published_listing_make_models(db: Session) -> set[tuple[str, str]]:
+    rows = (
+        db.query(CarListing.brand, CarListing.model)
+        .filter(
+            CarListing.status == ListingStatus.published,
+            CarListing.brand.isnot(None),
+            CarListing.model.isnot(None),
+        )
+        .distinct()
+        .all()
+    )
+    return {
+        (normalize_match_text(brand), _canonical_model_name(model))
+        for brand, model in rows
+        if brand and model
+    }
+
+
+def _query_flag(value: str | None) -> bool:
+    return value in ("1", "true", "on")
+
+
 def _passable_year_bounds() -> tuple[int, int]:
     """Manufacture years for passable cars: age >= 3 and <= 5 years."""
     current = datetime.utcnow().year
@@ -596,13 +644,16 @@ def _catalog_sidebar_payload(request: Request, db: Session) -> dict:
         page_size = 20
     make = (query.get("make") or "").strip()
     model = _canonical_model_name(query.get("model") or "")
+    generation = (query.get("generation") or "").strip()
     make_model_map = _make_model_map(db)
-    model_options = make_model_map.get(make, []) if make else sorted({m for models in make_model_map.values() for m in models})
+    make_model_generation_map = _make_model_generation_map(db)
+    model_options = make_model_map.get(make, []) if make else []
+    generation_options = make_model_generation_map.get(make, {}).get(model, []) if make and model else []
     return {
         "filters": {
             "make": make,
             "model": model,
-            "generation": query.get("generation", ""),
+            "generation": generation,
             "body_type": query.get("body_type", ""),
             "export_country": query.get("export_country", ""),
             "fuel_type": query.get("fuel_type", ""),
@@ -611,12 +662,15 @@ def _catalog_sidebar_payload(request: Request, db: Session) -> dict:
             "year_to": parsed_year_to if parsed_year_to is not None else "",
             "sort": query.get("sort", "year_desc"),
             "page_size": page_size,
-            "passable": query.get("passable") in ("1", "true", "on"),
+            "exact_hp": _query_flag(query.get("exact_hp")),
+            "with_listings": _query_flag(query.get("with_listings")),
         },
         "options": {
             "makes": sorted(make_model_map.keys()),
             "models": model_options,
+            "generations": generation_options,
             "make_model_map": make_model_map,
+            "make_model_generation_map": make_model_generation_map,
             "body_type": _distinct_values(db, CatalogItem.body_type),
             "export_country": _distinct_values(db, CatalogItem.export_country),
             "fuel_type": _distinct_values(db, CatalogItem.fuel_type),
@@ -1006,8 +1060,6 @@ def _apply_catalog_item_filters(
     transmission: str | None,
     parsed_year_from: int | None,
     parsed_year_to: int | None,
-    *,
-    passable: bool = False,
 ):
     if make:
         query = query.filter(CatalogItem.make.ilike(f"%{make}%"))
@@ -1027,13 +1079,17 @@ def _apply_catalog_item_filters(
         query = query.filter(CatalogItem.year_from >= parsed_year_from)
     if parsed_year_to is not None:
         query = query.filter(CatalogItem.year_to <= parsed_year_to)
-    if passable:
-        query = _apply_passable_catalog_filter(query)
     return query
 
 
-def _apply_max_hp_filter(query, max_hp: int = 160):
+def _apply_hp_filter(query, *, max_hp: int = 160, exact_hp: bool = False):
+    if exact_hp:
+        return query.filter(CatalogItem.engine_power_hp == max_hp)
     return query.filter(or_(CatalogItem.engine_power_hp.is_(None), CatalogItem.engine_power_hp <= max_hp))
+
+
+def _apply_max_hp_filter(query, max_hp: int = 160):
+    return _apply_hp_filter(query, max_hp=max_hp, exact_hp=False)
 
 
 def _home_stats(db: Session) -> dict:
@@ -1310,8 +1366,11 @@ def catalog(
     db: Session = Depends(get_db),
 ):
     current_user = _resolve_user_from_request(request, db)
+    exact_hp = _query_flag(request.query_params.get("exact_hp"))
+    with_listings = _query_flag(request.query_params.get("with_listings"))
+    listing_pairs = _published_listing_make_models(db) if with_listings else None
     rows = (
-        _apply_max_hp_filter(db.query(CatalogItem))
+        _apply_hp_filter(db.query(CatalogItem), exact_hp=exact_hp)
         .filter(CatalogItem.make.isnot(None), CatalogItem.source_site == "av.by")
         .order_by(CatalogItem.make.asc(), CatalogItem.created_at.desc())
         .all()
@@ -1336,6 +1395,12 @@ def catalog(
             grouped[make]["year_to"] = item.year_to
 
     makes = sorted(grouped.values(), key=lambda m: m["make"])
+    if listing_pairs is not None:
+        makes = [
+            make_row
+            for make_row in makes
+            if any(pair[0] == normalize_match_text(make_row["make"]) for pair in listing_pairs)
+        ]
     for make in makes:
         make["models_url"] = "/catalog/models?" + urlencode({"make": make["make"]})
         make["logo_url"] = _make_logo_url(make["make"])
@@ -1354,7 +1419,10 @@ def catalog_models(
     db: Session = Depends(get_db),
 ):
     current_user = _resolve_user_from_request(request, db)
-    query = _apply_max_hp_filter(db.query(CatalogItem)).filter(
+    exact_hp = _query_flag(request.query_params.get("exact_hp"))
+    with_listings = _query_flag(request.query_params.get("with_listings"))
+    listing_pairs = _published_listing_make_models(db) if with_listings else None
+    query = _apply_hp_filter(db.query(CatalogItem), exact_hp=exact_hp).filter(
         CatalogItem.model.isnot(None), CatalogItem.source_site == "av.by"
     )
     if make:
@@ -1416,6 +1484,12 @@ def catalog_models(
             grouped[group_key]["year_to"] = item.year_to
 
     models = sorted(grouped.values(), key=lambda m: (m["make"], m["model"]))
+    if listing_pairs is not None:
+        models = [
+            model_row
+            for model_row in models
+            if (normalize_match_text(model_row["make"]), _canonical_model_name(model_row["model"])) in listing_pairs
+        ]
     generation_preview_ids: list[int] = []
     for model_item in models:
         model_item["generation_count"] = len(model_item["generations"])
@@ -1458,8 +1532,11 @@ def catalog_generations(
     db: Session = Depends(get_db),
 ):
     current_user = _resolve_user_from_request(request, db)
+    exact_hp = _query_flag(request.query_params.get("exact_hp"))
+    with_listings = _query_flag(request.query_params.get("with_listings"))
+    listing_pairs = _published_listing_make_models(db) if with_listings else None
     canonical_model = _canonical_model_name(model) if model else ""
-    query = _apply_max_hp_filter(db.query(CatalogItem)).filter(CatalogItem.source_site == "av.by")
+    query = _apply_hp_filter(db.query(CatalogItem), exact_hp=exact_hp).filter(CatalogItem.source_site == "av.by")
     if make:
         query = query.filter(CatalogItem.make == make)
     if canonical_model:
@@ -1499,6 +1576,16 @@ def catalog_generations(
         grouped.values(),
         key=lambda g: (g["make"], g["model"], -(g["year_from"] or 0), g["generation"]),
     )
+    if listing_pairs is not None:
+        generations = [
+            generation_row
+            for generation_row in generations
+            if (
+                normalize_match_text(generation_row["make"]),
+                _canonical_model_name(generation_row["model"]),
+            )
+            in listing_pairs
+        ]
     for generation_item in generations:
         params = {"make": generation_item["make"], "model": generation_item["model"]}
         if generation_item["generation"] != "Без поколения":
@@ -1540,18 +1627,16 @@ def catalog_modifications(
     transmission: str | None = Query(default=None),
     year_from: str | None = Query(default=None),
     year_to: str | None = Query(default=None),
-    passable: bool = Query(default=False),
+    exact_hp: bool = Query(default=False),
     sort: str = Query(default="year_desc"),
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=20, ge=1, le=100),
     db: Session = Depends(get_db),
 ):
     current_user = _resolve_user_from_request(request, db)
-    if make and model and not generation:
-        generation = _resolve_latest_generation(db, make, model)
     parsed_year_from = _parse_optional_year(year_from)
     parsed_year_to = _parse_optional_year(year_to)
-    query = _apply_max_hp_filter(db.query(CatalogItem))
+    query = _apply_hp_filter(db.query(CatalogItem), exact_hp=exact_hp)
     query = _apply_catalog_item_filters(
         query=query,
         make=make,
@@ -1563,7 +1648,6 @@ def catalog_modifications(
         transmission=transmission,
         parsed_year_from=parsed_year_from,
         parsed_year_to=parsed_year_to,
-        passable=passable,
     )
     query = query.filter(CatalogItem.source_site == "av.by")
     # If enriched source exists for selected generation, hide legacy duplicates.
@@ -1625,7 +1709,7 @@ def catalog_modifications(
         "transmission": transmission or "",
         "year_from": parsed_year_from if parsed_year_from is not None else "",
         "year_to": parsed_year_to if parsed_year_to is not None else "",
-        "passable": passable,
+        "exact_hp": exact_hp,
         "sort": sort,
     }
     base_params = {
@@ -1638,7 +1722,7 @@ def catalog_modifications(
         "transmission": transmission or None,
         "year_from": parsed_year_from,
         "year_to": parsed_year_to,
-        "passable": "1" if passable else None,
+        "exact_hp": "1" if exact_hp else None,
         "sort": sort if sort else None,
         "page_size": page_size,
     }
@@ -1657,13 +1741,14 @@ def catalog_modifications(
     generation_items: list[CatalogItem] = []
     canonical_model = _canonical_model_name(model or "")
     if make and canonical_model and generation and generation != "Без поколения":
-        generation_items_query = _apply_max_hp_filter(
+        generation_items_query = _apply_hp_filter(
             db.query(CatalogItem).filter(
                 CatalogItem.source_site == "av.by",
                 CatalogItem.make == make,
                 CatalogItem.model == canonical_model,
                 CatalogItem.generation == generation,
-            )
+            ),
+            exact_hp=exact_hp,
         )
         generation_items = generation_items_query.all()
         if generation_items:

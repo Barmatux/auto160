@@ -1,16 +1,8 @@
 <aside class="catalog-filters-panel catalog-sidebar">
   <h3>Фильтры</h3>
   <form class="filters filters-sidebar" method="get" action="/catalog/modifications" id="catalog-filters-form">
-    {% if catalog_sidebar.filters.make %}
-      <input type="hidden" name="make" value="{{ catalog_sidebar.filters.make }}" />
-    {% endif %}
-    {% if catalog_sidebar.filters.model %}
-      <input type="hidden" name="model" value="{{ catalog_sidebar.filters.model }}" />
-    {% endif %}
-    {% if catalog_sidebar.filters.generation %}
-      <input type="hidden" name="generation" value="{{ catalog_sidebar.filters.generation }}" />
-    {% endif %}
-    {% if not catalog_sidebar.filters.make %}
+    <div class="catalog-filter-group">
+      <p class="catalog-filter-group-title">Марка, модель, поколение</p>
       <label>
         Марка
         <select name="make" id="catalog-filter-make">
@@ -22,72 +14,90 @@
       </label>
       <label>
         Модель
-        <select name="model" id="catalog-filter-model">
+        <select name="model" id="catalog-filter-model" {% if not catalog_sidebar.filters.make %}disabled{% endif %}>
           <option value="" {% if catalog_sidebar.filters.model == "" %}selected{% endif %}>Любая</option>
           {% for value in catalog_sidebar.options.models %}
             <option value="{{ value }}" {% if catalog_sidebar.filters.model == value %}selected{% endif %}>{{ value }}</option>
           {% endfor %}
         </select>
       </label>
-    {% endif %}
-    <label>
-      Тип кузова
-      <select name="body_type">
-        <option value="" {% if catalog_sidebar.filters.body_type == "" %}selected{% endif %}>Любой</option>
-        {% for value in catalog_sidebar.options.body_type %}
-          <option value="{{ value }}" {% if catalog_sidebar.filters.body_type == value %}selected{% endif %}>{{ value }}</option>
-        {% endfor %}
-      </select>
-    </label>
-    <label>
-      Страна экспорта
-      <select name="export_country">
-        <option value="" {% if catalog_sidebar.filters.export_country == "" %}selected{% endif %}>Любая</option>
-        {% for value in catalog_sidebar.options.export_country %}
-          <option value="{{ value }}" {% if catalog_sidebar.filters.export_country == value %}selected{% endif %}>{{ value }}</option>
-        {% endfor %}
-      </select>
-    </label>
-    <label>
-      Топливо
-      <select name="fuel_type">
-        <option value="" {% if catalog_sidebar.filters.fuel_type == "" %}selected{% endif %}>Любое</option>
-        {% for value in catalog_sidebar.options.fuel_type %}
-          <option value="{{ value }}" {% if catalog_sidebar.filters.fuel_type == value %}selected{% endif %}>{{ value }}</option>
-        {% endfor %}
-      </select>
-    </label>
-    <label>
-      КПП
-      <select name="transmission">
-        <option value="" {% if catalog_sidebar.filters.transmission == "" %}selected{% endif %}>Любая</option>
-        {% for value in catalog_sidebar.options.transmission %}
-          <option value="{{ value }}" {% if catalog_sidebar.filters.transmission == value %}selected{% endif %}>{{ value }}</option>
-        {% endfor %}
-      </select>
-    </label>
-    <label>
-      Год от
-      <select name="year_from">
-        <option value="" {% if catalog_sidebar.filters.year_from == "" %}selected{% endif %}>Не важно</option>
-        {% for year in catalog_sidebar.options.years %}
-          <option value="{{ year }}" {% if catalog_sidebar.filters.year_from == year %}selected{% endif %}>{{ year }}</option>
-        {% endfor %}
-      </select>
-    </label>
-    <label>
-      Год до
-      <select name="year_to">
-        <option value="" {% if catalog_sidebar.filters.year_to == "" %}selected{% endif %}>Не важно</option>
-        {% for year in catalog_sidebar.options.years %}
-          <option value="{{ year }}" {% if catalog_sidebar.filters.year_to == year %}selected{% endif %}>{{ year }}</option>
-        {% endfor %}
-      </select>
-    </label>
-    <label class="inline-checkbox">
-      <input type="checkbox" name="passable" value="1" {% if catalog_sidebar.filters.passable %}checked{% endif %} />
-      Только проходные (от 3 до 5 лет)
-    </label>
+      <label>
+        Поколение
+        <select name="generation" id="catalog-filter-generation" {% if not catalog_sidebar.filters.model %}disabled{% endif %}>
+          <option value="" {% if catalog_sidebar.filters.generation == "" %}selected{% endif %}>Любое</option>
+          {% for value in catalog_sidebar.options.generations %}
+            <option value="{{ value }}" {% if catalog_sidebar.filters.generation == value %}selected{% endif %}>{{ value }}</option>
+          {% endfor %}
+        </select>
+      </label>
+    </div>
+
+    <div class="catalog-filter-group">
+      <p class="catalog-filter-group-title">Характеристики</p>
+      <label>
+        Тип кузова
+        <select name="body_type">
+          <option value="" {% if catalog_sidebar.filters.body_type == "" %}selected{% endif %}>Любой</option>
+          {% for value in catalog_sidebar.options.body_type %}
+            <option value="{{ value }}" {% if catalog_sidebar.filters.body_type == value %}selected{% endif %}>{{ value }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>
+        Страна экспорта
+        <select name="export_country">
+          <option value="" {% if catalog_sidebar.filters.export_country == "" %}selected{% endif %}>Любая</option>
+          {% for value in catalog_sidebar.options.export_country %}
+            <option value="{{ value }}" {% if catalog_sidebar.filters.export_country == value %}selected{% endif %}>{{ value }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>
+        Топливо
+        <select name="fuel_type">
+          <option value="" {% if catalog_sidebar.filters.fuel_type == "" %}selected{% endif %}>Любое</option>
+          {% for value in catalog_sidebar.options.fuel_type %}
+            <option value="{{ value }}" {% if catalog_sidebar.filters.fuel_type == value %}selected{% endif %}>{{ value }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>
+        КПП
+        <select name="transmission">
+          <option value="" {% if catalog_sidebar.filters.transmission == "" %}selected{% endif %}>Любая</option>
+          {% for value in catalog_sidebar.options.transmission %}
+            <option value="{{ value }}" {% if catalog_sidebar.filters.transmission == value %}selected{% endif %}>{{ value }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>
+        Год от
+        <select name="year_from">
+          <option value="" {% if catalog_sidebar.filters.year_from == "" %}selected{% endif %}>Не важно</option>
+          {% for year in catalog_sidebar.options.years %}
+            <option value="{{ year }}" {% if catalog_sidebar.filters.year_from == year %}selected{% endif %}>{{ year }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>
+        Год до
+        <select name="year_to">
+          <option value="" {% if catalog_sidebar.filters.year_to == "" %}selected{% endif %}>Не важно</option>
+          {% for year in catalog_sidebar.options.years %}
+            <option value="{{ year }}" {% if catalog_sidebar.filters.year_to == year %}selected{% endif %}>{{ year }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label class="inline-checkbox">
+        <input type="checkbox" name="exact_hp" value="1" {% if catalog_sidebar.filters.exact_hp %}checked{% endif %} />
+        Ровно 160 л.с.
+      </label>
+      <label class="inline-checkbox">
+        <input type="checkbox" name="with_listings" value="1" {% if catalog_sidebar.filters.with_listings %}checked{% endif %} />
+        Только с объявлениями в продаже
+      </label>
+    </div>
+
     <button type="submit">Применить</button>
     <a class="page-link" href="/catalog/modifications">Сбросить</a>
   </form>
@@ -96,32 +106,71 @@
   (function () {
     const makeSelect = document.getElementById("catalog-filter-make");
     const modelSelect = document.getElementById("catalog-filter-model");
-    if (!makeSelect || !modelSelect) return;
+    const generationSelect = document.getElementById("catalog-filter-generation");
+    if (!makeSelect || !modelSelect || !generationSelect) return;
+
     const modelMap = {{ catalog_sidebar.options.make_model_map | tojson }};
+    const generationMap = {{ catalog_sidebar.options.make_model_generation_map | tojson }};
     const selectedModel = {{ catalog_sidebar.filters.model | tojson }};
+    const selectedGeneration = {{ catalog_sidebar.filters.generation | tojson }};
+
+    function setDisabled(select, disabled) {
+      select.disabled = disabled;
+      if (disabled) {
+        select.value = "";
+      }
+    }
 
     function rebuildModels() {
       const make = makeSelect.value;
-      const models = make ? (modelMap[make] || []) : Object.values(modelMap).flat().sort();
-      const unique = [...new Set(models)];
+      const models = make ? (modelMap[make] || []) : [];
       modelSelect.innerHTML = "";
       const anyOpt = document.createElement("option");
       anyOpt.value = "";
       anyOpt.textContent = "Любая";
       modelSelect.appendChild(anyOpt);
-      unique.forEach((model) => {
+      models.forEach((model) => {
         const opt = document.createElement("option");
         opt.value = model;
         opt.textContent = model;
         if (model === selectedModel) opt.selected = true;
         modelSelect.appendChild(opt);
       });
+      setDisabled(modelSelect, !make);
+    }
+
+    function rebuildGenerations() {
+      const make = makeSelect.value;
+      const model = modelSelect.value;
+      const generations = make && model ? (generationMap[make]?.[model] || []) : [];
+      generationSelect.innerHTML = "";
+      const anyOpt = document.createElement("option");
+      anyOpt.value = "";
+      anyOpt.textContent = "Любое";
+      generationSelect.appendChild(anyOpt);
+      generations.forEach((generation) => {
+        const opt = document.createElement("option");
+        opt.value = generation;
+        opt.textContent = generation;
+        if (generation === selectedGeneration) opt.selected = true;
+        generationSelect.appendChild(opt);
+      });
+      setDisabled(generationSelect, !model);
     }
 
     makeSelect.addEventListener("change", () => {
       modelSelect.value = "";
+      generationSelect.value = "";
       rebuildModels();
+      rebuildGenerations();
     });
+
+    modelSelect.addEventListener("change", () => {
+      generationSelect.value = "";
+      rebuildGenerations();
+    });
+
     rebuildModels();
+    rebuildGenerations();
   })();
 </script>
