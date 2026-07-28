@@ -133,6 +133,7 @@
 
     rowsContainer.querySelectorAll(".vehicle-hierarchy-row").forEach((row) => {
       bindRow(row);
+      syncRowSelects(row, rowValues(row));
     });
 
     addButton.addEventListener("click", () => {

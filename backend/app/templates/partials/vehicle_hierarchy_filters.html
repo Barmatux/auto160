@@ -2,7 +2,7 @@
 {% set form_id = filters_form_id | default(none) %}
 <div
   class="vehicle-hierarchy-filters"
-  data-vehicle-hierarchy-config="{{ vh.config | tojson }}"
+  data-vehicle-hierarchy-config='{{ vh.config | tojson }}'
   data-make-field="{{ vh.make_field }}"
   data-model-field="{{ vh.model_field }}"
   data-generation-field="{{ vh.generation_field }}"
