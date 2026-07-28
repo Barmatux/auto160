@@ -491,18 +491,12 @@ body {
   min-width: 0;
 }
 
-.vehicle-filters-top .vehicle-hierarchy-filters {
-  background: #f1f5f9;
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 14px 16px;
-  box-shadow: var(--shadow);
+.vehicle-filters-top.catalog-filters-panel {
+  padding: 14px;
 }
 
 .vehicle-hierarchy-filters {
-  background: #f1f5f9;
-  border-radius: 12px;
-  padding: 12px;
+  min-width: 0;
 }
 
 .vehicle-hierarchy-head {
@@ -514,26 +508,26 @@ body {
 }
 
 .vehicle-hierarchy-title {
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: #0f172a;
+  margin: 0;
 }
 
 .vehicle-hierarchy-add {
   appearance: none;
-  border: none;
-  background: transparent;
-  color: #2563eb;
-  font-size: 0.92rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: var(--surface-soft);
+  color: var(--primary-dark);
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  padding: 4px 0;
+  padding: 8px 12px;
   white-space: nowrap;
+  transition: border-color 0.15s ease, background 0.15s ease;
 }
 
 .vehicle-hierarchy-add:hover {
-  color: #1d4ed8;
-  text-decoration: underline;
+  border-color: #93c5fd;
+  background: #eff6ff;
 }
 
 .vehicle-hierarchy-rows {
@@ -544,78 +538,72 @@ body {
 
 .vehicle-hierarchy-row {
   display: grid;
-  grid-template-columns: minmax(140px, 220px) minmax(140px, 220px) minmax(180px, 1fr) 32px;
-  gap: 16px;
+  grid-template-columns: minmax(140px, 1fr) minmax(140px, 1fr) minmax(180px, 1.4fr) 36px;
+  gap: 10px;
   align-items: end;
-  max-width: 960px;
-}
-
-.vehicle-filters-top .vehicle-hierarchy-row {
-  max-width: none;
 }
 
 .vehicle-hierarchy-field {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+  display: grid;
+  gap: 6px;
+  font-size: 14px;
   min-width: 0;
 }
 
 .vehicle-hierarchy-label {
-  font-size: 0.72rem;
-  color: #64748b;
+  color: inherit;
   line-height: 1.2;
 }
 
 .vehicle-hierarchy-field select {
-  appearance: none;
-  border: none;
-  border-bottom: 1px solid #cbd5e1;
-  background: transparent;
-  color: #2563eb;
-  font-size: 0.9rem;
-  font-weight: 500;
-  padding: 4px 20px 6px 0;
   width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 8px;
+  background: var(--surface-soft);
+  color: inherit;
+  font-size: 14px;
+  font-weight: 400;
   cursor: pointer;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%232563eb' d='M3 4.5 6 7.5 9 4.5'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 2px center;
-  text-overflow: ellipsis;
 }
 
 .vehicle-hierarchy-field select:disabled {
-  opacity: 0.45;
+  opacity: 0.55;
   cursor: not-allowed;
-  color: #64748b;
 }
 
 .vehicle-hierarchy-field select:focus {
-  outline: none;
-  border-bottom-color: #3b82f6;
+  outline: 2px solid #bfdbfe;
+  border-color: #60a5fa;
 }
 
 .vehicle-hierarchy-remove {
   appearance: none;
-  border: none;
-  background: transparent;
-  color: #94a3b8;
-  font-size: 1.25rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: var(--surface-soft);
+  color: #64748b;
+  font-size: 1.1rem;
   line-height: 1;
   cursor: pointer;
-  padding: 0 0 6px;
+  width: 36px;
+  height: 36px;
+  padding: 0;
   align-self: end;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
 }
 
 .vehicle-hierarchy-remove:hover {
-  color: #64748b;
+  border-color: #fca5a5;
+  background: #fef2f2;
+  color: #b91c1c;
 }
 
 @media (max-width: 900px) {
   .vehicle-hierarchy-row {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.2fr) 28px;
-    gap: 10px;
-    max-width: none;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.2fr) 36px;
   }
 }
 
