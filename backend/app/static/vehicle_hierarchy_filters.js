@@ -3,142 +3,142 @@
     if (!root || root.dataset.vhInit === "1") return;
     root.dataset.vhInit = "1";
 
-    const makeInput = root.querySelector('[data-tier-input="make"]');
-    const modelInput = root.querySelector('[data-tier-input="model"]');
-    const generationInput = root.querySelector('[data-tier-input="generation"]');
-    const makeChip = root.querySelector('[data-tier-chip="make"]');
-    const modelChip = root.querySelector('[data-tier-chip="model"]');
-    const generationChip = root.querySelector('[data-tier-chip="generation"]');
-    const panel = root.querySelector(".vehicle-filter-panel");
-    const panelTitle = root.querySelector(".vehicle-filter-panel-title");
-    const panelOptions = root.querySelector(".vehicle-filter-options");
-    const panelClose = root.querySelector(".vehicle-filter-panel-close");
+    const makeField = root.dataset.makeField || "make";
+    const modelField = root.dataset.modelField || "model";
+    const generationField = root.dataset.generationField || "generation";
+    const rowsContainer = root.querySelector(".vehicle-hierarchy-rows");
+    const addButton = root.querySelector(".vehicle-hierarchy-add");
 
-    const labels = config.labels || {};
+    const labels = { make: "Марка", model: "Модель", generation: "Поколение" };
     const modelMap = config.modelMap || {};
     const generationMap = config.generationMap || {};
+    const makes = (config.makes || []).slice().sort((a, b) => a.localeCompare(b, "ru"));
 
-    let activeTier = null;
-
-    function tierValue(tier) {
-      if (tier === "make") return makeInput.value;
-      if (tier === "model") return modelInput.value;
-      return generationInput.value;
+    function rowValues(row) {
+      return {
+        make: row.querySelector('[data-tier="make"]')?.value || "",
+        model: row.querySelector('[data-tier="model"]')?.value || "",
+        generation: row.querySelector('[data-tier="generation"]')?.value || "",
+      };
     }
 
-    function setTierValue(tier, value) {
-      if (tier === "make") makeInput.value = value;
-      else if (tier === "model") modelInput.value = value;
-      else generationInput.value = value;
-    }
-
-    function chipLabel(tier) {
-      const label = labels[tier] || tier;
-      const value = tierValue(tier);
-      return value ? label + " " + value : label;
-    }
-
-    function updateChips() {
-      makeChip.textContent = chipLabel("make");
-      modelChip.textContent = chipLabel("model");
-      generationChip.textContent = chipLabel("generation");
-
-      const hasMake = Boolean(makeInput.value);
-      const hasModel = Boolean(modelInput.value);
-
-      modelChip.disabled = !hasMake;
-      generationChip.disabled = !hasModel;
-
-      makeChip.classList.toggle("is-active", Boolean(makeInput.value));
-      modelChip.classList.toggle("is-active", Boolean(modelInput.value));
-      generationChip.classList.toggle("is-active", Boolean(generationInput.value));
-      modelChip.classList.toggle("is-muted", !hasMake);
-      generationChip.classList.toggle("is-muted", !hasModel);
-    }
-
-    function optionsForTier(tier) {
-      if (tier === "make") {
-        return (config.makes || []).slice().sort((a, b) => a.localeCompare(b, "ru"));
-      }
-      if (tier === "model") {
-        const make = makeInput.value;
-        return make ? (modelMap[make] || []).slice() : [];
-      }
-      if (tier === "generation") {
-        const make = makeInput.value;
-        const model = modelInput.value;
-        return make && model ? (generationMap[make]?.[model] || []).slice() : [];
-      }
-      return [];
-    }
-
-    function closePanel() {
-      activeTier = null;
-      panel.hidden = true;
-      root.classList.remove("is-panel-open");
-    }
-
-    function openPanel(tier) {
-      if (tier === "model" && !makeInput.value) return;
-      if (tier === "generation" && !modelInput.value) return;
-      activeTier = tier;
-      panel.hidden = false;
-      root.classList.add("is-panel-open");
-      panelTitle.textContent = labels[tier] || tier;
-      panelOptions.innerHTML = "";
-
-      const anyBtn = document.createElement("button");
-      anyBtn.type = "button";
-      anyBtn.className = "vehicle-filter-option vehicle-filter-option-any";
-      anyBtn.textContent = tier === "generation" ? "Любое" : "Любая";
-      anyBtn.addEventListener("click", () => {
-        setTierValue(tier, "");
-        if (tier === "make") {
-          modelInput.value = "";
-          generationInput.value = "";
-        } else if (tier === "model") {
-          generationInput.value = "";
-        }
-        updateChips();
-        closePanel();
+    function fillSelect(select, options, placeholder, selected) {
+      select.innerHTML = "";
+      const empty = document.createElement("option");
+      empty.value = "";
+      empty.textContent = placeholder;
+      select.appendChild(empty);
+      options.forEach((value) => {
+        const option = document.createElement("option");
+        option.value = value;
+        option.textContent = value;
+        if (value === selected) option.selected = true;
+        select.appendChild(option);
       });
-      panelOptions.appendChild(anyBtn);
+    }
 
-      optionsForTier(tier).forEach((optionValue) => {
-        const btn = document.createElement("button");
-        btn.type = "button";
-        btn.className = "vehicle-filter-option";
-        if (optionValue === tierValue(tier)) btn.classList.add("is-selected");
-        btn.textContent = optionValue;
-        btn.addEventListener("click", () => {
-          setTierValue(tier, optionValue);
-          if (tier === "make") {
-            modelInput.value = "";
-            generationInput.value = "";
-          } else if (tier === "model") {
-            generationInput.value = "";
-          }
-          updateChips();
-          closePanel();
+    function syncRowSelects(row, values) {
+      const makeSelect = row.querySelector('[data-tier="make"]');
+      const modelSelect = row.querySelector('[data-tier="model"]');
+      const generationSelect = row.querySelector('[data-tier="generation"]');
+
+      fillSelect(makeSelect, makes, labels.make, values.make);
+
+      const models = values.make ? (modelMap[values.make] || []).slice() : [];
+      fillSelect(modelSelect, models, labels.model, values.model);
+      modelSelect.disabled = !values.make;
+
+      const generations =
+        values.make && values.model
+          ? (generationMap[values.make]?.[values.model] || []).slice()
+          : [];
+      fillSelect(generationSelect, generations, labels.generation, values.generation);
+      generationSelect.disabled = !values.model;
+    }
+
+    function createRow(values) {
+      values = values || { make: "", model: "", generation: "" };
+      const row = document.createElement("div");
+      row.className = "vehicle-hierarchy-row";
+      row.innerHTML =
+        '<label class="vehicle-hierarchy-field">' +
+        '<span class="vehicle-hierarchy-label">' +
+        labels.make +
+        "</span>" +
+        '<select name="' +
+        makeField +
+        '" data-tier="make"></select>' +
+        "</label>" +
+        '<label class="vehicle-hierarchy-field">' +
+        '<span class="vehicle-hierarchy-label">' +
+        labels.model +
+        "</span>" +
+        '<select name="' +
+        modelField +
+        '" data-tier="model"></select>' +
+        "</label>" +
+        '<label class="vehicle-hierarchy-field">' +
+        '<span class="vehicle-hierarchy-label">' +
+        labels.generation +
+        "</span>" +
+        '<select name="' +
+        generationField +
+        '" data-tier="generation"></select>' +
+        "</label>" +
+        '<button type="button" class="vehicle-hierarchy-remove" aria-label="Удалить строку">×</button>';
+
+      syncRowSelects(row, values);
+      bindRow(row);
+      return row;
+    }
+
+    function bindRow(row) {
+      const makeSelect = row.querySelector('[data-tier="make"]');
+      const modelSelect = row.querySelector('[data-tier="model"]');
+      const generationSelect = row.querySelector('[data-tier="generation"]');
+      const removeButton = row.querySelector(".vehicle-hierarchy-remove");
+
+      makeSelect.addEventListener("change", () => {
+        syncRowSelects(row, { make: makeSelect.value, model: "", generation: "" });
+      });
+
+      modelSelect.addEventListener("change", () => {
+        syncRowSelects(row, {
+          make: makeSelect.value,
+          model: modelSelect.value,
+          generation: "",
         });
-        panelOptions.appendChild(btn);
+      });
+
+      removeButton.addEventListener("click", () => {
+        const rows = rowsContainer.querySelectorAll(".vehicle-hierarchy-row");
+        if (rows.length <= 1) {
+          syncRowSelects(row, { make: "", model: "", generation: "" });
+          return;
+        }
+        row.remove();
       });
     }
 
-    makeChip.addEventListener("click", () => openPanel("make"));
-    modelChip.addEventListener("click", () => openPanel("model"));
-    generationChip.addEventListener("click", () => openPanel("generation"));
-    panelClose.addEventListener("click", closePanel);
-
-    document.addEventListener("click", (event) => {
-      if (!root.contains(event.target)) closePanel();
+    rowsContainer.querySelectorAll(".vehicle-hierarchy-row").forEach((row) => {
+      bindRow(row);
     });
 
-    document.addEventListener("keydown", (event) => {
-      if (event.key === "Escape") closePanel();
+    addButton.addEventListener("click", () => {
+      rowsContainer.appendChild(createRow());
     });
 
-    updateChips();
+    const form = root.closest("form");
+    if (form) {
+      form.addEventListener("submit", () => {
+        rowsContainer.querySelectorAll(".vehicle-hierarchy-row").forEach((row) => {
+          const values = rowValues(row);
+          if (!values.make && !values.model && !values.generation) {
+            row.remove();
+          }
+        });
+      });
+    }
   }
 
   window.initVehicleHierarchyFilters = initVehicleHierarchyFilters;

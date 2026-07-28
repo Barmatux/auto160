@@ -584,6 +584,7 @@ def _listings_filters_payload(request: Request, db: Session, *, published_only: 
     brand = (query.get("brand") or "").strip()
     model = _canonical_model_name(query.get("model") or "")
     generation = (query.get("generation") or "").strip()
+    vehicle_rows = _parse_vehicle_filter_rows(query, make_key="brand", model_key="model", generation_key="generation")
     brand_model_map = _merged_listing_brand_model_map(db, published_only=published_only)
     brand_model_generation_map = _make_model_generation_map(db)
     model_options = brand_model_map.get(brand, []) if brand else []
@@ -619,9 +620,7 @@ def _listings_filters_payload(request: Request, db: Session, *, published_only: 
             make_field="brand",
             model_field="model",
             generation_field="generation",
-            make=brand,
-            model=model,
-            generation=generation,
+            rows=vehicle_rows,
             make_model_map=brand_model_map,
             make_model_generation_map=brand_model_generation_map,
         ),
@@ -658,14 +657,94 @@ def _merged_listing_brand_model_map(db: Session, *, published_only: bool = True)
     return {brand: sorted(models) for brand, models in merged.items()}
 
 
+def _parse_vehicle_filter_rows(
+    query_params,
+    *,
+    make_key: str = "make",
+    model_key: str = "model",
+    generation_key: str = "generation",
+) -> list[dict[str, str]]:
+    makes = list(query_params.getlist(make_key))
+    models = list(query_params.getlist(model_key))
+    generations = list(query_params.getlist(generation_key))
+    if not makes and not models and not generations:
+        return [{"make": "", "model": "", "generation": ""}]
+    count = max(len(makes), len(models), len(generations))
+    rows: list[dict[str, str]] = []
+    for index in range(count):
+        make = (makes[index] if index < len(makes) else "").strip()
+        model = _canonical_model_name(models[index] if index < len(models) else "")
+        generation = (generations[index] if index < len(generations) else "").strip()
+        if make or model or generation:
+            rows.append({"make": make, "model": model, "generation": generation})
+    if not rows:
+        return [{"make": "", "model": "", "generation": ""}]
+    return rows
+
+
+def _vehicle_rows_to_query_pairs(
+    rows: list[dict[str, str]],
+    *,
+    make_key: str,
+    model_key: str,
+    generation_key: str,
+) -> list[tuple[str, str]]:
+    pairs: list[tuple[str, str]] = []
+    for row in rows:
+        if not (row.get("make") or row.get("model") or row.get("generation")):
+            continue
+        pairs.append((make_key, row.get("make") or ""))
+        pairs.append((model_key, row.get("model") or ""))
+        pairs.append((generation_key, row.get("generation") or ""))
+    return pairs
+
+
+def _apply_catalog_vehicle_rows_filter(query, rows: list[dict[str, str]]):
+    active_rows = [row for row in rows if row.get("make") or row.get("model") or row.get("generation")]
+    if not active_rows:
+        return query
+    conditions = []
+    for row in active_rows:
+        parts = []
+        if row.get("make"):
+            parts.append(CatalogItem.make.ilike(f"%{row['make']}%"))
+        if row.get("model"):
+            parts.append(CatalogItem.model == row["model"])
+        if row.get("generation"):
+            parts.append(CatalogItem.generation == row["generation"])
+        if parts:
+            conditions.append(and_(*parts))
+    if not conditions:
+        return query
+    return query.filter(or_(*conditions))
+
+
+def _apply_listing_vehicle_rows_filter(query, rows: list[dict[str, str]]):
+    active_rows = [row for row in rows if row.get("make") or row.get("model") or row.get("generation")]
+    if not active_rows:
+        return query
+    conditions = []
+    for row in active_rows:
+        parts = []
+        if row.get("make"):
+            parts.append(CarListing.brand == row["make"])
+        if row.get("model"):
+            parts.append(CarListing.model.ilike(row["model"]))
+        if row.get("generation"):
+            parts.append(CarListing.generation == row["generation"])
+        if parts:
+            conditions.append(and_(*parts))
+    if not conditions:
+        return query
+    return query.filter(or_(*conditions))
+
+
 def _build_vehicle_hierarchy_payload(
     *,
     make_field: str,
     model_field: str,
     generation_field: str,
-    make: str,
-    model: str,
-    generation: str,
+    rows: list[dict[str, str]],
     make_model_map: dict[str, list[str]],
     make_model_generation_map: dict[str, dict[str, list[str]]],
 ) -> dict:
@@ -673,10 +752,9 @@ def _build_vehicle_hierarchy_payload(
         "make_field": make_field,
         "model_field": model_field,
         "generation_field": generation_field,
-        "filters": {"make": make, "model": model, "generation": generation},
+        "rows": rows,
         "labels": {"make": "Марка", "model": "Модель", "generation": "Поколение"},
         "config": {
-            "labels": {"make": "Марка", "model": "Модель", "generation": "Поколение"},
             "makes": sorted(make_model_map.keys()),
             "modelMap": make_model_map,
             "generationMap": make_model_generation_map,
@@ -696,6 +774,7 @@ def _catalog_sidebar_payload(request: Request, db: Session) -> dict:
     make = (query.get("make") or "").strip()
     model = _canonical_model_name(query.get("model") or "")
     generation = (query.get("generation") or "").strip()
+    vehicle_rows = _parse_vehicle_filter_rows(query, make_key="make", model_key="model", generation_key="generation")
     make_model_map = _make_model_map(db)
     make_model_generation_map = _make_model_generation_map(db)
     model_options = make_model_map.get(make, []) if make else []
@@ -732,9 +811,7 @@ def _catalog_sidebar_payload(request: Request, db: Session) -> dict:
             make_field="make",
             model_field="model",
             generation_field="generation",
-            make=make,
-            model=model,
-            generation=generation,
+            rows=vehicle_rows,
             make_model_map=make_model_map,
             make_model_generation_map=make_model_generation_map,
         ),
@@ -1112,22 +1189,27 @@ def _dedupe_modifications(items: list[CatalogItem]) -> list[CatalogItem]:
 
 def _apply_catalog_item_filters(
     query,
-    make: str | None,
-    model: str | None,
-    generation: str | None,
-    body_type: str | None,
-    export_country: str | None,
-    fuel_type: str | None,
-    transmission: str | None,
-    parsed_year_from: int | None,
-    parsed_year_to: int | None,
+    *,
+    vehicle_rows: list[dict[str, str]] | None = None,
+    make: str | None = None,
+    model: str | None = None,
+    generation: str | None = None,
+    body_type: str | None = None,
+    export_country: str | None = None,
+    fuel_type: str | None = None,
+    transmission: str | None = None,
+    parsed_year_from: int | None = None,
+    parsed_year_to: int | None = None,
 ):
-    if make:
-        query = query.filter(CatalogItem.make.ilike(f"%{make}%"))
-    if model:
-        query = query.filter(CatalogItem.model == _canonical_model_name(model))
-    if generation:
-        query = query.filter(CatalogItem.generation == generation)
+    if vehicle_rows:
+        query = _apply_catalog_vehicle_rows_filter(query, vehicle_rows)
+    else:
+        if make:
+            query = query.filter(CatalogItem.make.ilike(f"%{make}%"))
+        if model:
+            query = query.filter(CatalogItem.model == _canonical_model_name(model))
+        if generation:
+            query = query.filter(CatalogItem.generation == generation)
     if body_type:
         query = query.filter(CatalogItem.body_type.ilike(f"%{body_type}%"))
     if export_country:
@@ -1253,9 +1335,6 @@ def sitemap_xml(request: Request, db: Session = Depends(get_db)):
 @router.get("/listings")
 def listings_page(
     request: Request,
-    brand: str | None = Query(default=None),
-    model: str | None = Query(default=None),
-    generation: str | None = Query(default=None),
     city: str | None = Query(default=None),
     body_type: str | None = Query(default=None),
     engine_type: str | None = Query(default=None),
@@ -1270,6 +1349,7 @@ def listings_page(
     db: Session = Depends(get_db),
 ):
     current_user = _resolve_user_from_request(request, db)
+    vehicle_rows = _parse_vehicle_filter_rows(request.query_params, make_key="brand", model_key="model", generation_key="generation")
     parsed_year_from = _parse_optional_year(year_from)
     parsed_year_to = _parse_optional_year(year_to)
     query = db.query(CarListing)
@@ -1277,12 +1357,7 @@ def listings_page(
     if not is_admin:
         query = query.filter(CarListing.status == ListingStatus.published)
 
-    if brand:
-        query = query.filter(CarListing.brand == brand)
-    if model:
-        query = query.filter(CarListing.model.ilike(_canonical_model_name(model)))
-    if generation:
-        query = query.filter(CarListing.generation == generation)
+    query = _apply_listing_vehicle_rows_filter(query, vehicle_rows)
     if city:
         query = query.filter(CarListing.city == city)
     if body_type:
@@ -1327,9 +1402,6 @@ def listings_page(
     context["listings_filters"] = _listings_filters_payload(request, db, published_only=not is_admin)
 
     query_params = {
-        "brand": brand or None,
-        "model": model or None,
-        "generation": generation or None,
         "city": city or None,
         "body_type": body_type or None,
         "engine_type": engine_type or None,
@@ -1343,9 +1415,12 @@ def listings_page(
     }
 
     def build_page_url(page_num: int) -> str:
-        params = {k: v for k, v in query_params.items() if v not in (None, "")}
-        params["page"] = page_num
-        return "/listings?" + urlencode(params)
+        pairs = _vehicle_rows_to_query_pairs(vehicle_rows, make_key="brand", model_key="model", generation_key="generation")
+        for key, value in query_params.items():
+            if value not in (None, ""):
+                pairs.append((key, str(value)))
+        pairs.append(("page", str(page_num)))
+        return "/listings?" + urlencode(pairs)
 
     context["prev_url"] = build_page_url(page - 1) if context["has_prev"] else None
     context["next_url"] = build_page_url(page + 1) if context["has_next"] else None
@@ -1683,9 +1758,6 @@ def catalog_generations(
 @router.get("/catalog/modifications")
 def catalog_modifications(
     request: Request,
-    make: str | None = Query(default=None),
-    model: str | None = Query(default=None),
-    generation: str | None = Query(default=None),
     body_type: str | None = Query(default=None),
     export_country: str | None = Query(default=None),
     fuel_type: str | None = Query(default=None),
@@ -1699,14 +1771,17 @@ def catalog_modifications(
     db: Session = Depends(get_db),
 ):
     current_user = _resolve_user_from_request(request, db)
+    vehicle_rows = _parse_vehicle_filter_rows(request.query_params)
+    primary_row = vehicle_rows[0] if vehicle_rows else {"make": "", "model": "", "generation": ""}
+    make = primary_row.get("make") or None
+    model = primary_row.get("model") or None
+    generation = primary_row.get("generation") or None
     parsed_year_from = _parse_optional_year(year_from)
     parsed_year_to = _parse_optional_year(year_to)
     query = _apply_hp_filter(db.query(CatalogItem), exact_hp=exact_hp)
     query = _apply_catalog_item_filters(
         query=query,
-        make=make,
-        model=model,
-        generation=generation,
+        vehicle_rows=vehicle_rows,
         body_type=body_type,
         export_country=export_country,
         fuel_type=fuel_type,
@@ -1765,6 +1840,7 @@ def catalog_modifications(
     context["has_prev"] = page > 1
     context["has_next"] = offset + len(items) < total
     context["filters"] = {
+        "vehicle_rows": vehicle_rows,
         "make": make or "",
         "model": model or "",
         "generation": generation or "",
@@ -1777,25 +1853,29 @@ def catalog_modifications(
         "exact_hp": exact_hp,
         "sort": sort,
     }
-    base_params = {
-        "make": make or None,
-        "model": model or None,
-        "generation": generation or None,
-        "body_type": body_type or None,
-        "export_country": export_country or None,
-        "fuel_type": fuel_type or None,
-        "transmission": transmission or None,
-        "year_from": parsed_year_from,
-        "year_to": parsed_year_to,
-        "exact_hp": "1" if exact_hp else None,
-        "sort": sort if sort else None,
-        "page_size": page_size,
-    }
 
     def build_page_url(page_num: int) -> str:
-        params = {k: v for k, v in base_params.items() if v not in (None, "")}
-        params["page"] = page_num
-        return "/catalog/modifications?" + urlencode(params)
+        pairs = _vehicle_rows_to_query_pairs(vehicle_rows, make_key="make", model_key="model", generation_key="generation")
+        if body_type:
+            pairs.append(("body_type", body_type))
+        if export_country:
+            pairs.append(("export_country", export_country))
+        if fuel_type:
+            pairs.append(("fuel_type", fuel_type))
+        if transmission:
+            pairs.append(("transmission", transmission))
+        if parsed_year_from is not None:
+            pairs.append(("year_from", str(parsed_year_from)))
+        if parsed_year_to is not None:
+            pairs.append(("year_to", str(parsed_year_to)))
+        if exact_hp:
+            pairs.append(("exact_hp", "1"))
+        if sort:
+            pairs.append(("sort", sort))
+        if page_size != 20:
+            pairs.append(("page_size", str(page_size)))
+        pairs.append(("page", str(page_num)))
+        return "/catalog/modifications?" + urlencode(pairs)
 
     context["prev_url"] = build_page_url(page - 1) if context["has_prev"] else None
     context["next_url"] = build_page_url(page + 1) if context["has_next"] else None
