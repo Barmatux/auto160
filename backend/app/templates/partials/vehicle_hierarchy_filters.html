@@ -51,4 +51,11 @@
     </div>
     {% endfor %}
   </div>
+
+  <div class="vehicle-hierarchy-actions">
+    <button type="submit" class="vehicle-hierarchy-submit"{% if form_id %} form="{{ form_id }}"{% endif %}>Показать</button>
+    {% if filters_reset_url %}
+      <a class="page-link" href="{{ filters_reset_url }}">Сбросить</a>
+    {% endif %}
+  </div>
 </div>

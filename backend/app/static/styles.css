@@ -601,6 +601,30 @@ body {
   color: #b91c1c;
 }
 
+.vehicle-hierarchy-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.vehicle-hierarchy-submit {
+  border: none;
+  border-radius: 8px;
+  background: linear-gradient(180deg, var(--primary), var(--primary-dark));
+  color: #fff;
+  padding: 10px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.vehicle-hierarchy-submit:hover {
+  opacity: 0.92;
+}
+
 @media (max-width: 900px) {
   .vehicle-hierarchy-row {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.2fr) 36px;
