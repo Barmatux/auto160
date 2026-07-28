@@ -3,33 +3,8 @@
   <form class="filters filters-sidebar" method="get" action="/catalog/modifications" id="catalog-filters-form">
     <div class="catalog-filter-group">
       <p class="catalog-filter-group-title">Марка, модель, поколение</p>
-      <label>
-        Марка
-        <select name="make" id="catalog-filter-make">
-          <option value="" {% if catalog_sidebar.filters.make == "" %}selected{% endif %}>Любая</option>
-          {% for value in catalog_sidebar.options.makes %}
-            <option value="{{ value }}" {% if catalog_sidebar.filters.make == value %}selected{% endif %}>{{ value }}</option>
-          {% endfor %}
-        </select>
-      </label>
-      <label>
-        Модель
-        <select name="model" id="catalog-filter-model" {% if not catalog_sidebar.filters.make %}disabled{% endif %}>
-          <option value="" {% if catalog_sidebar.filters.model == "" %}selected{% endif %}>Любая</option>
-          {% for value in catalog_sidebar.options.models %}
-            <option value="{{ value }}" {% if catalog_sidebar.filters.model == value %}selected{% endif %}>{{ value }}</option>
-          {% endfor %}
-        </select>
-      </label>
-      <label>
-        Поколение
-        <select name="generation" id="catalog-filter-generation" {% if not catalog_sidebar.filters.model %}disabled{% endif %}>
-          <option value="" {% if catalog_sidebar.filters.generation == "" %}selected{% endif %}>Любое</option>
-          {% for value in catalog_sidebar.options.generations %}
-            <option value="{{ value }}" {% if catalog_sidebar.filters.generation == value %}selected{% endif %}>{{ value }}</option>
-          {% endfor %}
-        </select>
-      </label>
+      {% set vehicle_hierarchy = catalog_sidebar.vehicle_hierarchy %}
+      {% include "partials/vehicle_hierarchy_filters.html" %}
     </div>
 
     <div class="catalog-filter-group">
@@ -102,75 +77,4 @@
     <a class="page-link" href="/catalog/modifications">Сбросить</a>
   </form>
 </aside>
-<script>
-  (function () {
-    const makeSelect = document.getElementById("catalog-filter-make");
-    const modelSelect = document.getElementById("catalog-filter-model");
-    const generationSelect = document.getElementById("catalog-filter-generation");
-    if (!makeSelect || !modelSelect || !generationSelect) return;
-
-    const modelMap = {{ catalog_sidebar.options.make_model_map | tojson }};
-    const generationMap = {{ catalog_sidebar.options.make_model_generation_map | tojson }};
-    const selectedModel = {{ catalog_sidebar.filters.model | tojson }};
-    const selectedGeneration = {{ catalog_sidebar.filters.generation | tojson }};
-
-    function setDisabled(select, disabled) {
-      select.disabled = disabled;
-      if (disabled) {
-        select.value = "";
-      }
-    }
-
-    function rebuildModels() {
-      const make = makeSelect.value;
-      const models = make ? (modelMap[make] || []) : [];
-      modelSelect.innerHTML = "";
-      const anyOpt = document.createElement("option");
-      anyOpt.value = "";
-      anyOpt.textContent = "Любая";
-      modelSelect.appendChild(anyOpt);
-      models.forEach((model) => {
-        const opt = document.createElement("option");
-        opt.value = model;
-        opt.textContent = model;
-        if (model === selectedModel) opt.selected = true;
-        modelSelect.appendChild(opt);
-      });
-      setDisabled(modelSelect, !make);
-    }
-
-    function rebuildGenerations() {
-      const make = makeSelect.value;
-      const model = modelSelect.value;
-      const generations = make && model ? (generationMap[make]?.[model] || []) : [];
-      generationSelect.innerHTML = "";
-      const anyOpt = document.createElement("option");
-      anyOpt.value = "";
-      anyOpt.textContent = "Любое";
-      generationSelect.appendChild(anyOpt);
-      generations.forEach((generation) => {
-        const opt = document.createElement("option");
-        opt.value = generation;
-        opt.textContent = generation;
-        if (generation === selectedGeneration) opt.selected = true;
-        generationSelect.appendChild(opt);
-      });
-      setDisabled(generationSelect, !model);
-    }
-
-    makeSelect.addEventListener("change", () => {
-      modelSelect.value = "";
-      generationSelect.value = "";
-      rebuildModels();
-      rebuildGenerations();
-    });
-
-    modelSelect.addEventListener("change", () => {
-      generationSelect.value = "";
-      rebuildGenerations();
-    });
-
-    rebuildModels();
-    rebuildGenerations();
-  })();
-</script>
+<script src="/static/vehicle_hierarchy_filters.js?v=20260728" defer></script>

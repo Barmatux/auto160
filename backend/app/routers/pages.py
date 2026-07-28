@@ -583,12 +583,16 @@ def _listings_filters_payload(request: Request, db: Session, *, published_only: 
     parsed_year_to = _parse_optional_year(query.get("year_to"))
     brand = (query.get("brand") or "").strip()
     model = _canonical_model_name(query.get("model") or "")
-    brand_model_map = _listing_brand_model_map(db, published_only=published_only)
-    model_options = brand_model_map.get(brand, []) if brand else sorted({m for models in brand_model_map.values() for m in models})
+    generation = (query.get("generation") or "").strip()
+    brand_model_map = _merged_listing_brand_model_map(db, published_only=published_only)
+    brand_model_generation_map = _make_model_generation_map(db)
+    model_options = brand_model_map.get(brand, []) if brand else []
+    generation_options = brand_model_generation_map.get(brand, {}).get(model, []) if brand and model else []
     return {
         "filters": {
             "brand": brand,
             "model": model,
+            "generation": generation,
             "city": (query.get("city") or "").strip(),
             "body_type": (query.get("body_type") or "").strip(),
             "engine_type": (query.get("engine_type") or "").strip(),
@@ -602,13 +606,25 @@ def _listings_filters_payload(request: Request, db: Session, *, published_only: 
         "options": {
             "brands": sorted(brand_model_map.keys()),
             "models": model_options,
+            "generations": generation_options,
             "brand_model_map": brand_model_map,
+            "brand_model_generation_map": brand_model_generation_map,
             "cities": _distinct_listing_values(db, CarListing.city, published_only=published_only),
             "body_type": _distinct_listing_values(db, CarListing.body_type, published_only=published_only),
             "engine_type": _distinct_listing_values(db, CarListing.engine_type, published_only=published_only),
             "transmission_type": _distinct_listing_values(db, CarListing.transmission_type, published_only=published_only),
             "years": _listing_year_options(db, published_only=published_only),
         },
+        "vehicle_hierarchy": _build_vehicle_hierarchy_payload(
+            make_field="brand",
+            model_field="model",
+            generation_field="generation",
+            make=brand,
+            model=model,
+            generation=generation,
+            make_model_map=brand_model_map,
+            make_model_generation_map=brand_model_generation_map,
+        ),
     }
 
 
@@ -631,6 +647,41 @@ def _build_listings_url(
     if not params:
         return "/listings"
     return "/listings?" + urlencode(params)
+
+
+def _merged_listing_brand_model_map(db: Session, *, published_only: bool = True) -> dict[str, list[str]]:
+    listing_map = _listing_brand_model_map(db, published_only=published_only)
+    catalog_map = _make_model_map(db)
+    merged: dict[str, set[str]] = {}
+    for brand in set(listing_map) | set(catalog_map):
+        merged[brand] = set(listing_map.get(brand, [])) | set(catalog_map.get(brand, []))
+    return {brand: sorted(models) for brand, models in merged.items()}
+
+
+def _build_vehicle_hierarchy_payload(
+    *,
+    make_field: str,
+    model_field: str,
+    generation_field: str,
+    make: str,
+    model: str,
+    generation: str,
+    make_model_map: dict[str, list[str]],
+    make_model_generation_map: dict[str, dict[str, list[str]]],
+) -> dict:
+    return {
+        "make_field": make_field,
+        "model_field": model_field,
+        "generation_field": generation_field,
+        "filters": {"make": make, "model": model, "generation": generation},
+        "labels": {"make": "Марка", "model": "Модель", "generation": "Поколение"},
+        "config": {
+            "labels": {"make": "Марка", "model": "Модель", "generation": "Поколение"},
+            "makes": sorted(make_model_map.keys()),
+            "modelMap": make_model_map,
+            "generationMap": make_model_generation_map,
+        },
+    }
 
 
 def _catalog_sidebar_payload(request: Request, db: Session) -> dict:
@@ -677,6 +728,16 @@ def _catalog_sidebar_payload(request: Request, db: Session) -> dict:
             "transmission": _distinct_values(db, CatalogItem.transmission),
             "years": _year_options(db),
         },
+        "vehicle_hierarchy": _build_vehicle_hierarchy_payload(
+            make_field="make",
+            model_field="model",
+            generation_field="generation",
+            make=make,
+            model=model,
+            generation=generation,
+            make_model_map=make_model_map,
+            make_model_generation_map=make_model_generation_map,
+        ),
     }
 
 
@@ -1194,6 +1255,7 @@ def listings_page(
     request: Request,
     brand: str | None = Query(default=None),
     model: str | None = Query(default=None),
+    generation: str | None = Query(default=None),
     city: str | None = Query(default=None),
     body_type: str | None = Query(default=None),
     engine_type: str | None = Query(default=None),
@@ -1219,6 +1281,8 @@ def listings_page(
         query = query.filter(CarListing.brand == brand)
     if model:
         query = query.filter(CarListing.model.ilike(_canonical_model_name(model)))
+    if generation:
+        query = query.filter(CarListing.generation == generation)
     if city:
         query = query.filter(CarListing.city == city)
     if body_type:
@@ -1265,6 +1329,7 @@ def listings_page(
     query_params = {
         "brand": brand or None,
         "model": model or None,
+        "generation": generation or None,
         "city": city or None,
         "body_type": body_type or None,
         "engine_type": engine_type or None,

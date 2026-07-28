@@ -486,6 +486,125 @@ body {
   font-weight: 700;
 }
 
+.vehicle-hierarchy-filters {
+  position: relative;
+}
+
+.catalog-filter-group:has(.vehicle-hierarchy-filters.is-panel-open),
+.catalog-sidebar:has(.vehicle-hierarchy-filters.is-panel-open) {
+  overflow: visible;
+  z-index: 40;
+}
+
+.vehicle-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.vehicle-filter-chip {
+  appearance: none;
+  border: 1px solid #c7d7f5;
+  background: #f8fbff;
+  color: #1e3a8a;
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: 0.92rem;
+  font-weight: 600;
+  line-height: 1.2;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.vehicle-filter-chip:hover:not(:disabled) {
+  border-color: #93c5fd;
+  background: #eff6ff;
+}
+
+.vehicle-filter-chip.is-active {
+  border-color: #3b82f6;
+  background: #dbeafe;
+}
+
+.vehicle-filter-chip.is-muted,
+.vehicle-filter-chip:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.vehicle-filter-panel {
+  position: absolute;
+  z-index: 30;
+  left: 0;
+  right: 0;
+  top: calc(100% + 8px);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.14);
+  padding: 12px;
+}
+
+.vehicle-filter-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.vehicle-filter-panel-title {
+  font-size: 0.95rem;
+  color: #1e3a8a;
+}
+
+.vehicle-filter-panel-close {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--muted, #64748b);
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+}
+
+.vehicle-filter-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  max-height: 280px;
+  overflow: auto;
+}
+
+.vehicle-filter-option {
+  appearance: none;
+  border: 1px solid var(--border);
+  background: var(--surface-soft, #f8fafc);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 0.9rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.vehicle-filter-option:hover {
+  border-color: #93c5fd;
+  background: #eff6ff;
+}
+
+.vehicle-filter-option.is-selected {
+  border-color: #3b82f6;
+  background: #dbeafe;
+  font-weight: 600;
+}
+
+.vehicle-filter-option-any {
+  grid-column: 1 / -1;
+  color: var(--muted, #64748b);
+}
+
 .make-logo {
   max-width: 150px;
   max-height: 56px;

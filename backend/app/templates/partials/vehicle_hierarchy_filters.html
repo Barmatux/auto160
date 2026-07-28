@@ -1,0 +1,23 @@
+{% set vh = vehicle_hierarchy %}
+<div
+  class="vehicle-hierarchy-filters"
+  data-vehicle-hierarchy-config="{{ vh.config | tojson }}"
+>
+  <input type="hidden" name="{{ vh.make_field }}" value="{{ vh.filters.make }}" data-tier-input="make" />
+  <input type="hidden" name="{{ vh.model_field }}" value="{{ vh.filters.model }}" data-tier-input="model" />
+  <input type="hidden" name="{{ vh.generation_field }}" value="{{ vh.filters.generation }}" data-tier-input="generation" />
+
+  <div class="vehicle-filter-bar">
+    <button type="button" class="vehicle-filter-chip" data-tier-chip="make">{{ vh.labels.make }}{% if vh.filters.make %} {{ vh.filters.make }}{% endif %}</button>
+    <button type="button" class="vehicle-filter-chip{% if not vh.filters.make %} is-muted{% endif %}" data-tier-chip="model"{% if not vh.filters.make %} disabled{% endif %}>{{ vh.labels.model }}{% if vh.filters.model %} {{ vh.filters.model }}{% endif %}</button>
+    <button type="button" class="vehicle-filter-chip{% if not vh.filters.model %} is-muted{% endif %}" data-tier-chip="generation"{% if not vh.filters.model %} disabled{% endif %}>{{ vh.labels.generation }}{% if vh.filters.generation %} {{ vh.filters.generation }}{% endif %}</button>
+  </div>
+
+  <div class="vehicle-filter-panel" hidden>
+    <div class="vehicle-filter-panel-head">
+      <strong class="vehicle-filter-panel-title"></strong>
+      <button type="button" class="vehicle-filter-panel-close" aria-label="Закрыть">×</button>
+    </div>
+    <div class="vehicle-filter-options"></div>
+  </div>
+</div>
