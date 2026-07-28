@@ -12,15 +12,17 @@
     <p class="hint">Найдено марок: {{ total }}</p>
 
     {% if makes %}
-      <div class="catalog-makes-grid">
+      <div class="catalog">
         {% for item in makes %}
-          <a class="catalog-make-logo-card" href="{{ item.models_url }}" aria-label="{{ item.make }}">
-            {% if item.logo_url %}
-              <img class="make-logo" src="{{ item.logo_url }}" alt="{{ item.make }}" loading="lazy" />
-            {% else %}
-              <span class="catalog-make-fallback">{{ item.make[:1] }}</span>
-            {% endif %}
-          </a>
+          <article class="listing-card catalog-make-card">
+            <a class="make-logo-wrap" href="{{ item.models_url }}" aria-label="{{ item.make }}">
+              {% if item.logo_url %}
+                <img class="make-logo" src="{{ item.logo_url }}" alt="{{ item.make }}" loading="lazy" />
+              {% else %}
+                <span class="catalog-make-fallback">{{ item.make[:1] }}</span>
+              {% endif %}
+            </a>
+          </article>
         {% endfor %}
       </div>
     {% else %}
