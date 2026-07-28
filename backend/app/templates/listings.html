@@ -46,12 +46,12 @@
               {% if listing.source_url %}
                 <p class="hint">Источник: <a href="{{ listing.source_url }}" target="_blank" rel="noopener">av.by</a></p>
               {% endif %}
+              {% with customs=listing_customs_map.get(listing.id) %}
+                {% include "partials/listing_customs_info.html" %}
+              {% endwith %}
               {% if is_admin %}
                 <p><strong>Статус:</strong> {{ listing.status.value }}</p>
                 {% include "partials/listing_vin_admin.html" %}
-                {% with customs=listing_customs_map.get(listing.id) %}
-                  {% include "partials/listing_customs_admin.html" %}
-                {% endwith %}
               {% endif %}
               <div class="actions-row">
                 <a href="/listings/{{ listing.id }}">Открыть объявление</a>

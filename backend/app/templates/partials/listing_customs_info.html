@@ -1,5 +1,5 @@
-{% if is_admin and customs %}
-  <p class="listing-customs-admin">
+{% if customs %}
+  <p class="listing-customs-info">
     <strong>Дата выпуска в РБ:</strong>
     {% if customs.found and customs.release_date %}
       <span>{{ customs.release_date }}</span>

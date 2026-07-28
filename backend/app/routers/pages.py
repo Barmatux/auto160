@@ -1424,10 +1424,7 @@ def listings_page(
 
     context["prev_url"] = build_page_url(page - 1) if context["has_prev"] else None
     context["next_url"] = build_page_url(page + 1) if context["has_next"] else None
-    if is_admin and listings:
-        context["listing_customs_map"] = build_listing_customs_map(db, listings)
-    else:
-        context["listing_customs_map"] = {}
+    context["listing_customs_map"] = build_listing_customs_map(db, listings) if listings else {}
     return templates.TemplateResponse(request, "listings.html", context)
 
 
@@ -1457,7 +1454,7 @@ def listing_item(request: Request, listing_id: int, db: Session = Depends(get_db
     else:
         context["catalog_item"] = None
     is_admin = current_user is not None and current_user.role == UserRole.admin
-    context["listing_customs"] = get_listing_customs_summary(db, listing) if listing and is_admin else None
+    context["listing_customs"] = get_listing_customs_summary(db, listing) if listing else None
     return templates.TemplateResponse(request, "listing_detail.html", context)
 
 
