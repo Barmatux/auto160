@@ -486,6 +486,19 @@ body {
   font-weight: 700;
 }
 
+.vehicle-filters-top {
+  width: 100%;
+  min-width: 0;
+}
+
+.vehicle-filters-top .vehicle-hierarchy-filters {
+  background: #f1f5f9;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px 16px;
+  box-shadow: var(--shadow);
+}
+
 .vehicle-hierarchy-filters {
   background: #f1f5f9;
   border-radius: 12px;
@@ -526,14 +539,19 @@ body {
 .vehicle-hierarchy-rows {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 
 .vehicle-hierarchy-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.2fr) 28px;
-  gap: 8px;
+  grid-template-columns: minmax(140px, 220px) minmax(140px, 220px) minmax(180px, 1fr) 32px;
+  gap: 16px;
   align-items: end;
+  max-width: 960px;
+}
+
+.vehicle-filters-top .vehicle-hierarchy-row {
+  max-width: none;
 }
 
 .vehicle-hierarchy-field {
@@ -593,6 +611,14 @@ body {
   color: #64748b;
 }
 
+@media (max-width: 900px) {
+  .vehicle-hierarchy-row {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.2fr) 28px;
+    gap: 10px;
+    max-width: none;
+  }
+}
+
 @media (max-width: 640px) {
   .vehicle-hierarchy-row {
     grid-template-columns: 1fr 1fr;
@@ -617,10 +643,6 @@ body {
     grid-area: remove;
     justify-self: end;
   }
-}
-
-.catalog-filter-group-vehicle {
-  padding-bottom: 4px;
 }
 
 .make-logo {

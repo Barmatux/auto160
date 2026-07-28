@@ -1,10 +1,12 @@
 {% set vh = vehicle_hierarchy %}
+{% set form_id = filters_form_id | default(none) %}
 <div
   class="vehicle-hierarchy-filters"
   data-vehicle-hierarchy-config="{{ vh.config | tojson }}"
   data-make-field="{{ vh.make_field }}"
   data-model-field="{{ vh.model_field }}"
   data-generation-field="{{ vh.generation_field }}"
+  {% if form_id %}data-form-id="{{ form_id }}"{% endif %}
 >
   <div class="vehicle-hierarchy-head">
     <strong class="vehicle-hierarchy-title">Поиск по параметрам</strong>
@@ -16,7 +18,7 @@
     <div class="vehicle-hierarchy-row">
       <label class="vehicle-hierarchy-field">
         <span class="vehicle-hierarchy-label">{{ vh.labels.make }}</span>
-        <select name="{{ vh.make_field }}" data-tier="make">
+        <select name="{{ vh.make_field }}" data-tier="make"{% if form_id %} form="{{ form_id }}"{% endif %}>
           <option value="">{{ vh.labels.make }}</option>
           {% for make in vh.config.makes %}
             <option value="{{ make }}" {% if row.make == make %}selected{% endif %}>{{ make }}</option>
@@ -25,7 +27,7 @@
       </label>
       <label class="vehicle-hierarchy-field">
         <span class="vehicle-hierarchy-label">{{ vh.labels.model }}</span>
-        <select name="{{ vh.model_field }}" data-tier="model"{% if not row.make %} disabled{% endif %}>
+        <select name="{{ vh.model_field }}" data-tier="model"{% if form_id %} form="{{ form_id }}"{% endif %}{% if not row.make %} disabled{% endif %}>
           <option value="">{{ vh.labels.model }}</option>
           {% if row.make %}
             {% for model in vh.config.modelMap.get(row.make, []) %}
@@ -36,7 +38,7 @@
       </label>
       <label class="vehicle-hierarchy-field">
         <span class="vehicle-hierarchy-label">{{ vh.labels.generation }}</span>
-        <select name="{{ vh.generation_field }}" data-tier="generation"{% if not row.model %} disabled{% endif %}>
+        <select name="{{ vh.generation_field }}" data-tier="generation"{% if form_id %} form="{{ form_id }}"{% endif %}{% if not row.model %} disabled{% endif %}>
           <option value="">{{ vh.labels.generation }}</option>
           {% if row.make and row.model %}
             {% for generation in vh.config.generationMap.get(row.make, {}).get(row.model, []) %}

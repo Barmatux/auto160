@@ -2,6 +2,9 @@
 {% block title %}Лента объявлений - Auto160{% endblock %}
 {% block content %}
 <div class="catalog-page">
+  {% set vehicle_hierarchy = listings_filters.vehicle_hierarchy %}
+  {% set filters_form_id = "listings-filters-form" %}
+  {% include "partials/vehicle_filters_bar.html" %}
   <div class="catalog-layout">
     {% include "partials/listings_filters_panel.html" %}
     <section class="catalog-main">

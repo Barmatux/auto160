@@ -6,6 +6,7 @@
     const makeField = root.dataset.makeField || "make";
     const modelField = root.dataset.modelField || "model";
     const generationField = root.dataset.generationField || "generation";
+    const formId = root.dataset.formId || "";
     const rowsContainer = root.querySelector(".vehicle-hierarchy-rows");
     const addButton = root.querySelector(".vehicle-hierarchy-add");
 
@@ -56,6 +57,10 @@
       generationSelect.disabled = !values.model;
     }
 
+    function formAttr() {
+      return formId ? ' form="' + formId + '"' : "";
+    }
+
     function createRow(values) {
       values = values || { make: "", model: "", generation: "" };
       const row = document.createElement("div");
@@ -67,7 +72,9 @@
         "</span>" +
         '<select name="' +
         makeField +
-        '" data-tier="make"></select>' +
+        '" data-tier="make"' +
+        formAttr() +
+        "></select>" +
         "</label>" +
         '<label class="vehicle-hierarchy-field">' +
         '<span class="vehicle-hierarchy-label">' +
@@ -75,7 +82,9 @@
         "</span>" +
         '<select name="' +
         modelField +
-        '" data-tier="model"></select>' +
+        '" data-tier="model"' +
+        formAttr() +
+        "></select>" +
         "</label>" +
         '<label class="vehicle-hierarchy-field">' +
         '<span class="vehicle-hierarchy-label">' +
@@ -83,7 +92,9 @@
         "</span>" +
         '<select name="' +
         generationField +
-        '" data-tier="generation"></select>' +
+        '" data-tier="generation"' +
+        formAttr() +
+        "></select>" +
         "</label>" +
         '<button type="button" class="vehicle-hierarchy-remove" aria-label="Удалить строку">×</button>';
 
@@ -128,7 +139,7 @@
       rowsContainer.appendChild(createRow());
     });
 
-    const form = root.closest("form");
+    const form = formId ? document.getElementById(formId) : root.closest("form");
     if (form) {
       form.addEventListener("submit", () => {
         rowsContainer.querySelectorAll(".vehicle-hierarchy-row").forEach((row) => {

@@ -1,11 +1,6 @@
 <aside class="catalog-filters-panel catalog-sidebar">
   <h3>Фильтры</h3>
   <form class="filters filters-sidebar" method="get" action="/catalog/modifications" id="catalog-filters-form">
-    <div class="catalog-filter-group catalog-filter-group-vehicle">
-      {% set vehicle_hierarchy = catalog_sidebar.vehicle_hierarchy %}
-      {% include "partials/vehicle_hierarchy_filters.html" %}
-    </div>
-
     <div class="catalog-filter-group">
       <p class="catalog-filter-group-title">Характеристики</p>
       <label>
@@ -76,4 +71,4 @@
     <a class="page-link" href="/catalog/modifications">Сбросить</a>
   </form>
 </aside>
-<script src="/static/vehicle_hierarchy_filters.js?v=20260728b" defer></script>
+<script src="/static/vehicle_hierarchy_filters.js?v=20260728c" defer></script>

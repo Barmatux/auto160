@@ -2,6 +2,9 @@
 {% block title %}{% if make and model %}Поколения {{ make }} {{ model }}{% else %}Все поколения{% endif %} - Auto160{% endblock %}
 {% block content %}
 <div class="catalog-page">
+  {% set vehicle_hierarchy = catalog_sidebar.vehicle_hierarchy %}
+  {% set filters_form_id = "catalog-filters-form" %}
+  {% include "partials/vehicle_filters_bar.html" %}
   <div class="catalog-layout">
     {% include "partials/catalog_filters_panel.html" %}
     <section class="catalog-main">
