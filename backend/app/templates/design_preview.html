@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="/static/design-preview.css?v=20260729l" />
+    <link rel="stylesheet" href="/static/design-preview.css?v=20260729m" />
   </head>
   <body class="design-preview-page" data-dp-theme="light">
     {% macro nav_logo(src, stacked=false) %}
@@ -150,18 +150,10 @@
       </div>
     </section>
 
-    {# —— Дизайн 4: stacked auto / 160.ru —— #}
+    {# —— Дизайн 4: hub с логотипом Compact (v2 horizontal) —— #}
     <section class="design-variant dp-variant-stacked" data-panel="4">
       <header class="dp-mock-header dp-d-header">
-        <a class="dp-logo dp-logo-stacked dp-logo-stacked-nav" href="/" aria-label="auto160.ru">
-          <img
-            class="dp-theme-logo"
-            src="/static/brand/logo-v4-stacked.png"
-            data-dp-src-light="/static/brand/logo-v4-stacked.png"
-            data-dp-src-dark="/static/brand/logo-v4-stacked-white.png"
-            alt="auto160.ru"
-          />
-        </a>
+        {{ nav_logo('/static/brand/logo-v2-horizontal.png') }}
         <nav>
           <a href="/catalog">Каталог</a>
           <a href="/listings">Объявления</a>
@@ -171,29 +163,19 @@
       </header>
 
       <div class="dp-d-hero">
-        <div class="dp-d-hero-logo">
-          <img
-            class="dp-theme-logo"
-            src="/static/brand/logo-v4-stacked.png"
-            data-dp-src-light="/static/brand/logo-v4-stacked.png"
-            data-dp-src-dark="/static/brand/logo-v4-stacked-white.png"
-            alt="auto160.ru"
-          />
+        <img class="dp-d-hero-brand dp-theme-logo" src="/static/brand/logo-v2-horizontal.png" alt="auto160" />
+        <p class="dp-tagline">подбор авто до 160 л. с.</p>
+        <h2>Подбор авто до 160 л.с. в Беларуси</h2>
+        <p class="dp-d-hero-lead">Каталог, объявления av.by и проверка VIN — всё для безопасной покупки.</p>
+        <div class="dp-a-actions dp-d-actions">
+          <a class="dp-btn dp-btn-primary" href="/catalog">Открыть каталог</a>
+          <a class="dp-btn dp-btn-secondary" href="/listings">Лента объявлений</a>
         </div>
-        <div class="dp-d-hero-body">
-          <p class="dp-tagline">подбор авто до 160 л. с.</p>
-          <h2>Подбор авто до 160 л.с. в Беларуси</h2>
-          <p class="dp-d-hero-lead">Каталог, объявления av.by и проверка VIN — всё для безопасной покупки.</p>
-          <div class="dp-a-actions dp-d-actions">
-            <a class="dp-btn dp-btn-primary" href="/catalog">Открыть каталог</a>
-            <a class="dp-btn dp-btn-secondary" href="/listings">Лента объявлений</a>
-          </div>
-          <div class="dp-d-hero-stats">
-            <div class="dp-d-hero-stat"><strong>{{ listings_count }}</strong><span>объявлений</span></div>
-            <div class="dp-d-hero-stat"><strong>{{ catalog_items_count }}</strong><span>комплектаций</span></div>
-            <div class="dp-d-hero-stat"><strong>{{ catalog_makes_count }}</strong><span>марок</span></div>
-            <div class="dp-d-hero-stat"><strong>{{ passable_listings_count or 0 }}</strong><span>проходных</span></div>
-          </div>
+        <div class="dp-d-hero-stats">
+          <div class="dp-d-hero-stat"><strong>{{ listings_count }}</strong><span>объявлений</span></div>
+          <div class="dp-d-hero-stat"><strong>{{ catalog_items_count }}</strong><span>комплектаций</span></div>
+          <div class="dp-d-hero-stat"><strong>{{ catalog_makes_count }}</strong><span>марок</span></div>
+          <div class="dp-d-hero-stat"><strong>{{ passable_listings_count or 0 }}</strong><span>проходных</span></div>
         </div>
       </div>
 
