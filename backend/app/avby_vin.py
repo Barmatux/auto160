@@ -8,7 +8,9 @@ from sqlalchemy.orm import Session
 
 from app.avby_accounts import (
     consume_vin_check,
+    is_avby_vin_daily_limit_response,
     list_active_vin_accounts,
+    mark_vin_daily_limit_exhausted,
     select_vin_account,
     vin_checks_remaining,
 )
@@ -62,10 +64,12 @@ def _fetch_vin_from_avby(api_key: str, token: str, avby_id: int) -> str:
         timeout=30,
         headers=_avby_headers(api_key, token),
     )
+    body = resp.text
     if resp.status_code != 200:
+        status_code = 429 if is_avby_vin_daily_limit_response(status_code=resp.status_code, body=body) else 502
         raise AvbyVinError(
-            f"av.by VIN request failed: HTTP {resp.status_code} {resp.text[:200]}",
-            status_code=502,
+            f"av.by VIN request failed: HTTP {resp.status_code} {body[:200]}",
+            status_code=status_code,
         )
     vin = (resp.json().get("vin") or "").strip().upper()
     if not vin:
@@ -115,8 +119,11 @@ def get_or_fetch_listing_vin(db: Session, listing: CarListing) -> ListingVinResu
             vin = _fetch_vin_from_avby(session.api_key, session.token, listing.avby_id)
         except AvbyVinError as exc:
             last_error = str(exc)
-            account.error_message = last_error[:500]
-            db.commit()
+            if exc.status_code == 429:
+                mark_vin_daily_limit_exhausted(db, account, error_message=last_error)
+            else:
+                account.error_message = last_error[:500]
+                db.commit()
             if exc.status_code == 429:
                 continue
             if len(tried) < len(pool):

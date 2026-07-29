@@ -180,11 +180,55 @@ def serialize_account_public(account: AvbyServiceAccount) -> dict[str, Any]:
 VIN_TEST_DAILY_LIMIT = 30
 
 
+def is_avby_vin_daily_limit_response(*, status_code: int, body: str) -> bool:
+    """True when av.by reports the free daily VIN view quota is exhausted."""
+    if status_code != 429:
+        return False
+    text = body.lower()
+    return (
+        "premium_account.paywall.vin" in text
+        or "paywall_vin" in text
+        or "максимум vin" in text
+    )
+
+
+def is_avby_vin_daily_limit_error_message(message: str | None) -> bool:
+    if not message:
+        return False
+    text = message.lower()
+    return (
+        "premium_account.paywall.vin" in text
+        or "paywall_vin" in text
+        or "максимум vin" in text
+        or "daily vin limit" in text
+    )
+
+
 def reset_vin_checks_if_needed(account: AvbyServiceAccount, *, today: date | None = None) -> None:
     current_day = today or date.today()
     if account.vin_checks_day != current_day:
         account.vin_checks_today = 0
         account.vin_checks_day = current_day
+        if is_avby_vin_daily_limit_error_message(account.error_message):
+            account.error_message = None
+
+
+def mark_vin_daily_limit_exhausted(
+    db: Session,
+    account: AvbyServiceAccount,
+    *,
+    error_message: str | None = None,
+) -> None:
+    """Sync local counter with av.by when paywall says daily VIN quota is used up."""
+    reset_vin_checks_if_needed(account)
+    limit = account.daily_vin_limit or VIN_TEST_DAILY_LIMIT
+    account.daily_vin_limit = limit
+    account.vin_checks_today = limit
+    account.vin_checks_day = date.today()
+    account.error_message = (error_message or f"Лимит av.by: {limit}/{limit} просмотров VIN на сегодня")[:500]
+    account.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(account)
 
 
 def vin_checks_remaining(account: AvbyServiceAccount) -> int | None:

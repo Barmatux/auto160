@@ -44,7 +44,7 @@
       <p><strong>Пробег:</strong> {{ listing.mileage }} км</p>
       <p><strong>Город:</strong> {{ listing.city }}</p>
       {% if listing.seller_name %}<p><strong>Продавец:</strong> {{ listing.seller_name }}</p>{% endif %}
-      {% if listing.body_type %}<p><strong>Кузов:</strong> {{ listing.body_type }}</p>{% endif %}
+      {% if listing.body_type %}<p><strong>Кузов:</strong> {{ listing.body_type | body_type_label }}</p>{% endif %}
       {% if listing.engine_type %}<p><strong>Топливо:</strong> {{ listing.engine_type }}</p>{% endif %}
       {% if listing.engine_capacity_l %}<p><strong>Объем:</strong> {{ listing.engine_capacity_l }} л</p>{% endif %}
       {% if listing.engine_power_hp %}<p><strong>Мощность:</strong> {{ listing.engine_power_hp }} л.с.</p>{% endif %}

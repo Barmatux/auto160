@@ -40,7 +40,7 @@
                 {% if listing.engine_type %}<span>{{ listing.engine_type }}</span>{% endif %}
                 {% if listing.transmission_type %}<span>{{ listing.transmission_type }}</span>{% endif %}
                 {% if listing.drive_type %}<span>{{ listing.drive_type }}</span>{% endif %}
-                {% if listing.body_type %}<span>{{ listing.body_type }}</span>{% endif %}
+                {% if listing.body_type %}<span>{{ listing.body_type | body_type_label }}</span>{% endif %}
                 {% if listing.vin_indicated is not none %}<span>{% if listing.vin_indicated %}VIN указан{% else %}VIN скрыт{% endif %}</span>{% endif %}
               </div>
               {% if listing.source_url %}

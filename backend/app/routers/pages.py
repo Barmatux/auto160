@@ -12,6 +12,11 @@ from sqlalchemy.orm import Session
 
 from app.analytics import EVENT_LABELS, build_analytics_summary, record_auth_event
 from app.config import settings
+from app.body_type_labels import (
+    body_type_db_values_for_filter,
+    body_type_filter_options,
+    normalize_body_type_label,
+)
 from app.customs_vin import CustomsVinError, lookup_customs_vin, normalize_vin, report_rows, vin_is_valid
 from app.avby_accounts import list_active_vin_accounts, serialize_account_public
 from app.db import get_db
@@ -45,6 +50,7 @@ from app.storage import build_app_download_url, normalize_display_image_url
 
 router = APIRouter(tags=["pages"])
 templates = Jinja2Templates(directory="app/templates")
+templates.env.filters["body_type_label"] = normalize_body_type_label
 VERIFICATION_DIR = Path(__file__).resolve().parents[1] / "verification"
 
 
@@ -577,6 +583,14 @@ def _distinct_listing_values(db: Session, column, *, published_only: bool = True
     return [row[0] for row in query.distinct().order_by(column.asc()).all() if row[0]]
 
 
+def _listing_body_type_values(db: Session, *, published_only: bool = True) -> list[str]:
+    return _distinct_listing_values(db, CarListing.body_type, published_only=published_only)
+
+
+def _catalog_body_type_values(db: Session) -> list[str]:
+    return _distinct_values(db, CatalogItem.body_type)
+
+
 def _listings_filters_payload(request: Request, db: Session, *, published_only: bool = True) -> dict:
     query = request.query_params
     parsed_year_from = _parse_optional_year(query.get("year_from"))
@@ -589,13 +603,15 @@ def _listings_filters_payload(request: Request, db: Session, *, published_only: 
     brand_model_generation_map = _make_model_generation_map(db)
     model_options = brand_model_map.get(brand, []) if brand else []
     generation_options = brand_model_generation_map.get(brand, {}).get(model, []) if brand and model else []
+    body_type_raw = _listing_body_type_values(db, published_only=published_only)
+    body_type_filter = normalize_body_type_label((query.get("body_type") or "").strip()) or ""
     return {
         "filters": {
             "brand": brand,
             "model": model,
             "generation": generation,
             "city": (query.get("city") or "").strip(),
-            "body_type": (query.get("body_type") or "").strip(),
+            "body_type": body_type_filter,
             "engine_type": (query.get("engine_type") or "").strip(),
             "transmission_type": (query.get("transmission_type") or "").strip(),
             "year_from": parsed_year_from if parsed_year_from is not None else "",
@@ -611,7 +627,7 @@ def _listings_filters_payload(request: Request, db: Session, *, published_only: 
             "brand_model_map": brand_model_map,
             "brand_model_generation_map": brand_model_generation_map,
             "cities": _distinct_listing_values(db, CarListing.city, published_only=published_only),
-            "body_type": _distinct_listing_values(db, CarListing.body_type, published_only=published_only),
+            "body_type": body_type_filter_options(body_type_raw),
             "engine_type": _distinct_listing_values(db, CarListing.engine_type, published_only=published_only),
             "transmission_type": _distinct_listing_values(db, CarListing.transmission_type, published_only=published_only),
             "years": _listing_year_options(db, published_only=published_only),
@@ -779,12 +795,14 @@ def _catalog_sidebar_payload(request: Request, db: Session) -> dict:
     make_model_generation_map = _make_model_generation_map(db)
     model_options = make_model_map.get(make, []) if make else []
     generation_options = make_model_generation_map.get(make, {}).get(model, []) if make and model else []
+    body_type_raw = _catalog_body_type_values(db)
+    body_type_filter = normalize_body_type_label(query.get("body_type") or "") or ""
     return {
         "filters": {
             "make": make,
             "model": model,
             "generation": generation,
-            "body_type": query.get("body_type", ""),
+            "body_type": body_type_filter,
             "export_country": query.get("export_country", ""),
             "fuel_type": query.get("fuel_type", ""),
             "transmission": query.get("transmission", ""),
@@ -801,7 +819,7 @@ def _catalog_sidebar_payload(request: Request, db: Session) -> dict:
             "generations": generation_options,
             "make_model_map": make_model_map,
             "make_model_generation_map": make_model_generation_map,
-            "body_type": _distinct_values(db, CatalogItem.body_type),
+            "body_type": body_type_filter_options(body_type_raw),
             "export_country": _distinct_values(db, CatalogItem.export_country),
             "fuel_type": _distinct_values(db, CatalogItem.fuel_type),
             "transmission": _distinct_values(db, CatalogItem.transmission),
@@ -1190,6 +1208,7 @@ def _dedupe_modifications(items: list[CatalogItem]) -> list[CatalogItem]:
 def _apply_catalog_item_filters(
     query,
     *,
+    db: Session,
     vehicle_rows: list[dict[str, str]] | None = None,
     make: str | None = None,
     model: str | None = None,
@@ -1211,7 +1230,10 @@ def _apply_catalog_item_filters(
         if generation:
             query = query.filter(CatalogItem.generation == generation)
     if body_type:
-        query = query.filter(CatalogItem.body_type.ilike(f"%{body_type}%"))
+        canonical = normalize_body_type_label(body_type) or body_type
+        match_values = body_type_db_values_for_filter(_catalog_body_type_values(db), canonical)
+        if match_values:
+            query = query.filter(CatalogItem.body_type.in_(match_values))
     if export_country:
         query = query.filter(CatalogItem.export_country.ilike(f"%{export_country}%"))
     if fuel_type:
@@ -1361,7 +1383,13 @@ def listings_page(
     if city:
         query = query.filter(CarListing.city == city)
     if body_type:
-        query = query.filter(CarListing.body_type == body_type)
+        canonical = normalize_body_type_label(body_type) or body_type
+        match_values = body_type_db_values_for_filter(
+            _listing_body_type_values(db, published_only=not is_admin),
+            canonical,
+        )
+        if match_values:
+            query = query.filter(CarListing.body_type.in_(match_values))
     if engine_type:
         query = query.filter(CarListing.engine_type == engine_type)
     if transmission_type:
@@ -1400,10 +1428,11 @@ def listings_page(
     context["has_prev"] = page > 1
     context["has_next"] = offset + len(listings) < total
     context["listings_filters"] = _listings_filters_payload(request, db, published_only=not is_admin)
+    normalized_body_type = context["listings_filters"]["filters"]["body_type"] or None
 
     query_params = {
         "city": city or None,
-        "body_type": body_type or None,
+        "body_type": normalized_body_type,
         "engine_type": engine_type or None,
         "transmission_type": transmission_type or None,
         "year_from": parsed_year_from,
@@ -1775,9 +1804,11 @@ def catalog_modifications(
     generation = primary_row.get("generation") or None
     parsed_year_from = _parse_optional_year(year_from)
     parsed_year_to = _parse_optional_year(year_to)
+    body_type = normalize_body_type_label(body_type) if body_type else None
     query = _apply_hp_filter(db.query(CatalogItem), exact_hp=exact_hp)
     query = _apply_catalog_item_filters(
         query=query,
+        db=db,
         vehicle_rows=vehicle_rows,
         body_type=body_type,
         export_country=export_country,
@@ -1841,7 +1872,7 @@ def catalog_modifications(
         "make": make or "",
         "model": model or "",
         "generation": generation or "",
-        "body_type": body_type or "",
+        "body_type": normalize_body_type_label(body_type) or "" if body_type else "",
         "export_country": export_country or "",
         "fuel_type": fuel_type or "",
         "transmission": transmission or "",
