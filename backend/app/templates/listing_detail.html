@@ -8,20 +8,6 @@
       <p class="hint">{{ listing.brand }} {{ listing.model }} · {{ listing.year }}{% if listing.generation %} · {{ listing.generation }}{% endif %}</p>
     </div>
 
-    {% set gallery_urls = [] %}
-    {% if listing.raw_photos %}
-      {% for photo in listing.raw_photos %}
-        {% set variants = photo.variants if photo.variants is defined else {} %}
-        {% set url = variants.big or variants.medium or variants.small or variants.extrasmall %}
-        {% if url and url not in gallery_urls %}
-          {% set _ = gallery_urls.append(url) %}
-        {% endif %}
-      {% endfor %}
-    {% endif %}
-    {% if listing.cover_photo_url and listing.cover_photo_url not in gallery_urls %}
-      {% set _ = gallery_urls.insert(0, listing.cover_photo_url) %}
-    {% endif %}
-
     {% if gallery_urls %}
       <div class="listing-gallery">
         <a class="photo-link" href="{{ gallery_urls[0] }}" target="_blank" rel="noopener">

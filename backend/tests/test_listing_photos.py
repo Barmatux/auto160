@@ -1,4 +1,4 @@
-from app.listing_photos import listing_photo_candidate_urls, pick_listing_cover_url
+from app.listing_photos import listing_photo_candidate_urls, pick_listing_cover_url, resolve_listing_gallery_urls
 from app.models import CarListing
 
 
@@ -50,3 +50,23 @@ def test_pick_listing_cover_url_skips_dead_remote(monkeypatch):
     monkeypatch.setattr("app.listing_photos.remote_avby_image_available", fake_available)
     cover = pick_listing_cover_url(listing)
     assert cover == "/media/remote?url=https%3A%2F%2Favcdn.av.by%2Fadvertbig%2Falive.jpg"
+
+
+def test_resolve_listing_gallery_urls_proxies_one_url_per_photo():
+    listing = _listing(
+        cover_photo_url="https://avcdn.av.by/advertbig/cover.avif",
+        raw_photos=[
+            {
+                "variants": {
+                    "big": "https://avcdn.av.by/advertbig/cover.avif",
+                    "medium": "https://avcdn.av.by/advertbig/cover-medium.avif",
+                },
+            },
+            {"variants": {"big": "https://avcdn.av.by/advertbig/second.avif"}},
+        ],
+    )
+    gallery = resolve_listing_gallery_urls(listing)
+    assert gallery == [
+        "/media/remote?url=https%3A%2F%2Favcdn.av.by%2Fadvertbig%2Fcover.avif",
+        "/media/remote?url=https%3A%2F%2Favcdn.av.by%2Fadvertbig%2Fsecond.avif",
+    ]

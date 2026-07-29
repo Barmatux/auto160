@@ -62,6 +62,22 @@ def listing_photo_candidate_urls(listing: CarListing) -> list[str]:
     return candidates
 
 
+def _remote_image_get_available(url: str) -> bool:
+    request = Request(
+        url.strip(),
+        headers={**_AVCdn_HEADERS, "Range": "bytes=0-0"},
+        method="GET",
+    )
+    try:
+        with urlopen(request, timeout=5) as response:
+            status = int(getattr(response, "status", None) or response.getcode())
+            return 200 <= status < 300 or status == 206
+    except HTTPError as exc:
+        return exc.code in (200, 206)
+    except (URLError, TimeoutError, ValueError, OSError):
+        return False
+
+
 @lru_cache(maxsize=1024)
 def remote_avby_image_available(url: str) -> bool:
     if not is_remote_catalog_image_url(url):
@@ -72,9 +88,71 @@ def remote_avby_image_available(url: str) -> bool:
             status = getattr(response, "status", None) or response.getcode()
             return 200 <= int(status) < 300
     except HTTPError as exc:
+        if exc.code == 405:
+            return _remote_image_get_available(url)
         return 200 <= exc.code < 300
     except (URLError, TimeoutError, ValueError, OSError):
-        return False
+        return _remote_image_get_available(url)
+
+
+def _pick_photo_display_url(photo: dict | str) -> str | None:
+    if isinstance(photo, str):
+        cleaned = photo.strip()
+        return cleaned or None
+    if not isinstance(photo, dict):
+        return None
+    variants = photo.get("variants")
+    if isinstance(variants, dict):
+        for key in ("big", "medium", "small", "extrasmall"):
+            url = variants.get(key)
+            if isinstance(url, str) and url.strip():
+                return url.strip()
+    if isinstance(photo.get("url"), str) and photo["url"].strip():
+        return photo["url"].strip()
+    for key in ("big", "medium", "small", "extrasmall"):
+        variant = photo.get(key)
+        if isinstance(variant, dict):
+            url = variant.get("url")
+            if isinstance(url, str) and url.strip():
+                return url.strip()
+        elif isinstance(variant, str) and variant.strip():
+            return variant.strip()
+    return None
+
+
+def resolve_listing_gallery_urls(listing: CarListing, *, verify_remote: bool = False) -> list[str]:
+    """One proxied display URL per photo for listing detail gallery."""
+    raw_urls: list[str] = []
+    raw_photos = listing.raw_photos
+    if isinstance(raw_photos, list):
+        for photo in raw_photos:
+            picked = _pick_photo_display_url(photo)
+            if picked:
+                raw_urls.append(picked)
+
+    if listing.cover_photo_url:
+        cover = listing.cover_photo_url.strip()
+        if cover:
+            if cover in raw_urls:
+                raw_urls.remove(cover)
+            raw_urls.insert(0, cover)
+
+    if not raw_urls:
+        cover = pick_listing_cover_url(listing, verify_remote=verify_remote)
+        return [cover] if cover else []
+
+    gallery: list[str] = []
+    seen_raw: set[str] = set()
+    for candidate in raw_urls:
+        if candidate in seen_raw:
+            continue
+        seen_raw.add(candidate)
+        if verify_remote and is_remote_catalog_image_url(candidate) and not remote_avby_image_available(candidate):
+            continue
+        normalized = normalize_display_image_url(candidate) or candidate
+        if normalized:
+            gallery.append(normalized)
+    return gallery
 
 
 def pick_listing_cover_url(listing: CarListing, *, verify_remote: bool = True) -> str | None:

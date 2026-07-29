@@ -50,7 +50,7 @@ from app.seo import (
     render_sitemap_xml,
     site_base_url,
 )
-from app.listing_photos import pick_listing_cover_url, resolve_listing_cover_urls
+from app.listing_photos import pick_listing_cover_url, resolve_listing_cover_urls, resolve_listing_gallery_urls
 from app.storage import build_app_download_url, normalize_display_image_url
 
 router = APIRouter(tags=["pages"])
@@ -1562,8 +1562,10 @@ def listing_item(request: Request, listing_id: int, db: Session = Depends(get_db
     if listing:
         catalog_items = resolve_catalog_items_for_listings(db, [listing])
         context["catalog_item"] = catalog_items.get(listing.id)
+        context["gallery_urls"] = resolve_listing_gallery_urls(listing)
     else:
         context["catalog_item"] = None
+        context["gallery_urls"] = []
     is_admin = current_user is not None and current_user.role == UserRole.admin
     context["listing_customs"] = get_listing_customs_summary(db, listing) if listing else None
     return templates.TemplateResponse(request, "listing_detail.html", context)
