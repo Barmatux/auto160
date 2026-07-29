@@ -87,17 +87,24 @@
 }
 
 /* Shared mock components */
+.dp-logo {
+  flex-shrink: 0;
+  line-height: 0;
+}
+
 .dp-logo img {
-  height: 44px;
-  width: auto;
-  max-width: min(100%, 320px);
   display: block;
+  width: auto;
+  height: auto;
+  max-height: 52px;
+  max-width: min(100%, 420px);
+  object-fit: contain;
 }
 
 .dp-logo-brand img {
-  height: auto;
-  width: min(100%, 360px);
-  max-height: 120px;
+  max-height: none;
+  max-width: min(100%, 480px);
+  width: min(100%, 480px);
 }
 
 .dp-logo-on-dark img {
@@ -467,7 +474,7 @@
 }
 
 .dp-d-top .dp-logo img {
-  height: 40px;
+  max-height: 48px;
 }
 
 .dp-d-top nav a {
