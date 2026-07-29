@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="/static/design-preview.css?v=20260729j" />
+    <link rel="stylesheet" href="/static/design-preview.css?v=20260729k" />
   </head>
   <body class="design-preview-page" data-dp-theme="light">
     {% macro nav_logo(src, stacked=false) %}
@@ -156,10 +156,10 @@
       </div>
     </section>
 
-    {# —— Дизайн 4: stacked auto / 160.ru, тёмная шапка + hub —— #}
-    <section class="design-variant" data-panel="4">
-      <div class="dp-d-top">
-        <a class="dp-logo dp-logo-stacked" href="/" aria-label="auto160.ru">
+    {# —— Дизайн 4: stacked auto / 160.ru —— #}
+    <section class="design-variant dp-variant-stacked" data-panel="4">
+      <header class="dp-mock-header dp-d-header">
+        <a class="dp-logo dp-logo-stacked dp-logo-stacked-nav" href="/" aria-label="auto160.ru">
           <img
             class="dp-theme-logo"
             src="/static/brand/logo-v4-stacked.png"
@@ -174,27 +174,45 @@
           <a href="/inspection">VIN</a>
           <a href="/login">Вход</a>
         </nav>
+      </header>
+
+      <div class="dp-d-hero">
+        <div class="dp-d-hero-logo">
+          <img
+            class="dp-theme-logo"
+            src="/static/brand/logo-v4-stacked.png"
+            data-dp-src-light="/static/brand/logo-v4-stacked.png"
+            data-dp-src-dark="/static/brand/logo-v4-stacked-white.png"
+            alt="auto160.ru"
+          />
+        </div>
+        <div class="dp-d-hero-body">
+          <p class="dp-tagline">подбор авто до 160 л. с.</p>
+          <h2>Подбор авто до 160 л.с. в Беларуси</h2>
+          <p class="dp-d-hero-lead">Каталог, объявления av.by и проверка VIN — всё для безопасной покупки.</p>
+          <div class="dp-a-actions dp-d-actions">
+            <a class="dp-btn dp-btn-primary" href="/catalog">Открыть каталог</a>
+            <a class="dp-btn dp-btn-secondary" href="/listings">Лента объявлений</a>
+          </div>
+          <div class="dp-d-hero-stats">
+            <div class="dp-d-hero-stat"><strong>{{ listings_count }}</strong><span>объявлений</span></div>
+            <div class="dp-d-hero-stat"><strong>{{ catalog_items_count }}</strong><span>комплектаций</span></div>
+            <div class="dp-d-hero-stat"><strong>{{ catalog_makes_count }}</strong><span>марок</span></div>
+            <div class="dp-d-hero-stat"><strong>{{ passable_listings_count or 0 }}</strong><span>проходных</span></div>
+          </div>
+        </div>
       </div>
-      <div class="dp-d-intro">
-        <img
-          class="dp-d-intro-logo dp-theme-logo"
-          src="/static/brand/logo-v4-stacked.png"
-          data-dp-src-light="/static/brand/logo-v4-stacked.png"
-          data-dp-src-dark="/static/brand/logo-v4-stacked-white.png"
-          alt=""
-        />
-        <p class="dp-tagline">подбор авто до 160 л. с.</p>
-      </div>
+
       <div class="dp-d-grid">
         <aside class="dp-d-sidebar">
-          <a class="dp-d-tile" href="/catalog"><strong>Каталог</strong><span>{{ catalog_items_count }} комплектаций</span></a>
+          <p class="dp-d-sidebar-label">Разделы</p>
+          <a class="dp-d-tile dp-d-tile-primary" href="/catalog"><strong>Каталог</strong><span>{{ catalog_items_count }} комплектаций</span></a>
           <a class="dp-d-tile" href="/listings"><strong>Объявления</strong><span>{{ listings_count }} в ленте</span></a>
           <a class="dp-d-tile" href="/listings?passable=1"><strong>Проходные</strong><span>{{ passable_year_from }}–{{ passable_year_to }} г.в.</span></a>
           <a class="dp-d-tile" href="/inspection"><strong>Проверка VIN</strong><span>База ГТК РБ</span></a>
-          <div class="dp-stat"><strong>{{ catalog_makes_count }}</strong><span>марок в каталоге</span></div>
         </aside>
-        <div>
-          <h3 style="margin:0 0 12px;">Свежие объявления</h3>
+        <div class="dp-d-main">
+          <h3 class="dp-d-main-title">Свежие объявления</h3>
           <div class="dp-d-listings">
             {% for listing in latest_listings[:4] %}
               <article class="dp-d-listing">
