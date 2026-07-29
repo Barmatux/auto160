@@ -207,6 +207,7 @@ MAKE_LOGO_SLUGS = frozenset(
         "honda",
         "hyundai",
         "kia",
+        "mercedes-benz",
         "mini",
         "nissan",
         "opel",
