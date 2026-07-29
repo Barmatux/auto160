@@ -6,7 +6,7 @@
     <meta name="robots" content="noindex, nofollow" />
     <title>Сравнение дизайна главной — Auto160</title>
     <link rel="icon" href="/static/favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="/static/design-preview.css?v=20260729g" />
+    <link rel="stylesheet" href="/static/design-preview.css?v=20260729h" />
   </head>
   <body class="design-preview-page">
     {% macro nav_logo(src, stacked=false) %}
@@ -36,7 +36,7 @@
       <iframe src="/" title="Текущая главная" style="width:100%;height:calc(100vh - 56px);border:none;"></iframe>
     </section>
 
-    {# —— Дизайн 1: горизонтальный логотип auto160 + полный бренд в hero —— #}
+    {# —— Дизайн 1: горизонтальный логотип auto160 —— #}
     <section class="design-variant" data-panel="1">
       <header class="dp-mock-header">
         {{ nav_logo('/static/brand/logo-v1-horizontal.png') }}
@@ -51,8 +51,9 @@
         <div class="dp-a-hero">
           <div>
             <a class="dp-logo dp-logo-brand" href="/">
-              <img src="/static/brand/logo-brand-full.png" alt="auto160.ru — подбор авто до 160 л. с." />
+              <img src="/static/brand/logo-v1-horizontal.png" alt="auto160" />
             </a>
+            <p class="dp-tagline">подбор авто до 160 л. с.</p>
             <h2>Подбор авто до 160 л.с. в Беларуси</h2>
             <p>Каталог комплектаций av.by, актуальные объявления и проверка VIN в базе таможни — всё в одном месте.</p>
             <div class="dp-a-actions">

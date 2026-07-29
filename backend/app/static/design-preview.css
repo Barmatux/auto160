@@ -118,10 +118,14 @@
   height: 52px;
 }
 
+.dp-a-hero .dp-tagline {
+  margin: 8px 0 20px;
+}
+
 .dp-logo-brand img {
   max-height: none;
-  max-width: min(100%, 520px);
-  width: min(100%, 520px);
+  max-width: min(100%, 420px);
+  width: min(100%, 420px);
   height: auto;
 }
 
