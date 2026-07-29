@@ -19,6 +19,7 @@ if str(ROOT_DIR) not in sys.path:
 os.chdir(ROOT_DIR)
 
 from app.db import SessionLocal
+from app.export_country_labels import export_country_for_avby
 from app.models import CatalogItem
 
 
@@ -222,7 +223,7 @@ def parse_generation_page(url: str, state: dict[str, Any], user_agent: str) -> l
         full_fuel = mod_detail.get("fuel")
         full_transmission = mod_detail.get("gearBoxType")
         full_drive = mod_detail.get("driveType")
-        full_country = mod_detail.get("countryBrandItem")
+        full_country = export_country_for_avby()
         full_steering = mod_detail.get("steeringWheel")
 
         payloads.append(
@@ -347,8 +348,7 @@ def enrich_missing_spec_details(user_agent: str) -> None:
                 item.drivetrain = mod_detail.get("driveType")
             if mod_detail.get("bodyType"):
                 item.body_type = mod_detail.get("bodyType")
-            if mod_detail.get("countryBrandItem"):
-                item.export_country = mod_detail.get("countryBrandItem")
+            item.export_country = export_country_for_avby()
             if mod_detail.get("steeringWheel"):
                 item.steering_wheel = mod_detail.get("steeringWheel")
             if mod_detail.get("maxPowerHP") or mod_detail.get("enginePower"):

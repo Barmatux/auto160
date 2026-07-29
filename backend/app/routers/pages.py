@@ -17,6 +17,10 @@ from app.body_type_labels import (
     body_type_filter_options,
     normalize_body_type_label,
 )
+from app.export_country_labels import (
+    EXPORT_COUNTRY_FILTER_OPTIONS,
+    is_belarus_export_country,
+)
 from app.customs_vin import CustomsVinError, lookup_customs_vin, normalize_vin, report_rows, vin_is_valid
 from app.avby_accounts import list_active_vin_accounts, serialize_account_public
 from app.db import get_db
@@ -824,7 +828,7 @@ def _catalog_sidebar_payload(request: Request, db: Session) -> dict:
             "make_model_map": make_model_map,
             "make_model_generation_map": make_model_generation_map,
             "body_type": body_type_filter_options(body_type_raw),
-            "export_country": _distinct_values(db, CatalogItem.export_country),
+            "export_country": list(EXPORT_COUNTRY_FILTER_OPTIONS),
             "fuel_type": _distinct_values(db, CatalogItem.fuel_type),
             "transmission": _distinct_values(db, CatalogItem.transmission),
             "years": _year_options(db),
@@ -1240,7 +1244,7 @@ def _apply_catalog_item_filters(
         match_values = body_type_db_values_for_filter(_catalog_body_type_values(db), canonical)
         if match_values:
             query = query.filter(CatalogItem.body_type.in_(match_values))
-    if export_country:
+    if export_country and not is_belarus_export_country(export_country):
         query = query.filter(CatalogItem.export_country.ilike(f"%{export_country}%"))
     if fuel_type:
         query = query.filter(CatalogItem.fuel_type.ilike(f"%{fuel_type}%"))
