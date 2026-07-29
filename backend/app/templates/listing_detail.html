@@ -4,21 +4,44 @@
 {% if listing %}
   <section class="catalog-main listing-detail-page">
     <div class="catalog-main-head">
-      <h1>{{ listing.title }}</h1>
-      <p class="hint">{{ listing.brand }} {{ listing.model }} · {{ listing.year }}{% if listing.generation %} · {{ listing.generation }}{% endif %}</p>
+      <h1>{{ listing.title | listing_display_title }}</h1>
+      {% set source_href = listing | listing_source_href %}
+      {% if source_href %}
+        <p class="listing-source-link hint">
+          Оригинал объявления размещен по адресу:
+          <a href="{{ source_href }}" target="_blank" rel="noopener">{{ source_href | listing_source_label }}</a>
+        </p>
+      {% endif %}
     </div>
 
     {% if gallery_urls %}
-      <div class="listing-gallery">
-        <a class="photo-link" href="{{ gallery_urls[0] }}" target="_blank" rel="noopener">
-          <img class="detail-photo detail-cover-photo" src="{{ gallery_urls[0] }}" alt="{{ listing.brand }} {{ listing.model }}" />
-        </a>
+      <div class="listing-gallery" data-listing-gallery>
+        <div class="listing-gallery-main">
+          <a class="listing-gallery-main-link" href="{{ gallery_urls[0] }}" target="_blank" rel="noopener">
+            <img
+              class="listing-gallery-active-photo"
+              src="{{ gallery_urls[0] }}"
+              alt="{{ listing.brand }} {{ listing.model }}"
+            />
+          </a>
+        </div>
         {% if gallery_urls|length > 1 %}
-          <div class="listing-gallery-grid">
-            {% for photo_url in gallery_urls[1:] %}
-              <a class="photo-link" href="{{ photo_url }}" target="_blank" rel="noopener">
-                <img class="listing-gallery-thumb" src="{{ photo_url }}" alt="{{ listing.brand }} {{ listing.model }} фото {{ loop.index + 1 }}" />
-              </a>
+          <div class="listing-gallery-sidebar" role="tablist" aria-label="Фотографии объявления">
+            {% for photo_url in gallery_urls %}
+              <button
+                type="button"
+                class="listing-gallery-thumb-btn{% if loop.first %} is-active{% endif %}"
+                data-photo-url="{{ photo_url }}"
+                role="tab"
+                aria-selected="{{ 'true' if loop.first else 'false' }}"
+                aria-label="Фото {{ loop.index }}"
+              >
+                <img
+                  class="listing-gallery-thumb"
+                  src="{{ photo_url }}"
+                  alt="{{ listing.brand }} {{ listing.model }} фото {{ loop.index }}"
+                />
+              </button>
             {% endfor %}
           </div>
         {% endif %}
@@ -43,13 +66,10 @@
       {% with customs=listing_customs %}
         {% include "partials/listing_customs_info.html" %}
       {% endwith %}
-      {% if listing.source_url %}
-        <p><strong>Источник:</strong> <a href="{{ listing.source_url }}" target="_blank" rel="noopener">Открыть на av.by</a></p>
-      {% endif %}
       {% if is_admin %}
         <p><strong>Статус:</strong> {{ listing.status.value }}</p>
       {% endif %}
-      <p><strong>Описание:</strong> {{ listing.description }}</p>
+      <p><strong>Описание:</strong> {{ listing.description | listing_display_description }}</p>
     </div>
   </section>
   <div class="actions-row">
@@ -66,5 +86,38 @@
   {% endif %}
 {% else %}
   <h1>Объявление не найдено</h1>
+{% endif %}
+{% if listing and gallery_urls %}
+<script>
+(function () {
+  const gallery = document.querySelector("[data-listing-gallery]");
+  if (!gallery) return;
+
+  const mainImg = gallery.querySelector(".listing-gallery-active-photo");
+  const mainLink = gallery.querySelector(".listing-gallery-main-link");
+  const buttons = gallery.querySelectorAll(".listing-gallery-thumb-btn");
+
+  buttons.forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      const url = btn.dataset.photoUrl;
+      if (!url || !mainImg) return;
+
+      mainImg.src = url;
+      if (mainLink) mainLink.href = url;
+
+      const thumbImg = btn.querySelector(".listing-gallery-thumb");
+      if (thumbImg && thumbImg.alt) {
+        mainImg.alt = thumbImg.alt;
+      }
+
+      buttons.forEach(function (item) {
+        const active = item === btn;
+        item.classList.toggle("is-active", active);
+        item.setAttribute("aria-selected", active ? "true" : "false");
+      });
+    });
+  });
+})();
+</script>
 {% endif %}
 {% endblock %}

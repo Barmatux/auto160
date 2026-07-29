@@ -50,12 +50,22 @@ from app.seo import (
     render_sitemap_xml,
     site_base_url,
 )
+from app.listing_display import (
+    listing_display_description,
+    listing_display_title,
+    listing_source_href,
+    listing_source_label,
+)
 from app.listing_photos import pick_listing_cover_url, resolve_listing_cover_urls, resolve_listing_gallery_urls
 from app.storage import build_app_download_url, normalize_display_image_url
 
 router = APIRouter(tags=["pages"])
 templates = Jinja2Templates(directory="app/templates")
 templates.env.filters["body_type_label"] = normalize_body_type_label
+templates.env.filters["listing_display_title"] = listing_display_title
+templates.env.filters["listing_display_description"] = listing_display_description
+templates.env.filters["listing_source_href"] = listing_source_href
+templates.env.filters["listing_source_label"] = listing_source_label
 VERIFICATION_DIR = Path(__file__).resolve().parents[1] / "verification"
 
 
