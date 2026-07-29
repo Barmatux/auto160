@@ -20,7 +20,8 @@ from app.models import VinCustomsCheck
 
 CUSTOMS_BASE_URL = "https://www.customs.gov.by/baza-dannykh-vvezyennogo-avtotransporta/"
 CUSTOMS_SOURCE_PAGE = CUSTOMS_BASE_URL
-CACHE_TTL = timedelta(days=7)
+CACHE_TTL_FOUND = timedelta(days=7)
+CACHE_TTL_NOT_FOUND = timedelta(hours=24)
 
 DATABASE_PERSONAL = "personal_free_circulation"
 DATABASE_INTERNAL = "internal_consumption"
@@ -208,6 +209,15 @@ def _persist_result(db: Session, result: CustomsVinResult) -> VinCustomsCheck:
     return row
 
 
+def _cache_ttl_for_row(row: VinCustomsCheck) -> timedelta:
+    return CACHE_TTL_FOUND if row.found else CACHE_TTL_NOT_FOUND
+
+
+def _cache_is_fresh(row: VinCustomsCheck, *, now: datetime | None = None) -> bool:
+    checked_at = now or datetime.utcnow()
+    return row.checked_at >= checked_at - _cache_ttl_for_row(row)
+
+
 def has_fresh_customs_check(
     db: Session,
     vin: str,
@@ -224,7 +234,7 @@ def has_fresh_customs_check(
     )
     if cached is None:
         return False
-    return cached.checked_at >= datetime.utcnow() - CACHE_TTL
+    return _cache_is_fresh(cached)
 
 
 def lookup_customs_vin(
@@ -247,7 +257,7 @@ def lookup_customs_vin(
             .filter(VinCustomsCheck.vin == normalized, VinCustomsCheck.database == database)
             .first()
         )
-        if cached and cached.checked_at >= datetime.utcnow() - CACHE_TTL:
+        if cached and _cache_is_fresh(cached):
             return _row_to_result(cached)
 
     html = _fetch_customs_html(normalized, database)

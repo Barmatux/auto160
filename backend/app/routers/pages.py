@@ -1576,6 +1576,7 @@ def vin_inspection_page(
     request: Request,
     vin: str | None = Query(default=None),
     listing_id: int | None = Query(default=None),
+    refresh: bool = Query(default=False),
     db: Session = Depends(get_db),
 ):
     current_user = _resolve_user_from_request(request, db)
@@ -1597,7 +1598,7 @@ def vin_inspection_page(
             vin_error = "Некорректный VIN. Используй 17 символов без I, O, Q."
         else:
             try:
-                customs_result = lookup_customs_vin(db, normalized_vin)
+                customs_result = lookup_customs_vin(db, normalized_vin, force_refresh=refresh)
                 vin_report = report_rows(customs_result)
             except CustomsVinError as exc:
                 vin_error = str(exc)

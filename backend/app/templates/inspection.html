@@ -38,7 +38,12 @@
       required
     />
   </label>
-  <button type="submit">Проверить в базе ГТК</button>
+  <div class="actions-row">
+    <button type="submit">Проверить в базе ГТК</button>
+    {% if vin %}
+      <button type="submit" name="refresh" value="1">Обновить у ГТК</button>
+    {% endif %}
+  </div>
 </form>
 
 {% if vin_error %}
@@ -52,6 +57,9 @@
       <p class="hint" style="color:#166534;">Автомобиль найден в базе таможни — есть сведения о выпуске в РБ.</p>
     {% elif customs_result %}
       <p class="hint">В базе 1 (физлица) записи нет. Это не означает нелегальный ввоз.</p>
+      {% if customs_result.cached %}
+        <p class="hint">Ответ из кэша. Если на сайте таможни уже есть запись — нажмите «Обновить у ГТК».</p>
+      {% endif %}
     {% endif %}
     <div class="detail spec-section-body">
       {% for label, value in vin_report.items() %}
