@@ -195,27 +195,30 @@ SPEC_VALUE_LABELS_RU = {
     "pickup": "Пикап",
 }
 
-MAKE_LOGO_URLS = {
-    "audi": "https://cdn.simpleicons.org/audi/111827",
-    "bmw": "https://cdn.simpleicons.org/bmw/111827",
-    "citroen": "https://cdn.simpleicons.org/citroen/111827",
-    "dacia": "https://cdn.simpleicons.org/dacia/111827",
-    "fiat": "https://cdn.simpleicons.org/fiat/111827",
-    "ford": "https://cdn.simpleicons.org/ford/111827",
-    "honda": "https://cdn.simpleicons.org/honda/111827",
-    "hyundai": "https://cdn.simpleicons.org/hyundai/111827",
-    "kia": "https://cdn.simpleicons.org/kia/111827",
-    "mini": "https://cdn.simpleicons.org/mini/111827",
-    "nissan": "https://cdn.simpleicons.org/nissan/111827",
-    "opel": "https://cdn.simpleicons.org/opel/111827",
-    "peugeot": "https://cdn.simpleicons.org/peugeot/111827",
-    "renault": "https://cdn.simpleicons.org/renault/111827",
-    "skoda": "https://cdn.simpleicons.org/skoda/111827",
-    "subaru": "https://cdn.simpleicons.org/subaru/111827",
-    "toyota": "https://cdn.simpleicons.org/toyota/111827",
-    "volkswagen": "https://cdn.simpleicons.org/volkswagen/111827",
-    "volvo": "https://cdn.simpleicons.org/volvo/111827",
-}
+# Brand logos are self-hosted under /static/logos/ (Simple Icons, CC0).
+MAKE_LOGO_SLUGS = frozenset(
+    {
+        "audi",
+        "bmw",
+        "citroen",
+        "dacia",
+        "fiat",
+        "ford",
+        "honda",
+        "hyundai",
+        "kia",
+        "mini",
+        "nissan",
+        "opel",
+        "peugeot",
+        "renault",
+        "skoda",
+        "subaru",
+        "toyota",
+        "volkswagen",
+        "volvo",
+    }
+)
 
 
 def _resolve_user_from_request(request: Request, db: Session) -> User | None:
@@ -969,7 +972,9 @@ def _make_logo_url(make: str | None) -> str | None:
     if not make:
         return None
     key = make.strip().lower()
-    return MAKE_LOGO_URLS.get(key)
+    if key not in MAKE_LOGO_SLUGS:
+        return None
+    return f"/static/logos/{key}.svg"
 
 
 def _distinct_canonical_models(db: Session) -> list[str]:
