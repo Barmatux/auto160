@@ -6,9 +6,31 @@
     <meta name="robots" content="noindex, nofollow" />
     <title>Сравнение дизайна главной — Auto160</title>
     <link rel="icon" href="/static/favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="/static/design-preview.css?v=20260729e" />
+    <link rel="stylesheet" href="/static/design-preview.css?v=20260729f" />
   </head>
   <body class="design-preview-page">
+    {% macro header_logo(dark=false) %}
+      <a class="dp-logo{% if dark %} dp-logo-on-dark{% endif %}" href="/" aria-label="auto160.ru">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="-4 -8 256 64" width="248" height="52" aria-hidden="true" focusable="false">
+          <path
+            d="M2 18 C2 8 12 2 24 2 L38 2 L58 2 C70 2 78 10 82 18"
+            fill="none"
+            stroke="{% if dark %}#93c5fd{% else %}#38bdf8{% endif %}"
+            stroke-width="4"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+          <text
+            x="0"
+            y="46"
+            font-family="Arial, Helvetica, sans-serif"
+            font-size="34"
+            font-weight="800"
+            fill="{% if dark %}#ffffff{% else %}#0066CC{% endif %}"
+          >auto160.ru</text>
+        </svg>
+      </a>
+    {% endmacro %}
     <div class="design-preview-toolbar">
       <h1>Концепции главной · auto160.ru</h1>
       <div class="design-preview-tabs" role="tablist">
@@ -34,7 +56,7 @@
     {# —— Вариант A: Clean —— #}
     <section class="design-variant" data-panel="a">
       <header class="dp-mock-header">
-        <a class="dp-logo" href="/"><img src="/static/logo-auto160-nav.svg" alt="auto160.ru" /></a>
+        {{ header_logo() }}
         <nav>
           <a href="/catalog">Каталог</a>
           <a href="/listings">Объявления</a>
@@ -100,7 +122,7 @@
     {# —— Вариант B: Hero —— #}
     <section class="design-variant" data-panel="b">
       <header class="dp-mock-header">
-        <a class="dp-logo" href="/"><img src="/static/logo-auto160-nav.svg" alt="auto160.ru" /></a>
+        {{ header_logo() }}
         <nav>
           <a href="/catalog">Каталог</a>
           <a href="/listings">Объявления</a>
@@ -146,7 +168,7 @@
     {# —— Вариант C: Editorial —— #}
     <section class="design-variant" data-panel="c">
       <header class="dp-mock-header">
-        <a class="dp-logo" href="/"><img src="/static/logo-auto160-nav.svg" alt="auto160.ru" /></a>
+        {{ header_logo() }}
         <nav>
           <a href="/catalog">Каталог</a>
           <a href="/listings">Объявления</a>
@@ -201,7 +223,7 @@
     {# —— Вариант D: Hub —— #}
     <section class="design-variant" data-panel="d">
       <div class="dp-d-top">
-        <a class="dp-logo dp-logo-on-dark" href="/"><img src="/static/logo-auto160-nav-white.svg" alt="auto160.ru" /></a>
+        {{ header_logo(true) }}
         <nav>
           <a href="/catalog">Каталог</a>
           <a href="/listings">Объявления</a>

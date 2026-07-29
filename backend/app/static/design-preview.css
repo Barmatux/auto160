@@ -10,7 +10,7 @@
 }
 
 .design-preview-page {
-  margin: -16px -16px 0;
+  margin: 0;
   min-height: 100vh;
   background: var(--dp-white);
   color: var(--dp-text);
@@ -91,6 +91,7 @@
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
+  overflow: visible;
 }
 
 .dp-logo img {
@@ -103,11 +104,26 @@
 }
 
 .dp-mock-header .dp-logo img,
-.dp-d-top .dp-logo img {
-  height: 42px;
+.dp-mock-header .dp-logo svg,
+.dp-d-top .dp-logo img,
+.dp-d-top .dp-logo svg {
+  height: 50px;
+  width: auto;
   max-height: none;
   max-width: none;
-  width: auto;
+  overflow: visible;
+}
+
+.dp-mock-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 24px;
+  min-height: 82px;
+  overflow: visible;
+  background: var(--dp-white);
+  border-bottom: 1px solid var(--dp-border);
 }
 
 .dp-logo-brand img {
@@ -202,16 +218,6 @@
   color: var(--dp-accent);
   font-weight: 600;
   text-decoration: none;
-}
-
-.dp-mock-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 14px 24px;
-  background: var(--dp-white);
-  border-bottom: 1px solid var(--dp-border);
 }
 
 .dp-mock-header nav {
@@ -480,10 +486,6 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-}
-
-.dp-d-top .dp-logo img {
-  height: 40px;
 }
 
 .dp-d-top nav a {
