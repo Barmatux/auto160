@@ -8,13 +8,41 @@
   --dp-accent-hover: #0052a3;
   --dp-arc: #5bc4e9;
   --dp-border: #e2e8f0;
+  --dp-surface: #ffffff;
+  --dp-font-body: "Plus Jakarta Sans", system-ui, sans-serif;
+  --dp-font-display: "Outfit", "Plus Jakarta Sans", system-ui, sans-serif;
+  --dp-font-tagline: "Space Grotesk", "Plus Jakarta Sans", sans-serif;
+}
+
+.design-preview-page[data-dp-theme="dark"] {
+  --dp-white: #0c1118;
+  --dp-card: #151d2a;
+  --dp-text: #e8eef5;
+  --dp-muted: #8fa3bb;
+  --dp-accent: #5bc4e9;
+  --dp-accent-hover: #38bdf8;
+  --dp-border: #263244;
+  --dp-surface: #0c1118;
 }
 
 .design-preview-page {
   margin: 0;
   min-height: 100vh;
-  background: var(--dp-white);
+  background: var(--dp-surface);
   color: var(--dp-text);
+  font-family: var(--dp-font-body);
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+.design-preview-page h1,
+.design-preview-page h2,
+.design-preview-page h3,
+.design-preview-page h4,
+.design-preview-page .dp-btn {
+  font-family: var(--dp-font-display);
+  letter-spacing: -0.02em;
 }
 
 .design-preview-toolbar {
@@ -71,6 +99,25 @@
   height: 22px;
   border-radius: 4px;
   border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.design-preview-theme {
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--dp-white);
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.design-preview-theme:hover,
+.design-preview-theme[aria-pressed="true"] {
+  background: var(--dp-accent);
+  border-color: var(--dp-accent);
 }
 
 .design-variant {
@@ -130,11 +177,16 @@
 }
 
 .dp-logo-on-dark img {
+  filter: none;
+}
+
+.design-preview-page[data-dp-theme="dark"] .dp-theme-logo:not([data-dp-src-dark]) {
   filter: brightness(0) invert(1);
 }
 
 .dp-tagline {
   margin: 0 0 16px;
+  font-family: var(--dp-font-tagline);
   font-size: 11px;
   font-weight: 500;
   letter-spacing: 0.32em;
@@ -175,7 +227,7 @@
 }
 
 .dp-btn-secondary {
-  background: var(--dp-white);
+  background: var(--dp-surface);
   color: var(--dp-text);
   border: 1px solid var(--dp-border);
 }
@@ -342,7 +394,7 @@
   padding: 16px 24px;
   min-height: 82px;
   overflow: visible;
-  background: var(--dp-white);
+  background: var(--dp-surface);
   border-bottom: 1px solid var(--dp-border);
 }
 
@@ -394,7 +446,7 @@
 }
 
 .dp-b-stat {
-  background: var(--dp-white);
+  background: var(--dp-surface);
   border: 1px solid var(--dp-border);
   border-radius: 12px;
   padding: 16px;
@@ -415,7 +467,7 @@
 }
 
 .dp-b-feature {
-  background: var(--dp-white);
+  background: var(--dp-surface);
   border: 1px solid var(--dp-border);
   border-radius: 14px;
   padding: 24px;
@@ -518,24 +570,29 @@
 
 /* Variant D — Compact hub */
 .dp-d-top {
-  background: var(--dp-text);
-  color: var(--dp-white);
+  background: var(--dp-card);
+  color: var(--dp-text);
   padding: 12px 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
+  border-bottom: 1px solid var(--dp-border);
+}
+
+.design-preview-page[data-dp-theme="dark"] .dp-d-top {
+  background: #070b10;
 }
 
 .dp-d-top nav a {
-  color: #cbd5e1;
+  color: var(--dp-muted);
   text-decoration: none;
   font-size: 13px;
   margin-left: 16px;
 }
 
 .dp-d-top nav a:hover {
-  color: var(--dp-white);
+  color: var(--dp-accent);
 }
 
 .dp-d-grid {
@@ -578,7 +635,7 @@
 }
 
 .dp-d-listing {
-  background: var(--dp-white);
+  background: var(--dp-surface);
   border: 1px solid var(--dp-border);
   border-radius: 12px;
   overflow: hidden;

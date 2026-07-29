@@ -6,12 +6,15 @@
     <meta name="robots" content="noindex, nofollow" />
     <title>Сравнение дизайна главной — Auto160</title>
     <link rel="icon" href="/static/favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="/static/design-preview.css?v=20260729h" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600&family=Space+Grotesk:wght@400;500&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/static/design-preview.css?v=20260729i" />
   </head>
-  <body class="design-preview-page">
+  <body class="design-preview-page" data-dp-theme="light">
     {% macro nav_logo(src, stacked=false) %}
       <a class="dp-logo{% if stacked %} dp-logo-stacked{% endif %}" href="/" aria-label="auto160.ru">
-        <img src="{{ src }}" alt="auto160.ru" />
+        <img class="dp-theme-logo" src="{{ src }}" alt="auto160.ru" />
       </a>
     {% endmacro %}
 
@@ -30,6 +33,7 @@
         <span style="background:#0066cc" title="#0066CC"></span>
         <span style="background:#5bc4e9" title="#5BC4E9"></span>
       </div>
+      <button type="button" class="design-preview-theme" id="dp-theme-toggle" aria-pressed="false" title="Тёмная тема">🌙</button>
     </div>
 
     <section class="design-variant active" data-panel="current">
@@ -51,7 +55,7 @@
         <div class="dp-a-hero">
           <div>
             <a class="dp-logo dp-logo-brand" href="/">
-              <img src="/static/brand/logo-v1-horizontal.png" alt="auto160" />
+              <img class="dp-theme-logo" src="/static/brand/logo-v1-horizontal.png" alt="auto160" />
             </a>
             <p class="dp-tagline">подбор авто до 160 л. с.</p>
             <h2>Подбор авто до 160 л.с. в Беларуси</h2>
@@ -117,7 +121,7 @@
       </header>
       <div class="dp-b-hero">
         <div class="dp-b-hero-inner">
-          <img class="dp-b-brand-mark" src="/static/brand/logo-v2-horizontal.png" alt="auto160" />
+          <img class="dp-b-brand-mark dp-theme-logo" src="/static/brand/logo-v2-horizontal.png" alt="auto160" />
           <p class="dp-tagline">подбор авто до 160 л. с.</p>
           <h2>Честный подбор б/у авто до 160 л.с.</h2>
           <p>Каталог av.by, лента объявлений и проверка VIN — без лишнего шума.</p>
@@ -154,8 +158,14 @@
     {# —— Дизайн 4: stacked auto / 160.ru, тёмная шапка + hub —— #}
     <section class="design-variant" data-panel="4">
       <div class="dp-d-top">
-        <a class="dp-logo dp-logo-stacked dp-logo-on-dark" href="/" aria-label="auto160.ru">
-          <img src="/static/brand/logo-v4-stacked.png" alt="auto160.ru" />
+        <a class="dp-logo dp-logo-stacked" href="/" aria-label="auto160.ru">
+          <img
+            class="dp-theme-logo"
+            src="/static/brand/logo-v4-stacked.png"
+            data-dp-src-light="/static/brand/logo-v4-stacked.png"
+            data-dp-src-dark="/static/brand/logo-v4-stacked-white.png"
+            alt="auto160.ru"
+          />
         </a>
         <nav>
           <a href="/catalog">Каталог</a>
@@ -165,7 +175,13 @@
         </nav>
       </div>
       <div class="dp-d-intro">
-        <img class="dp-d-intro-logo" src="/static/brand/logo-v4-stacked.png" alt="" />
+        <img
+          class="dp-d-intro-logo dp-theme-logo"
+          src="/static/brand/logo-v4-stacked.png"
+          data-dp-src-light="/static/brand/logo-v4-stacked.png"
+          data-dp-src-dark="/static/brand/logo-v4-stacked-white.png"
+          alt=""
+        />
         <p class="dp-tagline">подбор авто до 160 л. с.</p>
       </div>
       <div class="dp-d-grid">
@@ -211,6 +227,35 @@
             });
           });
         });
+
+        function applyTheme(theme) {
+          document.body.setAttribute("data-dp-theme", theme);
+          localStorage.setItem("dp-theme", theme);
+          var btn = document.getElementById("dp-theme-toggle");
+          if (btn) {
+            btn.setAttribute("aria-pressed", theme === "dark" ? "true" : "false");
+            btn.textContent = theme === "dark" ? "☀️" : "🌙";
+            btn.title = theme === "dark" ? "Светлая тема" : "Тёмная тема";
+          }
+          document.querySelectorAll(".dp-theme-logo[data-dp-src-dark]").forEach(function (img) {
+            img.src = theme === "dark"
+              ? img.getAttribute("data-dp-src-dark")
+              : img.getAttribute("data-dp-src-light");
+          });
+        }
+
+        var saved = localStorage.getItem("dp-theme");
+        if (saved === "dark" || saved === "light") {
+          applyTheme(saved);
+        }
+
+        var themeBtn = document.getElementById("dp-theme-toggle");
+        if (themeBtn) {
+          themeBtn.addEventListener("click", function () {
+            var next = document.body.getAttribute("data-dp-theme") === "dark" ? "light" : "dark";
+            applyTheme(next);
+          });
+        }
       })();
     </script>
   </body>
