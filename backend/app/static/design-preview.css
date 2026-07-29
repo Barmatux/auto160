@@ -88,8 +88,9 @@
 
 /* Shared mock components */
 .dp-logo img {
-  height: 40px;
+  height: 44px;
   width: auto;
+  max-width: min(100%, 320px);
   display: block;
 }
 
@@ -290,6 +291,13 @@
   margin: 0 auto;
 }
 
+.dp-b-brand-mark {
+  width: min(100%, 420px);
+  height: auto;
+  display: block;
+  margin: 0 auto 24px;
+}
+
 .dp-b-hero h2 {
   margin: 20px 0 12px;
   font-size: 48px;
@@ -447,7 +455,7 @@
 }
 
 .dp-d-top .dp-logo img {
-  filter: brightness(0) invert(1);
+  height: 40px;
 }
 
 .dp-d-top nav a {
