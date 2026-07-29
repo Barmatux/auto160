@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Сравнение дизайна главной — Auto160</title>
+    <link rel="icon" href="/static/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/static/design-preview.css?v=20260729" />
+  </head>
+  <body class="design-preview-page">
+    <div class="design-preview-toolbar">
+      <h1>Концепции главной · auto160.ru</h1>
+      <div class="design-preview-tabs" role="tablist">
+        <button type="button" class="active" data-variant="current">Текущий</button>
+        <button type="button" data-variant="a">A · Clean</button>
+        <button type="button" data-variant="b">B · Hero</button>
+        <button type="button" data-variant="c">C · Editorial</button>
+        <button type="button" data-variant="d">D · Hub</button>
+      </div>
+      <div class="design-preview-palette" aria-hidden="true">
+        <span style="background:#ffffff" title="#FFFFFF"></span>
+        <span style="background:#f4f6f9" title="#F4F6F9"></span>
+        <span style="background:#1e293b" title="#1E293B"></span>
+        <span style="background:#0066cc" title="#0066CC"></span>
+      </div>
+    </div>
+
+    {# —— Текущий дизайн (как на проде) —— #}
+    <section class="design-variant active" data-panel="current">
+      <iframe src="/" title="Текущая главная" style="width:100%;height:calc(100vh - 56px);border:none;"></iframe>
+    </section>
+
+    {# —— Вариант A: Clean —— #}
+    <section class="design-variant" data-panel="a">
+      <header class="dp-mock-header">
+        <a class="dp-logo" href="/"><img src="/static/logo-auto160-horizontal.svg" alt="auto160.ru" /></a>
+        <nav>
+          <a href="/catalog">Каталог</a>
+          <a href="/listings">Объявления</a>
+          <a href="/inspection">Проверка VIN</a>
+          <a href="/login">Вход</a>
+        </nav>
+      </header>
+      <main class="dp-a-main">
+        <div class="dp-a-hero">
+          <div>
+            <a class="dp-logo" href="/"><img src="/static/logo-auto160-horizontal.svg" alt="auto160.ru" /></a>
+            <h2>Подбор авто до 160 л.с. в Беларуси</h2>
+            <p>Каталог комплектаций av.by, актуальные объявления и проверка VIN в базе таможни — всё в одном месте.</p>
+            <div class="dp-a-actions">
+              <a class="dp-btn dp-btn-primary" href="/catalog">Открыть каталог</a>
+              <a class="dp-btn dp-btn-secondary" href="/listings">Лента объявлений</a>
+            </div>
+          </div>
+          <div class="dp-a-stats">
+            <div class="dp-stat"><strong>{{ listings_count }}</strong><span>объявлений</span></div>
+            <div class="dp-stat"><strong>{{ catalog_items_count }}</strong><span>комплектаций</span></div>
+            <div class="dp-stat"><strong>{{ catalog_makes_count }}</strong><span>марок</span></div>
+            <div class="dp-stat"><strong>{{ passable_listings_count or 0 }}</strong><span>проходных</span></div>
+          </div>
+        </div>
+        <div class="dp-a-features">
+          <a class="dp-card" href="/catalog">
+            <h3>Каталог</h3>
+            <p>Марка → модель → поколение → комплектация. Только авто до 160 л.с.</p>
+            <span class="dp-link">Подробнее →</span>
+          </a>
+          <a class="dp-card" href="/listings">
+            <h3>Объявления</h3>
+            <p>Цена, пробег, город и ссылка на av.by. Фильтры по марке и году.</p>
+            <span class="dp-link">Смотреть →</span>
+          </a>
+          <a class="dp-card" href="/inspection">
+            <h3>Проверка VIN</h3>
+            <p>База ввезённого транспорта ГТК Беларуси перед покупкой.</p>
+            <span class="dp-link">Проверить →</span>
+          </a>
+        </div>
+        <div class="dp-a-section-title">
+          <h3>Популярные марки</h3>
+          <a class="dp-link" href="/catalog">Все марки →</a>
+        </div>
+        <div class="dp-a-makes">
+          {% for item in popular_makes[:6] %}
+            <a class="dp-a-make" href="{{ item.models_url }}">
+              {% if item.logo_url %}<img class="make-logo" src="{{ item.logo_url }}" alt="" width="48" />{% endif %}
+              <strong>{{ item.make }}</strong>
+              {{ item.count }} мод.
+            </a>
+          {% else %}
+            <span class="dp-a-make">BMW</span>
+            <span class="dp-a-make">Audi</span>
+            <span class="dp-a-make">VW</span>
+          {% endfor %}
+        </div>
+      </main>
+    </section>
+
+    {# —— Вариант B: Hero —— #}
+    <section class="design-variant" data-panel="b">
+      <header class="dp-mock-header">
+        <a class="dp-logo" href="/"><img src="/static/logo-auto160-horizontal.svg" alt="auto160.ru" /></a>
+        <nav>
+          <a href="/catalog">Каталог</a>
+          <a href="/listings">Объявления</a>
+          <a href="/inspection">VIN</a>
+        </nav>
+      </header>
+      <div class="dp-b-hero">
+        <div class="dp-b-hero-inner">
+          <div class="dp-logo-badge"><img src="/static/logo-auto160-badge.svg" alt="auto160.ru" /></div>
+          <h2>auto160.ru</h2>
+          <p>подбор авто до 160 л. с.</p>
+          <a class="dp-btn dp-btn-primary" href="/catalog">Начать подбор</a>
+        </div>
+      </div>
+      <div class="dp-b-stats-bar">
+        <div class="dp-b-stat"><strong>{{ listings_count }}</strong><span>объявлений</span></div>
+        <div class="dp-b-stat"><strong>{{ catalog_items_count }}</strong><span>комплектаций</span></div>
+        <div class="dp-b-stat"><strong>{{ catalog_makes_count }}</strong><span>марок</span></div>
+        <div class="dp-b-stat"><strong>{{ passable_listings_count or 0 }}</strong><span>проходных</span></div>
+      </div>
+      <div class="dp-b-body">
+        <div class="dp-b-features">
+          <div class="dp-b-feature">
+            <div class="dp-b-feature-icon">1</div>
+            <h3>Каталог av.by</h3>
+            <p>Сравнивай комплектации, характеристики и фото. Фильтр до 160 л.с. уже включён.</p>
+          </div>
+          <div class="dp-b-feature">
+            <div class="dp-b-feature-icon">2</div>
+            <h3>Лента объявлений</h3>
+            <p>Актуальные предложения с ценой, пробегом и городом. Переход на источник в один клик.</p>
+          </div>
+          <div class="dp-b-feature">
+            <div class="dp-b-feature-icon">3</div>
+            <h3>Таможня VIN</h3>
+            <p>Проверка выпуска в свободное обращение по базе ГТК РБ.</p>
+          </div>
+        </div>
+        <p style="color:var(--dp-muted);font-size:14px;text-align:center;">Белый фон 60% · карточки #F4F6F9 · акцент #0066CC на CTA</p>
+      </div>
+    </section>
+
+    {# —— Вариант C: Editorial —— #}
+    <section class="design-variant" data-panel="c">
+      <header class="dp-mock-header">
+        <a class="dp-logo" href="/"><img src="/static/logo-auto160-horizontal.svg" alt="auto160.ru" /></a>
+        <nav>
+          <a href="/catalog">Каталог</a>
+          <a href="/listings">Объявления</a>
+          <a href="/inspection">VIN</a>
+        </nav>
+      </header>
+      <div class="dp-c-hero">
+        <div class="dp-c-hero-text">
+          <p style="text-transform:uppercase;letter-spacing:0.12em;font-size:12px;color:var(--dp-accent);font-weight:700;">Беларусь · av.by</p>
+          <h2>Честный подбор б/у авто до 160 л.с.</h2>
+          <p>Без лишнего шума: каталог, объявления и проверка VIN. Синий акцент — доверие и безопасность сделки.</p>
+          <div class="dp-a-actions">
+            <a class="dp-btn dp-btn-primary" href="/catalog">Каталог</a>
+            <a class="dp-btn dp-btn-secondary" href="/listings">Объявления</a>
+          </div>
+        </div>
+        <div class="dp-c-hero-visual">
+          <img src="/static/logo-auto160-horizontal.svg" alt="" />
+        </div>
+      </div>
+      <div class="dp-c-band">
+        <span><strong>{{ listings_count }}</strong> объявлений</span>
+        <span><strong>{{ catalog_items_count }}</strong> комплектаций</span>
+        <span><strong>{{ catalog_makes_count }}</strong> марок</span>
+        <span>Текст #1E293B · меню и заголовки</span>
+      </div>
+      <div class="dp-c-content">
+        <div>
+          <h3>Как пользоваться</h3>
+          <ul class="dp-c-list">
+            <li><strong>Каталог</strong> — выбери марку, поколение и комплектацию.</li>
+            <li><strong>Лента</strong> — фильтруй по городу, году, «проходным».</li>
+            <li><strong>VIN</strong> — проверь авто в базе таможни перед сделкой.</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Новые объявления</h3>
+          <ul class="dp-c-list">
+            {% for listing in latest_listings[:4] %}
+              <li>
+                <a class="dp-link" href="/listings/{{ listing.id }}">{{ listing.brand }} {{ listing.model }} · {{ listing.year }}</a><br />
+                <span style="color:var(--dp-muted);font-size:13px;">{{ listing.price }} ₽ · {{ listing.city }}</span>
+              </li>
+            {% else %}
+              <li>Объявления загружаются с av.by</li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    {# —— Вариант D: Hub —— #}
+    <section class="design-variant" data-panel="d">
+      <div class="dp-d-top">
+        <a class="dp-logo" href="/"><img src="/static/logo-auto160-horizontal.svg" alt="auto160.ru" /></a>
+        <nav>
+          <a href="/catalog">Каталог</a>
+          <a href="/listings">Объявления</a>
+          <a href="/inspection">VIN</a>
+          <a href="/login">Вход</a>
+        </nav>
+      </div>
+      <div class="dp-d-grid">
+        <aside class="dp-d-sidebar">
+          <a class="dp-d-tile" href="/catalog"><strong>Каталог</strong><span>{{ catalog_items_count }} комплектаций</span></a>
+          <a class="dp-d-tile" href="/listings"><strong>Объявления</strong><span>{{ listings_count }} в ленте</span></a>
+          <a class="dp-d-tile" href="/listings?passable=1"><strong>Проходные</strong><span>{{ passable_year_from }}–{{ passable_year_to }} г.в.</span></a>
+          <a class="dp-d-tile" href="/inspection"><strong>Проверка VIN</strong><span>База ГТК РБ</span></a>
+          <div class="dp-stat"><strong>{{ catalog_makes_count }}</strong><span>марок в каталоге</span></div>
+        </aside>
+        <div>
+          <h3 style="margin:0 0 12px;">Свежие объявления</h3>
+          <div class="dp-d-listings">
+            {% for listing in latest_listings[:4] %}
+              <article class="dp-d-listing">
+                {% set cover = listing_cover_urls.get(listing.id) %}
+                <div class="dp-d-listing-thumb">
+                  {% if cover %}<img src="{{ cover }}" alt="" style="width:100%;height:100%;object-fit:cover;" />{% else %}нет фото{% endif %}
+                </div>
+                <div class="dp-d-listing-body">
+                  <h4><a class="dp-link" href="/listings/{{ listing.id }}">{{ listing.brand }} {{ listing.model }}</a></h4>
+                  <p>{{ listing.year }} · {{ listing.price }} ₽ · {{ listing.city }}</p>
+                </div>
+              </article>
+            {% else %}
+              <article class="dp-d-listing"><div class="dp-d-listing-body"><p>Нет объявлений</p></div></article>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <script>
+      (function () {
+        var tabs = document.querySelectorAll(".design-preview-tabs button");
+        var panels = document.querySelectorAll(".design-variant");
+        tabs.forEach(function (tab) {
+          tab.addEventListener("click", function () {
+            var id = tab.getAttribute("data-variant");
+            tabs.forEach(function (t) { t.classList.toggle("active", t === tab); });
+            panels.forEach(function (p) {
+              p.classList.toggle("active", p.getAttribute("data-panel") === id);
+            });
+          });
+        });
+      })();
+    </script>
+  </body>
+</html>

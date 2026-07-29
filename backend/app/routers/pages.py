@@ -1388,6 +1388,24 @@ def home(request: Request, db: Session = Depends(get_db)):
     return templates.TemplateResponse(request, "index.html", context)
 
 
+@router.get("/design-preview")
+def design_preview(request: Request, db: Session = Depends(get_db)):
+    current_user = _resolve_user_from_request(request, db)
+    latest_listings = (
+        db.query(CarListing)
+        .filter(CarListing.status == ListingStatus.published)
+        .order_by(desc(CarListing.created_at))
+        .limit(6)
+        .all()
+    )
+    context = _template_context(request, current_user)
+    context.update(_home_stats(db))
+    context["popular_makes"] = _home_popular_makes(db)
+    context["latest_listings"] = latest_listings
+    context["listing_cover_urls"] = _resolve_listing_cover_urls(latest_listings, db)
+    return templates.TemplateResponse(request, "design_preview.html", context)
+
+
 @router.get("/robots.txt", include_in_schema=False)
 def robots_txt(request: Request):
     base = site_base_url(request)
