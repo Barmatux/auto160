@@ -94,9 +94,20 @@
   display: block;
 }
 
+.dp-logo-brand img {
+  height: auto;
+  width: min(100%, 360px);
+  max-height: 120px;
+}
+
+.dp-logo-on-dark img {
+  filter: brightness(0) invert(1);
+}
+
 .dp-logo-badge img {
   width: 88px;
   height: 88px;
+  object-fit: contain;
 }
 
 .dp-btn {
@@ -400,8 +411,9 @@
 }
 
 .dp-c-hero-visual img {
-  max-width: 280px;
+  max-width: min(100%, 420px);
   width: 100%;
+  height: auto;
 }
 
 .dp-c-band {
