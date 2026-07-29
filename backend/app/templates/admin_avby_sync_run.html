@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}Админка — Запуск #{{ run.id }}{% endblock %}
+{% block content %}
+{% set admin_section = "avby-sync" %}
+{% include "partials/admin_nav.html" %}
+
+<h1>Запуск парсинга #{{ run.id }}</h1>
+<p class="hint">
+  <a href="/admin/avby-sync">← К истории парсинга</a>
+</p>
+
+<section class="admin-stats-grid">
+  <article class="admin-stat-card">
+    <div class="label">Статус</div>
+    <div class="value"><span class="status-pill {{ run.status }}">{{ status_label }}</span></div>
+    <div class="sub">{{ run.started_at.strftime('%d.%m.%Y %H:%M') }}{% if run_duration %} · {{ run_duration }}{% endif %}</div>
+  </article>
+  <article class="admin-stat-card">
+    <div class="label">Источник</div>
+    <div class="value">{{ trigger_label }}</div>
+    <div class="sub">создано {{ run.created_count }} · обновлено {{ run.updated_count }}</div>
+  </article>
+  <article class="admin-stat-card">
+    <div class="label">Проверок VIN</div>
+    <div class="value">{{ vin_summary.checked }}</div>
+    <div class="sub">объявлений проверено в этой сессии</div>
+  </article>
+  <article class="admin-stat-card">
+    <div class="label">VIN получено</div>
+    <div class="value">{{ vin_summary.vin_obtained }}</div>
+    <div class="sub">таможня: {{ vin_summary.customs_checked }} пров. · {{ vin_summary.customs_found }} найдено</div>
+  </article>
+</section>
+
+{% if run.error_message %}
+  <div class="admin-alert admin-alert-error">{{ run.error_message }}</div>
+{% endif %}
+
+<h2>Проверки VIN по объявлениям</h2>
+{% if check_rows %}
+<table class="users-table sync-table">
+  <thead>
+    <tr>
+      <th>Объявление</th>
+      <th>Этап</th>
+      <th>VIN получен</th>
+      <th>VIN</th>
+      <th>Указан на av.by</th>
+      <th>Таможня</th>
+      <th>Ошибка</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for row in check_rows %}
+      {% set check = row.check %}
+      {% set listing = row.listing %}
+      <tr>
+        <td>
+          {% if listing %}
+            <a href="/listings/{{ listing.id }}">#{{ listing.id }}</a>
+            {{ listing.brand }} {{ listing.model }} · {{ listing.year }}
+          {% else %}
+            #{{ check.listing_id }}
+          {% endif %}
+        </td>
+        <td>{{ row.phase_label }}</td>
+        <td>{% if check.vin_obtained %}да{% else %}нет{% endif %}</td>
+        <td>{{ check.vin or "—" }}</td>
+        <td>
+          {% if check.vin_indicated is none %}—
+          {% elif check.vin_indicated %}да
+          {% else %}нет{% endif %}
+        </td>
+        <td>
+          {% if not check.customs_checked %}—
+          {% elif check.customs_found %}найдено
+          {% else %}не найдено{% endif %}
+        </td>
+        <td>
+          {% if check.error_message %}
+            <span class="sync-error" title="{{ check.error_message }}">{{ check.error_message[:80] }}{% if check.error_message|length > 80 %}…{% endif %}</span>
+          {% else %}—{% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="hint">В этом запуске проверок VIN не было. Данные появятся после следующих синхронизаций с включённым обогащением VIN.</p>
+{% endif %}
+{% endblock %}

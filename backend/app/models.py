@@ -117,6 +117,22 @@ class AvbySyncRun(Base):
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
 
 
+class AvbySyncRunVinCheck(Base):
+    __tablename__ = "avby_sync_run_vin_checks"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    sync_run_id: Mapped[int] = mapped_column(ForeignKey("avby_sync_runs.id", ondelete="CASCADE"), index=True)
+    listing_id: Mapped[int] = mapped_column(ForeignKey("car_listings.id", ondelete="CASCADE"), index=True)
+    phase: Mapped[str] = mapped_column(String(20), index=True)
+    vin_obtained: Mapped[bool] = mapped_column(default=False)
+    vin: Mapped[str | None] = mapped_column(String(17), nullable=True)
+    vin_indicated: Mapped[bool | None] = mapped_column(nullable=True)
+    customs_checked: Mapped[bool] = mapped_column(default=False)
+    customs_found: Mapped[bool | None] = mapped_column(nullable=True)
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+
+
 class AvbyServiceAccount(Base):
     __tablename__ = "avby_service_accounts"
 

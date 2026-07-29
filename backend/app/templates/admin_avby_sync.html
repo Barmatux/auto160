@@ -82,6 +82,8 @@
       <th>Страниц</th>
       <th>Марки</th>
       <th>Модели</th>
+      <th>VIN пров.</th>
+      <th>VIN получ.</th>
       <th>Сбои</th>
       <th>max HP</th>
     </tr>
@@ -90,7 +92,7 @@
     {% for row in runs %}
       {% set run = row.run %}
       <tr>
-        <td>{{ run.id }}</td>
+        <td>{{ run.id }} <a href="/admin/avby-sync/{{ run.id }}">VIN</a></td>
         <td>{{ run.started_at.strftime('%d.%m.%Y %H:%M') }}</td>
         <td>{{ row.duration }}</td>
         <td>
@@ -107,6 +109,8 @@
         <td>{{ run.pages_fetched_count }}</td>
         <td>{{ run.brands_count }}</td>
         <td>{{ run.models_count }}</td>
+        <td>{{ row.vin_summary.checked }}</td>
+        <td>{{ row.vin_summary.vin_obtained }}</td>
         <td>{{ run.failed_brands_count }}</td>
         <td>{{ run.max_hp }}</td>
       </tr>

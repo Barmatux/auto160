@@ -11,6 +11,7 @@ from app.avby_offer_metadata import fetch_and_apply_offer_vin_metadata
 from app.avby_vin import AvbyVinError, get_or_fetch_listing_vin
 from app.customs_vin import DATABASE_PERSONAL, CustomsVinError, has_fresh_customs_check, lookup_customs_vin
 from app.models import CarListing, CatalogItem, VinCustomsCheck
+from app.sync_run_vin_log import PHASE_RATING1, record_sync_run_vin_check
 
 
 def normalize_catalog_name(value: str | None) -> str:
@@ -109,10 +110,32 @@ def listing_needs_enrichment(db: Session, listing: CarListing) -> bool:
     return not has_fresh_customs_check(db, listing.vin or "", database=DATABASE_PERSONAL)
 
 
-def enrich_listing_vin_and_customs(db: Session, listing: CarListing) -> ListingEnrichmentStats:
+def enrich_listing_vin_and_customs(
+    db: Session,
+    listing: CarListing,
+    *,
+    sync_run_id: int | None = None,
+) -> ListingEnrichmentStats:
     stats = ListingEnrichmentStats(attempted=1)
+    had_vin_before = listing_has_saved_vin(listing)
+    error_message: str | None = None
+    customs_checked = False
+    customs_found: bool | None = None
+    vin_obtained = False
+
     if not listing.avby_id:
-        stats.errors.append(f"listing {listing.id}: no av.by id")
+        error_message = "no av.by id"
+        stats.errors.append(f"listing {listing.id}: {error_message}")
+        if sync_run_id is not None:
+            record_sync_run_vin_check(
+                db,
+                sync_run_id=sync_run_id,
+                listing=listing,
+                phase=PHASE_RATING1,
+                vin_obtained=False,
+                error_message=error_message,
+            )
+            db.commit()
         return stats
 
     vin = (listing.vin or "").strip().upper()
@@ -121,9 +144,11 @@ def enrich_listing_vin_and_customs(db: Session, listing: CarListing) -> ListingE
     else:
         meta_result = fetch_and_apply_offer_vin_metadata(db, listing)
         if meta_result.error:
-            stats.errors.append(f"listing {listing.id}: metadata {meta_result.error}")
+            error_message = f"metadata {meta_result.error}"
+            stats.errors.append(f"listing {listing.id}: {error_message}")
         elif meta_result.vin_saved:
             stats.vin_fetched += 1
+            vin_obtained = True
 
         if listing_has_saved_vin(listing):
             vin = (listing.vin or "").strip().upper()
@@ -131,32 +156,106 @@ def enrich_listing_vin_and_customs(db: Session, listing: CarListing) -> ListingE
             try:
                 vin_result = get_or_fetch_listing_vin(db, listing)
             except AvbyVinError as exc:
-                stats.errors.append(f"listing {listing.id}: {exc}")
+                error_message = str(exc)
+                stats.errors.append(f"listing {listing.id}: {error_message}")
+                if sync_run_id is not None:
+                    record_sync_run_vin_check(
+                        db,
+                        sync_run_id=sync_run_id,
+                        listing=listing,
+                        phase=PHASE_RATING1,
+                        vin_obtained=False,
+                        error_message=error_message,
+                    )
+                    db.commit()
                 return stats
 
             vin = (vin_result.vin or "").strip().upper()
             if not vin:
-                stats.errors.append(f"listing {listing.id}: empty VIN")
+                error_message = "empty VIN"
+                stats.errors.append(f"listing {listing.id}: {error_message}")
+                if sync_run_id is not None:
+                    record_sync_run_vin_check(
+                        db,
+                        sync_run_id=sync_run_id,
+                        listing=listing,
+                        phase=PHASE_RATING1,
+                        vin_obtained=False,
+                        error_message=error_message,
+                    )
+                    db.commit()
                 return stats
 
             if vin_result.cached:
                 stats.vin_cached += 1
             else:
                 stats.vin_fetched += 1
+                vin_obtained = True
+
+    if not vin_obtained and not had_vin_before and listing_has_saved_vin(listing):
+        vin_obtained = True
 
     if has_fresh_customs_check(db, vin, database=DATABASE_PERSONAL):
         stats.customs_cached += 1
+        summary = get_listing_customs_summary(db, listing)
+        if summary is not None:
+            customs_checked = True
+            customs_found = summary.found
+        if sync_run_id is not None:
+            record_sync_run_vin_check(
+                db,
+                sync_run_id=sync_run_id,
+                listing=listing,
+                phase=PHASE_RATING1,
+                vin_obtained=vin_obtained,
+                vin=vin,
+                vin_indicated=listing.vin_indicated,
+                customs_checked=customs_checked,
+                customs_found=customs_found,
+                error_message=error_message,
+            )
+            db.commit()
         return stats
 
     try:
         customs_result = lookup_customs_vin(db, vin, database=DATABASE_PERSONAL)
     except CustomsVinError as exc:
-        stats.errors.append(f"listing {listing.id}: customs {exc}")
+        error_message = f"customs {exc}"
+        stats.errors.append(f"listing {listing.id}: {error_message}")
+        if sync_run_id is not None:
+            record_sync_run_vin_check(
+                db,
+                sync_run_id=sync_run_id,
+                listing=listing,
+                phase=PHASE_RATING1,
+                vin_obtained=vin_obtained,
+                vin=vin,
+                vin_indicated=listing.vin_indicated,
+                error_message=error_message,
+            )
+            db.commit()
         return stats
 
     stats.customs_checked += 1
+    customs_checked = True
+    customs_found = customs_result.found
     if customs_result.cached:
         stats.customs_cached += 1
+
+    if sync_run_id is not None:
+        record_sync_run_vin_check(
+            db,
+            sync_run_id=sync_run_id,
+            listing=listing,
+            phase=PHASE_RATING1,
+            vin_obtained=vin_obtained,
+            vin=vin,
+            vin_indicated=listing.vin_indicated,
+            customs_checked=customs_checked,
+            customs_found=customs_found,
+            error_message=error_message,
+        )
+        db.commit()
     return stats
 
 
@@ -166,6 +265,7 @@ def enrich_rating_one_listings(
     *,
     targets: list[RatingOneTarget] | None = None,
     limit: int | None = 20,
+    sync_run_id: int | None = None,
 ) -> ListingEnrichmentStats:
     if not listings:
         return ListingEnrichmentStats()
@@ -187,7 +287,7 @@ def enrich_rating_one_listings(
             total.skipped_limit += 1
             continue
 
-        item_stats = enrich_listing_vin_and_customs(db, listing)
+        item_stats = enrich_listing_vin_and_customs(db, listing, sync_run_id=sync_run_id)
         total.attempted += item_stats.attempted
         total.vin_fetched += item_stats.vin_fetched
         total.vin_cached += item_stats.vin_cached

@@ -35,7 +35,7 @@ from app.listing_catalog_link import (
     resolve_catalog_items_for_listings,
     score_listing_catalog_match,
 )
-from app.models import AvbyServiceAccount, AvbySyncRun, CarListing, CatalogItem, CatalogItemPhoto, ListingStatus, User, UserRole
+from app.models import AvbyServiceAccount, AvbySyncRun, AvbySyncRunVinCheck, CarListing, CatalogItem, CatalogItemPhoto, ListingStatus, User, UserRole
 from app.security import decode_token, is_token_revoked
 from app.seo import (
     SeoMeta,
@@ -58,6 +58,7 @@ from app.listing_display import (
 )
 from app.listing_photos import pick_listing_cover_url, resolve_listing_cover_urls, resolve_listing_gallery_urls
 from app.storage import build_app_download_url, normalize_display_image_url
+from app.sync_run_vin_log import PHASE_LABELS, summarize_sync_run_vin_checks
 
 router = APIRouter(tags=["pages"])
 templates = Jinja2Templates(directory="app/templates")
@@ -2374,17 +2375,30 @@ def admin_avby_sync_page(request: Request, db: Session = Depends(get_db)):
     pages_24h = sum(run.pages_fetched_count for run in recent_success_runs)
     syncs_24h = len(recent_success_runs)
 
+    run_ids = [run.id for run in runs]
+    vin_checks_by_run: dict[int, list[AvbySyncRunVinCheck]] = {}
+    if run_ids:
+        vin_check_rows = (
+            db.query(AvbySyncRunVinCheck)
+            .filter(AvbySyncRunVinCheck.sync_run_id.in_(run_ids))
+            .all()
+        )
+        for row in vin_check_rows:
+            vin_checks_by_run.setdefault(row.sync_run_id, []).append(row)
+
     run_rows = []
     for run in runs:
         duration_sec = None
         if run.started_at and run.finished_at:
             duration_sec = int((run.finished_at - run.started_at).total_seconds())
+        vin_summary = summarize_sync_run_vin_checks(vin_checks_by_run.get(run.id, []))
         run_rows.append(
             {
                 "run": run,
                 "duration": _format_duration(duration_sec),
                 "trigger_label": AVBY_SYNC_TRIGGER_LABELS.get(run.trigger, run.trigger),
                 "status_label": AVBY_SYNC_STATUS_LABELS.get(run.status, run.status),
+                "vin_summary": vin_summary,
             }
         )
 
@@ -2415,6 +2429,63 @@ def admin_avby_sync_page(request: Request, db: Session = Depends(get_db)):
         }
     )
     return templates.TemplateResponse(request, "admin_avby_sync.html", context)
+
+
+@router.get("/admin/avby-sync/{run_id}")
+def admin_avby_sync_run_page(request: Request, run_id: int, db: Session = Depends(get_db)):
+    current_user = _resolve_user_from_request(request, db)
+    if not current_user:
+        return RedirectResponse(url="/login", status_code=302)
+    if current_user.role != UserRole.admin:
+        return RedirectResponse(url="/", status_code=302)
+
+    run = db.query(AvbySyncRun).filter(AvbySyncRun.id == run_id).first()
+    if run is None:
+        return RedirectResponse(url="/admin/avby-sync", status_code=302)
+
+    checks = (
+        db.query(AvbySyncRunVinCheck)
+        .filter(AvbySyncRunVinCheck.sync_run_id == run_id)
+        .order_by(AvbySyncRunVinCheck.id.asc())
+        .all()
+    )
+    listing_ids = {check.listing_id for check in checks}
+    listings_by_id: dict[int, CarListing] = {}
+    if listing_ids:
+        listings_by_id = {
+            listing.id: listing
+            for listing in db.query(CarListing).filter(CarListing.id.in_(listing_ids)).all()
+        }
+
+    check_rows = []
+    for check in checks:
+        listing = listings_by_id.get(check.listing_id)
+        check_rows.append(
+            {
+                "check": check,
+                "listing": listing,
+                "phase_label": PHASE_LABELS.get(check.phase, check.phase),
+            }
+        )
+
+    duration_sec = None
+    if run.started_at and run.finished_at:
+        duration_sec = int((run.finished_at - run.started_at).total_seconds())
+
+    context = _template_context(request, current_user)
+    context.update(
+        {
+            "run": run,
+            "run_duration": _format_duration(duration_sec),
+            "trigger_label": AVBY_SYNC_TRIGGER_LABELS.get(run.trigger, run.trigger),
+            "status_label": AVBY_SYNC_STATUS_LABELS.get(run.status, run.status),
+            "vin_summary": summarize_sync_run_vin_checks(checks),
+            "check_rows": check_rows,
+            "trigger_labels": AVBY_SYNC_TRIGGER_LABELS,
+            "status_labels": AVBY_SYNC_STATUS_LABELS,
+        }
+    )
+    return templates.TemplateResponse(request, "admin_avby_sync_run.html", context)
 
 
 AVBY_ACCOUNT_STATUS_LABELS = {

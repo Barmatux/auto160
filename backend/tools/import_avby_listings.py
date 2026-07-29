@@ -736,6 +736,7 @@ def run_import(
                 db,
                 list(touched_listings.values()),
                 limit=vin_metadata_limit if vin_metadata_limit > 0 else None,
+                sync_run_id=run.id if run else None,
             )
             print(
                 "enrich-vin-metadata: "
@@ -755,6 +756,7 @@ def run_import(
                 list(touched_listings.values()),
                 targets=rating_one_targets,
                 limit=vin_enrich_limit if vin_enrich_limit > 0 else None,
+                sync_run_id=run.id if run else None,
             )
             print(
                 "enrich-rating-1: "

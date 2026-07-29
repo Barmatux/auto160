@@ -20,6 +20,7 @@ from app.avby_accounts import list_active_auth_accounts, select_auth_account
 from app.avby_session import AvbySessionError, get_avby_session
 from app.customs_vin import normalize_vin, vin_is_valid
 from app.models import CarListing
+from app.sync_run_vin_log import PHASE_METADATA, record_sync_run_vin_check
 
 AVBY_BASE = "https://web-api.av.by"
 UA = (
@@ -257,6 +258,7 @@ def enrich_listings_vin_metadata(
     listings: list[CarListing],
     *,
     limit: int | None = 100,
+    sync_run_id: int | None = None,
 ) -> OfferMetadataStats:
     stats = OfferMetadataStats()
     if not listings:
@@ -288,11 +290,14 @@ def enrich_listings_vin_metadata(
 
         stats.attempted += 1
         applied = False
+        attempt_error: str | None = None
+        result: OfferMetadataApplyResult | None = None
         while not applied:
             if session is None or current_account is None:
                 current_account = select_auth_account(db, exclude_ids=tried)
                 if current_account is None:
-                    stats.errors.append("no active auth accounts left")
+                    attempt_error = "no active auth accounts left"
+                    stats.errors.append(attempt_error)
                     break
                 tried.add(current_account.id)
                 try:
@@ -303,7 +308,8 @@ def enrich_listings_vin_metadata(
                     session = None
                     current_account = None
                     if len(tried) >= len(pool):
-                        stats.errors.append(str(exc))
+                        attempt_error = str(exc)
+                        stats.errors.append(attempt_error)
                     continue
 
             try:
@@ -316,20 +322,35 @@ def enrich_listings_vin_metadata(
                     current_account = None
                     if len(tried) < len(pool):
                         continue
+                attempt_error = str(exc)
                 stats.errors.append(f"listing {listing.id}: {exc}")
                 break
 
             result = apply_offer_vin_metadata(listing, offer)
+            current_account.error_message = None
+            processed += 1
+            applied = True
+
+        if applied and result is not None:
             stats.fetched += 1
             if result.vin_saved:
                 stats.vin_saved += 1
             if result.indicated_updated:
                 stats.indicated_updated += 1
-            current_account.error_message = None
-            processed += 1
-            applied = True
 
-    if stats.fetched:
+        if sync_run_id is not None:
+            record_sync_run_vin_check(
+                db,
+                sync_run_id=sync_run_id,
+                listing=listing,
+                phase=PHASE_METADATA,
+                vin_obtained=bool(result and result.vin_saved),
+                vin=listing.vin,
+                vin_indicated=listing.vin_indicated,
+                error_message=attempt_error or (result.error if result else None),
+            )
+
+    if stats.fetched or sync_run_id is not None:
         db.commit()
 
     return stats
