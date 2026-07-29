@@ -6,57 +6,40 @@
     <meta name="robots" content="noindex, nofollow" />
     <title>Сравнение дизайна главной — Auto160</title>
     <link rel="icon" href="/static/favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="/static/design-preview.css?v=20260729f" />
+    <link rel="stylesheet" href="/static/design-preview.css?v=20260729g" />
   </head>
   <body class="design-preview-page">
-    {% macro header_logo(dark=false) %}
-      <a class="dp-logo{% if dark %} dp-logo-on-dark{% endif %}" href="/" aria-label="auto160.ru">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="-4 -8 256 64" width="248" height="52" aria-hidden="true" focusable="false">
-          <path
-            d="M2 18 C2 8 12 2 24 2 L38 2 L58 2 C70 2 78 10 82 18"
-            fill="none"
-            stroke="{% if dark %}#93c5fd{% else %}#38bdf8{% endif %}"
-            stroke-width="4"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          />
-          <text
-            x="0"
-            y="46"
-            font-family="Arial, Helvetica, sans-serif"
-            font-size="34"
-            font-weight="800"
-            fill="{% if dark %}#ffffff{% else %}#0066CC{% endif %}"
-          >auto160.ru</text>
-        </svg>
+    {% macro nav_logo(src, stacked=false) %}
+      <a class="dp-logo{% if stacked %} dp-logo-stacked{% endif %}" href="/" aria-label="auto160.ru">
+        <img src="{{ src }}" alt="auto160.ru" />
       </a>
     {% endmacro %}
+
     <div class="design-preview-toolbar">
-      <h1>Концепции главной · auto160.ru</h1>
+      <h1>Новый бренд · auto160.ru</h1>
       <div class="design-preview-tabs" role="tablist">
         <button type="button" class="active" data-variant="current">Текущий</button>
-        <button type="button" data-variant="a">A · Clean</button>
-        <button type="button" data-variant="b">B · Hero</button>
-        <button type="button" data-variant="c">C · Editorial</button>
-        <button type="button" data-variant="d">D · Hub</button>
+        <button type="button" data-variant="1">1 · Horizontal</button>
+        <button type="button" data-variant="2">2 · Compact</button>
+        <button type="button" data-variant="4">4 · Stacked</button>
       </div>
       <div class="design-preview-palette" aria-hidden="true">
         <span style="background:#ffffff" title="#FFFFFF"></span>
         <span style="background:#f4f6f9" title="#F4F6F9"></span>
         <span style="background:#1e293b" title="#1E293B"></span>
         <span style="background:#0066cc" title="#0066CC"></span>
+        <span style="background:#5bc4e9" title="#5BC4E9"></span>
       </div>
     </div>
 
-    {# —— Текущий дизайн (как на проде) —— #}
     <section class="design-variant active" data-panel="current">
       <iframe src="/" title="Текущая главная" style="width:100%;height:calc(100vh - 56px);border:none;"></iframe>
     </section>
 
-    {# —— Вариант A: Clean —— #}
-    <section class="design-variant" data-panel="a">
+    {# —— Дизайн 1: горизонтальный логотип auto160 + полный бренд в hero —— #}
+    <section class="design-variant" data-panel="1">
       <header class="dp-mock-header">
-        {{ header_logo() }}
+        {{ nav_logo('/static/brand/logo-v1-horizontal.png') }}
         <nav>
           <a href="/catalog">Каталог</a>
           <a href="/listings">Объявления</a>
@@ -67,7 +50,9 @@
       <main class="dp-a-main">
         <div class="dp-a-hero">
           <div>
-            <a class="dp-logo dp-logo-brand" href="/"><img src="/static/logo-auto160-brand.png" alt="auto160.ru" /></a>
+            <a class="dp-logo dp-logo-brand" href="/">
+              <img src="/static/brand/logo-brand-full.png" alt="auto160.ru — подбор авто до 160 л. с." />
+            </a>
             <h2>Подбор авто до 160 л.с. в Беларуси</h2>
             <p>Каталог комплектаций av.by, актуальные объявления и проверка VIN в базе таможни — всё в одном месте.</p>
             <div class="dp-a-actions">
@@ -119,10 +104,10 @@
       </main>
     </section>
 
-    {# —— Вариант B: Hero —— #}
-    <section class="design-variant" data-panel="b">
+    {# —— Дизайн 2: компактный горизонтальный логотип, hero-фокус —— #}
+    <section class="design-variant" data-panel="2">
       <header class="dp-mock-header">
-        {{ header_logo() }}
+        {{ nav_logo('/static/brand/logo-v2-horizontal.png') }}
         <nav>
           <a href="/catalog">Каталог</a>
           <a href="/listings">Объявления</a>
@@ -131,9 +116,10 @@
       </header>
       <div class="dp-b-hero">
         <div class="dp-b-hero-inner">
-          <div class="dp-logo-badge"><img src="/static/logo-auto160-badge.png" alt="auto160.ru" /></div>
-          <h2>auto160.ru</h2>
-          <p>подбор авто до 160 л. с.</p>
+          <img class="dp-b-brand-mark" src="/static/brand/logo-v2-horizontal.png" alt="auto160" />
+          <p class="dp-tagline">подбор авто до 160 л. с.</p>
+          <h2>Честный подбор б/у авто до 160 л.с.</h2>
+          <p>Каталог av.by, лента объявлений и проверка VIN — без лишнего шума.</p>
           <a class="dp-btn dp-btn-primary" href="/catalog">Начать подбор</a>
         </div>
       </div>
@@ -161,75 +147,25 @@
             <p>Проверка выпуска в свободное обращение по базе ГТК РБ.</p>
           </div>
         </div>
-        <p style="color:var(--dp-muted);font-size:14px;text-align:center;">Белый фон 60% · карточки #F4F6F9 · акцент #0066CC на CTA</p>
       </div>
     </section>
 
-    {# —— Вариант C: Editorial —— #}
-    <section class="design-variant" data-panel="c">
-      <header class="dp-mock-header">
-        {{ header_logo() }}
-        <nav>
-          <a href="/catalog">Каталог</a>
-          <a href="/listings">Объявления</a>
-          <a href="/inspection">VIN</a>
-        </nav>
-      </header>
-      <div class="dp-c-hero">
-        <div class="dp-c-hero-text">
-          <p style="text-transform:uppercase;letter-spacing:0.12em;font-size:12px;color:var(--dp-accent);font-weight:700;">Беларусь · av.by</p>
-          <h2>Честный подбор б/у авто до 160 л.с.</h2>
-          <p>Без лишнего шума: каталог, объявления и проверка VIN. Синий акцент — доверие и безопасность сделки.</p>
-          <div class="dp-a-actions">
-            <a class="dp-btn dp-btn-primary" href="/catalog">Каталог</a>
-            <a class="dp-btn dp-btn-secondary" href="/listings">Объявления</a>
-          </div>
-        </div>
-        <div class="dp-c-hero-visual">
-          <img src="/static/logo-auto160-brand.png" alt="" />
-        </div>
-      </div>
-      <div class="dp-c-band">
-        <span><strong>{{ listings_count }}</strong> объявлений</span>
-        <span><strong>{{ catalog_items_count }}</strong> комплектаций</span>
-        <span><strong>{{ catalog_makes_count }}</strong> марок</span>
-        <span>Текст #1E293B · меню и заголовки</span>
-      </div>
-      <div class="dp-c-content">
-        <div>
-          <h3>Как пользоваться</h3>
-          <ul class="dp-c-list">
-            <li><strong>Каталог</strong> — выбери марку, поколение и комплектацию.</li>
-            <li><strong>Лента</strong> — фильтруй по городу, году, «проходным».</li>
-            <li><strong>VIN</strong> — проверь авто в базе таможни перед сделкой.</li>
-          </ul>
-        </div>
-        <div>
-          <h3>Новые объявления</h3>
-          <ul class="dp-c-list">
-            {% for listing in latest_listings[:4] %}
-              <li>
-                <a class="dp-link" href="/listings/{{ listing.id }}">{{ listing.brand }} {{ listing.model }} · {{ listing.year }}</a><br />
-                <span style="color:var(--dp-muted);font-size:13px;">{{ listing.price }} ₽ · {{ listing.city }}</span>
-              </li>
-            {% else %}
-              <li>Объявления загружаются с av.by</li>
-            {% endfor %}
-          </ul>
-        </div>
-      </div>
-    </section>
-
-    {# —— Вариант D: Hub —— #}
-    <section class="design-variant" data-panel="d">
+    {# —— Дизайн 4: stacked auto / 160.ru, тёмная шапка + hub —— #}
+    <section class="design-variant" data-panel="4">
       <div class="dp-d-top">
-        {{ header_logo(true) }}
+        <a class="dp-logo dp-logo-stacked dp-logo-on-dark" href="/" aria-label="auto160.ru">
+          <img src="/static/brand/logo-v4-stacked.png" alt="auto160.ru" />
+        </a>
         <nav>
           <a href="/catalog">Каталог</a>
           <a href="/listings">Объявления</a>
           <a href="/inspection">VIN</a>
           <a href="/login">Вход</a>
         </nav>
+      </div>
+      <div class="dp-d-intro">
+        <img class="dp-d-intro-logo" src="/static/brand/logo-v4-stacked.png" alt="" />
+        <p class="dp-tagline">подбор авто до 160 л. с.</p>
       </div>
       <div class="dp-d-grid">
         <aside class="dp-d-sidebar">

@@ -1,4 +1,4 @@
-/* Design preview — brand tokens */
+/* Design preview — brand tokens (auto160.ai) */
 :root {
   --dp-white: #ffffff;
   --dp-card: #f4f6f9;
@@ -6,6 +6,7 @@
   --dp-muted: #64748b;
   --dp-accent: #0066cc;
   --dp-accent-hover: #0052a3;
+  --dp-arc: #5bc4e9;
   --dp-border: #e2e8f0;
 }
 
@@ -104,36 +105,41 @@
 }
 
 .dp-mock-header .dp-logo img,
-.dp-mock-header .dp-logo svg,
-.dp-d-top .dp-logo img,
-.dp-d-top .dp-logo svg {
-  height: 50px;
+.dp-d-top .dp-logo img {
+  height: 46px;
   width: auto;
   max-height: none;
   max-width: none;
-  overflow: visible;
+  object-fit: contain;
+  display: block;
 }
 
-.dp-mock-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 16px 24px;
-  min-height: 82px;
-  overflow: visible;
-  background: var(--dp-white);
-  border-bottom: 1px solid var(--dp-border);
+.dp-logo-stacked img {
+  height: 52px;
 }
 
 .dp-logo-brand img {
   max-height: none;
-  max-width: min(100%, 480px);
-  width: min(100%, 480px);
+  max-width: min(100%, 520px);
+  width: min(100%, 520px);
+  height: auto;
 }
 
 .dp-logo-on-dark img {
-  filter: none;
+  filter: brightness(0) invert(1);
+}
+
+.dp-tagline {
+  margin: 0 0 16px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.32em;
+  text-transform: lowercase;
+  color: var(--dp-muted);
+}
+
+.dp-b-hero .dp-tagline {
+  margin: 12px 0 20px;
 }
 
 .dp-logo-badge img {
@@ -324,11 +330,40 @@
   margin: 0 auto;
 }
 
+.dp-mock-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 24px;
+  min-height: 82px;
+  overflow: visible;
+  background: var(--dp-white);
+  border-bottom: 1px solid var(--dp-border);
+}
+
 .dp-b-brand-mark {
-  width: min(100%, 420px);
+  width: min(100%, 360px);
   height: auto;
   display: block;
-  margin: 0 auto 24px;
+  margin: 0 auto;
+}
+
+.dp-d-intro {
+  background: var(--dp-card);
+  padding: 32px 24px 24px;
+  text-align: center;
+}
+
+.dp-d-intro-logo {
+  height: 140px;
+  width: auto;
+  margin: 0 auto 8px;
+  display: block;
+}
+
+.dp-d-intro .dp-tagline {
+  margin: 0;
 }
 
 .dp-b-hero h2 {
