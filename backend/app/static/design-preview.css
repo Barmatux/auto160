@@ -89,7 +89,8 @@
 /* Shared mock components */
 .dp-logo {
   flex-shrink: 0;
-  line-height: 0;
+  display: inline-flex;
+  align-items: center;
 }
 
 .dp-logo img {
@@ -101,6 +102,14 @@
   object-fit: contain;
 }
 
+.dp-mock-header .dp-logo img,
+.dp-d-top .dp-logo img {
+  height: 42px;
+  max-height: none;
+  max-width: none;
+  width: auto;
+}
+
 .dp-logo-brand img {
   max-height: none;
   max-width: min(100%, 480px);
@@ -108,7 +117,7 @@
 }
 
 .dp-logo-on-dark img {
-  filter: brightness(0) invert(1);
+  filter: none;
 }
 
 .dp-logo-badge img {
@@ -474,7 +483,7 @@
 }
 
 .dp-d-top .dp-logo img {
-  max-height: 48px;
+  height: 40px;
 }
 
 .dp-d-top nav a {

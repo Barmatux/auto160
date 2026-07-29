@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 248 52" role="img" aria-label="auto160.ru">
+  <title>auto160.ru</title>
+  <path
+    d="M2 16 C2 7 10 2 22 2 L36 2 L56 2 C68 2 76 8 80 16"
+    fill="none"
+    stroke="#38bdf8"
+    stroke-width="3.5"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <text
+    x="0"
+    y="44"
+    font-family="Arial, Helvetica, sans-serif"
+    font-size="34"
+    font-weight="800"
+    fill="#0066CC"
+  >auto160.ru</text>
+</svg>
