@@ -50,6 +50,7 @@ from app.seo import (
     render_sitemap_xml,
     site_base_url,
 )
+from app.listing_photos import pick_listing_cover_url, resolve_listing_cover_urls
 from app.storage import build_app_download_url, normalize_display_image_url
 
 router = APIRouter(tags=["pages"])
@@ -324,8 +325,9 @@ def _pick_listing_cover_for_item(item: CatalogItem, listings: list[CarListing]) 
     scored: list[tuple[int, int, str]] = []
     for listing in listings:
         score = _listing_match_score(listing, item)
-        if score >= 0 and listing.cover_photo_url:
-            scored.append((score, listing.id, listing.cover_photo_url))
+        cover = pick_listing_cover_url(listing)
+        if score >= 0 and cover:
+            scored.append((score, listing.id, cover))
     if not scored:
         return None
     scored.sort(key=lambda row: (-row[0], -row[1]))
@@ -433,8 +435,9 @@ def _build_listing_catalog_cover_urls(
     cover_by_catalog = _build_cover_url_map(list(listing_to_catalog.values()), db)
     result: dict[int, str] = {}
     for listing in listings:
-        if listing.cover_photo_url:
-            result[listing.id] = normalize_display_image_url(listing.cover_photo_url) or listing.cover_photo_url
+        cover = pick_listing_cover_url(listing)
+        if cover:
+            result[listing.id] = cover
             continue
         catalog_id = listing_to_catalog.get(listing.id)
         if catalog_id and catalog_id in cover_by_catalog:
@@ -926,30 +929,9 @@ def _apply_freshness_filter(query, freshness: str | None):
 def _resolve_listing_cover_urls(listings: list[CarListing], db: Session) -> dict[int, str]:
     if not listings:
         return {}
+    result = resolve_listing_cover_urls(listings)
     need_catalog: set[tuple[str, str]] = set()
-    result: dict[int, str] = {}
     for listing in listings:
-        if listing.cover_photo_url:
-            result[listing.id] = normalize_display_image_url(listing.cover_photo_url) or listing.cover_photo_url
-            continue
-        if listing.raw_photos and isinstance(listing.raw_photos, list):
-            for photo in listing.raw_photos:
-                if isinstance(photo, str) and photo.strip():
-                    result[listing.id] = normalize_display_image_url(photo.strip()) or photo.strip()
-                    break
-                if isinstance(photo, dict):
-                    url = photo.get("url")
-                    if isinstance(url, str) and url.strip():
-                        result[listing.id] = normalize_display_image_url(url.strip()) or url.strip()
-                        break
-                    for key in ("big", "medium", "small"):
-                        variant = photo.get(key)
-                        if isinstance(variant, dict) and variant.get("url"):
-                            normalized = normalize_display_image_url(str(variant["url"]))
-                            result[listing.id] = normalized or str(variant["url"])
-                            break
-                    if listing.id in result:
-                        break
         if listing.id in result:
             continue
         make = (listing.brand or "").strip()

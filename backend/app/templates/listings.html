@@ -23,7 +23,7 @@
         <div class="catalog">
           {% for listing in listings %}
             <article class="listing-card avby-listing-card">
-              {% set cover_url = listing.cover_photo_url or listing_cover_urls.get(listing.id) %}
+              {% set cover_url = listing_cover_urls.get(listing.id) %}
               {% if cover_url %}
                 <a class="card-cover-link" href="/listings/{{ listing.id }}" aria-label="Открыть объявление {{ listing.brand }} {{ listing.model }}">
                   <img class="catalog-cover" src="{{ cover_url }}" alt="{{ listing.brand }} {{ listing.model }}" />
