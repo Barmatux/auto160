@@ -11,6 +11,9 @@
     <section class="catalog-main">
       <div class="catalog-main-head">
         <h1>Лента объявлений</h1>
+        {% if catalog_item_filter %}
+          <p class="hint">Комплектация: {{ catalog_item_filter.make }} {{ catalog_item_filter.model }}{% if catalog_item_filter.generation %} · {{ catalog_item_filter.generation }}{% endif %}</p>
+        {% endif %}
         <p class="hint">Карточки адаптированы под структуру av.by: фото, поколение, двигатель, коробка, привод и источник.</p>
       </div>
 

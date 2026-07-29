@@ -1,6 +1,9 @@
 <aside class="catalog-filters-panel catalog-sidebar">
   <h3>Фильтры</h3>
   <form class="filters filters-sidebar" method="get" action="/listings" id="listings-filters-form">
+    {% if listings_filters.filters.catalog_item_id %}
+      <input type="hidden" name="catalog_item_id" value="{{ listings_filters.filters.catalog_item_id }}" />
+    {% endif %}
     <div class="catalog-filter-group">
       <p class="catalog-filter-group-title">Параметры объявления</p>
       <label>

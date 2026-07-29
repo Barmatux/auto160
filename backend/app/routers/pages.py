@@ -468,6 +468,28 @@ def _parse_optional_year(value: str | None) -> int | None:
     return year
 
 
+def _parse_optional_int(value: str | int | None) -> int | None:
+    if value is None:
+        return None
+    if isinstance(value, int):
+        return value if value > 0 else None
+    raw = value.strip()
+    if raw == "":
+        return None
+    try:
+        parsed = int(raw)
+    except ValueError:
+        return None
+    return parsed if parsed > 0 else None
+
+
+def _listing_ids_for_catalog_item(db: Session, item: CatalogItem, *, published_only: bool = True) -> list[int]:
+    listings = fetch_listings_for_catalog_items(db, [item], limit_per_item=10000).get(item.id, [])
+    if published_only:
+        listings = [row for row in listings if row.status == ListingStatus.published]
+    return [row.id for row in listings]
+
+
 def _make_model_map(db: Session) -> dict[str, list[str]]:
     rows = (
         db.query(CatalogItem.make, CatalogItem.model)
@@ -603,9 +625,16 @@ def _listings_filters_payload(request: Request, db: Session, *, published_only: 
     query = request.query_params
     parsed_year_from = _parse_optional_year(query.get("year_from"))
     parsed_year_to = _parse_optional_year(query.get("year_to"))
+    catalog_item_id = _parse_optional_int(query.get("catalog_item_id"))
     brand = (query.get("brand") or "").strip()
     model = _canonical_model_name(query.get("model") or "")
     generation = (query.get("generation") or "").strip()
+    if catalog_item_id:
+        catalog_item = db.get(CatalogItem, catalog_item_id)
+        if catalog_item:
+            brand = catalog_item.make or brand
+            model = _canonical_model_name(catalog_item.model) or model
+            generation = catalog_item.generation or generation
     vehicle_rows = _parse_vehicle_filter_rows(query, make_key="brand", model_key="model", generation_key="generation")
     brand_model_map = _merged_listing_brand_model_map(db, published_only=published_only)
     brand_model_generation_map = _make_model_generation_map(db)
@@ -618,6 +647,7 @@ def _listings_filters_payload(request: Request, db: Session, *, published_only: 
             "brand": brand,
             "model": model,
             "generation": generation,
+            "catalog_item_id": catalog_item_id if catalog_item_id is not None else "",
             "city": (query.get("city") or "").strip(),
             "body_type": body_type_filter,
             "engine_type": (query.get("engine_type") or "").strip(),
@@ -655,14 +685,20 @@ def _build_listings_url(
     *,
     brand: str | None = None,
     model: str | None = None,
+    generation: str | None = None,
     year_from: int | None = None,
     year_to: int | None = None,
+    catalog_item_id: int | None = None,
 ) -> str:
+    if catalog_item_id is not None:
+        return "/listings?" + urlencode({"catalog_item_id": catalog_item_id})
     params: dict[str, str | int] = {}
     if brand:
         params["brand"] = brand
     if model:
         params["model"] = model
+    if generation:
+        params["generation"] = generation
     if year_from is not None:
         params["year_from"] = year_from
     if year_to is not None:
@@ -670,6 +706,34 @@ def _build_listings_url(
     if not params:
         return "/listings"
     return "/listings?" + urlencode(params)
+
+
+def _generation_listings_url(db: Session, item: CatalogItem) -> str | None:
+    make = (item.make or "").strip()
+    model = _canonical_model_name(item.model)
+    generation = (item.generation or "").strip()
+    if not make or not model or not generation:
+        return None
+
+    generation_items = (
+        db.query(CatalogItem)
+        .filter(
+            CatalogItem.source_site == "av.by",
+            CatalogItem.make == make,
+            CatalogItem.model == model,
+            CatalogItem.generation == generation,
+        )
+        .all()
+    )
+    year_from_values = [row.year_from for row in generation_items if row.year_from is not None]
+    year_to_values = [row.year_to for row in generation_items if row.year_to is not None]
+    return _build_listings_url(
+        brand=make,
+        model=model,
+        generation=generation,
+        year_from=min(year_from_values) if year_from_values else item.year_from,
+        year_to=max(year_to_values) if year_to_values else item.year_to,
+    )
 
 
 def _merged_listing_brand_model_map(db: Session, *, published_only: bool = True) -> dict[str, list[str]]:
@@ -1373,6 +1437,7 @@ def listings_page(
     transmission_type: str | None = Query(default=None),
     year_from: str | None = Query(default=None),
     year_to: str | None = Query(default=None),
+    catalog_item_id: int | None = Query(default=None),
     passable: bool = Query(default=False),
     freshness: str = Query(default="all"),
     sort: str = Query(default="newest"),
@@ -1389,7 +1454,12 @@ def listings_page(
     if not is_admin:
         query = query.filter(CarListing.status == ListingStatus.published)
 
-    query = _apply_listing_vehicle_rows_filter(query, vehicle_rows)
+    catalog_item_filter = db.get(CatalogItem, catalog_item_id) if catalog_item_id else None
+    if catalog_item_filter:
+        listing_ids = _listing_ids_for_catalog_item(db, catalog_item_filter, published_only=not is_admin)
+        query = query.filter(CarListing.id.in_(listing_ids or [-1]))
+    else:
+        query = _apply_listing_vehicle_rows_filter(query, vehicle_rows)
     if city:
         query = query.filter(CarListing.city == city)
     if body_type:
@@ -1438,9 +1508,11 @@ def listings_page(
     context["has_prev"] = page > 1
     context["has_next"] = offset + len(listings) < total
     context["listings_filters"] = _listings_filters_payload(request, db, published_only=not is_admin)
+    context["catalog_item_filter"] = catalog_item_filter
     normalized_body_type = context["listings_filters"]["filters"]["body_type"] or None
 
     query_params = {
+        "catalog_item_id": catalog_item_id if catalog_item_id else None,
         "city": city or None,
         "body_type": normalized_body_type,
         "engine_type": engine_type or None,
@@ -2023,12 +2095,8 @@ def catalog_item_detail(request: Request, item_id: int, db: Session = Depends(ge
     spec_rows = _resolve_best_spec_rows(item, db)
     context["spec_rows"] = spec_rows
     context["spec_sections"] = _group_spec_rows(spec_rows)
-    context["listings_url"] = _build_listings_url(
-        brand=item.make,
-        model=item.model,
-        year_from=item.year_from,
-        year_to=item.year_to,
-    )
+    context["listings_url"] = _build_listings_url(catalog_item_id=item.id)
+    context["generation_listings_url"] = _generation_listings_url(db, item)
     related_listings = fetch_listings_for_catalog_items(db, [item], limit_per_item=8).get(item.id, [])
     context["related_listings"] = related_listings
     context["related_listing_cover_urls"] = _resolve_listing_cover_urls(related_listings, db)

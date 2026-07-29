@@ -11,8 +11,15 @@
           {% include "partials/catalog_admin_rating.html" %}
         {% endwith %}
       {% endif %}
-      {% if listings_url %}
-        <p><a href="{{ listings_url }}">Объявления по этой комплектации</a></p>
+      {% if listings_url or generation_listings_url %}
+        <div class="actions-row">
+          {% if listings_url %}
+            <a class="btn-link" href="{{ listings_url }}">Объявления по этой комплектации</a>
+          {% endif %}
+          {% if generation_listings_url %}
+            <a class="btn-link" href="{{ generation_listings_url }}">Объявления по поколению</a>
+          {% endif %}
+        </div>
       {% endif %}
       {% if is_admin %}
         <div class="actions-row">
