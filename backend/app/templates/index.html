@@ -2,7 +2,6 @@
 {% block title %}Auto160 — подбор авто до 160 л.с.{% endblock %}
 {% block content %}
 <section class="home-hero">
-  <p class="home-badge">Каталог и объявления av.by · до 160 л.с.</p>
   <h1>Подбор авто до 160 л.с. в Беларуси</h1>
   <p class="home-subtitle">
     Сравнивай комплектации в каталоге, смотри актуальные объявления с av.by и проверяй VIN
@@ -15,57 +14,9 @@
     <a class="btn-secondary" href="/listings?passable=1">Проходные авто</a>
     <a class="btn-secondary" href="/inspection">Проверка VIN</a>
   </div>
-
-  <div class="home-stats">
-    <div>
-      <strong>{{ listings_count }}</strong>
-      <span>объявлений в ленте</span>
-    </div>
-    <div>
-      <strong>{{ catalog_items_count }}</strong>
-      <span>комплектаций в каталоге</span>
-    </div>
-    <div>
-      <strong>{{ catalog_makes_count }}</strong>
-      <span>марок · до 160 л.с.</span>
-    </div>
-    {% if passable_listings_count %}
-    <div>
-      <strong>{{ passable_listings_count }}</strong>
-      <span>проходных ({{ passable_year_from }}–{{ passable_year_to }} г.в.)</span>
-    </div>
-    {% endif %}
-  </div>
 </section>
 
-<section class="home-features">
-  <a class="card home-feature-card" href="/catalog">
-    <h2>Каталог комплектаций</h2>
-    <p>
-      Марка → модель → поколение → комплектация. Характеристики, фото и сравнение версий.
-      Показываем только авто до 160 л.с. из каталога av.by.
-    </p>
-    <span class="home-link">Открыть каталог →</span>
-  </a>
-  <a class="card home-feature-card" href="/listings">
-    <h2>Лента объявлений</h2>
-    <p>
-      Актуальные объявления с av.by: цена, пробег, город, двигатель и ссылка на источник.
-      Фильтры по марке, городу, году и чекбокс «проходные».
-    </p>
-    <span class="home-link">Смотреть объявления →</span>
-  </a>
-  <a class="card home-feature-card" href="/inspection">
-    <h2>Проверка VIN</h2>
-    <p>
-      Поиск по базе ввезённого автотранспорта ГТК Беларуси — был ли автомобиль
-      выпущен в свободное обращение. Можно проверить VIN прямо из карточки объявления.
-    </p>
-    <span class="home-link">Проверить VIN →</span>
-  </a>
-</section>
-
-<section class="home-section">
+<section class="home-section home-section-makes">
   <div class="home-section-head">
     <h2>Популярные марки</h2>
     <a class="home-link" href="/catalog">Все марки →</a>
@@ -80,7 +31,6 @@
             <span class="home-make-fallback">{{ item.make[:1] }}</span>
           {% endif %}
           <strong>{{ item.make }}</strong>
-          <span>{{ item.count }} комплектаций</span>
         </a>
       {% endfor %}
     </div>

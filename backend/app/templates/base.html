@@ -27,12 +27,24 @@
     {% if seo_title %}<meta name="twitter:title" content="{{ seo_title }}" />{% endif %}
     {% if seo_description %}<meta name="twitter:description" content="{{ seo_description }}" />{% endif %}
     {% if seo_og_image %}<meta name="twitter:image" content="{{ seo_og_image }}" />{% endif %}
-    <link rel="stylesheet" href="/static/styles.css?v=20260730-13" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260730-14" />
   </head>
   <body>
     <header class="header">
       <a class="brand" href="/">Авто160</a>
-      <nav>
+      <button
+        class="header-menu-toggle"
+        type="button"
+        data-header-menu-toggle
+        aria-expanded="false"
+        aria-controls="site-nav"
+        aria-label="Открыть меню"
+      >
+        <span class="header-menu-line" aria-hidden="true"></span>
+        <span class="header-menu-line" aria-hidden="true"></span>
+        <span class="header-menu-line" aria-hidden="true"></span>
+      </button>
+      <nav id="site-nav" class="header-nav" data-header-nav aria-label="Основное меню">
         <a href="/">Главная</a>
         <a href="/catalog">Каталог</a>
         <a href="/listings">Лента объявлений</a>
@@ -65,5 +77,6 @@
       </div>
     </footer>
     {% include "partials/yandex_metrika.html" %}
+    <script src="/static/header_nav.js?v=20260730-01" defer></script>
   </body>
 </html>
