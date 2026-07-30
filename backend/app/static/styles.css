@@ -499,6 +499,61 @@ body {
   margin-bottom: 6px;
 }
 
+.listings-feed-gallery {
+  position: relative;
+  margin-bottom: 6px;
+}
+
+.listings-feed-gallery .card-cover-link {
+  margin-bottom: 0;
+}
+
+.listings-feed-gallery-nav {
+  position: absolute;
+  top: 50%;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 52px;
+  padding: 0;
+  border: none;
+  background: rgba(15, 23, 42, 0.42);
+  color: #fff;
+  cursor: pointer;
+  transform: translateY(-50%);
+  opacity: 0.72;
+  transition: background-color 0.15s ease, opacity 0.15s ease;
+}
+
+.listings-feed-gallery-nav svg {
+  display: block;
+  width: 18px;
+  height: 18px;
+}
+
+.listings-feed-gallery-nav:hover,
+.listings-feed-gallery-nav:focus-visible {
+  background: rgba(15, 23, 42, 0.62);
+  opacity: 1;
+  outline: none;
+}
+
+.listings-feed-gallery-prev {
+  left: 0;
+  border-radius: 0 8px 8px 0;
+}
+
+.listings-feed-gallery-next {
+  right: 0;
+  border-radius: 8px 0 0 8px;
+}
+
+.listings-feed-gallery:hover .listings-feed-gallery-nav {
+  opacity: 0.92;
+}
+
 .listings-feed .listing-spec-tags {
   margin-top: 4px;
   gap: 4px;

@@ -21,13 +21,32 @@
 
       {% if listings %}
         <div class="catalog listings-feed">
-          {% for listing in listings %}
+            {% for listing in listings %}
             <article class="listing-card avby-listing-card">
-              {% set cover_url = listing_cover_urls.get(listing.id) %}
-              {% if cover_url %}
-                <a class="card-cover-link" href="/listings/{{ listing.id }}" aria-label="Открыть объявление {{ listing.brand }} {{ listing.model }}">
-                  <img class="catalog-cover" src="{{ cover_url }}" alt="{{ listing.brand }} {{ listing.model }}" />
-                </a>
+              {% set gallery_urls = listing_gallery_urls.get(listing.id, []) %}
+              {% if gallery_urls %}
+                <div
+                  class="listings-feed-gallery"
+                  data-listings-feed-gallery
+                  data-photo-urls="{{ gallery_urls | tojson }}"
+                >
+                  <a class="card-cover-link" href="/listings/{{ listing.id }}" aria-label="Открыть объявление {{ listing.brand }} {{ listing.model }}">
+                    <img
+                      class="catalog-cover listings-feed-gallery-photo"
+                      src="{{ gallery_urls[0] }}"
+                      alt="{{ listing.brand }} {{ listing.model }}"
+                      data-listings-feed-gallery-photo
+                    />
+                  </a>
+                  {% if gallery_urls|length > 1 %}
+                    <button type="button" class="listings-feed-gallery-nav listings-feed-gallery-prev" aria-label="Предыдущее фото">
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 6.5 9 12l5.5 5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </button>
+                    <button type="button" class="listings-feed-gallery-nav listings-feed-gallery-next" aria-label="Следующее фото">
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 6.5 15 12l-5.5 5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </button>
+                  {% endif %}
+                </div>
               {% endif %}
               <h3><a href="/listings/{{ listing.id }}">{{ listing.title | listing_display_title }}</a></h3>
               <p><strong>{{ listing.brand }} {{ listing.model }}</strong> · {{ listing.year }}{% if listing.generation %} · {{ listing.generation }}{% endif %}</p>
@@ -80,4 +99,41 @@
 {% if is_admin %}
   {% include "partials/listing_vin_admin_script.html" %}
 {% endif %}
+<script>
+(function () {
+  document.querySelectorAll("[data-listings-feed-gallery]").forEach(function (gallery) {
+    var urls;
+    try {
+      urls = JSON.parse(gallery.dataset.photoUrls || "[]");
+    } catch (error) {
+      urls = [];
+    }
+    if (urls.length <= 1) return;
+
+    var img = gallery.querySelector("[data-listings-feed-gallery-photo]");
+    var prevBtn = gallery.querySelector(".listings-feed-gallery-prev");
+    var nextBtn = gallery.querySelector(".listings-feed-gallery-next");
+    if (!img || !prevBtn || !nextBtn) return;
+
+    var index = 0;
+
+    function showPhoto(nextIndex) {
+      index = (nextIndex + urls.length) % urls.length;
+      img.src = urls[index];
+    }
+
+    prevBtn.addEventListener("click", function (event) {
+      event.preventDefault();
+      event.stopPropagation();
+      showPhoto(index - 1);
+    });
+
+    nextBtn.addEventListener("click", function (event) {
+      event.preventDefault();
+      event.stopPropagation();
+      showPhoto(index + 1);
+    });
+  });
+})();
+</script>
 {% endblock %}

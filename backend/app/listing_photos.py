@@ -155,6 +155,20 @@ def resolve_listing_gallery_urls(listing: CarListing, *, verify_remote: bool = F
     return gallery
 
 
+def resolve_listing_gallery_urls_map(
+    listings: list[CarListing],
+    *,
+    limit: int = 5,
+    verify_remote: bool = False,
+) -> dict[int, list[str]]:
+    result: dict[int, list[str]] = {}
+    for listing in listings:
+        gallery = resolve_listing_gallery_urls(listing, verify_remote=verify_remote)
+        if gallery:
+            result[listing.id] = gallery[:limit]
+    return result
+
+
 def pick_listing_cover_url(listing: CarListing, *, verify_remote: bool = True) -> str | None:
     for candidate in listing_photo_candidate_urls(listing):
         if verify_remote and is_remote_catalog_image_url(candidate) and not remote_avby_image_available(candidate):

@@ -60,7 +60,12 @@ from app.listing_display import (
     listing_source_href,
     listing_source_label,
 )
-from app.listing_photos import pick_listing_cover_url, resolve_listing_cover_urls, resolve_listing_gallery_urls
+from app.listing_photos import (
+    pick_listing_cover_url,
+    resolve_listing_cover_urls,
+    resolve_listing_gallery_urls,
+    resolve_listing_gallery_urls_map,
+)
 from app.storage import build_app_download_url, normalize_display_image_url
 from app.sync_run_vin_log import PHASE_LABELS, summarize_sync_run_vin_checks
 from app.vin_analytics import build_vin_listings_report
@@ -1520,6 +1525,7 @@ def listings_page(
     context = _template_context(request, current_user)
     context["listings"] = listings
     context["listing_cover_urls"] = _resolve_listing_cover_urls(listings, db)
+    context["listing_gallery_urls"] = resolve_listing_gallery_urls_map(listings, limit=5)
     context["listing_catalog_items"] = resolve_catalog_items_for_listings(db, listings)
     context["total"] = total
     context["page"] = page
