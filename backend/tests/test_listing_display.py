@@ -1,5 +1,6 @@
 from app.listing_display import (
     format_mileage_km,
+    format_price_rub,
     listing_display_description,
     listing_display_title,
     listing_engine_summary,
@@ -54,6 +55,12 @@ def test_listing_display_description_strips_import_metadata():
 def test_format_mileage_km_uses_thousands_separator():
     assert format_mileage_km(123456) == "123 456"
     assert format_mileage_km(86000) == "86 000"
+
+
+def test_format_price_rub_uses_thousands_separator():
+    assert format_price_rub(27400) == "27 400"
+    assert format_price_rub(1234567) == "1 234 567"
+    assert format_price_rub(27400.50) == "27 400,50"
 
 
 def test_listing_seller_label():

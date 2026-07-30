@@ -52,6 +52,7 @@ from app.seo import (
 )
 from app.listing_display import (
     format_mileage_km,
+    format_price_rub,
     listing_display_description,
     listing_display_title,
     listing_engine_summary,
@@ -72,6 +73,7 @@ templates.env.filters["listing_display_description"] = listing_display_descripti
 templates.env.filters["listing_source_href"] = listing_source_href
 templates.env.filters["listing_source_label"] = listing_source_label
 templates.env.filters["format_mileage_km"] = format_mileage_km
+templates.env.filters["format_price_rub"] = format_price_rub
 templates.env.filters["listing_seller_label"] = listing_seller_label
 templates.env.filters["listing_engine_summary"] = listing_engine_summary
 VERIFICATION_DIR = Path(__file__).resolve().parents[1] / "verification"
