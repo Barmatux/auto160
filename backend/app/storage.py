@@ -1,5 +1,5 @@
 from functools import lru_cache
-from urllib.parse import parse_qs, quote, unquote, urlparse
+from urllib.parse import quote, urlparse
 
 import boto3
 from botocore.client import Config
@@ -97,39 +97,3 @@ def normalize_display_image_url(url: str | None) -> str | None:
     if is_remote_catalog_image_url(cleaned):
         return build_remote_image_url(cleaned)
     return cleaned
-
-
-def extract_remote_source_url(url: str | None) -> str | None:
-    """Return raw avcdn URL from a display/proxy URL when possible."""
-    if not url:
-        return None
-    cleaned = url.strip()
-    if not cleaned:
-        return None
-    if is_remote_catalog_image_url(cleaned):
-        return cleaned
-
-    parsed = urlparse(cleaned)
-    path = parsed.path or ""
-    if path.endswith("/media/remote") or path == "/media/remote" or "/media/remote" in path:
-        values = parse_qs(parsed.query).get("url") or []
-        if values:
-            candidate = unquote(values[0]).strip()
-            if is_remote_catalog_image_url(candidate):
-                return candidate
-    return None
-
-
-def build_og_image_path(url: str | None) -> str:
-    """Path for messenger-friendly JPEG og:image (AVIF is not accepted by Telegram)."""
-    if not url:
-        return "/static/og-default.jpg"
-    cleaned = url.strip()
-    if cleaned.startswith("/media/og/listing/") and (".jpg" in cleaned):
-        return cleaned
-    source = extract_remote_source_url(cleaned)
-    if source:
-        return f"/media/og-image?url={quote(source, safe='')}"
-    if cleaned.startswith("/"):
-        return cleaned
-    return "/static/og-default.jpg"

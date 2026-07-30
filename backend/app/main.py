@@ -6,7 +6,6 @@ from app.avby_session import warm_vin_test_session
 from app.db import SessionLocal, engine
 from app.logging_setup import ensure_uvicorn_file_logging, setup_logging
 from app.middleware.analytics import AnalyticsMiddleware
-from app.middleware.head_support import HeadRequestMiddleware
 from app.routers import admin, auth, catalog_photos, listings, media, pages
 from app.storage import ensure_bucket_exists
 
@@ -14,8 +13,6 @@ setup_logging("api")
 
 app = FastAPI(title="Auto160 Backend", version="0.1.0")
 app.add_middleware(AnalyticsMiddleware)
-# Outermost: Telegram sends HEAD first; our GET routes otherwise return 405.
-app.add_middleware(HeadRequestMiddleware)
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 

@@ -50,7 +50,6 @@ from app.seo import (
     render_sitemap_xml,
     site_base_url,
 )
-from app.telegram_hits import recent_hits
 from app.listing_display import (
     format_mileage_km,
     format_price_rub,
@@ -1414,65 +1413,6 @@ def home(request: Request, db: Session = Depends(get_db)):
     context["latest_listings"] = latest_listings
     context["listing_cover_urls"] = _resolve_listing_cover_urls(latest_listings, db)
     return templates.TemplateResponse(request, "index.html", context)
-
-
-@router.get("/og-check", response_class=HTMLResponse, include_in_schema=False)
-def og_check(request: Request):
-    """Minimal page for debugging Telegram / social previews."""
-    base = site_base_url(request)
-    image = f"{base}/static/og-default.jpg"
-    hits = recent_hits()
-    if hits:
-        hits_html = "<ul>" + "".join(
-            (
-                "<li><code>{at}</code> [{kind}] {method} {path} from {ip}"
-                "<br><small>{ua}</small></li>"
-            ).format(**h)
-            for h in hits
-        ) + "</ul>"
-    else:
-        hits_html = (
-            "<p><strong>No crawler hits yet.</strong> "
-            "If WebpageBot says success but this stays empty, Telegram is not reaching "
-            "the server (Yandex Cloud security group / ufw / fail2ban).</p>"
-        )
-    html = f"""<!DOCTYPE html>
-<html lang="ru">
-<head>
-<meta charset="utf-8">
-<title>Auto160 preview check</title>
-<meta name="description" content="Telegram Open Graph preview check for Auto160">
-<meta property="og:type" content="website">
-<meta property="og:site_name" content="Auto160">
-<meta property="og:title" content="Auto160 preview check">
-<meta property="og:description" content="If you see a preview card, Telegram OG works.">
-<meta property="og:url" content="{base}/og-check">
-<meta property="og:image" content="{image}">
-<meta property="og:image:secure_url" content="{image}">
-<meta property="og:image:type" content="image/jpeg">
-<meta property="og:image:width" content="1200">
-<meta property="og:image:height" content="630">
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Auto160 preview check">
-<meta name="twitter:description" content="If you see a preview card, Telegram OG works.">
-<meta name="twitter:image" content="{image}">
-</head>
-<body>
-<h1>Auto160 OG check</h1>
-<p>1) Send <code>{base}/og-check</code> to @WebpageBot</p>
-<p>2) Press <strong>Update with content</strong></p>
-<p>3) Refresh this page</p>
-<p>If Telegram reaches the server, a hit appears below within seconds.</p>
-<p><img src="{image}" alt="og" width="600"></p>
-<h2>Recent crawler / og-check hits</h2>
-{hits_html}
-</body>
-</html>
-"""
-    return HTMLResponse(
-        content=html,
-        headers={"Cache-Control": "no-store"},
-    )
 
 
 @router.get("/design-preview")
