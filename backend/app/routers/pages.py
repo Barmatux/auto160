@@ -50,6 +50,7 @@ from app.seo import (
     render_sitemap_xml,
     site_base_url,
 )
+from app.telegram_hits import recent_telegram_hits
 from app.listing_display import (
     format_mileage_km,
     format_price_rub,
@@ -1420,6 +1421,13 @@ def og_check(request: Request):
     """Minimal page for debugging Telegram / social previews."""
     base = site_base_url(request)
     image = f"{base}/static/og-default.jpg"
+    hits = recent_telegram_hits()
+    if hits:
+        hits_html = "<ul>" + "".join(
+            f"<li><code>{h['at']}</code> {h['method']} {h['path']} from {h['ip']}</li>" for h in hits
+        ) + "</ul>"
+    else:
+        hits_html = "<p><strong>No TelegramBot hits yet.</strong> If WebpageBot says success but this stays empty, Telegram is not reaching the server (firewall / security group / geo-block).</p>"
     html = f"""<!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -1444,7 +1452,10 @@ def og_check(request: Request):
 <body>
 <h1>Auto160 OG check</h1>
 <p>Share this URL in Telegram: <code>{base}/og-check</code></p>
+<p>In WebpageBot press <strong>Update with content</strong> (not only Update preview again).</p>
 <p><img src="{image}" alt="og" width="600"></p>
+<h2>Recent TelegramBot hits</h2>
+{hits_html}
 </body>
 </html>
 """
