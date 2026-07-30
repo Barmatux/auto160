@@ -64,6 +64,16 @@ def format_mileage_km(mileage: int | None) -> str:
     return f"{mileage:,}".replace(",", " ")
 
 
+def format_price_rub(price: float | int | None) -> str:
+    if price is None:
+        return "—"
+    value = float(price)
+    if value.is_integer():
+        return f"{int(value):,}".replace(",", " ")
+    formatted = f"{value:,.2f}".replace(",", " ")
+    return formatted.replace(".", ",")
+
+
 def listing_seller_label(seller_name: str | None) -> str:
     name = (seller_name or "").strip()
     if name and _LEGAL_ENTITY_MARKER.search(name):

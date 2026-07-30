@@ -57,6 +57,13 @@ def seed_mock_listings(db: Session) -> None:
             "price": 27400,
             "city": "Минск",
             "description": "Оригинальный пробег, сервисная история, два ключа. Без ДТП, вложений не требует.",
+            "body_type": "кроссовер",
+            "engine_type": "Бензин",
+            "engine_capacity_l": 2.0,
+            "engine_power_hp": 192,
+            "transmission_type": "Автомат",
+            "drive_type": "Полный",
+            "generation": "F48",
         },
         {
             "title": "Renault Koleos II рестайлинг 2021",
@@ -67,6 +74,12 @@ def seed_mock_listings(db: Session) -> None:
             "price": 21900,
             "city": "Гродно",
             "description": "Автомобиль из Европы. Комфортная комплектация, камера 360, адаптивный круиз.",
+            "body_type": "кроссовер",
+            "engine_type": "Бензин",
+            "engine_capacity_l": 2.5,
+            "engine_power_hp": 186,
+            "transmission_type": "Вариатор",
+            "drive_type": "Передний",
         },
         {
             "title": "Volvo XC60 II 2020 Inscription",
@@ -77,6 +90,12 @@ def seed_mock_listings(db: Session) -> None:
             "price": 36500,
             "city": "Брест",
             "description": "Бережная эксплуатация. Полный пакет ассистентов, кожа, панорама, LED-оптика.",
+            "body_type": "кроссовер",
+            "engine_type": "Бензин",
+            "engine_capacity_l": 2.0,
+            "engine_power_hp": 249,
+            "transmission_type": "Автомат",
+            "drive_type": "Полный",
         },
         {
             "title": "MINI Countryman 2018 Cooper D",
@@ -87,6 +106,12 @@ def seed_mock_listings(db: Session) -> None:
             "price": 18900,
             "city": "Минск",
             "description": "Живой городской кроссовер. Обслужен, чистый салон, два комплекта резины.",
+            "body_type": "кроссовер",
+            "engine_type": "Дизель",
+            "engine_capacity_l": 2.0,
+            "engine_power_hp": 150,
+            "transmission_type": "Автомат",
+            "drive_type": "Передний",
         },
         {
             "title": "Nissan Qashqai II 2018, 1.2T",
@@ -97,12 +122,49 @@ def seed_mock_listings(db: Session) -> None:
             "price": 15800,
             "city": "Витебск",
             "description": "Экономичный и комфортный автомобиль для города и трассы. Хорошее состояние.",
+            "body_type": "кроссовер",
+            "engine_type": "Бензин",
+            "engine_capacity_l": 1.2,
+            "engine_power_hp": 115,
+            "transmission_type": "Механика",
+            "drive_type": "Передний",
         },
     ]
 
+    spec_fields = (
+        "body_type",
+        "engine_type",
+        "engine_capacity_l",
+        "engine_power_hp",
+        "transmission_type",
+        "drive_type",
+        "generation",
+    )
+
     for payload in mocks:
-        exists = db.query(CarListing.id).filter(CarListing.title == payload["title"]).first()
+        exists = (
+            db.query(CarListing)
+            .filter(CarListing.title == payload["title"])
+            .first()
+        )
+        if exists is None:
+            exists = (
+                db.query(CarListing)
+                .filter(
+                    CarListing.brand == payload["brand"],
+                    CarListing.model == payload["model"],
+                    CarListing.year == payload["year"],
+                )
+                .first()
+            )
         if exists:
+            updated = False
+            for field in spec_fields:
+                if getattr(exists, field) in (None, "") and payload.get(field) not in (None, ""):
+                    setattr(exists, field, payload[field])
+                    updated = True
+            if updated:
+                db.add(exists)
             continue
         listing = CarListing(
             seller_id=seller.id,
@@ -115,6 +177,13 @@ def seed_mock_listings(db: Session) -> None:
             city=payload["city"],
             description=payload["description"],
             status=ListingStatus.published,
+            body_type=payload.get("body_type"),
+            engine_type=payload.get("engine_type"),
+            engine_capacity_l=payload.get("engine_capacity_l"),
+            engine_power_hp=payload.get("engine_power_hp"),
+            transmission_type=payload.get("transmission_type"),
+            drive_type=payload.get("drive_type"),
+            generation=payload.get("generation"),
         )
         db.add(listing)
     db.commit()

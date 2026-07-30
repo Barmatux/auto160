@@ -17,12 +17,6 @@
           </p>
         {% endif %}
       </div>
-      <div class="listing-detail-actions">
-        {% if catalog_item %}
-          <a class="btn-link listing-detail-action" href="/catalog/item/{{ catalog_item.id }}">Комплектация в каталоге</a>
-        {% endif %}
-        <a class="btn-link listing-detail-action" href="/inspection?listing_id={{ listing.id }}">Проверить VIN</a>
-      </div>
     </header>
 
     <div class="listing-detail-layout">
@@ -30,7 +24,7 @@
         <dl class="listing-spec-list">
           <div class="listing-spec-row listing-spec-row-price">
             <dt>Цена</dt>
-            <dd>{{ listing.price }} ₽</dd>
+            <dd>{{ listing.price | format_price_rub }} ₽</dd>
           </div>
           <div class="listing-spec-row">
             <dt>Пробег</dt>
@@ -45,9 +39,12 @@
             <dd>{{ listing.seller_name | listing_seller_label }}</dd>
           </div>
           {% if listing.body_type %}
-            <div class="listing-spec-row">
+            <div class="listing-spec-row listing-spec-row-icon">
               <dt>Кузов</dt>
-              <dd>{{ listing.body_type | body_type_label }}</dd>
+              <dd>
+                {{ listing_spec_icon("body") }}
+                <span>{{ listing.body_type | body_type_label }}</span>
+              </dd>
             </div>
           {% endif %}
           {% set engine_summary = listing | listing_engine_summary %}
@@ -92,9 +89,15 @@
         {% if is_admin %}
           <p class="listing-admin-meta"><strong>Статус:</strong> {{ listing.status.value }}</p>
         {% endif %}
+        <div class="listing-detail-side-actions">
+          {% if catalog_item %}
+            <a class="listing-detail-side-action" href="/catalog/item/{{ catalog_item.id }}">Комплектация в каталоге</a>
+          {% endif %}
+          <a class="listing-detail-side-action listing-detail-side-action-primary" href="/inspection?listing_id={{ listing.id }}">Проверить VIN</a>
+        </div>
       </aside>
 
-      <div class="listing-detail-media">
+      <div class="listing-detail-center">
         {% if gallery_urls %}
           <div class="listing-gallery" data-listing-gallery>
             <div class="listing-gallery-stage">
@@ -133,15 +136,15 @@
             </div>
           </div>
         {% endif %}
+
+        <section class="listing-detail-description">
+          <h2 class="listing-detail-description-title">Описание продавца</h2>
+          <div class="listing-detail-description-body">{{ listing.description | listing_display_description }}</div>
+        </section>
       </div>
 
       <aside class="listing-detail-ad-slot" aria-hidden="true"></aside>
     </div>
-
-    <section class="listing-detail-description">
-      <h2 class="listing-detail-description-title">Описание продавца</h2>
-      <div class="listing-detail-description-body">{{ listing.description | listing_display_description }}</div>
-    </section>
   </section>
 
   {% if is_admin %}
