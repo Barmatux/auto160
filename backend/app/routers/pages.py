@@ -1415,6 +1415,45 @@ def home(request: Request, db: Session = Depends(get_db)):
     return templates.TemplateResponse(request, "index.html", context)
 
 
+@router.get("/og-check", response_class=HTMLResponse, include_in_schema=False)
+def og_check(request: Request):
+    """Minimal page for debugging Telegram / social previews."""
+    base = site_base_url(request)
+    image = f"{base}/static/og-default.jpg"
+    html = f"""<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Auto160 preview check</title>
+<meta name="description" content="Telegram Open Graph preview check for Auto160">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Auto160">
+<meta property="og:title" content="Auto160 preview check">
+<meta property="og:description" content="If you see a preview card, Telegram OG works.">
+<meta property="og:url" content="{base}/og-check">
+<meta property="og:image" content="{image}">
+<meta property="og:image:secure_url" content="{image}">
+<meta property="og:image:type" content="image/jpeg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Auto160 preview check">
+<meta name="twitter:description" content="If you see a preview card, Telegram OG works.">
+<meta name="twitter:image" content="{image}">
+</head>
+<body>
+<h1>Auto160 OG check</h1>
+<p>Share this URL in Telegram: <code>{base}/og-check</code></p>
+<p><img src="{image}" alt="og" width="600"></p>
+</body>
+</html>
+"""
+    return HTMLResponse(
+        content=html,
+        headers={"Cache-Control": "no-store"},
+    )
+
+
 @router.get("/design-preview")
 def design_preview(request: Request, db: Session = Depends(get_db)):
     current_user = _resolve_user_from_request(request, db)

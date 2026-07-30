@@ -7,7 +7,7 @@ from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 
 ROOT = Path(__file__).resolve().parents[1]
-OUT = ROOT / "app" / "static" / "og-default.png"
+OUT = ROOT / "app" / "static" / "og-default.jpg"
 LOGO = ROOT / "app" / "static" / "brand" / "logo-v5-horizontal.png"
 
 W, H = 1200, 630
@@ -84,7 +84,7 @@ def main() -> None:
     center_text(line, 400, font_line, "#1d4ed8")
 
     OUT.parent.mkdir(parents=True, exist_ok=True)
-    img.save(OUT, format="PNG", optimize=True)
+    img.save(OUT, format="JPEG", quality=88, optimize=True)
     print(f"wrote {OUT} ({OUT.stat().st_size} bytes)")
 
 

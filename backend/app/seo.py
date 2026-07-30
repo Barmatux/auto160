@@ -111,15 +111,15 @@ def build_seo_context(request: Request, meta: SeoMeta | None = None) -> dict:
     canonical = f"{base}{path}"
     noindex = resolved.noindex if resolved.noindex is not None else _should_noindex(path)
     og_path = build_og_image_path(resolved.image)
-    og_image = absolute_url(base, og_path) or f"{base}/static/og-default.png"
-    is_default_og = og_path.endswith("/static/og-default.png") or og_path == "/static/og-default.png"
-    is_jpeg_og = "/media/og-image" in og_path or "/media/og/listing/" in og_path
+    og_image = absolute_url(base, og_path) or f"{base}/static/og-default.jpg"
+    is_default_og = og_path.endswith("/static/og-default.jpg") or og_path == "/static/og-default.jpg"
+    is_jpeg_og = is_default_og or "/media/og-image" in og_path or "/media/og/listing/" in og_path
     return {
         "seo_title": resolved.title,
         "seo_description": _truncate(resolved.description, 160),
         "seo_canonical": canonical,
         "seo_og_image": og_image,
-        "seo_og_image_type": "image/png" if is_default_og else ("image/jpeg" if is_jpeg_og else None),
+        "seo_og_image_type": "image/jpeg" if is_jpeg_og else None,
         "seo_og_image_width": 1200 if (is_default_og or is_jpeg_og) else None,
         "seo_og_image_height": 630 if (is_default_og or is_jpeg_og) else None,
         "seo_noindex": noindex,
@@ -220,6 +220,9 @@ def catalog_modifications_seo_meta(
 def build_robots_txt(base_url: str) -> str:
     return "\n".join(
         [
+            "User-agent: TelegramBot",
+            "Allow: /",
+            "",
             "User-agent: *",
             "Allow: /",
             "Disallow: /admin/",
