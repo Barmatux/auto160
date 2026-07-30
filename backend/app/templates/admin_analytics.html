@@ -5,6 +5,77 @@
 {% include "partials/admin_nav.html" %}
 
 <h1>Аналитика сайта</h1>
+
+<nav class="admin-analytics-tabs">
+  <a href="/admin/analytics?tab=traffic&days={{ days }}"{% if active_tab == "traffic" %} class="active"{% endif %}>Посещения</a>
+  <a href="/admin/analytics?tab=vin"{% if active_tab == "vin" %} class="active"{% endif %}>Проверки VIN</a>
+</nav>
+
+{% if active_tab == "vin" %}
+<p class="hint">
+  Объявления, для которых выполнялась проверка VIN при парсинге или обогащении.
+  Показаны сохранённый VIN, результат таможни (база 1) и даты получения данных.
+</p>
+
+<section class="admin-stats-grid">
+  <article class="admin-stat-card">
+    <div class="label">Объявлений с проверкой VIN</div>
+    <div class="value">{{ vin_total }}</div>
+    <div class="sub">страница {{ vin_page }} из {{ vin_total_pages }}</div>
+  </article>
+</section>
+
+<table class="sync-table">
+  <thead>
+    <tr>
+      <th>Объявление</th>
+      <th>VIN</th>
+      <th>Таможня</th>
+      <th>Дата выпуска в РБ</th>
+      <th>VIN получен</th>
+      <th>Таможня проверена</th>
+      <th>Последняя проверка</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for row in vin_rows %}
+      <tr>
+        <td>
+          <a href="/listings/{{ row.listing.id }}">#{{ row.listing.id }}</a>
+          {{ row.listing.brand }} {{ row.listing.model }} · {{ row.listing.year }}
+          {% if row.sync_checks_count %}
+            <div class="hint">проверок в парсинге: {{ row.sync_checks_count }}</div>
+          {% endif %}
+        </td>
+        <td>{{ row.vin or "—" }}</td>
+        <td>
+          {% if row.customs_found is none %}не проверялось
+          {% elif row.customs_found %}найдено
+          {% else %}не найдено{% endif %}
+        </td>
+        <td>{{ row.customs_release_date or "—" }}</td>
+        <td>{{ row.vin_fetched_at.strftime('%d.%m.%Y %H:%M') if row.vin_fetched_at else "—" }}</td>
+        <td>{{ row.customs_checked_at.strftime('%d.%m.%Y %H:%M') if row.customs_checked_at else "—" }}</td>
+        <td>{{ row.last_checked_at.strftime('%d.%m.%Y %H:%M') if row.last_checked_at else "—" }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="7">Пока нет объявлений с проверкой VIN</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% if vin_total_pages > 1 %}
+<div class="actions-row">
+  {% if vin_has_prev %}
+    <a class="btn-link" href="/admin/analytics?tab=vin&page={{ vin_page - 1 }}">← Назад</a>
+  {% endif %}
+  {% if vin_has_next %}
+    <a class="btn-link" href="/admin/analytics?tab=vin&page={{ vin_page + 1 }}">Вперёд →</a>
+  {% endif %}
+</div>
+{% endif %}
+
+{% else %}
 <p class="hint">
   Просмотры страниц и действия пользователей. Авторизованные — по email, остальные — с меткой:
   бот, сервис, скрипт или анонимный посетитель. Сервисы могут передавать заголовок
@@ -12,6 +83,7 @@
 </p>
 
 <form class="filters admin-log-toolbar" method="get" action="/admin/analytics">
+  <input type="hidden" name="tab" value="traffic" />
   <label>
     Период
     <select name="days" id="analytics-days">
@@ -219,4 +291,5 @@
   document.getElementById("auto-refresh").addEventListener("change", syncAutoRefresh);
   syncAutoRefresh();
 </script>
+{% endif %}
 {% endblock %}

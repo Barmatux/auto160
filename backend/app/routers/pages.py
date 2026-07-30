@@ -59,6 +59,7 @@ from app.listing_display import (
 from app.listing_photos import pick_listing_cover_url, resolve_listing_cover_urls, resolve_listing_gallery_urls
 from app.storage import build_app_download_url, normalize_display_image_url
 from app.sync_run_vin_log import PHASE_LABELS, summarize_sync_run_vin_checks
+from app.vin_analytics import build_vin_listings_report
 
 router = APIRouter(tags=["pages"])
 templates = Jinja2Templates(directory="app/templates")
@@ -2543,7 +2544,9 @@ def admin_avby_accounts_page(request: Request, db: Session = Depends(get_db)):
 @router.get("/admin/analytics")
 def admin_analytics_page(
     request: Request,
+    tab: str = Query(default="traffic"),
     days: int = Query(default=7, ge=1, le=90),
+    page: int = Query(default=1, ge=1),
     db: Session = Depends(get_db),
 ):
     current_user = _resolve_user_from_request(request, db)
@@ -2552,17 +2555,36 @@ def admin_analytics_page(
     if current_user.role != UserRole.admin:
         return RedirectResponse(url="/", status_code=302)
 
-    summary = build_analytics_summary(db, days=days)
+    active_tab = "vin" if tab == "vin" else "traffic"
     context = _template_context(request, current_user)
     context.update(
         {
+            "active_tab": active_tab,
             "days": days,
             "day_options": [1, 7, 14, 30],
             "event_labels": EVENT_LABELS,
             "refresh_seconds": 30,
-            **summary,
         }
     )
+
+    if active_tab == "vin":
+        per_page = 50
+        vin_rows, vin_total = build_vin_listings_report(db, page=page, per_page=per_page)
+        total_pages = max((vin_total + per_page - 1) // per_page, 1)
+        context.update(
+            {
+                "vin_rows": vin_rows,
+                "vin_total": vin_total,
+                "vin_page": page,
+                "vin_total_pages": total_pages,
+                "vin_has_prev": page > 1,
+                "vin_has_next": page < total_pages,
+            }
+        )
+    else:
+        summary = build_analytics_summary(db, days=days)
+        context.update(summary)
+
     return templates.TemplateResponse(request, "admin_analytics.html", context)
 
 
