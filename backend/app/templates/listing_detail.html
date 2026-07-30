@@ -7,7 +7,7 @@
     <header class="listing-detail-header">
       <div class="listing-detail-heading">
         <h1 class="listing-detail-title">
-          {{ listing.brand }} {{ listing.model }}{% if listing.generation %} ({{ listing.generation }}){% endif %} · {{ listing.year }}
+          {{ listing.brand }} {{ listing.model }}{% if listing.generation %} ({{ listing.generation }}){% endif %}
         </h1>
         {% set source_href = listing | listing_source_href %}
         {% if source_href %}
@@ -30,16 +30,8 @@
             <dd>{{ listing.price | format_price_rub }} ₽</dd>
           </div>
           <div class="listing-spec-row">
-            <dt>Пробег</dt>
-            <dd>{{ listing.mileage | format_mileage_km }} км</dd>
-          </div>
-          <div class="listing-spec-row">
-            <dt>Город</dt>
-            <dd>{{ listing.city }}</dd>
-          </div>
-          <div class="listing-spec-row">
-            <dt>Продавец</dt>
-            <dd>{{ listing.seller_name | listing_seller_label }}</dd>
+            <dt>Год выпуска</dt>
+            <dd>{{ listing.year }}</dd>
           </div>
           {% if listing.body_type %}
             <div class="listing-spec-row listing-spec-row-icon">
@@ -78,6 +70,18 @@
               </dd>
             </div>
           {% endif %}
+          <div class="listing-spec-row">
+            <dt>Пробег</dt>
+            <dd>{{ listing.mileage | format_mileage_km }} км</dd>
+          </div>
+          <div class="listing-spec-row">
+            <dt>Город</dt>
+            <dd>{{ listing.city }}</dd>
+          </div>
+          <div class="listing-spec-row">
+            <dt>Продавец</dt>
+            <dd>{{ listing.seller_name | listing_seller_label }}</dd>
+          </div>
           {% if listing.vin_indicated is not none %}
             <div class="listing-spec-row">
               <dt>VIN на av.by</dt>
