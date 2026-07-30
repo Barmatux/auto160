@@ -1,29 +1,32 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 210" width="280" height="210" role="img" aria-label="auto160">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 200" width="280" height="200" role="img" aria-label="auto160">
   <title>auto160</title>
+  <!-- Rounded car-roof arc with clear peak and generous top padding -->
   <path
-    transform="translate(55 28) scale(1.25)"
-    d="M8 46 C8 30 22 18 40 14 L62 10 L96 10 C116 10 130 22 136 36 L142 46"
+    d="M 58 78
+       C 58 48 90 28 120 22
+       Q 140 16 160 22
+       C 190 28 222 48 222 78"
     fill="none"
     stroke="#1D2A40"
-    stroke-width="4.4"
+    stroke-width="6"
     stroke-linecap="round"
     stroke-linejoin="round"
   />
   <text
     x="140"
-    y="128"
+    y="120"
     text-anchor="middle"
     font-family="Rubik, Arial, Helvetica, sans-serif"
-    font-size="44"
+    font-size="46"
     font-weight="700"
     fill="#2E64A1"
   >auto</text>
   <text
     x="140"
-    y="178"
+    y="170"
     text-anchor="middle"
     font-family="Rubik, Arial, Helvetica, sans-serif"
-    font-size="44"
+    font-size="46"
     font-weight="700"
     fill="#2E64A1"
   >160</text>
