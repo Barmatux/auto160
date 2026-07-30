@@ -122,9 +122,14 @@ def extract_remote_source_url(url: str | None) -> str | None:
 
 def build_og_image_path(url: str | None) -> str:
     """Path for messenger-friendly JPEG og:image (AVIF is not accepted by Telegram)."""
-    source = extract_remote_source_url(url)
+    if not url:
+        return "/static/og-default.png"
+    cleaned = url.strip()
+    if cleaned.startswith("/media/og/listing/") and cleaned.endswith(".jpg"):
+        return cleaned
+    source = extract_remote_source_url(cleaned)
     if source:
         return f"/media/og-image?url={quote(source, safe='')}"
-    if url and url.strip().startswith("/"):
-        return url.strip()
+    if cleaned.startswith("/"):
+        return cleaned
     return "/static/og-default.png"

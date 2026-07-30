@@ -105,7 +105,7 @@ def build_seo_context(request: Request, meta: SeoMeta | None = None) -> dict:
     og_path = build_og_image_path(resolved.image)
     og_image = absolute_url(base, og_path) or f"{base}/static/og-default.png"
     is_default_og = og_path.endswith("/static/og-default.png") or og_path == "/static/og-default.png"
-    is_jpeg_og = "/media/og-image" in og_path
+    is_jpeg_og = "/media/og-image" in og_path or "/media/og/listing/" in og_path
     return {
         "seo_title": resolved.title,
         "seo_description": _truncate(resolved.description, 160),
@@ -131,11 +131,13 @@ def listing_seo_meta(listing: CarListing, *, cover_url: str | None = None) -> Se
         .replace(",", " "),
         160,
     )
+    # Prefer a clean JPEG path: Telegram often fails on AVIF and on HEAD=405 query URLs.
+    og_image = f"/media/og/listing/{listing.id}.jpg" if cover_url else None
     return SeoMeta(
         title=title,
         description=description,
         path=f"/listings/{listing.id}",
-        image=cover_url,
+        image=og_image,
     )
 
 
