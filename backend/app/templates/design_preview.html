@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="/static/design-preview.css?v=20260729m" />
+    <link rel="stylesheet" href="/static/design-preview.css?v=20260730a" />
   </head>
   <body class="design-preview-page" data-dp-theme="light">
     {% macro nav_logo(src, stacked=false) %}
@@ -150,10 +150,18 @@
       </div>
     </section>
 
-    {# —— Дизайн 4: hub с логотипом Compact (v2 horizontal) —— #}
+    {# —— Дизайн 4: stacked hub — новый логотип v5 —— #}
     <section class="design-variant dp-variant-stacked" data-panel="4">
       <header class="dp-mock-header dp-d-header">
-        {{ nav_logo('/static/brand/logo-v2-horizontal.png') }}
+        <a class="dp-logo" href="/" aria-label="auto160.ru">
+          <img
+            class="dp-theme-logo"
+            src="/static/brand/logo-v5-horizontal.png"
+            data-dp-src-light="/static/brand/logo-v5-horizontal.png"
+            data-dp-src-dark="/static/brand/logo-v5-horizontal-white.svg"
+            alt="auto160"
+          />
+        </a>
         <nav>
           <a href="/catalog">Каталог</a>
           <a href="/listings">Объявления</a>
@@ -163,8 +171,14 @@
       </header>
 
       <div class="dp-d-hero">
-        <img class="dp-d-hero-brand dp-theme-logo" src="/static/brand/logo-v2-horizontal.png" alt="auto160" />
-        <p class="dp-tagline">подбор авто до 160 л. с.</p>
+        <img
+          class="dp-d-hero-brand dp-d-hero-brand-stacked dp-theme-logo"
+          src="/static/brand/logo-v5-stacked.svg"
+          data-dp-src-light="/static/brand/logo-v5-stacked.svg"
+          data-dp-src-dark="/static/brand/logo-v5-stacked-white.svg"
+          alt="auto160"
+        />
+        <p class="dp-tagline">подбор авто до 160 л. с. · auto160.ru</p>
         <h2>Подбор авто до 160 л.с. в Беларуси</h2>
         <p class="dp-d-hero-lead">Каталог, объявления av.by и проверка VIN — всё для безопасной покупки.</p>
         <div class="dp-a-actions dp-d-actions">

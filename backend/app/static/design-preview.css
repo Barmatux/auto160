@@ -429,7 +429,20 @@
   display: none;
 }
 
-/* Variant 4 — hub with Compact logo */
+/* Variant 4 — stacked hub (logo v5) */
+.dp-variant-stacked .dp-mock-header .dp-logo img {
+  height: 40px;
+  width: auto;
+  max-width: min(100%, 220px);
+}
+
+.dp-d-hero-brand-stacked {
+  display: block;
+  width: min(100%, 220px);
+  height: auto;
+  margin: 0 auto 8px;
+}
+
 .dp-d-hero {
   display: flex;
   flex-direction: column;
@@ -788,8 +801,8 @@
     padding: 16px 18px 14px;
   }
 
-  .dp-d-hero-brand {
-    width: min(100%, 260px);
+  .dp-d-hero-brand-stacked {
+    width: min(100%, 190px);
   }
 
   .dp-d-hero h2 {

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 72" width="320" height="72" role="img" aria-label="auto160">
+  <title>auto160</title>
+  <path
+    d="M8 46 C8 30 22 18 40 14 L62 10 L96 10 C116 10 130 22 136 36 L142 46"
+    fill="none"
+    stroke="#5BC4E9"
+    stroke-width="5.5"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <text
+    x="152"
+    y="48"
+    font-family="Rubik, Arial, Helvetica, sans-serif"
+    font-size="34"
+    font-weight="700"
+    fill="#FFFFFF"
+  >auto160</text>
+</svg>
