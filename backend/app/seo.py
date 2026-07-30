@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.models import CarListing, CatalogItem, ListingStatus
+from app.storage import build_og_image_path
 
 SITE_NAME = "Auto160"
 DEFAULT_DESCRIPTION = (
@@ -101,12 +102,18 @@ def build_seo_context(request: Request, meta: SeoMeta | None = None) -> dict:
     path = resolved.path or request.url.path
     canonical = f"{base}{path}"
     noindex = resolved.noindex if resolved.noindex is not None else _should_noindex(path)
-    og_image = absolute_url(base, resolved.image) or f"{base}/static/og-default.png"
+    og_path = build_og_image_path(resolved.image)
+    og_image = absolute_url(base, og_path) or f"{base}/static/og-default.png"
+    is_default_og = og_path.endswith("/static/og-default.png") or og_path == "/static/og-default.png"
+    is_jpeg_og = "/media/og-image" in og_path
     return {
         "seo_title": resolved.title,
         "seo_description": _truncate(resolved.description, 160),
         "seo_canonical": canonical,
         "seo_og_image": og_image,
+        "seo_og_image_type": "image/png" if is_default_og else ("image/jpeg" if is_jpeg_og else None),
+        "seo_og_image_width": 1200 if is_default_og else None,
+        "seo_og_image_height": 630 if is_default_og else None,
         "seo_noindex": noindex,
         "site_base_url": base,
     }

@@ -4,12 +4,55 @@ from urllib.request import Request, urlopen
 
 from botocore.exceptions import BotoCoreError, ClientError
 from fastapi import APIRouter, HTTPException, Query
-from fastapi.responses import StreamingResponse
+from fastapi.responses import Response, StreamingResponse
+from PIL import Image, UnidentifiedImageError
 
 from app.config import settings
 from app.storage import get_s3_client, is_remote_catalog_image_url
 
 router = APIRouter(prefix="/media", tags=["media"])
+
+_REMOTE_FETCH_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (compatible; Auto160/1.0; +https://av.by/)",
+    "Accept": "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
+    "Referer": "https://av.by/",
+}
+
+
+def _fetch_remote_image(url: str) -> tuple[bytes, str]:
+    request = Request(url.strip(), headers=_REMOTE_FETCH_HEADERS)
+    with urlopen(request, timeout=20) as response:
+        payload = response.read()
+        content_type = (response.headers.get("Content-Type") or "application/octet-stream").split(";")[0].strip()
+    if not payload:
+        raise HTTPException(status_code=404, detail="Image not available")
+    return payload, content_type
+
+
+def _to_jpeg_bytes(payload: bytes, *, max_side: int = 1200, quality: int = 85) -> bytes:
+    try:
+        image = Image.open(io.BytesIO(payload))
+        image.load()
+    except (UnidentifiedImageError, OSError) as exc:
+        raise HTTPException(status_code=404, detail="Image not decodable") from exc
+
+    if image.mode not in {"RGB", "L"}:
+        image = image.convert("RGB")
+    elif image.mode == "L":
+        image = image.convert("RGB")
+
+    width, height = image.size
+    longest = max(width, height)
+    if longest > max_side:
+        scale = max_side / float(longest)
+        image = image.resize(
+            (max(1, int(width * scale)), max(1, int(height * scale))),
+            Image.Resampling.LANCZOS,
+        )
+
+    out = io.BytesIO()
+    image.save(out, format="JPEG", quality=quality, optimize=True)
+    return out.getvalue()
 
 
 @router.get("/object")
@@ -34,21 +77,31 @@ def get_remote_image(url: str = Query(..., min_length=8)):
     if not is_remote_catalog_image_url(url):
         raise HTTPException(status_code=400, detail="URL not allowed")
 
-    request = Request(
-        url.strip(),
-        headers={
-            "User-Agent": "Mozilla/5.0 (compatible; Auto160/1.0; +https://av.by/)",
-            "Accept": "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
-            "Referer": "https://av.by/",
-        },
-    )
     try:
-        with urlopen(request, timeout=20) as response:
-            payload = response.read()
-            content_type = (response.headers.get("Content-Type") or "application/octet-stream").split(";")[0].strip()
+        payload, content_type = _fetch_remote_image(url)
     except (URLError, TimeoutError, ValueError):
         raise HTTPException(status_code=404, detail="Image not available")
 
-    if not payload:
-        raise HTTPException(status_code=404, detail="Image not available")
     return StreamingResponse(io.BytesIO(payload), media_type=content_type)
+
+
+@router.get("/og-image")
+def get_og_image(url: str = Query(..., min_length=8)):
+    """JPEG preview for messengers (Telegram etc. reject AVIF og:image)."""
+    if not is_remote_catalog_image_url(url):
+        raise HTTPException(status_code=400, detail="URL not allowed")
+
+    try:
+        payload, _content_type = _fetch_remote_image(url)
+    except (URLError, TimeoutError, ValueError):
+        raise HTTPException(status_code=404, detail="Image not available")
+
+    jpeg = _to_jpeg_bytes(payload)
+    return Response(
+        content=jpeg,
+        media_type="image/jpeg",
+        headers={
+            "Cache-Control": "public, max-age=86400",
+            "Content-Disposition": "inline; filename=og-preview.jpg",
+        },
+    )
