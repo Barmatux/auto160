@@ -10,7 +10,10 @@
     {% include "partials/catalog_filters_panel.html" %}
     <section class="catalog-main">
     <div class="catalog-main-head">
-      <h1>Комплектации</h1>
+      <h1>{{ seo_h1 or "Комплектации" }}</h1>
+      {% if seo_intro %}
+        <p class="hint">{{ seo_intro }}</p>
+      {% endif %}
       <p class="hint">
         <a href="{{ back_to_catalog_url if back_to_catalog_url else '/catalog' }}">← Назад к поколениям</a>
       </p>

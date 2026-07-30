@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block content %}
+<article class="guide-page">
+  <header class="guide-header">
+    <p class="hint"><a href="/">Главная</a> · <a href="/catalog">Каталог</a></p>
+    <h1>{{ seo_h1 or "Зачем выбирать авто до 160 л.с. в Беларуси" }}</h1>
+    <p class="guide-lead">
+      Auto160 специально собирает комплектации и объявления с мощностью до 160 л.с. —
+      это практичный порог для многих покупателей в Беларуси.
+    </p>
+  </header>
+
+  <section class="guide-section">
+    <h2>Почему важен порог 160 л.с.</h2>
+    <p>
+      В повседневной эксплуатации «лишние» лошади часто не нужны, а более мощные моторы дороже
+      в покупке, обслуживании и страховке. Ограничение до 160 л.с. помогает сузить выбор
+      до машин, которые проще содержать без потери комфорта в городе и на трассе.
+    </p>
+  </section>
+
+  <section class="guide-section">
+    <h2>Как подбирать на Auto160</h2>
+    <ol>
+      <li>Начните с <a href="/catalog">каталога</a>: марка → модель → поколение → комплектация.</li>
+      <li>Смотрите связанные объявления в <a href="/listings">ленте</a>.</li>
+      <li>Перед сделкой проверьте VIN на странице <a href="/inspection">Проверка</a>.</li>
+    </ol>
+    <p>
+      <a class="btn-primary" href="/catalog">Открыть каталог</a>
+      <a class="btn-secondary" href="/listings">Лента объявлений</a>
+    </p>
+  </section>
+
+  <section class="guide-section">
+    <h2>Популярные направления</h2>
+    <ul>
+      <li><a href="/catalog/models?make=Volkswagen">Volkswagen до 160 л.с.</a></li>
+      <li><a href="/catalog/models?make=Skoda">Skoda до 160 л.с.</a></li>
+      <li><a href="/catalog/models?make=Toyota">Toyota до 160 л.с.</a></li>
+      <li><a href="/listings?city=%D0%9C%D0%B8%D0%BD%D1%81%D0%BA">Авто до 160 л.с. в Минске</a></li>
+      <li><a href="/guides/vin">Как проверять VIN</a></li>
+    </ul>
+  </section>
+</article>
+{% endblock %}

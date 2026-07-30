@@ -10,7 +10,10 @@
     {% include "partials/catalog_filters_panel.html" %}
     <section class="catalog-main">
     <div class="catalog-main-head">
-      <h1>{% if make and model %}{{ make }} {{ model }}{% else %}Все поколения{% endif %}</h1>
+      <h1>{{ seo_h1 or ((make ~ " " ~ model) if make and model else "Все поколения") }}</h1>
+      {% if seo_intro %}
+        <p class="hint">{{ seo_intro }}</p>
+      {% endif %}
       <p class="hint">
         <a href="{{ back_to_models_url }}">← Назад к моделям{% if make %} {{ make }}{% endif %}</a>
       </p>

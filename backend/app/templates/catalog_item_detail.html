@@ -4,7 +4,10 @@
 {% if item %}
   <section class="catalog-main catalog-detail-page">
     <div class="catalog-main-head">
-      <h1>{{ item.make }} {{ item.model }}</h1>
+      <h1>{{ seo_h1 or (item.make ~ " " ~ item.model) }}</h1>
+      {% if seo_intro %}
+        <p class="hint">{{ seo_intro }}</p>
+      {% endif %}
       <p class="hint">Поколение: {{ item.generation or "—" }}</p>
       {% if is_admin %}
         {% with rating=item.rating %}

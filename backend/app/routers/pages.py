@@ -1,7 +1,7 @@
 import re
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from urllib.parse import urlencode
+from urllib.parse import quote, urlencode
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse, PlainTextResponse, RedirectResponse, Response
@@ -38,6 +38,7 @@ from app.listing_catalog_link import (
 from app.models import AvbyServiceAccount, AvbySyncRun, AvbySyncRunVinCheck, CarListing, CatalogItem, CatalogItemPhoto, ListingStatus, User, UserRole
 from app.security import decode_token, is_token_revoked
 from app.seo import (
+    INDEXABLE_CITIES,
     SeoMeta,
     build_robots_txt,
     build_seo_context,
@@ -46,7 +47,12 @@ from app.seo import (
     catalog_item_seo_meta,
     catalog_models_seo_meta,
     catalog_modifications_seo_meta,
+    guide_do_160_seo_meta,
+    guide_vin_seo_meta,
+    home_seo_meta,
+    inspection_seo_meta,
     listing_seo_meta,
+    listings_feed_seo_meta,
     render_sitemap_xml,
     site_base_url,
 )
@@ -1407,7 +1413,7 @@ def home(request: Request, db: Session = Depends(get_db)):
         .limit(6)
         .all()
     )
-    context = _template_context(request, current_user)
+    context = _template_context(request, current_user, home_seo_meta(request))
     context.update(_home_stats(db))
     context["popular_makes"] = _home_popular_makes(db)
     context["latest_listings"] = latest_listings
@@ -1564,6 +1570,43 @@ def listings_page(
     context["prev_url"] = build_page_url(page - 1) if context["has_prev"] else None
     context["next_url"] = build_page_url(page + 1) if context["has_next"] else None
     context["listing_customs_map"] = build_listing_customs_map(db, listings) if listings else {}
+
+    brand = None
+    model = None
+    if len(vehicle_rows) == 1:
+        brand = (vehicle_rows[0].get("make") or "").strip() or None
+        model = (vehicle_rows[0].get("model") or "").strip() or None
+    elif len(vehicle_rows) > 1:
+        brand = "__multi__"
+    noisy_filters = bool(
+        catalog_item_id
+        or body_type
+        or engine_type
+        or transmission_type
+        or parsed_year_from is not None
+        or parsed_year_to is not None
+        or passable
+        or (freshness and freshness != "all")
+        or (sort and sort != "newest")
+        or page_size != 20
+        or brand == "__multi__"
+        or any((row.get("generation") or "").strip() for row in vehicle_rows)
+        or (city and city not in INDEXABLE_CITIES and not brand)
+    )
+    seo_brand = None if brand == "__multi__" else brand
+    context.update(
+        build_seo_context(
+            request,
+            listings_feed_seo_meta(
+                city=city,
+                brand=seo_brand,
+                model=model if seo_brand else None,
+                page=page,
+                total=total,
+                noisy_filters=noisy_filters or (brand == "__multi__"),
+            ),
+        )
+    )
     return templates.TemplateResponse(request, "listings.html", context)
 
 
@@ -1577,7 +1620,11 @@ def listing_item(request: Request, listing_id: int, db: Session = Depends(get_db
     seo = None
     if listing:
         cover_urls = _resolve_listing_cover_urls([listing], db)
-        seo = listing_seo_meta(listing, cover_url=cover_urls.get(listing.id))
+        seo = listing_seo_meta(
+            listing,
+            cover_url=cover_urls.get(listing.id),
+            base=site_base_url(request),
+        )
     else:
         seo = SeoMeta(
             title="Объявление не найдено — Auto160",
@@ -1591,12 +1638,21 @@ def listing_item(request: Request, listing_id: int, db: Session = Depends(get_db
         catalog_items = resolve_catalog_items_for_listings(db, [listing])
         context["catalog_item"] = catalog_items.get(listing.id)
         context["gallery_urls"] = resolve_listing_gallery_urls(listing)
+        city = (listing.city or "").strip()
+        context["city_listings_url"] = (
+            f"/listings?city={quote(city)}" if city in INDEXABLE_CITIES else None
+        )
+        context["vin_guide_url"] = "/guides/vin"
     else:
         context["catalog_item"] = None
         context["gallery_urls"] = []
-    is_admin = current_user is not None and current_user.role == UserRole.admin
+        context["city_listings_url"] = None
+        context["vin_guide_url"] = "/guides/vin"
     context["listing_customs"] = get_listing_customs_summary(db, listing) if listing else None
-    return templates.TemplateResponse(request, "listing_detail.html", context)
+    status_code = 200 if listing else 404
+    return templates.TemplateResponse(
+        request, "listing_detail.html", context, status_code=status_code
+    )
 
 
 @router.get("/inspection")
@@ -1608,7 +1664,8 @@ def vin_inspection_page(
     db: Session = Depends(get_db),
 ):
     current_user = _resolve_user_from_request(request, db)
-    context = _template_context(request, current_user)
+    has_query = bool((vin or "").strip() or listing_id is not None or refresh)
+    context = _template_context(request, current_user, inspection_seo_meta(has_query=has_query))
     listing = None
     if listing_id is not None:
         listing = db.query(CarListing).filter(CarListing.id == listing_id).first()
@@ -1794,6 +1851,8 @@ def catalog_models(
         current_user,
         catalog_models_seo_meta(make, total=len(models)),
     )
+    if exact_hp or with_listings or not make:
+        context["seo_noindex"] = True
     context["make"] = make
     context["models"] = models
     context["cover_urls"] = _build_cover_url_map([item["first_id"] for item in models], db)
@@ -1882,6 +1941,8 @@ def catalog_generations(
         current_user,
         catalog_generations_seo_meta(make, canonical_model or None, total=len(generations)),
     )
+    if exact_hp or with_listings or not (make and canonical_model):
+        context["seo_noindex"] = True
     context["make"] = make
     context["model"] = canonical_model
     context["generations"] = generations
@@ -1965,10 +2026,25 @@ def catalog_modifications(
     generation_rating = next((item.rating for item in deduped_items if item.rating is not None), None)
     offset = (page - 1) * page_size
     items = deduped_items[offset : offset + page_size]
+    extra_filters = bool(
+        body_type
+        or export_country
+        or fuel_type
+        or transmission
+        or parsed_year_from is not None
+        or parsed_year_to is not None
+        or exact_hp
+        or sort not in ("", "year_desc")
+        or page > 1
+        or page_size != 20
+        or len(vehicle_rows) > 1
+    )
     context = _template_context(
         request,
         current_user,
-        catalog_modifications_seo_meta(make, model, generation, total=total),
+        catalog_modifications_seo_meta(
+            make, model, generation, total=total, extra_filters=extra_filters
+        ),
     )
     context["items"] = items
     context["generation_rating"] = float(generation_rating) if generation_rating is not None else None
@@ -2099,7 +2175,9 @@ def catalog_item_detail(request: Request, item_id: int, db: Session = Depends(ge
         )
         context["item"] = None
         context["photos"] = []
-        return templates.TemplateResponse(request, "catalog_item_detail.html", context)
+        return templates.TemplateResponse(
+            request, "catalog_item_detail.html", context, status_code=404
+        )
 
     photos = (
         db.query(CatalogItemPhoto)
@@ -2120,7 +2198,11 @@ def catalog_item_detail(request: Request, item_id: int, db: Session = Depends(ge
             photo_urls = [resolved_cover]
     photo_urls = [normalize_display_image_url(url) or url for url in photo_urls]
     cover_url = photo_urls[0] if photo_urls else None
-    context = _template_context(request, current_user, catalog_item_seo_meta(item, cover_url=cover_url))
+    context = _template_context(
+        request,
+        current_user,
+        catalog_item_seo_meta(item, cover_url=cover_url, base=site_base_url(request)),
+    )
     context["item"] = item
     context["photos"] = photo_urls
     spec_rows = _resolve_best_spec_rows(item, db)
@@ -2141,8 +2223,14 @@ def catalog_compare(
     db: Session = Depends(get_db),
 ):
     current_user = _resolve_user_from_request(request, db)
+    compare_seo = SeoMeta(
+        title="Сравнение комплектаций — Auto160",
+        description="Сравнение комплектаций автомобилей до 160 л.с.",
+        path="/catalog/compare",
+        noindex=True,
+    )
     if not ids:
-        context = _template_context(request, current_user)
+        context = _template_context(request, current_user, compare_seo)
         context["items"] = []
         context["rows"] = []
         return templates.TemplateResponse(request, "catalog_compare.html", context)
@@ -2214,11 +2302,25 @@ def catalog_compare(
     if grouped_rows.get("Прочее"):
         compare_sections.append({"title": "Прочее", "rows": grouped_rows["Прочее"]})
 
-    context = _template_context(request, current_user)
+    context = _template_context(request, current_user, compare_seo)
     context["items"] = items
     context["rows"] = rows
     context["compare_sections"] = compare_sections
     return templates.TemplateResponse(request, "catalog_compare.html", context)
+
+
+@router.get("/guides/vin")
+def guide_vin_page(request: Request, db: Session = Depends(get_db)):
+    current_user = _resolve_user_from_request(request, db)
+    context = _template_context(request, current_user, guide_vin_seo_meta(site_base_url(request)))
+    return templates.TemplateResponse(request, "guide_vin.html", context)
+
+
+@router.get("/guides/do-160-hp")
+def guide_do_160_page(request: Request, db: Session = Depends(get_db)):
+    current_user = _resolve_user_from_request(request, db)
+    context = _template_context(request, current_user, guide_do_160_seo_meta(site_base_url(request)))
+    return templates.TemplateResponse(request, "guide_do_160.html", context)
 
 
 @router.get("/catalog/{listing_id}")

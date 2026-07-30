@@ -2537,3 +2537,54 @@ body.listing-lightbox-open {
     font-size: 28px;
   }
 }
+
+.guide-page {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 8px 4px 40px;
+  line-height: 1.55;
+}
+
+.guide-header {
+  margin-bottom: 24px;
+}
+
+.guide-header h1 {
+  margin: 8px 0 12px;
+  font-size: 1.75rem;
+  line-height: 1.25;
+}
+
+.guide-lead {
+  color: #3a4a66;
+  font-size: 1.05rem;
+}
+
+.guide-section {
+  margin: 0 0 28px;
+}
+
+.guide-section h2 {
+  margin: 0 0 10px;
+  font-size: 1.25rem;
+}
+
+.guide-section h3 {
+  margin: 16px 0 6px;
+  font-size: 1.05rem;
+}
+
+.guide-section ol,
+.guide-section ul {
+  padding-left: 1.25rem;
+}
+
+.guide-section li {
+  margin: 6px 0;
+}
+
+.guide-section .btn-primary,
+.guide-section .btn-secondary {
+  display: inline-block;
+  margin: 8px 8px 0 0;
+}

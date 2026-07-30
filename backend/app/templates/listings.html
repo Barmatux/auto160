@@ -10,11 +10,13 @@
     {% include "partials/listings_filters_panel.html" %}
     <section class="catalog-main">
       <div class="catalog-main-head">
-        <h1>Лента объявлений</h1>
+        <h1>{{ seo_h1 or "Лента объявлений" }}</h1>
+        {% if seo_intro %}
+          <p class="hint">{{ seo_intro }}</p>
+        {% endif %}
         {% if catalog_item_filter %}
           <p class="hint">Комплектация: {{ catalog_item_filter.make }} {{ catalog_item_filter.model }}{% if catalog_item_filter.generation %} · {{ catalog_item_filter.generation }}{% endif %}</p>
         {% endif %}
-        <p class="hint">Карточки адаптированы под структуру av.by: фото, поколение, двигатель, коробка, привод и источник.</p>
       </div>
 
       <p class="hint">Найдено объявлений: {{ total }} · Страница {{ page }} из {{ total_pages }}</p>
