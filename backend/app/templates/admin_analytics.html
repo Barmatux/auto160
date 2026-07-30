@@ -25,44 +25,60 @@
   </article>
 </section>
 
-<table class="sync-table">
-  <thead>
-    <tr>
-      <th>Объявление</th>
-      <th>VIN</th>
-      <th>Таможня</th>
-      <th>Дата выпуска в РБ</th>
-      <th>VIN получен</th>
-      <th>Таможня проверена</th>
-      <th>Последняя проверка</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for row in vin_rows %}
+<section class="admin-vin-table-wrap">
+  <table class="users-table admin-vin-table">
+    <thead>
       <tr>
-        <td>
-          <a href="/listings/{{ row.listing.id }}">#{{ row.listing.id }}</a>
-          {{ row.listing.brand }} {{ row.listing.model }} · {{ row.listing.year }}
-          {% if row.sync_checks_count %}
-            <div class="hint">проверок в парсинге: {{ row.sync_checks_count }}</div>
-          {% endif %}
-        </td>
-        <td>{{ row.vin or "—" }}</td>
-        <td>
-          {% if row.customs_found is none %}не проверялось
-          {% elif row.customs_found %}найдено
-          {% else %}не найдено{% endif %}
-        </td>
-        <td>{{ row.customs_release_date or "—" }}</td>
-        <td>{{ row.vin_fetched_at.strftime('%d.%m.%Y %H:%M') if row.vin_fetched_at else "—" }}</td>
-        <td>{{ row.customs_checked_at.strftime('%d.%m.%Y %H:%M') if row.customs_checked_at else "—" }}</td>
-        <td>{{ row.last_checked_at.strftime('%d.%m.%Y %H:%M') if row.last_checked_at else "—" }}</td>
+        <th>Авто</th>
+        <th>VIN</th>
+        <th>Таможня (база 1)</th>
+        <th>Даты</th>
       </tr>
-    {% else %}
-      <tr><td colspan="7">Пока нет объявлений с полученным VIN</td></tr>
-    {% endfor %}
-  </tbody>
-</table>
+    </thead>
+    <tbody>
+      {% for row in vin_rows %}
+        <tr>
+          <td class="admin-vin-listing">
+            <a class="admin-vin-listing-title" href="/listings/{{ row.listing.id }}">
+              {{ row.listing.brand }} {{ row.listing.model }}
+            </a>
+            <div class="admin-vin-listing-meta">
+              #{{ row.listing.id }} · {{ row.listing.year }} · {{ row.listing.city }}
+              {% if row.sync_checks_count %} · парсинг ×{{ row.sync_checks_count }}{% endif %}
+            </div>
+          </td>
+          <td>
+            <code class="admin-vin-code">{{ row.vin }}</code>
+          </td>
+          <td class="admin-vin-customs">
+            {% if row.customs_found is none %}
+              <span class="status-pill pending">Не проверялось</span>
+            {% elif row.customs_found %}
+              <span class="status-pill success">Найдено</span>
+              {% if row.customs_release_date %}
+                <div class="admin-vin-subline">Выпуск в РБ: <strong>{{ row.customs_release_date }}</strong></div>
+              {% endif %}
+            {% else %}
+              <span class="status-pill failed">Не найдено</span>
+            {% endif %}
+          </td>
+          <td class="admin-vin-dates">
+            <div class="admin-vin-date-row">
+              <span class="admin-vin-date-label">VIN</span>
+              <span>{{ row.vin_fetched_at.strftime('%d.%m.%Y %H:%M') if row.vin_fetched_at else "—" }}</span>
+            </div>
+            <div class="admin-vin-date-row">
+              <span class="admin-vin-date-label">Таможня</span>
+              <span>{{ row.customs_checked_at.strftime('%d.%m.%Y %H:%M') if row.customs_checked_at else "—" }}</span>
+            </div>
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="4">Пока нет объявлений с полученным VIN</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
 
 {% if vin_total_pages > 1 %}
 <div class="actions-row">
