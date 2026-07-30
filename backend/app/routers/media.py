@@ -1,6 +1,7 @@
 import io
 from urllib.error import URLError
-from urllib.request import Request, urlopen
+from urllib.request import Request as UrlRequest
+from urllib.request import urlopen
 
 from botocore.exceptions import BotoCoreError, ClientError
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
@@ -29,7 +30,7 @@ _OG_HEADERS = {
 
 
 def _fetch_remote_image(url: str) -> tuple[bytes, str]:
-    request = Request(url.strip(), headers=_REMOTE_FETCH_HEADERS)
+    request = UrlRequest(url.strip(), headers=_REMOTE_FETCH_HEADERS)
     with urlopen(request, timeout=20) as response:
         payload = response.read()
         content_type = (response.headers.get("Content-Type") or "application/octet-stream").split(";")[0].strip()

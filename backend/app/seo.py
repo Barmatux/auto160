@@ -66,10 +66,18 @@ def _truncate(value: str, limit: int) -> str:
 
 
 def site_base_url(request: Request) -> str:
+    # Prefer the host Telegram/crawlers actually requested (.ru vs .by),
+    # so og:url / og:image stay on the same domain as the shared link.
+    request_base = str(request.base_url).rstrip("/")
+    host = (request.url.hostname or "").lower()
+    if host in {"auto160.ru", "auto160.by", "www.auto160.ru", "www.auto160.by"}:
+        scheme = request.url.scheme or "https"
+        bare = host.removeprefix("www.")
+        return f"{scheme}://{bare}"
     configured = (settings.public_site_url or "").strip().rstrip("/")
     if configured:
         return configured
-    return str(request.base_url).rstrip("/")
+    return request_base
 
 
 def absolute_url(base: str, url: str | None) -> str | None:
