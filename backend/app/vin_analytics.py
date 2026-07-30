@@ -1,11 +1,11 @@
-"""Admin report: listings where VIN was checked."""
+"""Admin report: listings where VIN was obtained."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
 
-from sqlalchemy import desc, func, or_, select
+from sqlalchemy import desc, func
 from sqlalchemy.orm import Session
 
 from app.customs_vin import DATABASE_PERSONAL
@@ -36,7 +36,7 @@ def _latest_sync_checks(db: Session, listing_ids: list[int]) -> dict[int, dict[s
             func.max(AvbySyncRunVinCheck.created_at).label("last_checked_at"),
             func.max(AvbySyncRunVinCheck.vin).label("last_vin"),
         )
-        .filter(AvbySyncRunVinCheck.listing_id.in_(listing_ids))
+        .filter(AvbySyncRunVinCheck.listing_id.in_(listing_ids), AvbySyncRunVinCheck.vin_obtained.is_(True))
         .group_by(AvbySyncRunVinCheck.listing_id)
         .all()
     )
@@ -84,24 +84,17 @@ def build_vin_listings_report(
             AvbySyncRunVinCheck.listing_id.label("listing_id"),
             func.max(AvbySyncRunVinCheck.created_at).label("last_sync_check"),
         )
+        .filter(AvbySyncRunVinCheck.vin_obtained.is_(True))
         .group_by(AvbySyncRunVinCheck.listing_id)
         .subquery()
-    )
-    checked_vin_values = (
-        select(VinCustomsCheck.vin)
-        .where(VinCustomsCheck.database == DATABASE_PERSONAL)
-        .distinct()
     )
 
     query = (
         db.query(CarListing, latest_sync.c.last_sync_check)
         .outerjoin(latest_sync, CarListing.id == latest_sync.c.listing_id)
         .filter(
-            or_(
-                CarListing.vin_fetched_at.isnot(None),
-                latest_sync.c.last_sync_check.isnot(None),
-                CarListing.vin.in_(checked_vin_values),
-            )
+            CarListing.vin.isnot(None),
+            func.length(CarListing.vin) == 17,
         )
         .order_by(
             desc(func.coalesce(CarListing.vin_fetched_at, latest_sync.c.last_sync_check)),
@@ -127,7 +120,7 @@ def build_vin_listings_report(
     report: list[VinListingReportRow] = []
     for listing, last_sync_check in rows:
         sync_info = sync_map.get(listing.id, {})
-        vin = (listing.vin or sync_info.get("last_vin") or "").strip().upper() or None
+        vin = (listing.vin or "").strip().upper()
         customs = customs_map.get(listing.id)
         vin_fetched_at = listing.vin_fetched_at
         last_checked_at = vin_fetched_at or last_sync_check or sync_info.get("last_checked_at")
