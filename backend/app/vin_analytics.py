@@ -5,7 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 
-from sqlalchemy import desc, func
+from sqlalchemy import desc, func, inspect
+from sqlalchemy.exc import OperationalError, ProgrammingError
 from sqlalchemy.orm import Session
 
 from app.customs_vin import DATABASE_PERSONAL
@@ -25,26 +26,41 @@ class VinListingReportRow:
     sync_checks_count: int
 
 
+def _sync_checks_table_available(db: Session) -> bool:
+    try:
+        bind = db.get_bind()
+        if bind is None:
+            return False
+        return inspect(bind).has_table(AvbySyncRunVinCheck.__tablename__)
+    except Exception:
+        return False
+
+
 def _latest_sync_checks(db: Session, listing_ids: list[int]) -> dict[int, dict[str, object]]:
-    if not listing_ids:
+    if not listing_ids or not _sync_checks_table_available(db):
         return {}
 
-    rows = (
-        db.query(
-            AvbySyncRunVinCheck.listing_id,
-            func.count(AvbySyncRunVinCheck.id).label("checks_count"),
-            func.max(AvbySyncRunVinCheck.created_at).label("last_checked_at"),
-            func.max(AvbySyncRunVinCheck.vin).label("last_vin"),
+    try:
+        rows = (
+            db.query(
+                AvbySyncRunVinCheck.listing_id,
+                func.count(AvbySyncRunVinCheck.id).label("checks_count"),
+                func.max(AvbySyncRunVinCheck.created_at).label("last_checked_at"),
+            )
+            .filter(
+                AvbySyncRunVinCheck.listing_id.in_(listing_ids),
+                AvbySyncRunVinCheck.vin_obtained.is_(True),
+            )
+            .group_by(AvbySyncRunVinCheck.listing_id)
+            .all()
         )
-        .filter(AvbySyncRunVinCheck.listing_id.in_(listing_ids), AvbySyncRunVinCheck.vin_obtained.is_(True))
-        .group_by(AvbySyncRunVinCheck.listing_id)
-        .all()
-    )
+    except (OperationalError, ProgrammingError):
+        return {}
+
     return {
         row.listing_id: {
             "checks_count": int(row.checks_count or 0),
             "last_checked_at": row.last_checked_at,
-            "last_vin": row.last_vin,
         }
         for row in rows
     }
@@ -79,55 +95,40 @@ def build_vin_listings_report(
     page = max(page, 1)
     per_page = max(min(per_page, 200), 1)
 
-    latest_sync = (
-        db.query(
-            AvbySyncRunVinCheck.listing_id.label("listing_id"),
-            func.max(AvbySyncRunVinCheck.created_at).label("last_sync_check"),
-        )
-        .filter(AvbySyncRunVinCheck.vin_obtained.is_(True))
-        .group_by(AvbySyncRunVinCheck.listing_id)
-        .subquery()
-    )
-
     query = (
-        db.query(CarListing, latest_sync.c.last_sync_check)
-        .outerjoin(latest_sync, CarListing.id == latest_sync.c.listing_id)
+        db.query(CarListing)
         .filter(
             CarListing.vin.isnot(None),
             func.length(CarListing.vin) == 17,
         )
         .order_by(
-            desc(func.coalesce(CarListing.vin_fetched_at, latest_sync.c.last_sync_check)),
+            desc(func.coalesce(CarListing.vin_fetched_at, CarListing.created_at)),
             desc(CarListing.id),
         )
     )
 
     total = query.count()
-    rows = query.offset((page - 1) * per_page).limit(per_page).all()
-    listings = [listing for listing, _ in rows]
+    listings = query.offset((page - 1) * per_page).limit(per_page).all()
     listing_ids = [listing.id for listing in listings]
 
     customs_map = build_listing_customs_map(db, listings)
     sync_map = _latest_sync_checks(db, listing_ids)
 
-    vins = {
-        (listing.vin or sync_map.get(listing.id, {}).get("last_vin") or "").strip().upper()
-        for listing in listings
-    }
+    vins = {(listing.vin or "").strip().upper() for listing in listings}
     vins = {vin for vin in vins if len(vin) == 17}
     customs_checked_at = _customs_checked_at_map(db, vins)
 
     report: list[VinListingReportRow] = []
-    for listing, last_sync_check in rows:
+    for listing in listings:
         sync_info = sync_map.get(listing.id, {})
         vin = (listing.vin or "").strip().upper()
         customs = customs_map.get(listing.id)
         vin_fetched_at = listing.vin_fetched_at
-        last_checked_at = vin_fetched_at or last_sync_check or sync_info.get("last_checked_at")
+        last_checked_at = vin_fetched_at or sync_info.get("last_checked_at") or listing.created_at
         if isinstance(last_checked_at, datetime) and last_checked_at.tzinfo is not None:
             last_checked_at = last_checked_at.replace(tzinfo=None)
 
-        customs_checked_at = customs_checked_at.get(vin) if vin else None
+        customs_checked_at_value = customs_checked_at.get(vin) if vin else None
         report.append(
             VinListingReportRow(
                 listing=listing,
@@ -136,7 +137,7 @@ def build_vin_listings_report(
                 last_checked_at=last_checked_at,
                 customs_found=customs.found if customs else None,
                 customs_release_date=customs.release_date if customs else None,
-                customs_checked_at=customs_checked_at,
+                customs_checked_at=customs_checked_at_value,
                 sync_checks_count=int(sync_info.get("checks_count") or 0),
             )
         )
