@@ -20,7 +20,7 @@
       <p class="hint">Найдено объявлений: {{ total }} · Страница {{ page }} из {{ total_pages }}</p>
 
       {% if listings %}
-        <div class="catalog">
+        <div class="catalog listings-feed">
           {% for listing in listings %}
             <article class="listing-card avby-listing-card">
               {% set cover_url = listing_cover_urls.get(listing.id) %}
@@ -29,14 +29,12 @@
                   <img class="catalog-cover" src="{{ cover_url }}" alt="{{ listing.brand }} {{ listing.model }}" />
                 </a>
               {% endif %}
-              <h3><a href="/listings/{{ listing.id }}">{{ listing.title }}</a></h3>
+              <h3><a href="/listings/{{ listing.id }}">{{ listing.title | listing_display_title }}</a></h3>
               <p><strong>{{ listing.brand }} {{ listing.model }}</strong> · {{ listing.year }}{% if listing.generation %} · {{ listing.generation }}{% endif %}</p>
-              <p><strong>Цена:</strong> {{ listing.price }} ₽</p>
-              <p><strong>Пробег:</strong> {{ listing.mileage }} км</p>
+              <p><strong>Цена:</strong> {{ listing.price | format_price_rub }} ₽</p>
+              <p><strong>Пробег:</strong> {{ listing.mileage | format_mileage_km }} км</p>
               <p><strong>Город:</strong> {{ listing.city }}</p>
-              {% if listing.seller_name %}
-                <p><strong>Продавец:</strong> {{ listing.seller_name }}</p>
-              {% endif %}
+              <p><strong>Продавец:</strong> {{ listing.seller_name | listing_seller_label }}</p>
               <div class="listing-spec-tags">
                 {% if listing.engine_capacity_l %}<span>{{ listing.engine_capacity_l }} л</span>{% endif %}
                 {% if listing.engine_power_hp %}<span>{{ listing.engine_power_hp }} л.с.</span>{% endif %}
@@ -46,8 +44,9 @@
                 {% if listing.body_type %}<span>{{ listing.body_type | body_type_label }}</span>{% endif %}
                 {% if listing.vin_indicated is not none %}<span>{% if listing.vin_indicated %}VIN указан{% else %}VIN скрыт{% endif %}</span>{% endif %}
               </div>
-              {% if listing.source_url %}
-                <p class="hint">Источник: <a href="{{ listing.source_url }}" target="_blank" rel="noopener">av.by</a></p>
+              {% set source_href = listing | listing_source_href %}
+              {% if source_href %}
+                <p class="hint listings-feed-source">Оригинал объявления: <a href="{{ source_href }}" target="_blank" rel="noopener">{{ source_href | listing_source_label }}</a></p>
               {% endif %}
               {% with customs=listing_customs_map.get(listing.id) %}
                 {% include "partials/listing_customs_info.html" %}
@@ -56,14 +55,6 @@
                 <p><strong>Статус:</strong> {{ listing.status.value }}</p>
                 {% include "partials/listing_vin_admin.html" %}
               {% endif %}
-              <div class="actions-row">
-                <a href="/listings/{{ listing.id }}">Открыть объявление</a>
-                {% set catalog_item = listing_catalog_items.get(listing.id) %}
-                {% if catalog_item %}
-                  <a href="/catalog/item/{{ catalog_item.id }}">Комплектация в каталоге</a>
-                {% endif %}
-                <a href="/inspection?listing_id={{ listing.id }}">Проверить VIN</a>
-              </div>
             </article>
           {% endfor %}
         </div>
