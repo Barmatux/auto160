@@ -21,6 +21,9 @@
 
     <div class="listing-detail-layout">
       <aside class="listing-detail-specs" aria-label="Характеристики объявления">
+        {% if catalog_item %}
+          <a class="listing-detail-catalog-link" href="/catalog/item/{{ catalog_item.id }}">Характеристики</a>
+        {% endif %}
         <dl class="listing-spec-list">
           <div class="listing-spec-row listing-spec-row-price">
             <dt>Цена</dt>
@@ -62,7 +65,7 @@
               <dt>Коробка</dt>
               <dd>
                 {{ listing_spec_icon("transmission") }}
-                <span>{{ listing.transmission_type }}</span>
+                <span>{{ listing.transmission_type | format_listing_spec_value }}</span>
               </dd>
             </div>
           {% endif %}
@@ -71,7 +74,7 @@
               <dt>Привод</dt>
               <dd>
                 {{ listing_spec_icon("drive") }}
-                <span>{{ listing.drive_type }}</span>
+                <span>{{ listing.drive_type | format_listing_spec_value }}</span>
               </dd>
             </div>
           {% endif %}
@@ -90,9 +93,6 @@
           <p class="listing-admin-meta"><strong>Статус:</strong> {{ listing.status.value }}</p>
         {% endif %}
         <div class="listing-detail-side-actions">
-          {% if catalog_item %}
-            <a class="listing-detail-side-action" href="/catalog/item/{{ catalog_item.id }}">Комплектация в каталоге</a>
-          {% endif %}
           <a class="listing-detail-side-action listing-detail-side-action-primary" href="/inspection?listing_id={{ listing.id }}">Проверить VIN</a>
         </div>
       </aside>
@@ -136,14 +136,14 @@
             </div>
           </div>
         {% endif %}
-
-        <section class="listing-detail-description">
-          <h2 class="listing-detail-description-title">Описание продавца</h2>
-          <div class="listing-detail-description-body">{{ listing.description | listing_display_description }}</div>
-        </section>
       </div>
 
       <aside class="listing-detail-ad-slot" aria-hidden="true"></aside>
+
+      <section class="listing-detail-description">
+        <h2 class="listing-detail-description-title">Описание продавца</h2>
+        <div class="listing-detail-description-body">{{ listing.description | listing_display_description }}</div>
+      </section>
     </div>
   </section>
 

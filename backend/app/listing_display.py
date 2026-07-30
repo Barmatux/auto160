@@ -81,6 +81,13 @@ def listing_seller_label(seller_name: str | None) -> str:
     return "частное лицо"
 
 
+def format_listing_spec_value(value: str | None) -> str:
+    cleaned = (value or "").strip()
+    if not cleaned:
+        return ""
+    return cleaned[0].upper() + cleaned[1:]
+
+
 def _format_engine_capacity(capacity_l: float) -> str:
     rounded = round(capacity_l, 1)
     if abs(rounded - round(rounded)) < 0.05:

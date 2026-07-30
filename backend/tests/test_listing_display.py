@@ -1,4 +1,5 @@
 from app.listing_display import (
+    format_listing_spec_value,
     format_mileage_km,
     format_price_rub,
     listing_display_description,
@@ -61,6 +62,12 @@ def test_format_price_rub_uses_thousands_separator():
     assert format_price_rub(27400) == "27 400"
     assert format_price_rub(1234567) == "1 234 567"
     assert format_price_rub(27400.50) == "27 400,50"
+
+
+def test_format_listing_spec_value_capitalizes_first_letter():
+    assert format_listing_spec_value("автомат") == "Автомат"
+    assert format_listing_spec_value("полный") == "Полный"
+    assert format_listing_spec_value("Автомат") == "Автомат"
 
 
 def test_listing_seller_label():
