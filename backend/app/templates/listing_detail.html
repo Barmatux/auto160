@@ -1,88 +1,165 @@
 {% extends "base.html" %}
+{% from "partials/listing_spec_icon.html" import listing_spec_icon %}
 {% block title %}Объявление - Auto160{% endblock %}
 {% block content %}
 {% if listing %}
   <section class="catalog-main listing-detail-page">
-    <div class="catalog-main-head">
-      <h1>{{ listing.title | listing_display_title }}</h1>
-      {% set source_href = listing | listing_source_href %}
-      {% if source_href %}
-        <p class="listing-source-link hint">
-          Оригинал объявления размещен по адресу:
-          <a href="{{ source_href }}" target="_blank" rel="noopener">{{ source_href | listing_source_label }}</a>
-        </p>
-      {% endif %}
-    </div>
+    <header class="listing-detail-header">
+      <div class="listing-detail-heading">
+        <h1 class="listing-detail-title">
+          {{ listing.brand }} {{ listing.model }}{% if listing.generation %} ({{ listing.generation }}){% endif %} · {{ listing.year }}
+        </h1>
+        {% set source_href = listing | listing_source_href %}
+        {% if source_href %}
+          <p class="listing-source-link hint">
+            Оригинал объявления размещен по адресу:
+            <a href="{{ source_href }}" target="_blank" rel="noopener">{{ source_href | listing_source_label }}</a>
+          </p>
+        {% endif %}
+      </div>
+      <div class="listing-detail-actions">
+        {% if catalog_item %}
+          <a class="btn-link listing-detail-action" href="/catalog/item/{{ catalog_item.id }}">Комплектация в каталоге</a>
+        {% endif %}
+        <a class="btn-link listing-detail-action" href="/inspection?listing_id={{ listing.id }}">Проверить VIN</a>
+      </div>
+    </header>
 
-    {% if gallery_urls %}
-      <div class="listing-gallery" data-listing-gallery>
-        <div class="listing-gallery-main">
-          <a class="listing-gallery-main-link" href="{{ gallery_urls[0] }}" target="_blank" rel="noopener">
-            <img
-              class="listing-gallery-active-photo"
-              src="{{ gallery_urls[0] }}"
-              alt="{{ listing.brand }} {{ listing.model }}"
-            />
-          </a>
-        </div>
-        {% if gallery_urls|length > 1 %}
-          <div class="listing-gallery-sidebar" role="tablist" aria-label="Фотографии объявления">
-            {% for photo_url in gallery_urls %}
+    <div class="listing-detail-layout">
+      <aside class="listing-detail-specs" aria-label="Характеристики объявления">
+        <dl class="listing-spec-list">
+          <div class="listing-spec-row listing-spec-row-price">
+            <dt>Цена</dt>
+            <dd>{{ listing.price }} ₽</dd>
+          </div>
+          <div class="listing-spec-row">
+            <dt>Пробег</dt>
+            <dd>{{ listing.mileage | format_mileage_km }} км</dd>
+          </div>
+          <div class="listing-spec-row">
+            <dt>Город</dt>
+            <dd>{{ listing.city }}</dd>
+          </div>
+          <div class="listing-spec-row">
+            <dt>Продавец</dt>
+            <dd>{{ listing.seller_name | listing_seller_label }}</dd>
+          </div>
+          {% if listing.body_type %}
+            <div class="listing-spec-row">
+              <dt>Кузов</dt>
+              <dd>{{ listing.body_type | body_type_label }}</dd>
+            </div>
+          {% endif %}
+          {% set engine_summary = listing | listing_engine_summary %}
+          {% if engine_summary %}
+            <div class="listing-spec-row listing-spec-row-icon">
+              <dt>Двигатель</dt>
+              <dd>
+                {{ listing_spec_icon("engine") }}
+                <span>{{ engine_summary }}</span>
+              </dd>
+            </div>
+          {% endif %}
+          {% if listing.transmission_type %}
+            <div class="listing-spec-row listing-spec-row-icon">
+              <dt>Коробка</dt>
+              <dd>
+                {{ listing_spec_icon("transmission") }}
+                <span>{{ listing.transmission_type }}</span>
+              </dd>
+            </div>
+          {% endif %}
+          {% if listing.drive_type %}
+            <div class="listing-spec-row listing-spec-row-icon">
+              <dt>Привод</dt>
+              <dd>
+                {{ listing_spec_icon("drive") }}
+                <span>{{ listing.drive_type }}</span>
+              </dd>
+            </div>
+          {% endif %}
+          {% if listing.vin_indicated is not none %}
+            <div class="listing-spec-row">
+              <dt>VIN на av.by</dt>
+              <dd>{% if listing.vin_indicated %}указан{% else %}не указан{% endif %}</dd>
+            </div>
+          {% endif %}
+        </dl>
+        {% include "partials/listing_vin_admin.html" %}
+        {% with customs=listing_customs %}
+          {% include "partials/listing_customs_info.html" %}
+        {% endwith %}
+        {% if is_admin %}
+          <p class="listing-admin-meta"><strong>Статус:</strong> {{ listing.status.value }}</p>
+        {% endif %}
+      </aside>
+
+      <div class="listing-detail-media">
+        {% if gallery_urls %}
+          <div class="listing-gallery" data-listing-gallery>
+            <div class="listing-gallery-stage">
               <button
                 type="button"
-                class="listing-gallery-thumb-btn{% if loop.first %} is-active{% endif %}"
-                data-photo-url="{{ photo_url }}"
-                role="tab"
-                aria-selected="{{ 'true' if loop.first else 'false' }}"
-                aria-label="Фото {{ loop.index }}"
+                class="listing-gallery-main-btn"
+                data-lightbox-trigger
+                aria-label="Открыть фото на весь экран"
               >
                 <img
-                  class="listing-gallery-thumb"
-                  src="{{ photo_url }}"
-                  alt="{{ listing.brand }} {{ listing.model }} фото {{ loop.index }}"
+                  class="listing-gallery-active-photo"
+                  src="{{ gallery_urls[0] }}"
+                  alt="{{ listing.brand }} {{ listing.model }}"
                 />
               </button>
-            {% endfor %}
+              {% if gallery_urls|length > 1 %}
+                <div class="listing-gallery-thumbs" role="tablist" aria-label="Фотографии объявления">
+                  {% for photo_url in gallery_urls %}
+                    <button
+                      type="button"
+                      class="listing-gallery-thumb-btn{% if loop.first %} is-active{% endif %}"
+                      data-photo-url="{{ photo_url }}"
+                      role="tab"
+                      aria-selected="{{ 'true' if loop.first else 'false' }}"
+                      aria-label="Фото {{ loop.index }}"
+                    >
+                      <img
+                        class="listing-gallery-thumb"
+                        src="{{ photo_url }}"
+                        alt="{{ listing.brand }} {{ listing.model }} фото {{ loop.index }}"
+                      />
+                    </button>
+                  {% endfor %}
+                </div>
+              {% endif %}
+            </div>
           </div>
         {% endif %}
       </div>
-    {% endif %}
 
-    <div class="detail">
-      <p><strong>Цена:</strong> {{ listing.price }} ₽</p>
-      <p><strong>Пробег:</strong> {{ listing.mileage }} км</p>
-      <p><strong>Город:</strong> {{ listing.city }}</p>
-      {% if listing.seller_name %}<p><strong>Продавец:</strong> {{ listing.seller_name }}</p>{% endif %}
-      {% if listing.body_type %}<p><strong>Кузов:</strong> {{ listing.body_type | body_type_label }}</p>{% endif %}
-      {% if listing.engine_type %}<p><strong>Топливо:</strong> {{ listing.engine_type }}</p>{% endif %}
-      {% if listing.engine_capacity_l %}<p><strong>Объем:</strong> {{ listing.engine_capacity_l }} л</p>{% endif %}
-      {% if listing.engine_power_hp %}<p><strong>Мощность:</strong> {{ listing.engine_power_hp }} л.с.</p>{% endif %}
-      {% if listing.transmission_type %}<p><strong>Коробка:</strong> {{ listing.transmission_type }}</p>{% endif %}
-      {% if listing.drive_type %}<p><strong>Привод:</strong> {{ listing.drive_type }}</p>{% endif %}
-      {% if listing.vin_indicated is not none %}
-        <p><strong>VIN на av.by:</strong> {% if listing.vin_indicated %}указан{% else %}не указан{% endif %}</p>
-      {% endif %}
-      {% include "partials/listing_vin_admin.html" %}
-      {% with customs=listing_customs %}
-        {% include "partials/listing_customs_info.html" %}
-      {% endwith %}
-      {% if is_admin %}
-        <p><strong>Статус:</strong> {{ listing.status.value }}</p>
-      {% endif %}
-      <p><strong>Описание:</strong> {{ listing.description | listing_display_description }}</p>
+      <aside class="listing-detail-ad-slot" aria-hidden="true"></aside>
     </div>
+
+    <section class="listing-detail-description">
+      <h2 class="listing-detail-description-title">Описание продавца</h2>
+      <div class="listing-detail-description-body">{{ listing.description | listing_display_description }}</div>
+    </section>
   </section>
-  <div class="actions-row">
-    {% if catalog_item %}
-      <a class="btn-link" href="/catalog/item/{{ catalog_item.id }}">Комплектация в каталоге</a>
-    {% endif %}
-    <a class="btn-link" href="/inspection?listing_id={{ listing.id }}">Проверить VIN</a>
-  </div>
+
   {% if is_admin %}
     <div class="actions-row">
       <a class="btn-link" href="/profile/edit-listing/{{ listing.id }}">Редактировать</a>
     </div>
     {% include "partials/listing_vin_admin_script.html" %}
+  {% endif %}
+
+  {% if gallery_urls %}
+    <div class="listing-lightbox" data-listing-lightbox hidden>
+      <button type="button" class="listing-lightbox-close" data-lightbox-close aria-label="Закрыть">×</button>
+      <button type="button" class="listing-lightbox-nav listing-lightbox-prev" data-lightbox-prev aria-label="Предыдущее фото">‹</button>
+      <div class="listing-lightbox-content">
+        <img class="listing-lightbox-image" src="" alt="" />
+      </div>
+      <button type="button" class="listing-lightbox-nav listing-lightbox-next" data-lightbox-next aria-label="Следующее фото">›</button>
+    </div>
   {% endif %}
 {% else %}
   <h1>Объявление не найдено</h1>
@@ -91,31 +168,105 @@
 <script>
 (function () {
   const gallery = document.querySelector("[data-listing-gallery]");
+  const lightbox = document.querySelector("[data-listing-lightbox]");
   if (!gallery) return;
 
   const mainImg = gallery.querySelector(".listing-gallery-active-photo");
-  const mainLink = gallery.querySelector(".listing-gallery-main-link");
-  const buttons = gallery.querySelectorAll(".listing-gallery-thumb-btn");
+  const buttons = Array.from(gallery.querySelectorAll(".listing-gallery-thumb-btn"));
+  const photoUrls = {{ gallery_urls | tojson }};
 
-  buttons.forEach(function (btn) {
-    btn.addEventListener("click", function () {
-      const url = btn.dataset.photoUrl;
-      if (!url || !mainImg) return;
+  let activeIndex = 0;
+  let lightboxIndex = 0;
 
-      mainImg.src = url;
-      if (mainLink) mainLink.href = url;
+  function setActivePhoto(index, options) {
+    const opts = options || {};
+    const url = photoUrls[index];
+    if (!url || !mainImg) return;
 
-      const thumbImg = btn.querySelector(".listing-gallery-thumb");
-      if (thumbImg && thumbImg.alt) {
-        mainImg.alt = thumbImg.alt;
-      }
+    activeIndex = index;
+    mainImg.src = url;
 
-      buttons.forEach(function (item) {
-        const active = item === btn;
-        item.classList.toggle("is-active", active);
-        item.setAttribute("aria-selected", active ? "true" : "false");
-      });
+    const thumbImg = buttons[index] && buttons[index].querySelector(".listing-gallery-thumb");
+    if (thumbImg && thumbImg.alt) {
+      mainImg.alt = thumbImg.alt;
+    }
+
+    buttons.forEach(function (btn, i) {
+      const active = i === index;
+      btn.classList.toggle("is-active", active);
+      btn.setAttribute("aria-selected", active ? "true" : "false");
     });
+
+    if (opts.openLightbox && lightbox) {
+      openLightbox(index);
+    }
+  }
+
+  function openLightbox(index) {
+    if (!lightbox) return;
+    lightboxIndex = index;
+    const image = lightbox.querySelector(".listing-lightbox-image");
+    if (image) {
+      image.src = photoUrls[index] || "";
+      image.alt = mainImg ? mainImg.alt : "";
+    }
+    lightbox.hidden = false;
+    document.body.classList.add("listing-lightbox-open");
+  }
+
+  function closeLightbox() {
+    if (!lightbox) return;
+    lightbox.hidden = true;
+    document.body.classList.remove("listing-lightbox-open");
+  }
+
+  function shiftLightbox(step) {
+    if (!photoUrls.length) return;
+    const next = (lightboxIndex + step + photoUrls.length) % photoUrls.length;
+    openLightbox(next);
+  }
+
+  buttons.forEach(function (btn, index) {
+    btn.addEventListener("mouseenter", function () {
+      setActivePhoto(index);
+    });
+
+    btn.addEventListener("focus", function () {
+      setActivePhoto(index);
+    });
+
+    btn.addEventListener("click", function () {
+      setActivePhoto(index);
+    });
+  });
+
+  const mainBtn = gallery.querySelector("[data-lightbox-trigger]");
+  if (mainBtn) {
+    mainBtn.addEventListener("click", function () {
+      setActivePhoto(activeIndex, { openLightbox: true });
+    });
+  }
+
+  if (lightbox) {
+    lightbox.querySelector("[data-lightbox-close]")?.addEventListener("click", closeLightbox);
+    lightbox.querySelector("[data-lightbox-prev]")?.addEventListener("click", function () {
+      shiftLightbox(-1);
+    });
+    lightbox.querySelector("[data-lightbox-next]")?.addEventListener("click", function () {
+      shiftLightbox(1);
+    });
+    lightbox.addEventListener("click", function (event) {
+      if (event.target === lightbox) {
+        closeLightbox();
+      }
+    });
+  }
+
+  document.addEventListener("keydown", function (event) {
+    if (!lightbox || lightbox.hidden) return;
+    if (event.key === "Escape") closeLightbox();
+    if (event.key === "ArrowLeft") shiftLightbox(-1);
+    if (event.key === "ArrowRight") shiftLightbox(1);
   });
 })();
 </script>

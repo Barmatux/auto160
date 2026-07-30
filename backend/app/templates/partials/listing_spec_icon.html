@@ -1,0 +1,29 @@
+{% macro listing_spec_icon(name) -%}
+<span class="listing-spec-icon" aria-hidden="true">
+  {% if name == "engine" %}
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
+    <rect x="4" y="7" width="12" height="10" rx="1.5" stroke="currentColor" stroke-width="1.6"/>
+    <path d="M16 10h3.5a1.5 1.5 0 0 1 1.5 1.5V15a1.5 1.5 0 0 1-1.5 1.5H16" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+    <path d="M8 7V5.5M12 7V5.5M8 17v1.5M12 17v1.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+    <circle cx="10" cy="12" r="2" stroke="currentColor" stroke-width="1.6"/>
+  </svg>
+  {% elif name == "transmission" %}
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
+    <circle cx="8" cy="12" r="3.5" stroke="currentColor" stroke-width="1.6"/>
+    <circle cx="16" cy="12" r="3.5" stroke="currentColor" stroke-width="1.6"/>
+    <circle cx="8" cy="12" r="1.1" fill="currentColor"/>
+    <circle cx="16" cy="12" r="1.1" fill="currentColor"/>
+    <path d="M11.5 12h1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+    <path d="M4.5 12H5.5M18.5 12H19.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+  </svg>
+  {% elif name == "drive" %}
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
+    <circle cx="7" cy="15" r="2.5" stroke="currentColor" stroke-width="1.6"/>
+    <circle cx="17" cy="15" r="2.5" stroke="currentColor" stroke-width="1.6"/>
+    <path d="M5 15h14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+    <path d="M9.5 15V11.5L12 9.5h4.5a1.5 1.5 0 0 1 1.5 1.5V15" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+    <path d="M12 9.5V7.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+  </svg>
+  {% endif %}
+</span>
+{%- endmacro %}
