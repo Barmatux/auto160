@@ -28,7 +28,7 @@
                 <div
                   class="listings-feed-gallery"
                   data-listings-feed-gallery
-                  data-photo-urls="{{ gallery_urls | tojson }}"
+                  data-photo-urls='{{ gallery_urls | tojson }}'
                 >
                   <a class="card-cover-link" href="/listings/{{ listing.id }}" aria-label="Открыть объявление {{ listing.brand }} {{ listing.model }}">
                     <img
@@ -99,41 +99,5 @@
 {% if is_admin %}
   {% include "partials/listing_vin_admin_script.html" %}
 {% endif %}
-<script>
-(function () {
-  document.querySelectorAll("[data-listings-feed-gallery]").forEach(function (gallery) {
-    var urls;
-    try {
-      urls = JSON.parse(gallery.dataset.photoUrls || "[]");
-    } catch (error) {
-      urls = [];
-    }
-    if (urls.length <= 1) return;
-
-    var img = gallery.querySelector("[data-listings-feed-gallery-photo]");
-    var prevBtn = gallery.querySelector(".listings-feed-gallery-prev");
-    var nextBtn = gallery.querySelector(".listings-feed-gallery-next");
-    if (!img || !prevBtn || !nextBtn) return;
-
-    var index = 0;
-
-    function showPhoto(nextIndex) {
-      index = (nextIndex + urls.length) % urls.length;
-      img.src = urls[index];
-    }
-
-    prevBtn.addEventListener("click", function (event) {
-      event.preventDefault();
-      event.stopPropagation();
-      showPhoto(index - 1);
-    });
-
-    nextBtn.addEventListener("click", function (event) {
-      event.preventDefault();
-      event.stopPropagation();
-      showPhoto(index + 1);
-    });
-  });
-})();
-</script>
+<script src="/static/listings_feed_gallery.js?v=20260730-01" defer></script>
 {% endblock %}
