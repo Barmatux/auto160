@@ -78,7 +78,7 @@ def listing_seller_label(seller_name: str | None) -> str:
     name = (seller_name or "").strip()
     if name and _LEGAL_ENTITY_MARKER.search(name):
         return name
-    return "частное лицо"
+    return "Частное лицо"
 
 
 def format_listing_spec_value(value: str | None) -> str:

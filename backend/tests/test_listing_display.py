@@ -71,9 +71,9 @@ def test_format_listing_spec_value_capitalizes_first_letter():
 
 
 def test_listing_seller_label():
-    assert listing_seller_label("Александр") == "частное лицо"
+    assert listing_seller_label("Александр") == "Частное лицо"
     assert listing_seller_label('ООО «АвтоМир»') == 'ООО «АвтоМир»'
-    assert listing_seller_label(None) == "частное лицо"
+    assert listing_seller_label(None) == "Частное лицо"
 
 
 def test_listing_engine_summary():
