@@ -438,17 +438,18 @@
 
 .dp-d-hero-brand-stacked {
   display: block;
-  width: min(100%, 280px) !important;
+  width: min(100%, 260px);
   height: auto;
   max-height: none;
-  margin: 0 auto 8px;
-  padding-top: 4px;
+  margin: 12px auto 10px;
+  padding: 0;
   overflow: visible;
   object-fit: contain;
 }
 
 .dp-variant-stacked .dp-d-hero {
   overflow: visible;
+  padding-top: 28px;
 }
 
 .dp-d-hero {

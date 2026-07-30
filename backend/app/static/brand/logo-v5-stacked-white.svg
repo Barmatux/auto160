@@ -1,28 +1,29 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="-12 -22 304 212" width="304" height="212" overflow="visible" role="img" aria-label="auto160">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 210" width="280" height="210" role="img" aria-label="auto160">
   <title>auto160</title>
   <path
-    d="M 36 58 C 36 14 98 -6 140 -6 C 182 -6 224 14 224 58"
+    transform="translate(55 28) scale(1.25)"
+    d="M8 46 C8 30 22 18 40 14 L62 10 L96 10 C116 10 130 22 136 36 L142 46"
     fill="none"
     stroke="#5BC4E9"
-    stroke-width="5.5"
+    stroke-width="4.4"
     stroke-linecap="round"
     stroke-linejoin="round"
   />
   <text
     x="140"
-    y="102"
+    y="128"
     text-anchor="middle"
     font-family="Rubik, Arial, Helvetica, sans-serif"
-    font-size="46"
+    font-size="44"
     font-weight="700"
     fill="#FFFFFF"
   >auto</text>
   <text
     x="140"
-    y="146"
+    y="178"
     text-anchor="middle"
     font-family="Rubik, Arial, Helvetica, sans-serif"
-    font-size="46"
+    font-size="44"
     font-weight="700"
     fill="#FFFFFF"
   >160</text>
