@@ -3,7 +3,7 @@ from starlette.requests import Request
 from starlette.responses import Response
 
 from app.analytics import SESSION_COOKIE, SESSION_MAX_AGE, ensure_session_id, record_page_view, should_track_request
-from app.telegram_hits import is_telegram_user_agent, note_telegram_hit
+from app.telegram_hits import classify_user_agent, note_hit
 
 _BOT_UA_MARKERS = (
     "bot",
@@ -56,10 +56,18 @@ def _skip_session_cookie(request: Request) -> bool:
 class AnalyticsMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next) -> Response:
         ua = request.headers.get("user-agent")
-        if is_telegram_user_agent(ua):
+        kind = classify_user_agent(ua)
+        path = request.url.path
+        if kind or path.startswith("/og-check"):
             forwarded = (request.headers.get("x-forwarded-for") or "").split(",")[0].strip()
             ip = forwarded or (request.client.host if request.client else None)
-            note_telegram_hit(path=request.url.path, method=request.method, ip=ip)
+            note_hit(
+                path=path,
+                method=request.method,
+                ip=ip,
+                user_agent=ua,
+                kind=kind or "og-check",
+            )
 
         track = should_track_request(request) and not _is_preview_bot(request)
         if _skip_session_cookie(request):
