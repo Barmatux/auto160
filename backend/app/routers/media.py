@@ -25,8 +25,9 @@ _REMOTE_FETCH_HEADERS = {
 
 _OG_HEADERS = {
     "Cache-Control": "public, max-age=86400",
-    "Content-Disposition": "inline; filename=og-preview.jpg",
 }
+_OG_WIDTH = 1200
+_OG_HEIGHT = 630
 
 
 def _fetch_remote_image(url: str) -> tuple[bytes, str]:
@@ -39,29 +40,32 @@ def _fetch_remote_image(url: str) -> tuple[bytes, str]:
     return payload, content_type
 
 
-def _to_jpeg_bytes(payload: bytes, *, max_side: int = 1200, quality: int = 85) -> bytes:
+def _to_og_jpeg_bytes(payload: bytes, *, quality: int = 85) -> bytes:
+    """Telegram-friendly 1200x630 cover crop JPEG."""
     try:
         image = Image.open(io.BytesIO(payload))
         image.load()
     except (UnidentifiedImageError, OSError) as exc:
         raise HTTPException(status_code=404, detail="Image not decodable") from exc
 
-    if image.mode not in {"RGB", "L"}:
-        image = image.convert("RGB")
-    elif image.mode == "L":
+    if image.mode != "RGB":
         image = image.convert("RGB")
 
-    width, height = image.size
-    longest = max(width, height)
-    if longest > max_side:
-        scale = max_side / float(longest)
-        image = image.resize(
-            (max(1, int(width * scale)), max(1, int(height * scale))),
-            Image.Resampling.LANCZOS,
-        )
+    src_w, src_h = image.size
+    if src_w < 1 or src_h < 1:
+        raise HTTPException(status_code=404, detail="Image not decodable")
+
+    scale = max(_OG_WIDTH / float(src_w), _OG_HEIGHT / float(src_h))
+    resized = image.resize(
+        (max(1, int(src_w * scale)), max(1, int(src_h * scale))),
+        Image.Resampling.LANCZOS,
+    )
+    left = max(0, (resized.width - _OG_WIDTH) // 2)
+    top = max(0, (resized.height - _OG_HEIGHT) // 2)
+    cropped = resized.crop((left, top, left + _OG_WIDTH, top + _OG_HEIGHT))
 
     out = io.BytesIO()
-    image.save(out, format="JPEG", quality=quality, optimize=True)
+    cropped.save(out, format="JPEG", quality=quality, optimize=True)
     return out.getvalue()
 
 
@@ -126,7 +130,7 @@ def get_og_image(request: Request, url: str = Query(..., min_length=8)):
     except (URLError, TimeoutError, ValueError):
         raise HTTPException(status_code=404, detail="Image not available")
 
-    return _jpeg_response(_to_jpeg_bytes(payload), request=request)
+    return _jpeg_response(_to_og_jpeg_bytes(payload), request=request)
 
 
 @router.api_route("/og/listing/{listing_id}.jpg", methods=["GET", "HEAD"])
@@ -145,4 +149,4 @@ def get_listing_og_image(listing_id: int, request: Request, db: Session = Depend
     except (URLError, TimeoutError, ValueError):
         raise HTTPException(status_code=404, detail="Image not available")
 
-    return _jpeg_response(_to_jpeg_bytes(payload), request=request)
+    return _jpeg_response(_to_og_jpeg_bytes(payload), request=request)

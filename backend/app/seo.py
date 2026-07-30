@@ -120,8 +120,8 @@ def build_seo_context(request: Request, meta: SeoMeta | None = None) -> dict:
         "seo_canonical": canonical,
         "seo_og_image": og_image,
         "seo_og_image_type": "image/png" if is_default_og else ("image/jpeg" if is_jpeg_og else None),
-        "seo_og_image_width": 1200 if is_default_og else None,
-        "seo_og_image_height": 630 if is_default_og else None,
+        "seo_og_image_width": 1200 if (is_default_og or is_jpeg_og) else None,
+        "seo_og_image_height": 630 if (is_default_og or is_jpeg_og) else None,
         "seo_noindex": noindex,
         "site_base_url": base,
     }
@@ -139,8 +139,8 @@ def listing_seo_meta(listing: CarListing, *, cover_url: str | None = None) -> Se
         .replace(",", " "),
         160,
     )
-    # Prefer a clean JPEG path: Telegram often fails on AVIF and on HEAD=405 query URLs.
-    og_image = f"/media/og/listing/{listing.id}.jpg" if cover_url else None
+    # Cache-buster forces Telegram to refetch after OG image pipeline changes.
+    og_image = f"/media/og/listing/{listing.id}.jpg?v=3" if cover_url else None
     return SeoMeta(
         title=title,
         description=description,

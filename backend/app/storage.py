@@ -125,7 +125,7 @@ def build_og_image_path(url: str | None) -> str:
     if not url:
         return "/static/og-default.png"
     cleaned = url.strip()
-    if cleaned.startswith("/media/og/listing/") and cleaned.endswith(".jpg"):
+    if cleaned.startswith("/media/og/listing/") and (".jpg" in cleaned):
         return cleaned
     source = extract_remote_source_url(cleaned)
     if source:
