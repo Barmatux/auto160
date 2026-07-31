@@ -24,6 +24,15 @@ if [[ ! -f "$ENV_FILE" ]]; then
   exit 1
 fi
 
+echo "==> Ensure PUBLIC_SITE_URL canonical host"
+CANONICAL_SITE_URL="https://auto160.by"
+if grep -qE '^[[:space:]]*PUBLIC_SITE_URL=' "$ENV_FILE"; then
+  sed -i "s|^[[:space:]]*PUBLIC_SITE_URL=.*|PUBLIC_SITE_URL=${CANONICAL_SITE_URL}|" "$ENV_FILE"
+else
+  printf '\nPUBLIC_SITE_URL=%s\n' "$CANONICAL_SITE_URL" >> "$ENV_FILE"
+fi
+grep -E '^PUBLIC_SITE_URL=' "$ENV_FILE"
+
 echo "==> Remove stale compose containers (name conflicts after partial deploys)"
 docker ps -a --format '{{.Names}}' | grep '_auto160-' | xargs -r docker rm -f || true
 
