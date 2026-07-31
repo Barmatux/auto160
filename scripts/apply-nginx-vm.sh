@@ -16,13 +16,11 @@ run() {
   if [[ "$(id -u)" -eq 0 ]]; then
     "$@"
   elif command -v sudo >/dev/null 2>&1 && sudo -n true 2>/dev/null; then
-    sudo "$@"
+    sudo --preserve-env=APP_DIR "$@"
   else
     echo "Need root or passwordless sudo to update nginx."
     echo "Run manually:"
-    echo "  sudo cp '$SRC' '$AVAILABLE'"
-    echo "  sudo ln -sfn '$AVAILABLE' '$ENABLED'"
-    echo "  sudo nginx -t && sudo systemctl reload nginx"
+    echo "  sudo APP_DIR='$APP_DIR' bash '$APP_DIR/scripts/apply-nginx-vm.sh'"
     exit 1
   fi
 }
