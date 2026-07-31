@@ -33,6 +33,13 @@ else
 fi
 grep -E '^PUBLIC_SITE_URL=' "$ENV_FILE"
 
+echo "==> Apply nginx canonical redirects"
+if bash "$APP_DIR/scripts/apply-nginx-vm.sh"; then
+  echo "Nginx updated"
+else
+  echo "WARNING: nginx apply failed (sudo/root required). Update manually with scripts/apply-nginx-vm.sh"
+fi
+
 echo "==> Remove stale compose containers (name conflicts after partial deploys)"
 docker ps -a --format '{{.Names}}' | grep '_auto160-' | xargs -r docker rm -f || true
 
