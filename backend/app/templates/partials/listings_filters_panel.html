@@ -59,13 +59,9 @@
             <option value="{{ year }}" {% if listings_filters.filters.year_to == year %}selected{% endif %}>{{ year }}</option>
           {% endfor %}
         </select>
-      </label>
-      <label class="inline-checkbox">
-        <input type="checkbox" name="passable" value="1" {% if listings_filters.filters.passable %}checked{% endif %} />
-        Только проходные (от 3 до 5 лет)
-      </label>
-      <label>
-        Актуальность
+          </label>
+          <label>
+            Актуальность
         <select name="freshness">
           <option value="all" {% if listings_filters.filters.freshness == "all" %}selected{% endif %}>Все</option>
           <option value="day" {% if listings_filters.filters.freshness == "day" %}selected{% endif %}>За сутки</option>
