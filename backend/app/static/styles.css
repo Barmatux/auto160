@@ -613,6 +613,7 @@ body {
 }
 
 .make-logo-wrap {
+  position: relative;
   width: 100%;
   height: 90px;
   border-radius: 10px;
@@ -630,9 +631,54 @@ body {
   padding: 12px;
 }
 
-.catalog-make-card .make-logo-wrap:hover {
+.catalog-make-card .make-logo-wrap:hover,
+.catalog-make-card .make-logo-wrap:focus-visible {
   border-color: #93c5fd;
   background: #f0f6ff;
+}
+
+.catalog-make-card .make-logo-wrap::after {
+  content: attr(data-label);
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  transform: translateX(-50%) translateY(4px);
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: #172033;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  box-shadow: 0 8px 18px rgba(23, 32, 51, 0.2);
+  transition: opacity 0.12s ease, transform 0.12s ease;
+  z-index: 4;
+}
+
+.catalog-make-card .make-logo-wrap::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 2px);
+  transform: translateX(-50%) translateY(4px);
+  border: 6px solid transparent;
+  border-top-color: #172033;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s ease, transform 0.12s ease;
+  z-index: 4;
+}
+
+.catalog-make-card .make-logo-wrap:hover::after,
+.catalog-make-card .make-logo-wrap:focus-visible::after,
+.catalog-make-card .make-logo-wrap:hover::before,
+.catalog-make-card .make-logo-wrap:focus-visible::before {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
 }
 
 .catalog-make-fallback {

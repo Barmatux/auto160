@@ -19,7 +19,7 @@
       <div class="catalog">
         {% for item in makes %}
           <article class="listing-card catalog-make-card">
-            <a class="make-logo-wrap" href="{{ item.models_url }}" aria-label="{{ item.make }}">
+            <a class="make-logo-wrap" href="{{ item.models_url }}" aria-label="{{ item.make }}" data-label="{{ item.make }}">
               {% if item.logo_url %}
                 <img class="make-logo" src="{{ item.logo_url }}" alt="{{ item.make }}" loading="lazy" />
               {% else %}
