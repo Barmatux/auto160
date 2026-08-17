@@ -14,116 +14,96 @@
 {% if active_tab == "vin" %}
 <p class="hint">
   Объявления, для которых VIN успешно получен и сохранён (17 символов).
-  Дата ввоза берётся из ответа таможни (база 1) после проверки.
+  Дата ввоза берётся из ответа таможни (база 1) после проверки. Нажмите на колонку, чтобы отсортировать.
 </p>
 
 <section class="admin-stats-grid">
   <article class="admin-stat-card">
     <div class="label">Объявлений с полученным VIN</div>
     <div class="value">{{ vin_total }}</div>
-    <div class="sub">страница {{ vin_page }} из {{ vin_total_pages }}{% if vin_filters.active() %} · фильтр включён{% endif %}</div>
+    <div class="sub">страница {{ vin_page }} из {{ vin_total_pages }}</div>
   </article>
 </section>
 
-<form class="admin-vin-filters" method="get" action="/admin/analytics">
-  <input type="hidden" name="tab" value="vin" />
-  <section class="admin-vin-table-wrap">
-    <table class="users-table admin-vin-table">
-      <thead>
+<section class="admin-vin-table-wrap">
+  <table class="users-table admin-vin-table">
+    <thead>
+      <tr>
+        <th>
+          <a class="admin-vin-sort{% if vin_sort.sort == 'auto' %} is-active{% endif %}" href="{{ vin_sort_urls.auto }}">
+            Авто <span class="admin-vin-sort-arrow">{{ vin_sort.arrow('auto') }}</span>
+          </a>
+        </th>
+        <th>
+          <a class="admin-vin-sort{% if vin_sort.sort == 'vin' %} is-active{% endif %}" href="{{ vin_sort_urls.vin }}">
+            VIN <span class="admin-vin-sort-arrow">{{ vin_sort.arrow('vin') }}</span>
+          </a>
+        </th>
+        <th>
+          <a class="admin-vin-sort{% if vin_sort.sort == 'customs' %} is-active{% endif %}" href="{{ vin_sort_urls.customs }}">
+            Таможня (база 1) <span class="admin-vin-sort-arrow">{{ vin_sort.arrow('customs') }}</span>
+          </a>
+        </th>
+        <th>
+          <a class="admin-vin-sort{% if vin_sort.sort == 'import' %} is-active{% endif %}" href="{{ vin_sort_urls.import }}">
+            Дата ввоза <span class="admin-vin-sort-arrow">{{ vin_sort.arrow('import') }}</span>
+          </a>
+        </th>
+        <th>
+          <a class="admin-vin-sort{% if vin_sort.sort == 'dates' %} is-active{% endif %}" href="{{ vin_sort_urls.dates }}">
+            Даты <span class="admin-vin-sort-arrow">{{ vin_sort.arrow('dates') }}</span>
+          </a>
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in vin_rows %}
         <tr>
-          <th>Авто</th>
-          <th>VIN</th>
-          <th>Таможня (база 1)</th>
-          <th>Дата ввоза</th>
-          <th>Даты</th>
-        </tr>
-        <tr class="admin-vin-filter-row">
-          <th>
-            <input type="search" name="auto" value="{{ vin_filters.auto }}" placeholder="Марка, модель, город, ID" />
-          </th>
-          <th>
-            <input type="search" name="vin" value="{{ vin_filters.vin }}" placeholder="VIN" />
-          </th>
-          <th>
-            <select name="customs">
-              {% for value, label in vin_customs_options %}
-                <option value="{{ value }}" {% if vin_filters.customs == value %}selected{% endif %}>{{ label }}</option>
-              {% endfor %}
-            </select>
-          </th>
-          <th>
-            <div class="admin-vin-date-filters">
-              <input type="date" name="import_from" value="{{ vin_filters.import_from }}" title="Дата ввоза с" />
-              <input type="date" name="import_to" value="{{ vin_filters.import_to }}" title="Дата ввоза по" />
+          <td class="admin-vin-listing">
+            <a class="admin-vin-listing-title" href="/listings/{{ row.listing.id }}">
+              {{ row.listing.brand }} {{ row.listing.model }}
+            </a>
+            <div class="admin-vin-listing-meta">
+              #{{ row.listing.id }} · {{ row.listing.year }} · {{ row.listing.city }}
+              {% if row.sync_checks_count %} · парсинг ×{{ row.sync_checks_count }}{% endif %}
             </div>
-          </th>
-          <th>
-            <div class="admin-vin-date-filters">
-              <label>VIN</label>
-              <input type="date" name="vin_from" value="{{ vin_filters.vin_from }}" title="VIN получен с" />
-              <input type="date" name="vin_to" value="{{ vin_filters.vin_to }}" title="VIN получен по" />
-              <label>Таможня</label>
-              <input type="date" name="customs_from" value="{{ vin_filters.customs_from }}" title="Проверка таможни с" />
-              <input type="date" name="customs_to" value="{{ vin_filters.customs_to }}" title="Проверка таможни по" />
+          </td>
+          <td>
+            <code class="admin-vin-code">{{ row.vin }}</code>
+          </td>
+          <td class="admin-vin-customs">
+            {% if row.customs_found is none %}
+              <span class="status-pill pending">Не проверялось</span>
+            {% elif row.customs_found %}
+              <span class="status-pill success">Найдено</span>
+            {% else %}
+              <span class="status-pill failed">Не найдено</span>
+            {% endif %}
+          </td>
+          <td class="admin-vin-import-date">
+            {% if row.customs_release_date %}
+              <strong>{{ row.customs_release_date }}</strong>
+            {% else %}
+              —
+            {% endif %}
+          </td>
+          <td class="admin-vin-dates">
+            <div class="admin-vin-date-row">
+              <span class="admin-vin-date-label">VIN</span>
+              <span>{{ row.vin_fetched_at.strftime('%d.%m.%Y %H:%M') if row.vin_fetched_at else "—" }}</span>
             </div>
-          </th>
+            <div class="admin-vin-date-row">
+              <span class="admin-vin-date-label">Таможня</span>
+              <span>{{ row.customs_checked_at.strftime('%d.%m.%Y %H:%M') if row.customs_checked_at else "—" }}</span>
+            </div>
+          </td>
         </tr>
-      </thead>
-      <tbody>
-        {% for row in vin_rows %}
-          <tr>
-            <td class="admin-vin-listing">
-              <a class="admin-vin-listing-title" href="/listings/{{ row.listing.id }}">
-                {{ row.listing.brand }} {{ row.listing.model }}
-              </a>
-              <div class="admin-vin-listing-meta">
-                #{{ row.listing.id }} · {{ row.listing.year }} · {{ row.listing.city }}
-                {% if row.sync_checks_count %} · парсинг ×{{ row.sync_checks_count }}{% endif %}
-              </div>
-            </td>
-            <td>
-              <code class="admin-vin-code">{{ row.vin }}</code>
-            </td>
-            <td class="admin-vin-customs">
-              {% if row.customs_found is none %}
-                <span class="status-pill pending">Не проверялось</span>
-              {% elif row.customs_found %}
-                <span class="status-pill success">Найдено</span>
-              {% else %}
-                <span class="status-pill failed">Не найдено</span>
-              {% endif %}
-            </td>
-            <td class="admin-vin-import-date">
-              {% if row.customs_release_date %}
-                <strong>{{ row.customs_release_date }}</strong>
-              {% else %}
-                —
-              {% endif %}
-            </td>
-            <td class="admin-vin-dates">
-              <div class="admin-vin-date-row">
-                <span class="admin-vin-date-label">VIN</span>
-                <span>{{ row.vin_fetched_at.strftime('%d.%m.%Y %H:%M') if row.vin_fetched_at else "—" }}</span>
-              </div>
-              <div class="admin-vin-date-row">
-                <span class="admin-vin-date-label">Таможня</span>
-                <span>{{ row.customs_checked_at.strftime('%d.%m.%Y %H:%M') if row.customs_checked_at else "—" }}</span>
-              </div>
-            </td>
-          </tr>
-        {% else %}
-          <tr><td colspan="5">Нет объявлений с полученным VIN{% if vin_filters.active() %} по выбранным фильтрам{% endif %}</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </section>
-  <div class="actions-row admin-vin-filter-actions">
-    <button type="submit">Применить фильтры</button>
-    {% if vin_filters.active() %}
-      <a class="btn-link" href="{{ vin_reset_url }}">Сбросить</a>
-    {% endif %}
-  </div>
-</form>
+      {% else %}
+        <tr><td colspan="5">Пока нет объявлений с полученным VIN</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
 
 {% if vin_total_pages > 1 %}
 <div class="actions-row">

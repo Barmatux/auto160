@@ -1,6 +1,6 @@
 from datetime import date
 
-from app.vin_analytics import VinListingFilters, import_date_in_range, parse_filter_date
+from app.vin_analytics import VinListingSort, parse_filter_date
 
 
 def test_parse_filter_date_formats():
@@ -12,23 +12,15 @@ def test_parse_filter_date_formats():
     assert parse_filter_date("not-a-date") is None
 
 
-def test_import_date_in_range():
-    start = date(2024, 11, 1)
-    end = date(2024, 11, 30)
-    assert import_date_in_range("26.11.2024", start, end) is True
-    assert import_date_in_range("01.12.2024", start, end) is False
-    assert import_date_in_range(None, start, end) is False
-    assert import_date_in_range("26.11.2024", None, None) is True
+def test_vin_sort_toggle_and_query_string():
+    sort = VinListingSort(sort="dates", direction="desc")
+    assert sort.query_string() == "tab=vin"
+    assert "sort=auto" in sort.toggle_url("auto")
+    assert "dir=asc" in sort.toggle_url("auto")
+    assert sort.arrow("dates") == "↓"
+    assert sort.arrow("auto") == "↕"
 
-
-def test_vin_filters_query_string_keeps_tab_and_active_values():
-    filters = VinListingFilters(auto="Peugeot", customs="found", import_from="2024-11-01")
-    assert filters.active() is True
-    query = filters.query_string(page=2)
-    assert "tab=vin" in query
-    assert "auto=Peugeot" in query
-    assert "customs=found" in query
-    assert "import_from=2024-11-01" in query
-    assert "page=2" in query
-    assert VinListingFilters().active() is False
-    assert VinListingFilters().query_string() == "tab=vin"
+    toggled = VinListingSort(sort="import", direction="desc")
+    assert "dir=asc" in toggled.toggle_url("import")
+    assert toggled.arrow("import") == "↓"
+    assert "page=2" in toggled.query_string(page=2)

@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from datetime import date, datetime, time
+from datetime import date, datetime
 from urllib.parse import urlencode
 
-from sqlalchemy import desc, func, inspect, or_
+from sqlalchemy import func, inspect
 from sqlalchemy.exc import OperationalError, ProgrammingError
 from sqlalchemy.orm import Session
 
@@ -15,63 +15,49 @@ from app.customs_vin import DATABASE_PERSONAL
 from app.listing_enrichment import build_listing_customs_map
 from app.models import AvbySyncRunVinCheck, CarListing, VinCustomsCheck
 
-CUSTOMS_FILTER_OPTIONS = (
-    ("", "Все"),
-    ("found", "Найдено"),
-    ("not_found", "Не найдено"),
-    ("unchecked", "Не проверялось"),
-)
+SORT_COLUMNS = ("auto", "vin", "customs", "import", "dates")
+DEFAULT_SORT = "dates"
+DEFAULT_DIR = "desc"
+DESC_DEFAULT_COLUMNS = {"customs", "import", "dates"}
 
 
 @dataclass(frozen=True)
-class VinListingFilters:
-    auto: str = ""
-    vin: str = ""
-    customs: str = ""
-    import_from: str = ""
-    import_to: str = ""
-    vin_from: str = ""
-    vin_to: str = ""
-    customs_from: str = ""
-    customs_to: str = ""
+class VinListingSort:
+    sort: str = DEFAULT_SORT
+    direction: str = DEFAULT_DIR
 
-    def active(self) -> bool:
-        return any(
-            (
-                self.auto,
-                self.vin,
-                self.customs,
-                self.import_from,
-                self.import_to,
-                self.vin_from,
-                self.vin_to,
-                self.customs_from,
-                self.customs_to,
-            )
-        )
+    def normalized(self) -> "VinListingSort":
+        sort = self.sort if self.sort in SORT_COLUMNS else DEFAULT_SORT
+        direction = "asc" if self.direction == "asc" else "desc"
+        return VinListingSort(sort=sort, direction=direction)
 
     def query_pairs(self, *, page: int | None = None) -> list[tuple[str, str]]:
+        current = self.normalized()
         pairs = [("tab", "vin")]
-        for key in (
-            "auto",
-            "vin",
-            "customs",
-            "import_from",
-            "import_to",
-            "vin_from",
-            "vin_to",
-            "customs_from",
-            "customs_to",
-        ):
-            value = getattr(self, key)
-            if value:
-                pairs.append((key, value))
+        if current.sort != DEFAULT_SORT:
+            pairs.append(("sort", current.sort))
+        if current.direction != DEFAULT_DIR or current.sort != DEFAULT_SORT:
+            pairs.append(("dir", current.direction))
         if page and page > 1:
             pairs.append(("page", str(page)))
         return pairs
 
     def query_string(self, *, page: int | None = None) -> str:
         return urlencode(self.query_pairs(page=page))
+
+    def toggle_url(self, column: str, *, page: int | None = None) -> str:
+        current = self.normalized()
+        if column == current.sort:
+            next_dir = "asc" if current.direction == "desc" else "desc"
+        else:
+            next_dir = "desc" if column in DESC_DEFAULT_COLUMNS else "asc"
+        return VinListingSort(sort=column, direction=next_dir).query_string(page=page)
+
+    def arrow(self, column: str) -> str:
+        current = self.normalized()
+        if column != current.sort:
+            return "↕"
+        return "↓" if current.direction == "desc" else "↑"
 
 
 @dataclass(frozen=True)
@@ -102,19 +88,6 @@ def parse_filter_date(raw: str | None) -> date | None:
         return date(int(match.group(3)), int(match.group(2)), int(match.group(1)))
     except ValueError:
         return None
-
-
-def import_date_in_range(release_date: str | None, start: date | None, end: date | None) -> bool:
-    if start is None and end is None:
-        return True
-    parsed = parse_filter_date(release_date)
-    if parsed is None:
-        return False
-    if start and parsed < start:
-        return False
-    if end and parsed > end:
-        return False
-    return True
 
 
 def _sync_checks_table_available(db: Session) -> bool:
@@ -189,19 +162,45 @@ def _latest_customs_subquery(db: Session):
     )
 
 
+def _sort_key(listing: CarListing, customs: VinCustomsCheck | None, sort: str):
+    listing_id = listing.id or 0
+    if sort == "auto":
+        return (
+            (listing.brand or "").casefold(),
+            (listing.model or "").casefold(),
+            listing.year or 0,
+            listing_id,
+        )
+    if sort == "vin":
+        return ((listing.vin or "").upper(), listing_id)
+    if sort == "customs":
+        if customs is None:
+            status = 0
+        elif customs.found:
+            status = 2
+        else:
+            status = 1
+        return (status, listing_id)
+    if sort == "import":
+        parsed = parse_filter_date(customs.release_date if customs else None)
+        return (parsed is not None, parsed or date.min, listing_id)
+    fetched = listing.vin_fetched_at or listing.created_at
+    return (fetched is not None, fetched or datetime.min, listing_id)
+
+
 def build_vin_listings_report(
     db: Session,
     *,
     page: int = 1,
     per_page: int = 50,
-    filters: VinListingFilters | None = None,
+    sort: VinListingSort | None = None,
 ) -> tuple[list[VinListingReportRow], int]:
     page = max(page, 1)
     per_page = max(min(per_page, 200), 1)
-    filters = filters or VinListingFilters()
+    sort = (sort or VinListingSort()).normalized()
 
     latest_customs = _latest_customs_subquery(db)
-    query = (
+    matched = (
         db.query(CarListing, VinCustomsCheck)
         .outerjoin(latest_customs, func.upper(CarListing.vin) == latest_customs.c.vin)
         .outerjoin(VinCustomsCheck, VinCustomsCheck.id == latest_customs.c.max_id)
@@ -209,72 +208,12 @@ def build_vin_listings_report(
             CarListing.vin.isnot(None),
             func.length(CarListing.vin) == 17,
         )
-        .order_by(
-            desc(func.coalesce(CarListing.vin_fetched_at, CarListing.created_at)),
-            desc(CarListing.id),
-        )
+        .all()
     )
-
-    auto = filters.auto.strip()
-    if auto:
-        like = f"%{auto}%"
-        id_match = None
-        if auto.isdigit():
-            id_match = CarListing.id == int(auto)
-        year_match = None
-        if len(auto) == 4 and auto.isdigit():
-            year_match = CarListing.year == int(auto)
-        conditions = [
-            CarListing.brand.ilike(like),
-            CarListing.model.ilike(like),
-            CarListing.city.ilike(like),
-        ]
-        if id_match is not None:
-            conditions.append(id_match)
-        if year_match is not None:
-            conditions.append(year_match)
-        query = query.filter(or_(*conditions))
-
-    vin_query = filters.vin.strip()
-    if vin_query:
-        query = query.filter(CarListing.vin.ilike(f"%{vin_query}%"))
-
-    vin_from = parse_filter_date(filters.vin_from)
-    vin_to = parse_filter_date(filters.vin_to)
-    if vin_from:
-        query = query.filter(CarListing.vin_fetched_at >= datetime.combine(vin_from, time.min))
-    if vin_to:
-        query = query.filter(CarListing.vin_fetched_at <= datetime.combine(vin_to, time.max))
-
-    customs_from = parse_filter_date(filters.customs_from)
-    customs_to = parse_filter_date(filters.customs_to)
-    if customs_from:
-        query = query.filter(VinCustomsCheck.checked_at >= datetime.combine(customs_from, time.min))
-    if customs_to:
-        query = query.filter(VinCustomsCheck.checked_at <= datetime.combine(customs_to, time.max))
-
-    if filters.customs == "found":
-        query = query.filter(VinCustomsCheck.found.is_(True))
-    elif filters.customs == "not_found":
-        query = query.filter(VinCustomsCheck.found.is_(False))
-    elif filters.customs == "unchecked":
-        query = query.filter(VinCustomsCheck.id.is_(None))
-
-    import_from = parse_filter_date(filters.import_from)
-    import_to = parse_filter_date(filters.import_to)
-    if import_from or import_to:
-        query = query.filter(
-            VinCustomsCheck.release_date.isnot(None),
-            VinCustomsCheck.release_date != "",
-        )
-
-    matched = query.all()
-    if import_from or import_to:
-        matched = [
-            (listing, customs)
-            for listing, customs in matched
-            if import_date_in_range(customs.release_date if customs else None, import_from, import_to)
-        ]
+    matched.sort(
+        key=lambda row: _sort_key(row[0], row[1], sort.sort),
+        reverse=sort.direction == "desc",
+    )
 
     total = len(matched)
     offset = (page - 1) * per_page

@@ -75,7 +75,7 @@ from app.listing_photos import (
 )
 from app.storage import build_app_download_url, normalize_display_image_url
 from app.sync_run_vin_log import PHASE_LABELS, summarize_sync_run_vin_checks
-from app.vin_analytics import CUSTOMS_FILTER_OPTIONS, VinListingFilters, build_vin_listings_report
+from app.vin_analytics import SORT_COLUMNS, VinListingSort, build_vin_listings_report
 
 router = APIRouter(tags=["pages"])
 templates = Jinja2Templates(directory="app/templates")
@@ -2665,15 +2665,8 @@ def admin_analytics_page(
     tab: str = Query(default="traffic"),
     days: int = Query(default=7, ge=1, le=90),
     page: int = Query(default=1, ge=1),
-    auto: str = Query(default=""),
-    vin: str = Query(default=""),
-    customs: str = Query(default=""),
-    import_from: str = Query(default=""),
-    import_to: str = Query(default=""),
-    vin_from: str = Query(default=""),
-    vin_to: str = Query(default=""),
-    customs_from: str = Query(default=""),
-    customs_to: str = Query(default=""),
+    sort: str = Query(default="dates"),
+    dir: str = Query(default="desc"),
     db: Session = Depends(get_db),
 ):
     current_user = _resolve_user_from_request(request, db)
@@ -2696,22 +2689,12 @@ def admin_analytics_page(
 
     if active_tab == "vin":
         per_page = 50
-        vin_filters = VinListingFilters(
-            auto=auto,
-            vin=vin,
-            customs=customs,
-            import_from=import_from,
-            import_to=import_to,
-            vin_from=vin_from,
-            vin_to=vin_to,
-            customs_from=customs_from,
-            customs_to=customs_to,
-        )
+        vin_sort = VinListingSort(sort=sort, direction=dir).normalized()
         vin_rows, vin_total = build_vin_listings_report(
             db,
             page=page,
             per_page=per_page,
-            filters=vin_filters,
+            sort=vin_sort,
         )
         total_pages = max((vin_total + per_page - 1) // per_page, 1)
         if page > total_pages:
@@ -2720,7 +2703,7 @@ def admin_analytics_page(
                 db,
                 page=page,
                 per_page=per_page,
-                filters=vin_filters,
+                sort=vin_sort,
             )
         context.update(
             {
@@ -2730,11 +2713,14 @@ def admin_analytics_page(
                 "vin_total_pages": total_pages,
                 "vin_has_prev": page > 1,
                 "vin_has_next": page < total_pages,
-                "vin_filters": vin_filters,
-                "vin_customs_options": CUSTOMS_FILTER_OPTIONS,
-                "vin_prev_url": f"/admin/analytics?{vin_filters.query_string(page=page - 1)}" if page > 1 else None,
-                "vin_next_url": f"/admin/analytics?{vin_filters.query_string(page=page + 1)}" if page < total_pages else None,
-                "vin_reset_url": "/admin/analytics?tab=vin",
+                "vin_sort": vin_sort,
+                "vin_sort_columns": SORT_COLUMNS,
+                "vin_sort_urls": {
+                    column: f"/admin/analytics?{vin_sort.toggle_url(column)}"
+                    for column in SORT_COLUMNS
+                },
+                "vin_prev_url": f"/admin/analytics?{vin_sort.query_string(page=page - 1)}" if page > 1 else None,
+                "vin_next_url": f"/admin/analytics?{vin_sort.query_string(page=page + 1)}" if page < total_pages else None,
             }
         )
     else:
