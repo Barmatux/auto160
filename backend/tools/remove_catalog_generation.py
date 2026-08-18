@@ -15,9 +15,8 @@ os.chdir(ROOT_DIR)
 
 from sqlalchemy import func
 
-from app.catalog_ratings import matching_catalog_items
 from app.db import SessionLocal
-from app.listing_catalog_link import normalize_match_text
+from app.listing_catalog_link import canonical_model_name, normalize_match_text
 from app.logging_setup import setup_logging
 from app.models import CarListing, CatalogItem, ListingStatus
 
@@ -38,6 +37,21 @@ def listing_matches_generation(listing_generation: str | None, target_generation
     return False
 
 
+def find_catalog_items(db, *, make: str, model: str, generation: str) -> list[CatalogItem]:
+    canonical = canonical_model_name(model)
+    return (
+        db.query(CatalogItem)
+        .filter(
+            CatalogItem.source_site == "av.by",
+            CatalogItem.make.ilike(f"%{make.strip()}%"),
+            CatalogItem.model == canonical,
+            CatalogItem.generation == generation.strip(),
+        )
+        .order_by(CatalogItem.id.asc())
+        .all()
+    )
+
+
 def remove_catalog_generation(
     *,
     make: str,
@@ -54,18 +68,7 @@ def remove_catalog_generation(
         "listings_cleared_links": 0,
     }
     try:
-        catalog_items = matching_catalog_items(db, make=make, model=model, generation=generation)
-        if not catalog_items:
-            catalog_items = (
-                db.query(CatalogItem)
-                .filter(
-                    func.lower(CatalogItem.make) == make.strip().lower(),
-                    func.lower(CatalogItem.model) == model.strip().lower(),
-                    CatalogItem.generation == generation.strip(),
-                )
-                .order_by(CatalogItem.id.asc())
-                .all()
-            )
+        catalog_items = find_catalog_items(db, make=make, model=model, generation=generation)
 
         catalog_item_ids = [item.id for item in catalog_items]
         stats["catalog_items"] = len(catalog_item_ids)
