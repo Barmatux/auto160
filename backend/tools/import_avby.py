@@ -21,6 +21,7 @@ os.chdir(ROOT_DIR)
 from app.db import SessionLocal
 from app.export_country_labels import export_country_for_avby
 from app.fuel_type_labels import preferred_fuel_type, resolved_catalog_fuel_type
+from app.body_type_labels import is_hidden_body_type
 from app.models import CatalogItem
 
 
@@ -226,6 +227,9 @@ def parse_generation_page(url: str, state: dict[str, Any], user_agent: str) -> l
         full_drive = mod_detail.get("driveType")
         full_country = export_country_for_avby()
         full_steering = mod_detail.get("steeringWheel")
+        resolved_body = full_body_type or body_type
+        if is_hidden_body_type(resolved_body):
+            continue
 
         payloads.append(
             {

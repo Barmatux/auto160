@@ -18,6 +18,7 @@ from app.db import SessionLocal
 from app.listing_enrichment import build_rating_one_targets, enrich_rating_one_listings, listing_needs_enrichment
 from app.listing_catalog_link import link_listing_to_catalog
 from app.avby_offer_metadata import enrich_listings_vin_metadata
+from app.body_type_labels import is_hidden_body_type
 from app.models import AvbySyncRun, CarListing, CatalogItem, ListingStatus, User, UserRole
 from app.security import hash_password
 
@@ -672,6 +673,13 @@ def run_import(
                         continue
                     avby_id = payload.pop("avby_id")
                     existing = existing_map.get(avby_id)
+
+                    if is_hidden_body_type(payload.get("body_type")):
+                        if existing and not dry_run:
+                            existing.status = ListingStatus.archived
+                            existing.body_type = payload.get("body_type")
+                        skipped += 1
+                        continue
 
                     if existing:
                         if not update_existing:

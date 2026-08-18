@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.db import get_db
 from app.deps import get_optional_current_user, require_admin
+from app.body_type_labels import exclude_hidden_body_type
 from app.models import CarListing, ListingStatus, User, UserRole
 from app.schemas import ListingCreate, ListingOut, ListingUpdate
 
@@ -21,7 +22,7 @@ def list_listings(
     current_user: User | None = Depends(get_optional_current_user),
     db: Session = Depends(get_db),
 ):
-    query = db.query(CarListing)
+    query = exclude_hidden_body_type(db.query(CarListing), CarListing.body_type)
 
     if current_user is None or current_user.role != UserRole.admin:
         query = query.filter(CarListing.status == ListingStatus.published)

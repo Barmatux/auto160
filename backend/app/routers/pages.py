@@ -15,6 +15,8 @@ from app.config import settings
 from app.body_type_labels import (
     body_type_db_values_for_filter,
     body_type_filter_options,
+    exclude_hidden_body_type,
+    is_hidden_body_type,
     normalize_body_type_label,
 )
 from app.fuel_type_labels import (
@@ -353,18 +355,15 @@ def _fetch_listings_for_catalog_items(items: list[CatalogItem], db: Session) -> 
     for make, model in pairs:
         if not make or not model:
             continue
-        cache[(make, model)] = (
-            db.query(CarListing)
-            .filter(
+        cache[(make, model)] = exclude_hidden_body_type(
+            db.query(CarListing).filter(
                 CarListing.status == ListingStatus.published,
                 CarListing.cover_photo_url.isnot(None),
                 CarListing.brand.ilike(make),
                 CarListing.model.ilike(model),
-            )
-            .order_by(CarListing.created_at.desc())
-            .limit(200)
-            .all()
-        )
+            ),
+            CarListing.body_type,
+        ).order_by(CarListing.created_at.desc()).limit(200).all()
     return cache
 
 
@@ -616,11 +615,13 @@ def _make_model_generation_map(db: Session) -> dict[str, dict[str, list[str]]]:
 
 def _published_listing_make_models(db: Session) -> set[tuple[str, str]]:
     rows = (
-        db.query(CarListing.brand, CarListing.model)
-        .filter(
-            CarListing.status == ListingStatus.published,
-            CarListing.brand.isnot(None),
-            CarListing.model.isnot(None),
+        exclude_hidden_body_type(
+            db.query(CarListing.brand, CarListing.model).filter(
+                CarListing.status == ListingStatus.published,
+                CarListing.brand.isnot(None),
+                CarListing.model.isnot(None),
+            ),
+            CarListing.body_type,
         )
         .distinct()
         .all()
@@ -634,6 +635,54 @@ def _published_listing_make_models(db: Session) -> set[tuple[str, str]]:
 
 def _query_flag(value: str | None) -> bool:
     return value in ("1", "true", "on")
+
+
+def _is_admin_user(current_user) -> bool:
+    return current_user is not None and current_user.role == UserRole.admin
+
+
+def _catalog_admin_exact_hp(request: Request, current_user) -> bool:
+    return _is_admin_user(current_user) and _query_flag(request.query_params.get("exact_hp"))
+
+
+def _catalog_flag_query_pairs(request: Request, current_user) -> list[tuple[str, str]]:
+    pairs: list[tuple[str, str]] = []
+    if _catalog_admin_exact_hp(request, current_user):
+        pairs.append(("exact_hp", "1"))
+    if _query_flag(request.query_params.get("with_listings")):
+        pairs.append(("with_listings", "1"))
+    return pairs
+
+
+def _published_listing_catalog_scope(db: Session) -> tuple[set[int], set[tuple[str, str]]]:
+    rows = (
+        exclude_hidden_body_type(
+            db.query(CarListing.catalog_item_id, CarListing.brand, CarListing.model).filter(
+                CarListing.status == ListingStatus.published,
+                CarListing.brand.isnot(None),
+                CarListing.model.isnot(None),
+            ),
+            CarListing.body_type,
+        ).all()
+    )
+    linked_ids = {item_id for item_id, _, _ in rows if item_id is not None}
+    pairs = {
+        (normalize_match_text(brand), _canonical_model_name(model))
+        for _, brand, model in rows
+        if brand and model
+    }
+    return linked_ids, pairs
+
+
+def _catalog_item_has_published_listing(
+    item: CatalogItem,
+    linked_ids: set[int],
+    listing_pairs: set[tuple[str, str]],
+) -> bool:
+    if item.id in linked_ids:
+        return True
+    pair = (normalize_match_text(item.make), _canonical_model_name(item.model))
+    return pair in listing_pairs
 
 
 def _passable_year_bounds() -> tuple[int, int]:
@@ -933,7 +982,7 @@ def _build_vehicle_hierarchy_payload(
     }
 
 
-def _catalog_sidebar_payload(request: Request, db: Session) -> dict:
+def _catalog_sidebar_payload(request: Request, db: Session, current_user=None) -> dict:
     query = request.query_params
     parsed_year_from = _parse_optional_year(query.get("year_from"))
     parsed_year_to = _parse_optional_year(query.get("year_to"))
@@ -966,7 +1015,7 @@ def _catalog_sidebar_payload(request: Request, db: Session) -> dict:
             "year_to": parsed_year_to if parsed_year_to is not None else "",
             "sort": query.get("sort", "year_desc"),
             "page_size": page_size,
-            "exact_hp": _query_flag(query.get("exact_hp")),
+            "exact_hp": _catalog_admin_exact_hp(request, current_user),
             "with_listings": _query_flag(query.get("with_listings")),
         },
         "options": {
@@ -1395,6 +1444,7 @@ def _apply_catalog_item_filters(
 
 
 def _apply_hp_filter(query, *, max_hp: int = 160, exact_hp: bool = False):
+    query = exclude_hidden_body_type(query, CatalogItem.body_type)
     if exact_hp:
         return query.filter(CatalogItem.engine_power_hp == max_hp)
     return query.filter(or_(CatalogItem.engine_power_hp.is_(None), CatalogItem.engine_power_hp <= max_hp))
@@ -1421,7 +1471,10 @@ def _home_stats(db: Session) -> dict:
         .scalar()
         or 0
     )
-    listings_query = db.query(CarListing).filter(CarListing.status == ListingStatus.published)
+    listings_query = exclude_hidden_body_type(
+        db.query(CarListing).filter(CarListing.status == ListingStatus.published),
+        CarListing.body_type,
+    )
     listings_count = listings_query.count()
     year_min, year_max = _passable_year_bounds()
     passable_listings_count = listings_query.filter(
@@ -1465,8 +1518,10 @@ def _home_popular_makes(db: Session, *, limit: int = 8) -> list[dict]:
 def home(request: Request, db: Session = Depends(get_db)):
     current_user = _resolve_user_from_request(request, db)
     latest_listings = (
-        db.query(CarListing)
-        .filter(CarListing.status == ListingStatus.published)
+        exclude_hidden_body_type(
+            db.query(CarListing).filter(CarListing.status == ListingStatus.published),
+            CarListing.body_type,
+        )
         .order_by(desc(CarListing.created_at))
         .limit(6)
         .all()
@@ -1483,8 +1538,10 @@ def home(request: Request, db: Session = Depends(get_db)):
 def design_preview(request: Request, db: Session = Depends(get_db)):
     current_user = _resolve_user_from_request(request, db)
     latest_listings = (
-        db.query(CarListing)
-        .filter(CarListing.status == ListingStatus.published)
+        exclude_hidden_body_type(
+            db.query(CarListing).filter(CarListing.status == ListingStatus.published),
+            CarListing.body_type,
+        )
         .order_by(desc(CarListing.created_at))
         .limit(6)
         .all()
@@ -1540,8 +1597,8 @@ def listings_page(
     vehicle_rows = _parse_vehicle_filter_rows(request.query_params, make_key="brand", model_key="model", generation_key="generation")
     parsed_year_from = _parse_optional_year(year_from)
     parsed_year_to = _parse_optional_year(year_to)
-    query = db.query(CarListing)
-    is_admin = current_user is not None and current_user.role == UserRole.admin
+    query = exclude_hidden_body_type(db.query(CarListing), CarListing.body_type)
+    is_admin = _is_admin_user(current_user)
     if not is_admin:
         query = query.filter(CarListing.status == ListingStatus.published)
 
@@ -1768,7 +1825,7 @@ def catalog(
     db: Session = Depends(get_db),
 ):
     current_user = _resolve_user_from_request(request, db)
-    exact_hp = _query_flag(request.query_params.get("exact_hp"))
+    exact_hp = _catalog_admin_exact_hp(request, current_user)
     with_listings = _query_flag(request.query_params.get("with_listings"))
     listing_pairs = _published_listing_make_models(db) if with_listings else None
     rows = (
@@ -1804,13 +1861,15 @@ def catalog(
             if any(pair[0] == normalize_match_text(make_row["make"]) for pair in listing_pairs)
         ]
     for make in makes:
-        make["models_url"] = "/catalog/models?" + urlencode({"make": make["make"]})
+        make["models_url"] = "/catalog/models?" + urlencode(
+            [("make", make["make"]), *_catalog_flag_query_pairs(request, current_user)]
+        )
         make["logo_url"] = _make_logo_url(make["make"])
 
     context = _template_context(request, current_user)
     context["makes"] = makes
     context["total"] = len(makes)
-    context["catalog_sidebar"] = _catalog_sidebar_payload(request, db)
+    context["catalog_sidebar"] = _catalog_sidebar_payload(request, db, current_user)
     return templates.TemplateResponse(request, "catalog.html", context)
 
 
@@ -1821,7 +1880,7 @@ def catalog_models(
     db: Session = Depends(get_db),
 ):
     current_user = _resolve_user_from_request(request, db)
-    exact_hp = _query_flag(request.query_params.get("exact_hp"))
+    exact_hp = _catalog_admin_exact_hp(request, current_user)
     with_listings = _query_flag(request.query_params.get("with_listings"))
     listing_pairs = _published_listing_make_models(db) if with_listings else None
     query = _apply_hp_filter(db.query(CatalogItem), exact_hp=exact_hp).filter(
@@ -1896,7 +1955,11 @@ def catalog_models(
     for model_item in models:
         model_item["generation_count"] = len(model_item["generations"])
         model_item["generations_url"] = "/catalog/generations?" + urlencode(
-            {"make": model_item["make"], "model": model_item["model"]}
+            [
+                ("make", model_item["make"]),
+                ("model", model_item["model"]),
+                *_catalog_flag_query_pairs(request, current_user),
+            ]
         )
         model_item["listings_url"] = _build_listings_url(
             brand=model_item["make"],
@@ -1908,7 +1971,9 @@ def catalog_models(
         generation_cards.sort(key=lambda g: (g["count"], g["year_to"] or 0, g["year_from"] or 0), reverse=True)
         for generation_card in generation_cards:
             params = {"make": generation_card["make"], "model": generation_card["model"], "generation": generation_card["generation"]}
-            generation_card["mods_url"] = "/catalog/modifications?" + urlencode(params)
+            generation_card["mods_url"] = "/catalog/modifications?" + urlencode(
+                list(params.items()) + _catalog_flag_query_pairs(request, current_user)
+            )
         model_item["generation_previews"] = generation_cards[:3]
         generation_preview_ids.extend([g["first_id"] for g in model_item["generation_previews"]])
 
@@ -1924,7 +1989,7 @@ def catalog_models(
     context["cover_urls"] = _build_cover_url_map([item["first_id"] for item in models], db)
     context["generation_cover_urls"] = _build_cover_url_map(generation_preview_ids, db)
     context["total"] = len(models)
-    context["catalog_sidebar"] = _catalog_sidebar_payload(request, db)
+    context["catalog_sidebar"] = _catalog_sidebar_payload(request, db, current_user)
     return templates.TemplateResponse(request, "catalog_models.html", context)
 
 
@@ -1936,7 +2001,7 @@ def catalog_generations(
     db: Session = Depends(get_db),
 ):
     current_user = _resolve_user_from_request(request, db)
-    exact_hp = _query_flag(request.query_params.get("exact_hp"))
+    exact_hp = _catalog_admin_exact_hp(request, current_user)
     with_listings = _query_flag(request.query_params.get("with_listings"))
     listing_pairs = _published_listing_make_models(db) if with_listings else None
     canonical_model = _canonical_model_name(model) if model else ""
@@ -1994,7 +2059,9 @@ def catalog_generations(
         params = {"make": generation_item["make"], "model": generation_item["model"]}
         if generation_item["generation"] != "Без поколения":
             params["generation"] = generation_item["generation"]
-        generation_item["mods_url"] = "/catalog/modifications?" + urlencode(params)
+        generation_item["mods_url"] = "/catalog/modifications?" + urlencode(
+            list(params.items()) + _catalog_flag_query_pairs(request, current_user)
+        )
         generation_item["listings_url"] = _build_listings_url(
             brand=generation_item["make"],
             model=generation_item["model"],
@@ -2015,9 +2082,11 @@ def catalog_generations(
     context["cover_urls"] = _build_cover_url_map([item["first_id"] for item in generations], db)
     context["total"] = len(generations)
     context["back_to_models_url"] = (
-        "/catalog/models?" + urlencode({"make": make}) if make else "/catalog/models"
+        "/catalog/models?" + urlencode([("make", make), *_catalog_flag_query_pairs(request, current_user)])
+        if make
+        else "/catalog/models"
     )
-    context["catalog_sidebar"] = _catalog_sidebar_payload(request, db)
+    context["catalog_sidebar"] = _catalog_sidebar_payload(request, db, current_user)
     return templates.TemplateResponse(request, "catalog_generations.html", context)
 
 
@@ -2037,6 +2106,8 @@ def catalog_modifications(
     db: Session = Depends(get_db),
 ):
     current_user = _resolve_user_from_request(request, db)
+    exact_hp = _catalog_admin_exact_hp(request, current_user)
+    with_listings = _query_flag(request.query_params.get("with_listings"))
     vehicle_rows = _parse_vehicle_filter_rows(request.query_params)
     primary_row = vehicle_rows[0] if vehicle_rows else {"make": "", "model": "", "generation": ""}
     make = primary_row.get("make") or None
@@ -2089,6 +2160,13 @@ def catalog_modifications(
         query = query.order_by(avby_first, desc(CatalogItem.created_at))
 
     deduped_items = _dedupe_modifications(query.all())
+    if with_listings:
+        linked_ids, listing_pairs = _published_listing_catalog_scope(db)
+        deduped_items = [
+            item
+            for item in deduped_items
+            if _catalog_item_has_published_listing(item, linked_ids, listing_pairs)
+        ]
     total = len(deduped_items)
     generation_rating = next((item.rating for item in deduped_items if item.rating is not None), None)
     offset = (page - 1) * page_size
@@ -2101,6 +2179,7 @@ def catalog_modifications(
         or parsed_year_from is not None
         or parsed_year_to is not None
         or exact_hp
+        or with_listings
         or sort not in ("", "year_desc")
         or page > 1
         or page_size != 20
@@ -2154,6 +2233,8 @@ def catalog_modifications(
             pairs.append(("year_to", str(parsed_year_to)))
         if exact_hp:
             pairs.append(("exact_hp", "1"))
+        if with_listings:
+            pairs.append(("with_listings", "1"))
         if sort:
             pairs.append(("sort", sort))
         if page_size != 20:
@@ -2164,7 +2245,10 @@ def catalog_modifications(
     context["prev_url"] = build_page_url(page - 1) if context["has_prev"] else None
     context["next_url"] = build_page_url(page + 1) if context["has_next"] else None
     context["back_to_catalog_url"] = "/catalog/generations?" + urlencode(
-        {k: v for k, v in {"make": make or None, "model": _canonical_model_name(model or "") or None}.items() if v}
+        [
+            *[(k, v) for k, v in (("make", make or None), ("model", _canonical_model_name(model or "") or None)) if v],
+            *_catalog_flag_query_pairs(request, current_user),
+        ]
     )
     ad_listings: list[CarListing] = []
     generation_items: list[CatalogItem] = []
@@ -2185,7 +2269,7 @@ def catalog_modifications(
             seen_ids: set[int] = set()
             for item in generation_items:
                 for listing in listings_by_item.get(item.id, []):
-                    if listing.id in seen_ids:
+                    if listing.id in seen_ids or is_hidden_body_type(listing.body_type):
                         continue
                     seen_ids.add(listing.id)
                     ad_listings.append(listing)
@@ -2198,10 +2282,13 @@ def catalog_modifications(
                 year_to_values = [row.year_to for row in generation_items if row.year_to is not None]
                 generation_year_from = min(year_from_values) if year_from_values else None
                 generation_year_to = max(year_to_values) if year_to_values else None
-                listings_query = db.query(CarListing).filter(
-                    CarListing.status == ListingStatus.published,
-                    CarListing.brand.ilike(make),
-                    CarListing.model.ilike(canonical_model),
+                listings_query = exclude_hidden_body_type(
+                    db.query(CarListing).filter(
+                        CarListing.status == ListingStatus.published,
+                        CarListing.brand.ilike(make),
+                        CarListing.model.ilike(canonical_model),
+                    ),
+                    CarListing.body_type,
                 )
                 if generation_year_from is not None:
                     listings_query = listings_query.filter(CarListing.year >= generation_year_from)
@@ -2221,7 +2308,7 @@ def catalog_modifications(
             year_to=max(year_to_values) if year_to_values else None,
         )
     context["listings_all_url"] = listings_all_url
-    context["catalog_sidebar"] = _catalog_sidebar_payload(request, db)
+    context["catalog_sidebar"] = _catalog_sidebar_payload(request, db, current_user)
     return templates.TemplateResponse(request, "catalog_modifications.html", context)
 
 
@@ -2229,7 +2316,7 @@ def catalog_modifications(
 def catalog_item_detail(request: Request, item_id: int, db: Session = Depends(get_db)):
     current_user = _resolve_user_from_request(request, db)
     item = db.query(CatalogItem).filter(CatalogItem.id == item_id).first()
-    if not item or (item.engine_power_hp is not None and item.engine_power_hp > 160):
+    if not item or (item.engine_power_hp is not None and item.engine_power_hp > 160) or is_hidden_body_type(item.body_type):
         context = _template_context(
             request,
             _resolve_user_from_request(request, db),

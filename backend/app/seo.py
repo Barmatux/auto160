@@ -13,6 +13,7 @@ from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
 from app.config import settings
+from app.body_type_labels import exclude_hidden_body_type
 from app.models import CarListing, CatalogItem, ListingStatus
 
 SITE_NAME = "Auto160"
@@ -750,8 +751,10 @@ def build_sitemap_entries(db: Session, base_url: str) -> list[tuple[str, str]]:
             )
 
     listings = (
-        db.query(CarListing.id, CarListing.created_at)
-        .filter(CarListing.status == ListingStatus.published)
+        exclude_hidden_body_type(
+            db.query(CarListing.id, CarListing.created_at).filter(CarListing.status == ListingStatus.published),
+            CarListing.body_type,
+        )
         .order_by(CarListing.id.asc())
         .all()
     )
@@ -759,8 +762,10 @@ def build_sitemap_entries(db: Session, base_url: str) -> list[tuple[str, str]]:
         entries.append((f"{base_url}/listings/{listing_id}", _format_lastmod(created_at)))
 
     catalog_items = (
-        db.query(CatalogItem.id, CatalogItem.created_at)
-        .filter(CatalogItem.source_site == "av.by", _hp_filter())
+        exclude_hidden_body_type(
+            db.query(CatalogItem.id, CatalogItem.created_at).filter(CatalogItem.source_site == "av.by", _hp_filter()),
+            CatalogItem.body_type,
+        )
         .order_by(CatalogItem.id.asc())
         .all()
     )

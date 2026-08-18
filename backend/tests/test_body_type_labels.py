@@ -28,3 +28,17 @@ def test_db_values_for_filter_include_legacy_english():
     raw = ["sedan", "седан", "hatchback", "хэтчбек 5 дв."]
     assert sorted(body_type_db_values_for_filter(raw, "Седан")) == ["sedan", "седан"]
     assert body_type_db_values_for_filter(raw, "Хэтчбек 5 дв.") == ["hatchback", "хэтчбек 5 дв."]
+
+
+def test_hides_pickup_from_filter_options():
+    raw = ["sedan", "pickup", "пикап", "Пикап"]
+    assert body_type_filter_options(raw) == ["Седан"]
+
+
+def test_detects_pickup_body_types():
+    from app.body_type_labels import is_hidden_body_type
+
+    for value in ("pickup", "Pickup", "пикап", "Пикап", "Пикап 4 дв."):
+        assert is_hidden_body_type(value)
+    assert not is_hidden_body_type("седан")
+    assert not is_hidden_body_type(None)

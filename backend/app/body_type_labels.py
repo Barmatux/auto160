@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from sqlalchemy import and_, or_
+
 # Keys are lowercased, trimmed; values are canonical Russian labels (capitalized).
 BODY_TYPE_ALIASES: dict[str, str] = {
     "sedan": "Седан",
@@ -34,6 +36,10 @@ BODY_TYPE_ALIASES: dict[str, str] = {
     "микроавтобус пассажирский": "Микроавтобус пассажирский",
 }
 
+# Commercial / cargo types that are out of scope for Auto160.
+HIDDEN_BODY_TYPE_LABELS = frozenset({"Пикап"})
+HIDDEN_BODY_TYPE_MARKERS = ("пикап", "pickup")
+
 
 def normalize_body_type_key(value: str) -> str:
     return value.strip().lower().replace("ё", "е")
@@ -58,9 +64,30 @@ def normalize_body_type_label(value: str | None) -> str | None:
     return capitalize_label(trimmed)
 
 
+def is_hidden_body_type(value: str | None) -> bool:
+    label = normalize_body_type_label(value)
+    if label in HIDDEN_BODY_TYPE_LABELS:
+        return True
+    if not value:
+        return False
+    key = normalize_body_type_key(value)
+    return any(marker in key for marker in HIDDEN_BODY_TYPE_MARKERS)
+
+
+def exclude_hidden_body_type(query, column):
+    """Drop pickup/cargo rows from catalog and listing queries."""
+    return query.filter(
+        or_(
+            column.is_(None),
+            and_(*[~column.ilike(f"%{marker}%") for marker in HIDDEN_BODY_TYPE_MARKERS]),
+        )
+    )
+
+
 def body_type_filter_options(raw_values: list[str]) -> list[str]:
     labels = {normalize_body_type_label(value) for value in raw_values if value}
     labels.discard(None)
+    labels -= HIDDEN_BODY_TYPE_LABELS
     return sorted(label for label in labels if label)
 
 

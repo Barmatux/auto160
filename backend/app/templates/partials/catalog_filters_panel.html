@@ -57,10 +57,12 @@
           {% endfor %}
         </select>
       </label>
+      {% if is_admin %}
       <label class="inline-checkbox">
         <input type="checkbox" name="exact_hp" value="1" {% if catalog_sidebar.filters.exact_hp %}checked{% endif %} />
         Ровно 160 л.с.
       </label>
+      {% endif %}
       <label class="inline-checkbox">
         <input type="checkbox" name="with_listings" value="1" {% if catalog_sidebar.filters.with_listings %}checked{% endif %} />
         Только с объявлениями в продаже

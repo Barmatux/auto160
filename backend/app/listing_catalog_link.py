@@ -8,6 +8,7 @@ from collections import defaultdict
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
+from app.body_type_labels import exclude_hidden_body_type
 from app.models import CarListing, CatalogItem, ListingStatus
 
 MIN_LINK_SCORE = 10
@@ -183,10 +184,12 @@ def fetch_listings_for_catalog_items(
 
     item_ids = [item.id for item in items]
     linked_rows = (
-        db.query(CarListing)
-        .filter(
-            CarListing.status == ListingStatus.published,
-            CarListing.catalog_item_id.in_(item_ids),
+        exclude_hidden_body_type(
+            db.query(CarListing).filter(
+                CarListing.status == ListingStatus.published,
+                CarListing.catalog_item_id.in_(item_ids),
+            ),
+            CarListing.body_type,
         )
         .order_by(CarListing.created_at.desc())
         .all()
@@ -209,12 +212,14 @@ def fetch_listings_for_catalog_items(
         if not make or not model:
             continue
         cache[(make, model)] = (
-            db.query(CarListing)
-            .filter(
-                CarListing.status == ListingStatus.published,
-                CarListing.catalog_item_id.is_(None),
-                CarListing.brand.ilike(make),
-                CarListing.model.ilike(model),
+            exclude_hidden_body_type(
+                db.query(CarListing).filter(
+                    CarListing.status == ListingStatus.published,
+                    CarListing.catalog_item_id.is_(None),
+                    CarListing.brand.ilike(make),
+                    CarListing.model.ilike(model),
+                ),
+                CarListing.body_type,
             )
             .order_by(CarListing.created_at.desc())
             .limit(limit_per_item)
