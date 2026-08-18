@@ -322,15 +322,15 @@ body {
 
 .modifications-table {
   width: 100%;
-  min-width: 760px;
   border-collapse: collapse;
-  font-size: 14px;
+  font-size: 13px;
+  table-layout: fixed;
 }
 
 .modifications-table thead th {
-  padding: 10px 12px;
+  padding: 8px 10px;
   text-align: left;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.02em;
   text-transform: uppercase;
@@ -342,7 +342,7 @@ body {
 
 .modifications-table tbody td,
 .modifications-table tbody th {
-  padding: 11px 12px;
+  padding: 9px 10px;
   border-bottom: 1px solid #e8eef8;
   vertical-align: middle;
 }
@@ -358,14 +358,16 @@ body {
 }
 
 .modifications-table-col-select {
-  width: 42px;
+  width: 36px;
   text-align: center;
 }
 
 .modifications-table-name {
-  min-width: 220px;
+  width: 34%;
   font-weight: 600;
   text-align: left;
+  white-space: normal;
+  word-break: break-word;
 }
 
 .modifications-table-name a {
@@ -384,6 +386,14 @@ body {
 .modifications-table tbody td:not(.modifications-table-col-select) {
   color: #334155;
   white-space: nowrap;
+}
+
+.modifications-table tbody td:nth-child(3),
+.modifications-table tbody td:nth-child(4),
+.modifications-table tbody td:nth-child(5),
+.modifications-table tbody td:nth-child(6),
+.modifications-table tbody td:nth-child(7) {
+  width: 11%;
 }
 
 .visually-hidden {

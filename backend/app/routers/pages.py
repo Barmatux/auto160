@@ -20,10 +20,13 @@ from app.body_type_labels import (
 from app.fuel_type_labels import (
     FUEL_GROUP_HYBRID,
     HYBRID_MARKERS,
+    classify_fuel_type,
     fuel_type_db_values_for_filter,
     fuel_type_filter_options,
     normalize_fuel_type_label,
+    resolved_catalog_fuel_type,
 )
+from app.drive_type_labels import normalize_drive_display_label
 from app.export_country_labels import (
     EXPORT_COUNTRY_FILTER_OPTIONS,
     is_belarus_export_country,
@@ -1265,12 +1268,19 @@ def _modification_attrs(item: CatalogItem) -> dict[str, str]:
     else:
         power = ""
 
+    effective_fuel = resolved_catalog_fuel_type(item.fuel_type, raw)
+    fuel_label = classify_fuel_type(effective_fuel) if effective_fuel else None
+    if not fuel_label:
+        fuel_label = classify_fuel_type(_extract("fuel") or item.fuel_type)
+
+    drive_raw = _extract("driveType") or _humanize_spec_value(item.drivetrain or "")
+
     return {
         "volume": volume,
         "power": power,
-        "fuel": _extract("fuel") or _humanize_spec_value(item.fuel_type or ""),
+        "fuel": fuel_label or "—",
         "gearbox": _extract("gearBoxType") or _humanize_spec_value(item.transmission or ""),
-        "drive": _extract("driveType") or _humanize_spec_value(item.drivetrain or ""),
+        "drive": normalize_drive_display_label(drive_raw) if drive_raw else "—",
     }
 
 
@@ -1297,10 +1307,29 @@ def _modification_row(item: CatalogItem) -> dict:
         "gearbox": attrs.get("gearbox") or "—",
         "drive": attrs.get("drive") or "—",
         "body_type": normalize_body_type_label(item.body_type) or "—",
-        "years": _format_catalog_year_range(item),
         "rating": float(item.rating) if item.rating is not None else None,
         "url": f"/catalog/item/{item.id}",
     }
+
+
+def _catalog_items_year_range(items: list[CatalogItem]) -> str | None:
+    if not items:
+        return None
+    year_from_values = [item.year_from for item in items if item.year_from is not None]
+    year_to_values = [item.year_to for item in items if item.year_to is not None]
+    if not year_from_values and not year_to_values:
+        return None
+    year_from = min(year_from_values) if year_from_values else None
+    year_to = max(year_to_values) if year_to_values else None
+    if year_from is not None and year_to is not None:
+        if year_from == year_to:
+            return str(year_from)
+        return f"{year_from}–{year_to}"
+    if year_from is not None:
+        return f"{year_from}–"
+    if year_to is not None:
+        return f"–{year_to}"
+    return None
 
 
 def _modification_power_sort_key(row: dict) -> int:
@@ -2171,6 +2200,7 @@ def catalog_modifications(
     context["generation_rating"] = float(generation_rating) if generation_rating is not None else None
     context["mod_titles"] = _build_modification_titles(items)
     context["mod_table_groups"] = _build_modification_table_groups(items)
+    context["generation_years"] = _catalog_items_year_range(deduped_items)
     context["total"] = total
     context["page"] = page
     context["page_size"] = page_size

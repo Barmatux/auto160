@@ -18,6 +18,9 @@
         <a href="{{ back_to_catalog_url if back_to_catalog_url else '/catalog' }}">← Назад к поколениям</a>
       </p>
       <p class="hint">Шаг 4 из 4: выбери комплектацию и открой спецификацию.</p>
+      {% if generation_years %}
+        <p class="hint">Годы выпуска: {{ generation_years }}</p>
+      {% endif %}
       <p class="hint">Найдено комплектаций: {{ total }} · Страница {{ page }} из {{ total_pages }}</p>
       {% if is_admin %}
         {% with rating=generation_rating %}
@@ -49,7 +52,6 @@
                     <th scope="col">Топливо</th>
                     <th scope="col">КПП</th>
                     <th scope="col">Привод</th>
-                    <th scope="col">Годы</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -76,7 +78,6 @@
                     <td>{{ row.fuel }}</td>
                     <td>{{ row.gearbox }}</td>
                     <td>{{ row.drive }}</td>
-                    <td>{{ row.years }}</td>
                   </tr>
                   {% endfor %}
                 </tbody>

@@ -2,6 +2,7 @@ from types import SimpleNamespace
 
 from app.routers.pages import (
     _build_modification_table_groups,
+    _catalog_items_year_range,
     _format_catalog_year_range,
     _modification_power_sort_key,
 )
@@ -74,7 +75,17 @@ def test_build_modification_table_groups_by_body_type_and_sorts_by_power():
     assert [group["body_type"] for group in groups] == ["Хэтчбек 5 дв.", "Седан"]
     assert [row["power"] for row in groups[0]["rows"]] == ["150 л.с.", "95 л.с."]
     assert groups[0]["rows"][0]["name"] == "35 TFSI S tronic (150 л.с.)"
-    assert groups[0]["rows"][0]["fuel"] == "АИ-95"
+    assert groups[0]["rows"][0]["fuel"] == "бензин"
+    assert groups[0]["rows"][0]["drive"] == "Передний"
+    assert "years" not in groups[0]["rows"][0]
+
+
+def test_catalog_items_year_range():
+    items = [
+        _item(year_from=2018, year_to=2020),
+        _item(year_from=2019, year_to=2024),
+    ]
+    assert _catalog_items_year_range(items) == "2018–2024"
 
 
 def test_modification_power_sort_key():
