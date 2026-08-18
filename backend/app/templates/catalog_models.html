@@ -1,23 +1,32 @@
 {% extends "base.html" %}
-{% block title %}{% if make %}Модели {{ make }}{% else %}Все модели{% endif %} - Auto160{% endblock %}
+{% block title %}{% if make %}Модели {{ make }}{% elif selected_makes %}Модели{% else %}Все модели{% endif %} - Auto160{% endblock %}
 {% block content %}
 <div class="catalog-page">
   {% set vehicle_hierarchy = catalog_sidebar.vehicle_hierarchy %}
   {% set filters_form_id = "catalog-filters-form" %}
-  {% set filters_reset_url = "/catalog/modifications" %}
   {% include "partials/vehicle_filters_bar.html" %}
   <div class="catalog-layout">
     {% include "partials/catalog_filters_panel.html" %}
     <section class="catalog-main">
     <div class="catalog-main-head">
-      <h1>{{ seo_h1 or (("Модели " ~ make) if make else "Все модели") }}</h1>
+      <h1>
+        {% if seo_h1 %}
+          {{ seo_h1 }}
+        {% elif make %}
+          Модели {{ make }}
+        {% elif selected_makes|default([])|length > 1 %}
+          Модели ({{ selected_makes|length }} марок)
+        {% else %}
+          Все модели
+        {% endif %}
+      </h1>
       {% if seo_intro %}
         <p class="hint">{{ seo_intro }}</p>
       {% endif %}
-      <p class="hint">
-        <a href="/catalog">← Назад к маркам</a>
-      </p>
-      <p class="hint">Шаг 2 из 4: выбери модель. Найдено: {{ total }}</p>
+      <div class="catalog-step-row">
+        <p class="hint catalog-step-label">Шаг 2 из 4: выбери модель. Найдено: {{ total }}</p>
+        <a class="catalog-view-switch" href="{{ switch_to_makes_url }}">Перейти к маркам</a>
+      </div>
     </div>
 
     {% if models %}
@@ -30,7 +39,7 @@
               </a>
             {% endif %}
             <h3><a href="{{ item.generations_url }}">{{ item.model }}</a></h3>
-            {% if not make %}
+            {% if not make or selected_makes|default([])|length > 1 %}
               <p>Марка: {{ item.make }}</p>
             {% endif %}
             <p>Поколений: {{ item.generation_count }}</p>
@@ -65,7 +74,7 @@
         {% endfor %}
       </div>
     {% else %}
-      <p>Для этой марки модели не найдены.</p>
+      <p>Для выбранных параметров модели не найдены.</p>
     {% endif %}
     </section>
   </div>

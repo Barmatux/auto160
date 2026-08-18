@@ -68,4 +68,15 @@ done
 echo "==> Smoke tests"
 bash "$APP_DIR/scripts/smoke-vm.sh"
 
+MAINTENANCE_SCRIPT="$BACKEND_DIR/.maintenance/pending.sh"
+if [[ -f "$MAINTENANCE_SCRIPT" ]]; then
+  echo "==> Run pending maintenance"
+  (
+    cd "$BACKEND_DIR"
+    bash "$MAINTENANCE_SCRIPT"
+  )
+  rm -f "$MAINTENANCE_SCRIPT"
+  echo "Maintenance script completed and removed"
+fi
+
 exit 0

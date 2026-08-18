@@ -1,6 +1,14 @@
 <aside class="catalog-filters-panel catalog-sidebar">
   <h3>Фильтры</h3>
-  <form class="filters filters-sidebar" method="get" action="/catalog/modifications" id="catalog-filters-form">
+  <form class="filters filters-sidebar" method="get" action="{{ catalog_filters_action | default('/catalog') }}" id="catalog-filters-form">
+    {% if preserve_makes %}
+      {% for make_name in preserve_makes %}
+        <input type="hidden" name="make" value="{{ make_name }}" />
+      {% endfor %}
+    {% endif %}
+    {% if preserve_model is defined and preserve_model %}
+      <input type="hidden" name="model" value="{{ preserve_model }}" />
+    {% endif %}
     <div class="catalog-filter-group">
       <p class="catalog-filter-group-title">Характеристики</p>
       <label>
@@ -70,6 +78,6 @@
     </div>
 
     <button type="submit">Применить</button>
-    <a class="page-link" href="/catalog/modifications">Сбросить</a>
+    <a class="page-link" href="{{ filters_reset_url | default('/catalog') }}">Сбросить</a>
   </form>
 </aside>

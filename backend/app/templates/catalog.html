@@ -1,32 +1,42 @@
 {% extends "base.html" %}
 {% block title %}Каталог - Auto160{% endblock %}
 {% block content %}
-<div class="catalog-page">
+<div class="catalog-page"{% if catalog_filter_query is defined %} data-catalog-filter-query="{{ catalog_filter_query }}"{% endif %}>
   {% set vehicle_hierarchy = catalog_sidebar.vehicle_hierarchy %}
   {% set filters_form_id = "catalog-filters-form" %}
-  {% set filters_reset_url = "/catalog/modifications" %}
   {% include "partials/vehicle_filters_bar.html" %}
   <div class="catalog-layout">
     {% include "partials/catalog_filters_panel.html" %}
     <section class="catalog-main">
     <div class="catalog-main-head">
       <h1>Каталог автомобилей</h1>
-      <p class="hint">Шаг 1 из 4: выбери марку.</p>
+      <div class="catalog-step-row">
+        <p class="hint catalog-step-label">Шаг 1 из 4: выбери марку.</p>
+        <a class="catalog-view-switch" href="{{ switch_to_models_url }}">Перейти к моделям</a>
+      </div>
     </div>
     <p class="hint">Найдено марок: {{ total }}</p>
 
     {% if makes %}
       <div class="catalog catalog-makes-grid">
         {% for item in makes %}
-          <a class="home-make-card catalog-make-card" href="{{ item.models_url }}">
-            {% if item.logo_url %}
-              <img class="make-logo" src="{{ item.logo_url }}" alt="{{ item.make }}" loading="lazy" />
-            {% else %}
-              <span class="home-make-fallback">{{ item.make[:1] }}</span>
-            {% endif %}
+          <article class="home-make-card catalog-make-card catalog-make-selectable">
+            <label class="catalog-make-check" title="Выбрать {{ item.make }}">
+              <input type="checkbox" class="catalog-make-checkbox" value="{{ item.make }}" />
+            </label>
+            <a class="catalog-make-link" href="{{ item.models_url }}">
+              {% if item.logo_url %}
+                <img class="make-logo" src="{{ item.logo_url }}" alt="{{ item.make }}" loading="lazy" />
+              {% else %}
+                <span class="home-make-fallback">{{ item.make[:1] }}</span>
+              {% endif %}
+            </a>
             <strong>{{ item.make }}</strong>
-          </a>
+          </article>
         {% endfor %}
+      </div>
+      <div class="actions-row catalog-makes-actions">
+        <button type="button" id="go-to-models-btn" class="page-link catalog-go-models-btn" disabled>Перейти в модели</button>
       </div>
     {% else %}
       <p>В каталоге нет марок.</p>
@@ -34,4 +44,5 @@
     </section>
   </div>
 </div>
+<script src="/static/catalog_makes.js?v=20260818-01" defer></script>
 {% endblock %}

@@ -4,7 +4,6 @@
 <div class="catalog-page">
   {% set vehicle_hierarchy = catalog_sidebar.vehicle_hierarchy %}
   {% set filters_form_id = "catalog-filters-form" %}
-  {% set filters_reset_url = "/catalog/modifications" %}
   {% include "partials/vehicle_filters_bar.html" %}
   <div class="catalog-layout">
     {% include "partials/catalog_filters_panel.html" %}
@@ -18,6 +17,9 @@
         <a href="{{ back_to_catalog_url if back_to_catalog_url else '/catalog' }}">← Назад к поколениям</a>
       </p>
       <p class="hint">Шаг 4 из 4: выбери комплектацию и открой спецификацию.</p>
+      {% if generation_years %}
+        <p class="hint">Годы выпуска: {{ generation_years }}</p>
+      {% endif %}
       <p class="hint">Найдено комплектаций: {{ total }} · Страница {{ page }} из {{ total_pages }}</p>
       {% if is_admin %}
         {% with rating=generation_rating %}
@@ -25,36 +27,63 @@
         {% endwith %}
       {% endif %}
     </div>
-    <div class="actions-row">
+    <div class="actions-row modifications-actions">
       <button id="compare-btn" type="button" disabled>Сравнить выбранные</button>
       <span id="compare-count" class="hint">Выбрано: 0</span>
     </div>
 
     <div class="modifications-layout">
       <div class="modifications-main-list">
-        {% if items %}
-          <div class="catalog">
-            {% for item in items %}
-              <article class="listing-card">
-                <label class="hint">
-                  <input type="checkbox" class="compare-checkbox" value="{{ item.id }}" />
-                  Выбрать для сравнения
-                </label>
-                {% if cover_urls.get(item.id) %}
-                  <a class="card-cover-link" href="/catalog/item/{{ item.id }}" aria-label="Открыть спецификацию {{ item.make }} {{ item.model }}">
-                    <img class="catalog-cover" src="{{ cover_urls.get(item.id) }}" alt="{{ item.make }} {{ item.model }}" />
-                  </a>
-                {% endif %}
-                <h3><a href="/catalog/item/{{ item.id }}">{{ mod_titles.get(item.id, item.make ~ " " ~ item.model) }}</a></h3>
-                {% if is_admin %}
-                  {% with rating=item.rating %}
-                    {% include "partials/catalog_admin_rating.html" %}
-                  {% endwith %}
-                {% endif %}
-                <strong><a href="/catalog/item/{{ item.id }}">Открыть спецификацию</a></strong>
-              </article>
-            {% endfor %}
-          </div>
+        {% if mod_table_groups %}
+          {% for group in mod_table_groups %}
+          <section class="modifications-table-section">
+            <h2 class="modifications-table-section-title">{{ group.body_type }}</h2>
+            <div class="modifications-table-wrap">
+              <table class="modifications-table">
+                <thead>
+                  <tr>
+                    <th scope="col" class="modifications-table-col-select">
+                      <span class="visually-hidden">Сравнение</span>
+                    </th>
+                    <th scope="col">Модификация</th>
+                    <th scope="col">Объём</th>
+                    <th scope="col">Мощность</th>
+                    <th scope="col">Топливо</th>
+                    <th scope="col">КПП</th>
+                    <th scope="col">Привод</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for row in group.rows %}
+                  <tr class="modifications-table-row">
+                    <td class="modifications-table-col-select">
+                      <input
+                        type="checkbox"
+                        class="compare-checkbox"
+                        value="{{ row.id }}"
+                        aria-label="Выбрать {{ row.name }} для сравнения"
+                      />
+                    </td>
+                    <th scope="row" class="modifications-table-name">
+                      <a href="{{ row.url }}">{{ row.name }}</a>
+                      {% if is_admin %}
+                        {% with rating=row.rating, compact=true %}
+                          {% include "partials/catalog_admin_rating.html" %}
+                        {% endwith %}
+                      {% endif %}
+                    </td>
+                    <td>{{ row.volume }}</td>
+                    <td>{{ row.power }}</td>
+                    <td>{{ row.fuel }}</td>
+                    <td>{{ row.gearbox }}</td>
+                    <td>{{ row.drive }}</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </section>
+          {% endfor %}
         {% else %}
           <p>Модификации не найдены.</p>
         {% endif %}
@@ -75,15 +104,13 @@
                   </a>
                 {% endif %}
                 <div class="offer-feed-body">
-                  <h3><a href="/listings/{{ ad.id }}">{{ ad.title }}</a></h3>
-                  <p><strong>{{ ad.brand }} {{ ad.model }}</strong> · {{ ad.year }}</p>
-                  <p><strong>Цена:</strong> {{ ad.price }} ₽</p>
-                  <p><strong>Пробег:</strong> {{ ad.mileage }} км</p>
+                  <h3><a href="/listings/{{ ad.id }}">{{ ad.title | listing_display_title }}</a></h3>
+                  {% if ad_listing_mod_names.get(ad.id) %}
+                    <p class="offer-feed-modification">{{ ad_listing_mod_names.get(ad.id) }}</p>
+                  {% endif %}
+                  <p><strong>Цена:</strong> {{ ad.price | format_price_rub }} ₽</p>
+                  <p><strong>Пробег:</strong> {{ ad.mileage | format_mileage_km }} км</p>
                   <p><strong>Город:</strong> {{ ad.city }}</p>
-                  <div class="actions-row">
-                    <a href="/listings/{{ ad.id }}">Открыть объявление</a>
-                    <a href="/inspection?listing_id={{ ad.id }}">Проверить VIN</a>
-                  </div>
                 </div>
               </article>
             {% endfor %}
