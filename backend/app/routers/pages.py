@@ -76,6 +76,13 @@ from app.listing_photos import (
 from app.storage import build_app_download_url, normalize_display_image_url
 from app.sync_run_vin_log import PHASE_LABELS, summarize_sync_run_vin_checks
 from app.vin_analytics import SORT_COLUMNS, VinListingSort, build_vin_listings_report
+from app.catalog_ratings import (
+    DEFAULT_PAGE_SIZE,
+    RATING_CHOICES,
+    format_rating,
+    list_catalog_makes,
+    list_generation_ratings,
+)
 
 router = APIRouter(tags=["pages"])
 templates = Jinja2Templates(directory="app/templates")
@@ -2414,6 +2421,90 @@ def admin_users_page(request: Request, db: Session = Depends(get_db)):
     context = _template_context(request, current_user)
     context["users"] = users
     return templates.TemplateResponse(request, "admin_users.html", context)
+
+
+@router.get("/admin/ratings")
+def admin_ratings_page(
+    request: Request,
+    q: str = Query(default=""),
+    make: str = Query(default=""),
+    status: str = Query(default="all"),
+    page: int = Query(default=1, ge=1),
+    db: Session = Depends(get_db),
+):
+    current_user = _resolve_user_from_request(request, db)
+    if not current_user:
+        return RedirectResponse(url="/login", status_code=302)
+    if current_user.role != UserRole.admin:
+        return RedirectResponse(url="/", status_code=302)
+
+    status_filter = status if status in {"all", "rated", "unrated"} else "all"
+    per_page = DEFAULT_PAGE_SIZE
+    rows, total = list_generation_ratings(
+        db,
+        make=make,
+        q=q,
+        status=status_filter,
+        page=page,
+        per_page=per_page,
+    )
+    total_pages = max((total + per_page - 1) // per_page, 1)
+    if page > total_pages:
+        page = total_pages
+        rows, total = list_generation_ratings(
+            db,
+            make=make,
+            q=q,
+            status=status_filter,
+            page=page,
+            per_page=per_page,
+        )
+
+    def _ratings_url(**overrides) -> str:
+        params = {
+            "q": q.strip(),
+            "make": make.strip(),
+            "status": status_filter,
+            "page": page,
+        }
+        params.update(overrides)
+        pairs = []
+        if params["q"]:
+            pairs.append(("q", params["q"]))
+        if params["make"]:
+            pairs.append(("make", params["make"]))
+        if params["status"] != "all":
+            pairs.append(("status", params["status"]))
+        if int(params["page"] or 1) > 1:
+            pairs.append(("page", str(params["page"])))
+        query = urlencode(pairs)
+        return "/admin/ratings" + (f"?{query}" if query else "")
+
+    context = _template_context(request, current_user)
+    context.update(
+        {
+            "rating_rows": rows,
+            "rating_total": total,
+            "rating_page": page,
+            "rating_total_pages": total_pages,
+            "rating_has_prev": page > 1,
+            "rating_has_next": page < total_pages,
+            "rating_prev_url": _ratings_url(page=page - 1) if page > 1 else None,
+            "rating_next_url": _ratings_url(page=page + 1) if page < total_pages else None,
+            "rating_q": q.strip(),
+            "rating_make": make.strip(),
+            "rating_status": status_filter,
+            "rating_makes": list_catalog_makes(db),
+            "rating_choices": RATING_CHOICES,
+            "format_rating": format_rating,
+            "rating_filter_urls": {
+                "all": _ratings_url(status="all", page=1),
+                "rated": _ratings_url(status="rated", page=1),
+                "unrated": _ratings_url(status="unrated", page=1),
+            },
+        }
+    )
+    return templates.TemplateResponse(request, "admin_ratings.html", context)
 
 
 def _format_duration(seconds: int | None) -> str:

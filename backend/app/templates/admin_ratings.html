@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% block title %}Админка — Рейтинг каталога{% endblock %}
+{% block content %}
+{% set admin_section = "ratings" %}
+{% include "partials/admin_nav.html" %}
+
+<h1>Рейтинг каталога</h1>
+<p class="hint">
+  Внутренний рейтинг поколений (марка → модель → поколение). Сохранение меняет рейтинг у всех комплектаций этого поколения.
+  Найдено: {{ rating_total }}.
+</p>
+
+<nav class="admin-analytics-tabs">
+  <a href="{{ rating_filter_urls.all }}"{% if rating_status == "all" %} class="active"{% endif %}>Все</a>
+  <a href="{{ rating_filter_urls.rated }}"{% if rating_status == "rated" %} class="active"{% endif %}>С рейтингом</a>
+  <a href="{{ rating_filter_urls.unrated }}"{% if rating_status == "unrated" %} class="active"{% endif %}>Без рейтинга</a>
+</nav>
+
+<form class="filters admin-log-toolbar" method="get" action="/admin/ratings">
+  <input type="hidden" name="status" value="{{ rating_status }}" />
+  <label>
+    Поиск
+    <input type="text" name="q" value="{{ rating_q }}" placeholder="Марка, модель, поколение" />
+  </label>
+  <label>
+    Марка
+    <select name="make">
+      <option value="">Все марки</option>
+      {% for make_name in rating_makes %}
+        <option value="{{ make_name }}" {% if rating_make == make_name %}selected{% endif %}>{{ make_name }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <button type="submit">Показать</button>
+  <a class="page-link" href="/admin/ratings">Сбросить</a>
+</form>
+
+<section class="admin-vin-table-wrap">
+  <table class="users-table admin-vin-table admin-ratings-table">
+    <thead>
+      <tr>
+        <th>Марка</th>
+        <th>Модель</th>
+        <th>Поколение</th>
+        <th>Рейтинг</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in rating_rows %}
+        <tr>
+          <td>{{ row.make }}</td>
+          <td>{{ row.model }}</td>
+          <td>
+            <a href="{{ row.mods_url }}">{{ row.generation }}</a>
+            <div class="admin-vin-listing-meta">{{ row.item_count }} компл.{% if row.mixed %} · рейтинги различаются{% endif %}</div>
+          </td>
+          <td>
+            <form class="admin-rating-form" data-make="{{ row.make }}" data-model="{{ row.model }}" data-generation="{{ row.generation_key }}">
+              <select name="rating" aria-label="Рейтинг {{ row.make }} {{ row.model }}">
+                <option value="" {% if row.rating is none %}selected{% endif %}>не задан</option>
+                {% for choice in rating_choices %}
+                  <option value="{{ choice }}" {% if row.rating is not none and not row.mixed and row.rating|int == choice %}selected{% endif %}>{{ choice }}</option>
+                {% endfor %}
+                {% if row.rating is not none and not row.mixed and row.rating|int != 1 and row.rating|int != 2 and row.rating|int != 3 %}
+                  <option value="{{ format_rating(row.rating) }}" selected>{{ format_rating(row.rating) }}</option>
+                {% endif %}
+              </select>
+              <button type="submit" name="action" value="save">Сохранить</button>
+              <button type="submit" name="action" value="clear" class="admin-rating-clear"{% if row.rating is none and not row.mixed %} disabled{% endif %}>Убрать</button>
+            </form>
+            <div class="admin-rating-status" hidden></div>
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="4">Поколений по этому фильтру нет.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+{% if rating_total_pages > 1 %}
+<div class="actions-row">
+  {% if rating_has_prev %}
+    <a class="btn-link" href="{{ rating_prev_url }}">← Назад</a>
+  {% endif %}
+  <span class="hint">страница {{ rating_page }} из {{ rating_total_pages }}</span>
+  {% if rating_has_next %}
+    <a class="btn-link" href="{{ rating_next_url }}">Вперёд →</a>
+  {% endif %}
+</div>
+{% endif %}
+
+{% include "partials/auth_script.html" %}
+<script>
+  async function adminFetch(url, options = {}) {
+    let token = getCookie("access_token");
+    if (!token) {
+      const refreshed = await refreshAccessTokenIfNeeded();
+      if (!refreshed) {
+        window.location.href = "/login";
+        return null;
+      }
+      token = getCookie("access_token");
+    }
+    const response = await fetch(url, {
+      ...options,
+      credentials: "same-origin",
+      headers: {
+        ...(token ? { Authorization: "Bearer " + token } : {}),
+        ...(options.headers || {}),
+      },
+    });
+    if (response.status === 401) {
+      const refreshed = await refreshAccessTokenIfNeeded();
+      if (refreshed) return adminFetch(url, options);
+      window.location.href = "/login";
+      return null;
+    }
+    return response;
+  }
+
+  function setRowStatus(form, text, isError) {
+    const el = form.parentElement.querySelector(".admin-rating-status");
+    if (!el) return;
+    el.hidden = !text;
+    el.textContent = text || "";
+    el.classList.toggle("is-error", Boolean(isError));
+  }
+
+  document.querySelectorAll(".admin-rating-form").forEach(function (form) {
+    form.addEventListener("submit", async function (event) {
+      event.preventDefault();
+      const action = event.submitter && event.submitter.value;
+      const select = form.querySelector("select[name='rating']");
+      const raw = action === "clear" ? "" : (select ? select.value : "");
+      const payload = {
+        make: form.dataset.make || "",
+        model: form.dataset.model || "",
+        generation: form.dataset.generation || "",
+        rating: raw === "" ? null : Number(raw),
+      };
+      Array.from(form.querySelectorAll("button")).forEach(function (btn) { btn.disabled = true; });
+      setRowStatus(form, "Сохранение…", false);
+      const response = await adminFetch("/api/v1/admin/catalog-ratings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      Array.from(form.querySelectorAll("button")).forEach(function (btn) { btn.disabled = false; });
+      if (!response) return;
+      const data = await response.json().catch(function () { return {}; });
+      if (!response.ok) {
+        const detail = data.detail;
+        const message = typeof detail === "string" ? detail : "Не удалось сохранить рейтинг";
+        setRowStatus(form, message, true);
+        return;
+      }
+      window.location.reload();
+    });
+  });
+</script>
+{% endblock %}

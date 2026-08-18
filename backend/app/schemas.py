@@ -273,6 +273,30 @@ class SiteEventOut(BaseModel):
         from_attributes = True
 
 
+class CatalogGenerationRatingUpdate(BaseModel):
+    make: str = Field(min_length=1, max_length=80)
+    model: str = Field(min_length=1, max_length=120)
+    generation: str = ""
+    rating: float | None = None
+
+    @model_validator(mode="after")
+    def validate_rating(self):
+        if self.rating is None:
+            return self
+        if self.rating <= 0 or self.rating > 99:
+            raise ValueError("Рейтинг должен быть числом от 1 до 99")
+        return self
+
+
+class CatalogGenerationRatingResult(BaseModel):
+    make: str
+    model: str
+    generation: str
+    rating: float | None
+    updated_items: int
+    mixed: bool = False
+
+
 class AnalyticsSummaryResponse(BaseModel):
     days: int
     views_today: int

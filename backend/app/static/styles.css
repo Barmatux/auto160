@@ -1026,6 +1026,38 @@ body {
   color: var(--primary);
 }
 
+.admin-rating-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.admin-rating-form select {
+  min-width: 110px;
+}
+
+.admin-rating-form button.admin-rating-clear {
+  background: #fff;
+  color: var(--danger);
+  border: 1px solid #fecaca;
+}
+
+.admin-rating-form button.admin-rating-clear:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.admin-rating-status {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #166534;
+}
+
+.admin-rating-status.is-error {
+  color: var(--danger);
+}
+
 .admin-analytics-tabs {
   display: flex;
   flex-wrap: wrap;
