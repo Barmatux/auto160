@@ -17,6 +17,11 @@ from app.body_type_labels import (
     body_type_filter_options,
     normalize_body_type_label,
 )
+from app.fuel_type_labels import (
+    fuel_type_db_values_for_filter,
+    fuel_type_filter_options,
+    normalize_fuel_type_label,
+)
 from app.export_country_labels import (
     EXPORT_COUNTRY_FILTER_OPTIONS,
     is_belarus_export_country,
@@ -485,8 +490,12 @@ def _distinct_values(db: Session, column):
 def _year_options(db: Session) -> list[int]:
     from_values = [row[0] for row in db.query(CatalogItem.year_from).filter(CatalogItem.year_from.isnot(None)).distinct().all()]
     to_values = [row[0] for row in db.query(CatalogItem.year_to).filter(CatalogItem.year_to.isnot(None)).distinct().all()]
-    years = sorted({*from_values, *to_values})
+    years = sorted({*from_values, *to_values}, reverse=True)
     return years
+
+
+def _catalog_fuel_type_values(db: Session) -> list[str]:
+    return _distinct_values(db, CatalogItem.fuel_type)
 
 
 def _parse_optional_year(value: str | None) -> int | None:
@@ -905,6 +914,8 @@ def _catalog_sidebar_payload(request: Request, db: Session) -> dict:
     generation_options = make_model_generation_map.get(make, {}).get(model, []) if make and model else []
     body_type_raw = _catalog_body_type_values(db)
     body_type_filter = normalize_body_type_label(query.get("body_type") or "") or ""
+    fuel_type_raw = _catalog_fuel_type_values(db)
+    fuel_type_filter = normalize_fuel_type_label(query.get("fuel_type") or "") or ""
     return {
         "filters": {
             "make": make,
@@ -912,7 +923,7 @@ def _catalog_sidebar_payload(request: Request, db: Session) -> dict:
             "generation": generation,
             "body_type": body_type_filter,
             "export_country": query.get("export_country", ""),
-            "fuel_type": query.get("fuel_type", ""),
+            "fuel_type": fuel_type_filter,
             "transmission": query.get("transmission", ""),
             "year_from": parsed_year_from if parsed_year_from is not None else "",
             "year_to": parsed_year_to if parsed_year_to is not None else "",
@@ -929,7 +940,7 @@ def _catalog_sidebar_payload(request: Request, db: Session) -> dict:
             "make_model_generation_map": make_model_generation_map,
             "body_type": body_type_filter_options(body_type_raw),
             "export_country": list(EXPORT_COUNTRY_FILTER_OPTIONS),
-            "fuel_type": _distinct_values(db, CatalogItem.fuel_type),
+            "fuel_type": fuel_type_filter_options(fuel_type_raw),
             "transmission": _distinct_values(db, CatalogItem.transmission),
             "years": _year_options(db),
         },
@@ -1326,7 +1337,12 @@ def _apply_catalog_item_filters(
     if export_country and not is_belarus_export_country(export_country):
         query = query.filter(CatalogItem.export_country.ilike(f"%{export_country}%"))
     if fuel_type:
-        query = query.filter(CatalogItem.fuel_type.ilike(f"%{fuel_type}%"))
+        canonical = normalize_fuel_type_label(fuel_type) or fuel_type
+        match_values = fuel_type_db_values_for_filter(_catalog_fuel_type_values(db), canonical)
+        if match_values:
+            query = query.filter(CatalogItem.fuel_type.in_(match_values))
+        else:
+            query = query.filter(CatalogItem.fuel_type.ilike(f"%{fuel_type}%"))
     if transmission:
         query = query.filter(CatalogItem.transmission.ilike(f"%{transmission}%"))
     if parsed_year_from is not None:
@@ -1979,6 +1995,7 @@ def catalog_modifications(
     parsed_year_from = _parse_optional_year(year_from)
     parsed_year_to = _parse_optional_year(year_to)
     body_type = normalize_body_type_label(body_type) if body_type else None
+    fuel_type = normalize_fuel_type_label(fuel_type) if fuel_type else None
     query = _apply_hp_filter(db.query(CatalogItem), exact_hp=exact_hp)
     query = _apply_catalog_item_filters(
         query=query,
