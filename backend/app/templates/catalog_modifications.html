@@ -105,10 +105,12 @@
                   </a>
                 {% endif %}
                 <div class="offer-feed-body">
-                  <h3><a href="/listings/{{ ad.id }}">{{ ad.title }}</a></h3>
-                  <p><strong>{{ ad.brand }} {{ ad.model }}</strong> · {{ ad.year }}</p>
-                  <p><strong>Цена:</strong> {{ ad.price }} ₽</p>
-                  <p><strong>Пробег:</strong> {{ ad.mileage }} км</p>
+                  <h3><a href="/listings/{{ ad.id }}">{{ ad.title | listing_display_title }}</a></h3>
+                  {% if ad_listing_mod_names.get(ad.id) %}
+                    <p class="offer-feed-modification">{{ ad_listing_mod_names.get(ad.id) }}</p>
+                  {% endif %}
+                  <p><strong>Цена:</strong> {{ ad.price | format_price_rub }} ₽</p>
+                  <p><strong>Пробег:</strong> {{ ad.mileage | format_mileage_km }} км</p>
                   <p><strong>Город:</strong> {{ ad.city }}</p>
                   <div class="actions-row">
                     <a href="/listings/{{ ad.id }}">Открыть объявление</a>

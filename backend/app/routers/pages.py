@@ -2251,6 +2251,7 @@ def catalog_modifications(
         {k: v for k, v in {"make": make or None, "model": _canonical_model_name(model or "") or None}.items() if v}
     )
     ad_listings: list[CarListing] = []
+    ad_listing_mod_names: dict[int, str] = {}
     generation_items: list[CatalogItem] = []
     canonical_model = _canonical_model_name(model or "")
     if make and canonical_model and generation and generation != "Без поколения":
@@ -2264,15 +2265,19 @@ def catalog_modifications(
             exact_hp=exact_hp,
         )
         generation_items = generation_items_query.all()
+        items_by_id = {item.id: item for item in generation_items}
         if generation_items:
             listings_by_item = fetch_listings_for_catalog_items(db, generation_items, limit_per_item=8)
             seen_ids: set[int] = set()
             for item in generation_items:
+                mod_name = _modification_display_name(item)
                 for listing in listings_by_item.get(item.id, []):
                     if listing.id in seen_ids:
                         continue
                     seen_ids.add(listing.id)
                     ad_listings.append(listing)
+                    if mod_name:
+                        ad_listing_mod_names[listing.id] = mod_name
                     if len(ad_listings) >= 8:
                         break
                 if len(ad_listings) >= 8:
@@ -2292,7 +2297,20 @@ def catalog_modifications(
                 if generation_year_to is not None:
                     listings_query = listings_query.filter(CarListing.year <= generation_year_to)
                 ad_listings = listings_query.order_by(CarListing.created_at.desc()).limit(8).all()
+        for listing in ad_listings:
+            if listing.id in ad_listing_mod_names:
+                continue
+            linked_item = items_by_id.get(listing.catalog_item_id) if listing.catalog_item_id else None
+            if linked_item is None and listing.catalog_item_id:
+                linked_item = db.get(CatalogItem, listing.catalog_item_id)
+                if linked_item:
+                    items_by_id[linked_item.id] = linked_item
+            if linked_item:
+                mod_name = _modification_display_name(linked_item)
+                if mod_name:
+                    ad_listing_mod_names[listing.id] = mod_name
     context["ad_listings"] = ad_listings
+    context["ad_listing_mod_names"] = ad_listing_mod_names
     context["ad_listing_cover_urls"] = _build_listing_catalog_cover_urls(ad_listings, generation_items, db)
     listings_all_url = None
     if make and canonical_model and generation and generation != "Без поколения":
