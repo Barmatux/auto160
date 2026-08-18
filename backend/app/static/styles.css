@@ -663,7 +663,7 @@ body {
 }
 
 .catalog-page .vehicle-hierarchy-field {
-  font-size: 16px;
+  font-size: 15px;
 }
 
 .catalog-page .vehicle-hierarchy-label {
@@ -672,9 +672,9 @@ body {
 }
 
 .catalog-page .vehicle-hierarchy-field select {
-  padding: 14px 12px;
-  min-height: 52px;
-  font-size: 16px;
+  padding: 9px 10px;
+  min-height: 40px;
+  font-size: 15px;
   background: linear-gradient(180deg, #eef4ff 0%, #e2ecff 100%);
   border-color: #c9dcff;
 }
@@ -693,14 +693,14 @@ body {
 }
 
 .catalog-page .vehicle-hierarchy-remove {
-  width: 32px;
-  height: 32px;
-  min-height: 32px;
-  font-size: 1rem;
+  width: 28px;
+  height: 28px;
+  min-height: 28px;
+  font-size: 0.95rem;
 }
 
 .catalog-page .vehicle-hierarchy-row {
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) 32px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) 28px;
 }
 
 .catalog-make-card .make-logo-wrap:hover,
@@ -805,19 +805,19 @@ body {
 .vehicle-hierarchy-rows {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
 .vehicle-hierarchy-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) 32px;
-  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) 28px;
+  gap: 8px;
   align-items: end;
 }
 
 .vehicle-hierarchy-field {
   display: grid;
-  gap: 6px;
+  gap: 4px;
   font-size: 14px;
   min-width: 0;
 }
@@ -835,11 +835,11 @@ body {
   -webkit-appearance: none;
   border: 1px solid #c9dcff;
   border-radius: 8px;
-  padding: 14px 12px;
-  min-height: 52px;
+  padding: 9px 10px;
+  min-height: 40px;
   background: linear-gradient(180deg, #eef4ff 0%, #e2ecff 100%);
   color: inherit;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 400;
   cursor: pointer;
   background-clip: padding-box;
@@ -864,12 +864,12 @@ body {
   border-radius: 6px;
   background: var(--surface-soft);
   color: #64748b;
-  font-size: 1rem;
+  font-size: 0.95rem;
   line-height: 1;
   cursor: pointer;
-  width: 32px;
-  height: 32px;
-  min-height: 32px;
+  width: 28px;
+  height: 28px;
+  min-height: 28px;
   padding: 0;
   align-self: end;
   transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
@@ -885,7 +885,7 @@ body {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-top: 14px;
+  margin-top: 10px;
   flex-wrap: wrap;
 }
 
@@ -914,11 +914,11 @@ body {
 
 @media (max-width: 900px) {
   .vehicle-hierarchy-row {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) 32px;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) 28px;
   }
 
   .catalog-page .vehicle-hierarchy-row {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) 32px;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) 28px;
   }
 }
 
