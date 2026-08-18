@@ -112,10 +112,6 @@
                   <p><strong>Цена:</strong> {{ ad.price | format_price_rub }} ₽</p>
                   <p><strong>Пробег:</strong> {{ ad.mileage | format_mileage_km }} км</p>
                   <p><strong>Город:</strong> {{ ad.city }}</p>
-                  <div class="actions-row">
-                    <a href="/listings/{{ ad.id }}">Открыть объявление</a>
-                    <a href="/inspection?listing_id={{ ad.id }}">Проверить VIN</a>
-                  </div>
                 </div>
               </article>
             {% endfor %}
