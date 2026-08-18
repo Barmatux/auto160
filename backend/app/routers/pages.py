@@ -694,6 +694,8 @@ def _listings_filters_payload(request: Request, db: Session, *, published_only: 
     generation_options = brand_model_generation_map.get(brand, {}).get(model, []) if brand and model else []
     body_type_raw = _listing_body_type_values(db, published_only=published_only)
     body_type_filter = normalize_body_type_label((query.get("body_type") or "").strip()) or ""
+    engine_type_raw = _distinct_listing_values(db, CarListing.engine_type, published_only=published_only)
+    engine_type_filter = normalize_fuel_type_label((query.get("engine_type") or "").strip()) or ""
     return {
         "filters": {
             "brand": brand,
@@ -702,7 +704,7 @@ def _listings_filters_payload(request: Request, db: Session, *, published_only: 
             "catalog_item_id": catalog_item_id if catalog_item_id is not None else "",
             "city": (query.get("city") or "").strip(),
             "body_type": body_type_filter,
-            "engine_type": (query.get("engine_type") or "").strip(),
+            "engine_type": engine_type_filter,
             "transmission_type": (query.get("transmission_type") or "").strip(),
             "year_from": parsed_year_from if parsed_year_from is not None else "",
             "year_to": parsed_year_to if parsed_year_to is not None else "",
@@ -718,7 +720,7 @@ def _listings_filters_payload(request: Request, db: Session, *, published_only: 
             "brand_model_generation_map": brand_model_generation_map,
             "cities": _distinct_listing_values(db, CarListing.city, published_only=published_only),
             "body_type": body_type_filter_options(body_type_raw),
-            "engine_type": _distinct_listing_values(db, CarListing.engine_type, published_only=published_only),
+            "engine_type": fuel_type_filter_options(engine_type_raw),
             "transmission_type": _distinct_listing_values(db, CarListing.transmission_type, published_only=published_only),
             "years": _listing_year_options(db, published_only=published_only),
         },
@@ -1527,7 +1529,15 @@ def listings_page(
         if match_values:
             query = query.filter(CarListing.body_type.in_(match_values))
     if engine_type:
-        query = query.filter(CarListing.engine_type == engine_type)
+        canonical = normalize_fuel_type_label(engine_type) or engine_type
+        match_values = fuel_type_db_values_for_filter(
+            _distinct_listing_values(db, CarListing.engine_type, published_only=not is_admin),
+            canonical,
+        )
+        if match_values:
+            query = query.filter(CarListing.engine_type.in_(match_values))
+        else:
+            query = query.filter(CarListing.engine_type.ilike(f"%{engine_type}%"))
     if transmission_type:
         query = query.filter(CarListing.transmission_type == transmission_type)
     if parsed_year_from is not None:

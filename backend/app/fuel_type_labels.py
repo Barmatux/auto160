@@ -1,12 +1,20 @@
-"""Normalize fuel type labels for catalog filters."""
+"""Normalize fuel type labels for catalog and listing filters."""
 
 from __future__ import annotations
 
 FUEL_GROUP_DIESEL = "дизель"
 FUEL_GROUP_PETROL = "бензин"
 FUEL_GROUP_GAS_PETROL = "Газ-бензин"
+FUEL_GROUP_HYBRID = "Гибрид"
+FUEL_GROUP_ELECTRIC = "Электро"
 
-FUEL_FILTER_ORDER = (FUEL_GROUP_PETROL, FUEL_GROUP_DIESEL, FUEL_GROUP_GAS_PETROL)
+FUEL_FILTER_ORDER = (
+    FUEL_GROUP_PETROL,
+    FUEL_GROUP_DIESEL,
+    FUEL_GROUP_GAS_PETROL,
+    FUEL_GROUP_HYBRID,
+    FUEL_GROUP_ELECTRIC,
+)
 
 DIESEL_EXACT_KEYS = frozenset(
     {
@@ -28,9 +36,21 @@ PETROL_EXACT_KEYS = frozenset(
     }
 )
 
+ELECTRIC_EXACT_KEYS = frozenset(
+    {
+        "электро",
+        "электричество",
+        "electric",
+        "ev",
+    }
+)
+
+HYBRID_MARKERS = ("гибрид", "hybrid", "phev", "mhev")
+
 
 def normalize_fuel_type_key(value: str) -> str:
-    return value.strip().lower().replace("ё", "е")
+    cleaned = value.strip().lower().replace("ё", "е").replace("\xa0", " ")
+    return " ".join(cleaned.split())
 
 
 def classify_fuel_type(value: str | None) -> str | None:
@@ -41,6 +61,9 @@ def classify_fuel_type(value: str | None) -> str | None:
         return None
 
     key = normalize_fuel_type_key(trimmed)
+
+    if any(marker in key for marker in HYBRID_MARKERS):
+        return FUEL_GROUP_HYBRID
 
     if "газ" in key:
         return FUEL_GROUP_GAS_PETROL
@@ -53,6 +76,9 @@ def classify_fuel_type(value: str | None) -> str | None:
 
     if key.startswith("аи"):
         return FUEL_GROUP_PETROL
+
+    if key in ELECTRIC_EXACT_KEYS or key.startswith("электро"):
+        return FUEL_GROUP_ELECTRIC
 
     return trimmed[0].upper() + trimmed[1:] if trimmed else trimmed
 
