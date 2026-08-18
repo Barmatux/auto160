@@ -13,15 +13,6 @@
         </select>
       </label>
       <label>
-        Страна экспорта
-        <select name="export_country">
-          <option value="" {% if catalog_sidebar.filters.export_country == "" %}selected{% endif %}>Любая</option>
-          {% for value in catalog_sidebar.options.export_country %}
-            <option value="{{ value }}" {% if catalog_sidebar.filters.export_country == value %}selected{% endif %}>{{ value }}</option>
-          {% endfor %}
-        </select>
-      </label>
-      <label>
         Топливо
         <select name="fuel_type">
           <option value="" {% if catalog_sidebar.filters.fuel_type == "" %}selected{% endif %}>Любое</option>
@@ -54,6 +45,15 @@
           <option value="" {% if catalog_sidebar.filters.year_to == "" %}selected{% endif %}>Не важно</option>
           {% for year in catalog_sidebar.options.years %}
             <option value="{{ year }}" {% if catalog_sidebar.filters.year_to == year %}selected{% endif %}>{{ year }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>
+        Страна экспорта
+        <select name="export_country">
+          <option value="" {% if catalog_sidebar.filters.export_country == "" %}selected{% endif %}>Любая</option>
+          {% for value in catalog_sidebar.options.export_country %}
+            <option value="{{ value }}" {% if catalog_sidebar.filters.export_country == value %}selected{% endif %}>{{ value }}</option>
           {% endfor %}
         </select>
       </label>

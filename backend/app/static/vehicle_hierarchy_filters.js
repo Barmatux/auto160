@@ -136,9 +136,11 @@
       syncRowSelects(row, rowValues(row));
     });
 
-    addButton.addEventListener("click", () => {
-      rowsContainer.appendChild(createRow());
-    });
+    if (addButton) {
+      addButton.addEventListener("click", () => {
+        rowsContainer.appendChild(createRow());
+      });
+    }
 
     const form = formId ? document.getElementById(formId) : root.closest("form");
     if (form) {
