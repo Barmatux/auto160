@@ -1913,16 +1913,9 @@ def listing_item(request: Request, listing_id: int, db: Session = Depends(get_db
         catalog_items = resolve_catalog_items_for_listings(db, [listing])
         context["catalog_item"] = catalog_items.get(listing.id)
         context["gallery_urls"] = resolve_listing_gallery_urls(listing)
-        city = (listing.city or "").strip()
-        context["city_listings_url"] = (
-            f"/listings?city={quote(city)}" if city in INDEXABLE_CITIES else None
-        )
-        context["vin_guide_url"] = "/guides/vin"
     else:
         context["catalog_item"] = None
         context["gallery_urls"] = []
-        context["city_listings_url"] = None
-        context["vin_guide_url"] = "/guides/vin"
     context["listing_customs"] = get_listing_customs_summary(db, listing) if listing else None
     status_code = 200 if listing else 404
     return templates.TemplateResponse(

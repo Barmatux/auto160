@@ -101,11 +101,6 @@
           {% if catalog_item %}
             <a class="listing-detail-side-action" href="/catalog/item/{{ catalog_item.id }}">Комплектация в каталоге</a>
           {% endif %}
-          {% if city_listings_url %}
-            <a class="listing-detail-side-action" href="{{ city_listings_url }}">Ещё авто в {{ listing.city }}</a>
-          {% endif %}
-          <a class="listing-detail-side-action" href="{{ vin_guide_url }}">Как проверять VIN</a>
-          <a class="listing-detail-side-action" href="/guides/do-160-hp">Почему до 160 л.с.</a>
         </div>
       </aside>
 
