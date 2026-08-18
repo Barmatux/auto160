@@ -121,6 +121,54 @@ def transmission_db_values_for_slugs(raw_values: list[str], slugs: list[str]) ->
     return matched
 
 
+def transmission_filter_checked_slugs(slugs: list[str]) -> set[str]:
+    checked = set(slugs)
+    if TRANSMISSION_SLUG_AUTO in checked:
+        checked.update(TRANSMISSION_AUTO_SLUGS)
+        return checked
+    if all(slug in checked for slug in TRANSMISSION_AUTO_SLUGS):
+        checked.add(TRANSMISSION_SLUG_AUTO)
+    return checked
+
+
+def transmission_filter_display_label(slugs: list[str]) -> str:
+    if not slugs:
+        return "Любая"
+    labels: list[str] = []
+    slugs_set = set(slugs)
+    auto_all = TRANSMISSION_SLUG_AUTO in slugs_set or all(
+        slug in slugs_set for slug in TRANSMISSION_AUTO_SLUGS
+    )
+    if auto_all:
+        labels.append("автомат")
+    else:
+        subtype_labels = {
+            subtype["slug"]: subtype["label"]
+            for group in TRANSMISSION_FILTER_GROUPS
+            for subtype in group.get("subtypes", [])
+        }
+        for slug in TRANSMISSION_AUTO_SLUGS:
+            if slug in slugs_set:
+                labels.append(subtype_labels[slug])
+    if TRANSMISSION_SLUG_MANUAL in slugs_set:
+        labels.append("механика")
+    return ", ".join(labels) if labels else "Любая"
+
+
+def transmission_filter_submit_slugs(slugs: list[str]) -> list[str]:
+    checked = transmission_filter_checked_slugs(slugs)
+    submitted: list[str] = []
+    if TRANSMISSION_SLUG_AUTO in checked:
+        submitted.append(TRANSMISSION_SLUG_AUTO)
+    else:
+        for slug in TRANSMISSION_AUTO_SLUGS:
+            if slug in checked and slug not in submitted:
+                submitted.append(slug)
+    if TRANSMISSION_SLUG_MANUAL in checked and TRANSMISSION_SLUG_MANUAL not in submitted:
+        submitted.append(TRANSMISSION_SLUG_MANUAL)
+    return submitted
+
+
 def apply_catalog_transmission_filter(query, column, *, raw_values: list[str], slugs: list[str]):
     if not slugs:
         return query

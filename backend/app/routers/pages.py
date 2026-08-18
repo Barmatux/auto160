@@ -34,6 +34,8 @@ from app.transmission_labels import (
     TRANSMISSION_SLUG_AUTO,
     apply_catalog_transmission_filter,
     parse_transmission_filter_values,
+    transmission_filter_checked_slugs,
+    transmission_filter_display_label,
 )
 from app.export_country_labels import (
     EXPORT_COUNTRY_FILTER_OPTIONS,
@@ -1011,6 +1013,7 @@ def _catalog_sidebar_payload(request: Request, db: Session, current_user=None) -
     body_type_raw = _catalog_body_type_values(db)
     body_type_filter = normalize_body_type_label(query.get("body_type") or "") or ""
     fuel_type_filter = normalize_fuel_type_label(query.get("fuel_type") or "") or ""
+    transmission_slugs = parse_transmission_filter_values(query.getlist("transmission"))
     return {
         "filters": {
             "make": make,
@@ -1019,7 +1022,9 @@ def _catalog_sidebar_payload(request: Request, db: Session, current_user=None) -
             "body_type": body_type_filter,
             "export_country": query.get("export_country", ""),
             "fuel_type": fuel_type_filter,
-            "transmission": parse_transmission_filter_values(query.getlist("transmission")),
+            "transmission": transmission_slugs,
+            "transmission_checked": sorted(transmission_filter_checked_slugs(transmission_slugs)),
+            "transmission_display": transmission_filter_display_label(transmission_slugs),
             "year_from": parsed_year_from if parsed_year_from is not None else "",
             "year_to": parsed_year_to if parsed_year_to is not None else "",
             "sort": query.get("sort", "year_desc"),

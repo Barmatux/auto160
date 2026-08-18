@@ -9,6 +9,9 @@ from app.transmission_labels import (
     normalize_transmission_filter_slug,
     parse_transmission_filter_values,
     transmission_db_values_for_slugs,
+    transmission_filter_checked_slugs,
+    transmission_filter_display_label,
+    transmission_filter_submit_slugs,
 )
 
 
@@ -51,3 +54,17 @@ def test_transmission_db_values_for_slugs():
     )
     assert transmission_db_values_for_slugs(raw, [TRANSMISSION_SLUG_MANUAL]) == ["manual", "механика"]
     assert transmission_db_values_for_slugs(raw, [TRANSMISSION_SLUG_ROBOT]) == ["dct", "робот"]
+
+
+def test_transmission_filter_ui_helpers():
+    assert transmission_filter_checked_slugs([TRANSMISSION_SLUG_AUTO]) == {
+        TRANSMISSION_SLUG_AUTO,
+        TRANSMISSION_SLUG_AUTO_CLASSIC,
+        TRANSMISSION_SLUG_ROBOT,
+        TRANSMISSION_SLUG_CVT,
+    }
+    assert transmission_filter_display_label([TRANSMISSION_SLUG_AUTO]) == "автомат"
+    assert transmission_filter_display_label([TRANSMISSION_SLUG_ROBOT, TRANSMISSION_SLUG_MANUAL]) == "робот, механика"
+    assert transmission_filter_submit_slugs(
+        [TRANSMISSION_SLUG_AUTO_CLASSIC, TRANSMISSION_SLUG_ROBOT, TRANSMISSION_SLUG_CVT]
+    ) == [TRANSMISSION_SLUG_AUTO]
