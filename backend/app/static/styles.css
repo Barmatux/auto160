@@ -632,8 +632,44 @@ body {
 }
 
 .catalog-makes-grid {
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+  gap: 8px;
+}
+
+.catalog-page .catalog-makes-grid .home-make-card {
+  padding: 10px 6px 8px;
+  gap: 4px;
+}
+
+.catalog-page .catalog-makes-grid .make-logo,
+.catalog-page .catalog-makes-grid .home-make-fallback {
+  width: 60px;
+  height: 60px;
+}
+
+.catalog-page .catalog-makes-grid .home-make-fallback {
+  font-size: 1.35rem;
+}
+
+.catalog-page .catalog-makes-grid .home-make-card strong {
+  font-size: 0.78rem;
+  line-height: 1.15;
+}
+
+.catalog-page .filters select,
+.catalog-page .vehicle-hierarchy-field select {
+  padding: 11px 10px;
+  min-height: 44px;
+  font-size: 15px;
+}
+
+.catalog-page .vehicle-hierarchy-remove {
+  width: 44px;
+  height: 44px;
+}
+
+.catalog-page .vehicle-hierarchy-row {
+  grid-template-columns: minmax(140px, 1fr) minmax(140px, 1fr) minmax(180px, 1.4fr) 44px;
 }
 
 .catalog-make-card .make-logo-wrap:hover,
@@ -841,7 +877,11 @@ body {
 
 @media (max-width: 900px) {
   .vehicle-hierarchy-row {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.2fr) 38px;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.2fr) 44px;
+  }
+
+  .catalog-page .vehicle-hierarchy-row {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.2fr) 44px;
   }
 }
 
@@ -2491,9 +2531,23 @@ body.listing-lightbox-open {
   .home-search,
   .home-stats,
   .home-features,
-  .home-makes,
-  .catalog-makes-grid {
+  .home-makes {
     grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .catalog-makes-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .catalog-page .catalog-makes-grid .make-logo,
+  .catalog-page .catalog-makes-grid .home-make-fallback {
+    width: 48px;
+    height: 48px;
+  }
+
+  .catalog-page .catalog-makes-grid .home-make-card strong {
+    font-size: 0.68rem;
   }
 
   .home-hero {
