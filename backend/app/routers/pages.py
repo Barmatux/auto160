@@ -18,6 +18,8 @@ from app.body_type_labels import (
     normalize_body_type_label,
 )
 from app.fuel_type_labels import (
+    FUEL_GROUP_HYBRID,
+    HYBRID_MARKERS,
     fuel_type_db_values_for_filter,
     fuel_type_filter_options,
     normalize_fuel_type_label,
@@ -505,6 +507,33 @@ def _catalog_fuel_type_values(db: Session) -> list[str]:
     return _distinct_values(db, CatalogItem.fuel_type)
 
 
+def _sql_has_hybrid_marker(expr):
+    lowered = func.lower(func.coalesce(expr, ""))
+    return or_(*(lowered.like(f"%{marker}%") for marker in HYBRID_MARKERS))
+
+
+def _catalog_engine_type_label_expr():
+    return func.coalesce(
+        CatalogItem.raw_specs["modification"]["engineType"]["label"].as_string(),
+        CatalogItem.raw_specs["modification_detail"]["engineType"]["label"].as_string(),
+        CatalogItem.raw_specs["modification_detail"]["engineType"].as_string(),
+    )
+
+
+def _catalog_is_hybrid_predicate():
+    return or_(
+        _sql_has_hybrid_marker(CatalogItem.fuel_type),
+        _sql_has_hybrid_marker(_catalog_engine_type_label_expr()),
+    )
+
+
+def _catalog_fuel_filter_options(db: Session) -> list[str]:
+    raw_values = list(_catalog_fuel_type_values(db))
+    if db.query(CatalogItem.id).filter(_catalog_is_hybrid_predicate()).limit(1).first():
+        raw_values.append("гибрид")
+    return fuel_type_filter_options(raw_values)
+
+
 def _parse_optional_year(value: str | None) -> int | None:
     if value is None:
         return None
@@ -923,7 +952,6 @@ def _catalog_sidebar_payload(request: Request, db: Session) -> dict:
     generation_options = make_model_generation_map.get(make, {}).get(model, []) if make and model else []
     body_type_raw = _catalog_body_type_values(db)
     body_type_filter = normalize_body_type_label(query.get("body_type") or "") or ""
-    fuel_type_raw = _catalog_fuel_type_values(db)
     fuel_type_filter = normalize_fuel_type_label(query.get("fuel_type") or "") or ""
     return {
         "filters": {
@@ -949,7 +977,7 @@ def _catalog_sidebar_payload(request: Request, db: Session) -> dict:
             "make_model_generation_map": make_model_generation_map,
             "body_type": body_type_filter_options(body_type_raw),
             "export_country": list(EXPORT_COUNTRY_FILTER_OPTIONS),
-            "fuel_type": fuel_type_filter_options(fuel_type_raw),
+            "fuel_type": _catalog_fuel_filter_options(db),
             "transmission": _distinct_values(db, CatalogItem.transmission),
             "years": _year_options(db),
         },
@@ -1347,11 +1375,16 @@ def _apply_catalog_item_filters(
         query = query.filter(CatalogItem.export_country.ilike(f"%{export_country}%"))
     if fuel_type:
         canonical = normalize_fuel_type_label(fuel_type) or fuel_type
-        match_values = fuel_type_db_values_for_filter(_catalog_fuel_type_values(db), canonical)
-        if match_values:
-            query = query.filter(CatalogItem.fuel_type.in_(match_values))
+        hybrid_pred = _catalog_is_hybrid_predicate()
+        if canonical == FUEL_GROUP_HYBRID:
+            query = query.filter(hybrid_pred)
         else:
-            query = query.filter(CatalogItem.fuel_type.ilike(f"%{fuel_type}%"))
+            match_values = fuel_type_db_values_for_filter(_catalog_fuel_type_values(db), canonical)
+            if match_values:
+                query = query.filter(CatalogItem.fuel_type.in_(match_values))
+            else:
+                query = query.filter(CatalogItem.fuel_type.ilike(f"%{fuel_type}%"))
+            query = query.filter(~hybrid_pred)
     if transmission:
         query = query.filter(CatalogItem.transmission.ilike(f"%{transmission}%"))
     if parsed_year_from is not None:

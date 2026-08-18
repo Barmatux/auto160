@@ -20,6 +20,7 @@ os.chdir(ROOT_DIR)
 
 from app.db import SessionLocal
 from app.export_country_labels import export_country_for_avby
+from app.fuel_type_labels import preferred_fuel_type, resolved_catalog_fuel_type
 from app.models import CatalogItem
 
 
@@ -237,7 +238,7 @@ def parse_generation_page(url: str, state: dict[str, Any], user_agent: str) -> l
                 "body_type": full_body_type or body_type,
                 "export_country": full_country,
                 "steering_wheel": full_steering,
-                "fuel_type": full_fuel or fuel_type,
+                "fuel_type": preferred_fuel_type(full_fuel, fuel_type),
                 "engine_power_hp": full_power or _extract_power_hp(mod_name),
                 "engine_volume_l": _engine_volume_from_detail(mod_detail, mod_name),
                 "drivetrain": full_drive or drivetrain,
@@ -340,8 +341,9 @@ def enrich_missing_spec_details(user_agent: str) -> None:
             raw["modification_detail"] = mod_detail
             item.raw_specs = raw
             item.source_url = item.source_url or f"https://av.by/catalog/modification/{mod_id}"
-            if mod_detail.get("fuel"):
-                item.fuel_type = mod_detail.get("fuel")
+            resolved_fuel = resolved_catalog_fuel_type(item.fuel_type, raw)
+            if resolved_fuel:
+                item.fuel_type = resolved_fuel[:30]
             if mod_detail.get("gearBoxType"):
                 item.transmission = mod_detail.get("gearBoxType")
             if mod_detail.get("driveType"):
@@ -363,10 +365,26 @@ def enrich_missing_spec_details(user_agent: str) -> None:
         db.close()
 
 
+def backfill_catalog_fuel_types() -> None:
+    db = SessionLocal()
+    try:
+        updated = 0
+        for item in db.query(CatalogItem).all():
+            resolved = resolved_catalog_fuel_type(item.fuel_type, item.raw_specs)
+            if not resolved or resolved == item.fuel_type:
+                continue
+            item.fuel_type = resolved[:30]
+            updated += 1
+        db.commit()
+        print(f"backfill-fuel-types: updated={updated}")
+    finally:
+        db.close()
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Import AV.BY detail pages into catalog_items")
     parser.add_argument(
-        "--urls-file", required=True, help="Text file with AV.BY model/generation URLs (one per line)"
+        "--urls-file", help="Text file with AV.BY model/generation URLs (one per line)"
     )
     parser.add_argument("--user-agent", default="Mozilla/5.0", help="Browser User-Agent")
     parser.add_argument(
@@ -374,11 +392,23 @@ def main() -> None:
         action="store_true",
         help="Backfill missing detailed specs for existing av.by rows in DB",
     )
+    parser.add_argument(
+        "--backfill-fuel-types",
+        action="store_true",
+        help="Recompute catalog fuel_type from engineType so hybrids are not stored as АИ-95",
+    )
     args = parser.parse_args()
+
+    if args.backfill_fuel_types:
+        backfill_catalog_fuel_types()
+        return
 
     if args.enrich_missing:
         enrich_missing_spec_details(user_agent=args.user_agent)
         return
+
+    if not args.urls_file:
+        parser.error("--urls-file is required")
 
     urls_file = _resolve_urls_file(args.urls_file)
     with open(urls_file, "r", encoding="utf-8") as fh:

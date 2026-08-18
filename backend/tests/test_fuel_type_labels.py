@@ -8,6 +8,8 @@ from app.fuel_type_labels import (
     fuel_type_db_values_for_filter,
     fuel_type_filter_options,
     normalize_fuel_type_label,
+    preferred_fuel_type,
+    resolved_catalog_fuel_type,
 )
 
 
@@ -89,3 +91,24 @@ def test_db_values_for_filter_include_all_aliases():
 def test_normalize_fuel_type_label_matches_classify():
     assert normalize_fuel_type_label("diesel") == FUEL_GROUP_DIESEL
     assert normalize_fuel_type_label("бензин (гибрид)") == FUEL_GROUP_HYBRID
+
+
+def test_prefers_hybrid_engine_type_over_octane_fuel():
+    raw_specs = {
+        "modification": {"engineType": {"label": "бензин (гибрид)"}},
+        "modification_detail": {"fuel": "АИ-95"},
+    }
+    assert preferred_fuel_type("АИ-95", "бензин (гибрид)") == "бензин (гибрид)"
+    assert preferred_fuel_type("ДТ", "дизель (гибрид)") == "дизель (гибрид)"
+    assert resolved_catalog_fuel_type("АИ-95", raw_specs) == "бензин (гибрид)"
+    assert classify_fuel_type(resolved_catalog_fuel_type("АИ-95", raw_specs)) == FUEL_GROUP_HYBRID
+
+
+def test_keeps_petrol_when_engine_type_is_not_hybrid():
+    raw_specs = {
+        "modification": {"engineType": {"label": "бензин"}},
+        "modification_detail": {"fuel": "АИ-95"},
+    }
+    assert classify_fuel_type(resolved_catalog_fuel_type("АИ-95", raw_specs)) == FUEL_GROUP_PETROL
+    assert resolved_catalog_fuel_type("АИ-95", raw_specs) == "АИ-95"
+    assert preferred_fuel_type("АИ-95") == "АИ-95"
