@@ -9,11 +9,17 @@
   </p>
 
   <div class="home-actions">
-    <a class="btn-primary" href="/catalog">Каталог</a>
+    <a class="btn-secondary" href="/catalog">Каталог</a>
     <a class="btn-secondary" href="/listings">Лента объявлений</a>
-    <a class="btn-secondary" href="/listings?passable=1">Проходные авто</a>
     <a class="btn-secondary" href="/inspection">Проверка VIN</a>
   </div>
+  {% if catalog_quick_links %}
+    <div class="home-actions home-actions-quick">
+      {% for link in catalog_quick_links %}
+        <a class="btn-secondary" href="{{ link.url }}">{{ link.label }}</a>
+      {% endfor %}
+    </div>
+  {% endif %}
 </section>
 
 <section class="home-section home-section-makes">

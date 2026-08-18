@@ -1105,6 +1105,31 @@ def _build_catalog_filtered_url(path: str, pairs: list[tuple[str, str]]) -> str:
     return path + "?" + urlencode(pairs)
 
 
+def _home_catalog_quick_links() -> list[dict[str, str]]:
+    return [
+        {
+            "label": "Кроссовер на автомате",
+            "url": _build_catalog_filtered_url(
+                "/catalog/models",
+                [
+                    ("body_type", "Внедорожник 5 дв."),
+                    ("transmission", "автомат"),
+                ],
+            ),
+        },
+        {
+            "label": "Дизельный универсал",
+            "url": _build_catalog_filtered_url(
+                "/catalog/models",
+                [
+                    ("body_type", "Универсал"),
+                    ("fuel_type", "дизель"),
+                ],
+            ),
+        },
+    ]
+
+
 def _catalog_items_base_query(db: Session, request: Request, current_user=None) -> tuple:
     filter_kwargs, exact_hp, with_listings = _parse_catalog_sidebar_filter_kwargs(request, current_user)
     query = db.query(CatalogItem).filter(CatalogItem.source_site == "av.by")
@@ -1701,6 +1726,7 @@ def home(request: Request, db: Session = Depends(get_db)):
     context["latest_listings"] = latest_listings
     context["listing_cover_urls"] = _resolve_listing_cover_urls(latest_listings, db)
     context["listing_mod_names"] = _listing_modification_names(db, latest_listings)
+    context["catalog_quick_links"] = _home_catalog_quick_links()
     return templates.TemplateResponse(request, "index.html", context)
 
 
