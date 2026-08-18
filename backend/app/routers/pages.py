@@ -1666,38 +1666,48 @@ def _home_popular_makes(db: Session, *, limit: int = 8) -> list[dict]:
     return makes
 
 
-@router.get("/")
-def home(request: Request, db: Session = Depends(get_db)):
-    current_user = _resolve_user_from_request(request, db)
-    latest_listings = (
+def _listing_modification_names(db: Session, listings: list[CarListing]) -> dict[int, str]:
+    catalog_items = resolve_catalog_items_for_listings(db, listings)
+    names: dict[int, str] = {}
+    for listing in listings:
+        item = catalog_items.get(listing.id)
+        if not item:
+            continue
+        mod_name = _modification_display_name(item)
+        if mod_name:
+            names[listing.id] = mod_name
+    return names
+
+
+def _home_latest_listings(db: Session, *, limit: int = 20) -> list[CarListing]:
+    return (
         exclude_hidden_body_type(
             db.query(CarListing).filter(CarListing.status == ListingStatus.published),
             CarListing.body_type,
         )
         .order_by(desc(CarListing.created_at))
-        .limit(6)
+        .limit(limit)
         .all()
     )
+
+
+@router.get("/")
+def home(request: Request, db: Session = Depends(get_db)):
+    current_user = _resolve_user_from_request(request, db)
+    latest_listings = _home_latest_listings(db)
     context = _template_context(request, current_user, home_seo_meta(request))
     context.update(_home_stats(db))
     context["popular_makes"] = _home_popular_makes(db)
     context["latest_listings"] = latest_listings
     context["listing_cover_urls"] = _resolve_listing_cover_urls(latest_listings, db)
+    context["listing_mod_names"] = _listing_modification_names(db, latest_listings)
     return templates.TemplateResponse(request, "index.html", context)
 
 
 @router.get("/design-preview")
 def design_preview(request: Request, db: Session = Depends(get_db)):
     current_user = _resolve_user_from_request(request, db)
-    latest_listings = (
-        exclude_hidden_body_type(
-            db.query(CarListing).filter(CarListing.status == ListingStatus.published),
-            CarListing.body_type,
-        )
-        .order_by(desc(CarListing.created_at))
-        .limit(6)
-        .all()
-    )
+    latest_listings = _home_latest_listings(db)
     context = _template_context(request, current_user)
     context.update(_home_stats(db))
     context["popular_makes"] = _home_popular_makes(db)

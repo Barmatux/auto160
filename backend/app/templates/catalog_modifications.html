@@ -97,22 +97,9 @@
         {% if ad_listings %}
           <div class="offers-list">
             {% for ad in ad_listings %}
-              <article class="listing-card offer-feed-card">
-                {% if ad_listing_cover_urls.get(ad.id) %}
-                  <a class="offer-feed-thumb-wrap card-cover-link" href="/listings/{{ ad.id }}" aria-label="Открыть объявление {{ ad.brand }} {{ ad.model }}">
-                    <img class="offer-feed-thumb" src="{{ ad_listing_cover_urls.get(ad.id) }}" alt="{{ ad.brand }} {{ ad.model }}" />
-                  </a>
-                {% endif %}
-                <div class="offer-feed-body">
-                  <h3><a href="/listings/{{ ad.id }}">{{ ad.title | listing_display_title }}</a></h3>
-                  {% if ad_listing_mod_names.get(ad.id) %}
-                    <p class="offer-feed-modification">{{ ad_listing_mod_names.get(ad.id) }}</p>
-                  {% endif %}
-                  <p><strong>Цена:</strong> {{ ad.price | format_price_rub }} ₽</p>
-                  <p><strong>Пробег:</strong> {{ ad.mileage | format_mileage_km }} км</p>
-                  <p><strong>Город:</strong> {{ ad.city }}</p>
-                </div>
-              </article>
+              {% with listing=ad, cover_url=ad_listing_cover_urls.get(ad.id), mod_name=ad_listing_mod_names.get(ad.id) %}
+                {% include "partials/listing_offer_feed_card.html" %}
+              {% endwith %}
             {% endfor %}
           </div>
         {% else %}

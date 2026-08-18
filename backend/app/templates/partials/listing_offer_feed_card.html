@@ -1,0 +1,16 @@
+<article class="listing-card offer-feed-card">
+  {% if cover_url %}
+    <a class="offer-feed-thumb-wrap card-cover-link" href="/listings/{{ listing.id }}" aria-label="Открыть объявление {{ listing.brand }} {{ listing.model }}">
+      <img class="offer-feed-thumb" src="{{ cover_url }}" alt="{{ listing.brand }} {{ listing.model }}" loading="lazy" />
+    </a>
+  {% endif %}
+  <div class="offer-feed-body">
+    <h3><a href="/listings/{{ listing.id }}">{{ listing.title | listing_display_title }}</a></h3>
+    {% if mod_name %}
+      <p class="offer-feed-modification">{{ mod_name }}</p>
+    {% endif %}
+    <p><strong>Цена:</strong> {{ listing.price | format_price_rub }} ₽</p>
+    <p><strong>Пробег:</strong> {{ listing.mileage | format_mileage_km }} км</p>
+    <p><strong>Город:</strong> {{ listing.city }}</p>
+  </div>
+</article>
