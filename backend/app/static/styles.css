@@ -831,6 +831,8 @@ body {
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
+  appearance: none;
+  -webkit-appearance: none;
   border: 1px solid #c9dcff;
   border-radius: 8px;
   padding: 14px 12px;
@@ -840,6 +842,7 @@ body {
   font-size: 16px;
   font-weight: 400;
   cursor: pointer;
+  background-clip: padding-box;
 }
 
 .vehicle-hierarchy-field select:disabled {
