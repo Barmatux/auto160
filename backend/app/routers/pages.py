@@ -995,6 +995,75 @@ def _catalog_sidebar_payload(request: Request, db: Session) -> dict:
     }
 
 
+_CATALOG_FILTER_PARAM_KEYS = ("body_type", "export_country", "fuel_type", "transmission", "year_from", "year_to")
+_CATALOG_NAV_EXCLUDE = frozenset({"make", "model", "generation"})
+
+
+def _parse_catalog_sidebar_filter_kwargs(request: Request) -> tuple[dict, bool, bool]:
+    q = request.query_params
+    exact_hp = _query_flag(q.get("exact_hp"))
+    with_listings = _query_flag(q.get("with_listings"))
+    return (
+        {
+            "body_type": normalize_body_type_label(q.get("body_type") or "") or None,
+            "export_country": (q.get("export_country") or "").strip() or None,
+            "fuel_type": normalize_fuel_type_label(q.get("fuel_type") or "") or None,
+            "transmission": (q.get("transmission") or "").strip() or None,
+            "parsed_year_from": _parse_optional_year(q.get("year_from")),
+            "parsed_year_to": _parse_optional_year(q.get("year_to")),
+        },
+        exact_hp,
+        with_listings,
+    )
+
+
+def _catalog_filter_query_pairs(
+    request: Request,
+    *,
+    exclude: frozenset[str] = frozenset(),
+    include_makes: list[str] | None = None,
+) -> list[tuple[str, str]]:
+    q = request.query_params
+    pairs: list[tuple[str, str]] = []
+    for key in _CATALOG_FILTER_PARAM_KEYS:
+        if key in exclude:
+            continue
+        val = (q.get(key) or "").strip()
+        if val:
+            pairs.append((key, val))
+    if "exact_hp" not in exclude and _query_flag(q.get("exact_hp")):
+        pairs.append(("exact_hp", "1"))
+    if "with_listings" not in exclude and _query_flag(q.get("with_listings")):
+        pairs.append(("with_listings", "1"))
+    if "make" not in exclude:
+        makes = include_makes if include_makes is not None else [m.strip() for m in q.getlist("make") if m.strip()]
+        for make_name in makes:
+            pairs.append(("make", make_name))
+    if "model" not in exclude:
+        model = _canonical_model_name(q.get("model") or "")
+        if model:
+            pairs.append(("model", model))
+    if "generation" not in exclude:
+        generation = (q.get("generation") or "").strip()
+        if generation:
+            pairs.append(("generation", generation))
+    return pairs
+
+
+def _build_catalog_filtered_url(path: str, pairs: list[tuple[str, str]]) -> str:
+    if not pairs:
+        return path
+    return path + "?" + urlencode(pairs)
+
+
+def _catalog_items_base_query(db: Session, request: Request) -> tuple:
+    filter_kwargs, exact_hp, with_listings = _parse_catalog_sidebar_filter_kwargs(request)
+    query = db.query(CatalogItem).filter(CatalogItem.source_site == "av.by")
+    query = _apply_hp_filter(query, exact_hp=exact_hp)
+    query = _apply_catalog_item_filters(query, db=db, **filter_kwargs)
+    return query, exact_hp, with_listings
+
+
 def _apply_freshness_filter(query, freshness: str | None):
     if not freshness or freshness == "all":
         return query
@@ -1851,15 +1920,9 @@ def catalog(
     db: Session = Depends(get_db),
 ):
     current_user = _resolve_user_from_request(request, db)
-    exact_hp = _query_flag(request.query_params.get("exact_hp"))
-    with_listings = _query_flag(request.query_params.get("with_listings"))
+    query, exact_hp, with_listings = _catalog_items_base_query(db, request)
     listing_pairs = _published_listing_make_models(db) if with_listings else None
-    rows = (
-        _apply_hp_filter(db.query(CatalogItem), exact_hp=exact_hp)
-        .filter(CatalogItem.make.isnot(None), CatalogItem.source_site == "av.by")
-        .order_by(CatalogItem.make.asc(), CatalogItem.created_at.desc())
-        .all()
-    )
+    rows = query.filter(CatalogItem.make.isnot(None)).order_by(CatalogItem.make.asc(), CatalogItem.created_at.desc()).all()
     grouped: dict[str, dict] = {}
     for item in rows:
         make = (item.make or "").strip()
@@ -1886,13 +1949,26 @@ def catalog(
             for make_row in makes
             if any(pair[0] == normalize_match_text(make_row["make"]) for pair in listing_pairs)
         ]
-    for make in makes:
-        make["models_url"] = "/catalog/models?" + urlencode({"make": make["make"]})
-        make["logo_url"] = _make_logo_url(make["make"])
+    filter_pairs = _catalog_filter_query_pairs(request, exclude=_CATALOG_NAV_EXCLUDE)
+    for make_row in makes:
+        make_row["models_url"] = _build_catalog_filtered_url(
+            "/catalog/models",
+            [("make", make_row["make"]), *filter_pairs],
+        )
+        make_row["logo_url"] = _make_logo_url(make_row["make"])
 
     context = _template_context(request, current_user)
     context["makes"] = makes
     context["total"] = len(makes)
+    context["catalog_filters_action"] = "/catalog"
+    context["filters_reset_url"] = "/catalog"
+    context["switch_to_models_url"] = _build_catalog_filtered_url(
+        "/catalog/models",
+        _catalog_filter_query_pairs(request, exclude=_CATALOG_NAV_EXCLUDE),
+    )
+    context["catalog_filter_query"] = urlencode(
+        _catalog_filter_query_pairs(request, exclude=_CATALOG_NAV_EXCLUDE)
+    )
     context["catalog_sidebar"] = _catalog_sidebar_payload(request, db)
     return templates.TemplateResponse(request, "catalog.html", context)
 
@@ -1900,18 +1976,16 @@ def catalog(
 @router.get("/catalog/models")
 def catalog_models(
     request: Request,
-    make: str | None = Query(default=None),
     db: Session = Depends(get_db),
 ):
     current_user = _resolve_user_from_request(request, db)
-    exact_hp = _query_flag(request.query_params.get("exact_hp"))
-    with_listings = _query_flag(request.query_params.get("with_listings"))
+    selected_makes = [m.strip() for m in request.query_params.getlist("make") if m.strip()]
+    make = selected_makes[0] if len(selected_makes) == 1 else None
+    query, exact_hp, with_listings = _catalog_items_base_query(db, request)
     listing_pairs = _published_listing_make_models(db) if with_listings else None
-    query = _apply_hp_filter(db.query(CatalogItem), exact_hp=exact_hp).filter(
-        CatalogItem.model.isnot(None), CatalogItem.source_site == "av.by"
-    )
-    if make:
-        query = query.filter(CatalogItem.make == make)
+    query = query.filter(CatalogItem.model.isnot(None))
+    if selected_makes:
+        query = query.filter(CatalogItem.make.in_(selected_makes))
     rows = query.order_by(CatalogItem.make.asc(), CatalogItem.model.asc(), CatalogItem.created_at.desc()).all()
     grouped: dict[str, dict] = {}
     for item in rows:
@@ -1921,7 +1995,7 @@ def catalog_models(
         canonical_model = _canonical_model_name(item.model)
         if not canonical_model:
             continue
-        group_key = f"{make_name}|||{canonical_model}" if not make else canonical_model
+        group_key = f"{make_name}|||{canonical_model}"
         if group_key not in grouped:
             grouped[group_key] = {
                 "make": make_name,
@@ -1975,12 +2049,16 @@ def catalog_models(
             for model_row in models
             if (normalize_match_text(model_row["make"]), _canonical_model_name(model_row["model"])) in listing_pairs
         ]
+    filter_pairs = _catalog_filter_query_pairs(request, exclude=_CATALOG_NAV_EXCLUDE)
     generation_preview_ids: list[int] = []
     for model_item in models:
         model_item["generation_count"] = len(model_item["generations"])
-        model_item["generations_url"] = "/catalog/generations?" + urlencode(
-            {"make": model_item["make"], "model": model_item["model"]}
-        )
+        gen_pairs = [
+            ("make", model_item["make"]),
+            ("model", model_item["model"]),
+            *filter_pairs,
+        ]
+        model_item["generations_url"] = _build_catalog_filtered_url("/catalog/generations", gen_pairs)
         model_item["listings_url"] = _build_listings_url(
             brand=model_item["make"],
             model=model_item["model"],
@@ -1990,8 +2068,13 @@ def catalog_models(
         generation_cards = list(model_item["generation_cards"].values())
         generation_cards.sort(key=lambda g: (g["count"], g["year_to"] or 0, g["year_from"] or 0), reverse=True)
         for generation_card in generation_cards:
-            params = {"make": generation_card["make"], "model": generation_card["model"], "generation": generation_card["generation"]}
-            generation_card["mods_url"] = "/catalog/modifications?" + urlencode(params)
+            params = [
+                ("make", generation_card["make"]),
+                ("model", generation_card["model"]),
+                ("generation", generation_card["generation"]),
+                *filter_pairs,
+            ]
+            generation_card["mods_url"] = _build_catalog_filtered_url("/catalog/modifications", params)
         model_item["generation_previews"] = generation_cards[:3]
         generation_preview_ids.extend([g["first_id"] for g in model_item["generation_previews"]])
 
@@ -2003,10 +2086,24 @@ def catalog_models(
     if exact_hp or with_listings or not make:
         context["seo_noindex"] = True
     context["make"] = make
+    context["selected_makes"] = selected_makes
     context["models"] = models
     context["cover_urls"] = _build_cover_url_map([item["first_id"] for item in models], db)
     context["generation_cover_urls"] = _build_cover_url_map(generation_preview_ids, db)
     context["total"] = len(models)
+    context["catalog_filters_action"] = _build_catalog_filtered_url(
+        "/catalog/models",
+        _catalog_filter_query_pairs(request, exclude=frozenset({"model", "generation"})),
+    )
+    context["filters_reset_url"] = _build_catalog_filtered_url(
+        "/catalog/models",
+        [("make", make_name) for make_name in selected_makes],
+    )
+    context["switch_to_makes_url"] = _build_catalog_filtered_url(
+        "/catalog",
+        _catalog_filter_query_pairs(request, exclude=_CATALOG_NAV_EXCLUDE),
+    )
+    context["preserve_makes"] = selected_makes
     context["catalog_sidebar"] = _catalog_sidebar_payload(request, db)
     return templates.TemplateResponse(request, "catalog_models.html", context)
 
@@ -2019,11 +2116,9 @@ def catalog_generations(
     db: Session = Depends(get_db),
 ):
     current_user = _resolve_user_from_request(request, db)
-    exact_hp = _query_flag(request.query_params.get("exact_hp"))
-    with_listings = _query_flag(request.query_params.get("with_listings"))
-    listing_pairs = _published_listing_make_models(db) if with_listings else None
     canonical_model = _canonical_model_name(model) if model else ""
-    query = _apply_hp_filter(db.query(CatalogItem), exact_hp=exact_hp).filter(CatalogItem.source_site == "av.by")
+    query, exact_hp, with_listings = _catalog_items_base_query(db, request)
+    listing_pairs = _published_listing_make_models(db) if with_listings else None
     if make:
         query = query.filter(CatalogItem.make == make)
     if canonical_model:
@@ -2073,11 +2168,16 @@ def catalog_generations(
             )
             in listing_pairs
         ]
+    filter_pairs = _catalog_filter_query_pairs(request, exclude=_CATALOG_NAV_EXCLUDE)
     for generation_item in generations:
-        params = {"make": generation_item["make"], "model": generation_item["model"]}
+        params = [
+            ("make", generation_item["make"]),
+            ("model", generation_item["model"]),
+            *filter_pairs,
+        ]
         if generation_item["generation"] != "Без поколения":
-            params["generation"] = generation_item["generation"]
-        generation_item["mods_url"] = "/catalog/modifications?" + urlencode(params)
+            params.append(("generation", generation_item["generation"]))
+        generation_item["mods_url"] = _build_catalog_filtered_url("/catalog/modifications", params)
         generation_item["listings_url"] = _build_listings_url(
             brand=generation_item["make"],
             model=generation_item["model"],
@@ -2097,9 +2197,25 @@ def catalog_generations(
     context["generations"] = generations
     context["cover_urls"] = _build_cover_url_map([item["first_id"] for item in generations], db)
     context["total"] = len(generations)
-    context["back_to_models_url"] = (
-        "/catalog/models?" + urlencode({"make": make}) if make else "/catalog/models"
+    context["back_to_models_url"] = _build_catalog_filtered_url(
+        "/catalog/models",
+        [("make", make), *_catalog_filter_query_pairs(request, exclude=frozenset({"model", "generation"}))],
+    ) if make else _build_catalog_filtered_url(
+        "/catalog/models",
+        _catalog_filter_query_pairs(request, exclude=frozenset({"model", "generation"})),
     )
+    reset_pairs: list[tuple[str, str]] = []
+    if make:
+        reset_pairs.append(("make", make))
+    if canonical_model:
+        reset_pairs.append(("model", canonical_model))
+    context["catalog_filters_action"] = _build_catalog_filtered_url(
+        "/catalog/generations",
+        _catalog_filter_query_pairs(request, exclude=frozenset({"generation"})),
+    )
+    context["filters_reset_url"] = _build_catalog_filtered_url("/catalog/generations", reset_pairs)
+    context["preserve_makes"] = [make] if make else []
+    context["preserve_model"] = canonical_model or ""
     context["catalog_sidebar"] = _catalog_sidebar_payload(request, db)
     return templates.TemplateResponse(request, "catalog_generations.html", context)
 
@@ -2323,6 +2439,11 @@ def catalog_modifications(
             year_to=max(year_to_values) if year_to_values else None,
         )
     context["listings_all_url"] = listings_all_url
+    context["catalog_filters_action"] = _build_catalog_filtered_url(
+        "/catalog/modifications",
+        _catalog_filter_query_pairs(request),
+    )
+    context["filters_reset_url"] = "/catalog/modifications"
     context["catalog_sidebar"] = _catalog_sidebar_payload(request, db)
     return templates.TemplateResponse(request, "catalog_modifications.html", context)
 
