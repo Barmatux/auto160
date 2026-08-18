@@ -29,6 +29,12 @@ from app.fuel_type_labels import (
     resolved_catalog_fuel_type,
 )
 from app.drive_type_labels import normalize_drive_display_label
+from app.transmission_labels import (
+    TRANSMISSION_FILTER_GROUPS,
+    TRANSMISSION_SLUG_AUTO,
+    apply_catalog_transmission_filter,
+    parse_transmission_filter_values,
+)
 from app.export_country_labels import (
     EXPORT_COUNTRY_FILTER_OPTIONS,
     is_belarus_export_country,
@@ -1013,7 +1019,7 @@ def _catalog_sidebar_payload(request: Request, db: Session, current_user=None) -
             "body_type": body_type_filter,
             "export_country": query.get("export_country", ""),
             "fuel_type": fuel_type_filter,
-            "transmission": query.get("transmission", ""),
+            "transmission": parse_transmission_filter_values(query.getlist("transmission")),
             "year_from": parsed_year_from if parsed_year_from is not None else "",
             "year_to": parsed_year_to if parsed_year_to is not None else "",
             "sort": query.get("sort", "year_desc"),
@@ -1030,7 +1036,7 @@ def _catalog_sidebar_payload(request: Request, db: Session, current_user=None) -
             "body_type": body_type_filter_options(body_type_raw),
             "export_country": list(EXPORT_COUNTRY_FILTER_OPTIONS),
             "fuel_type": _catalog_fuel_filter_options(db),
-            "transmission": _distinct_values(db, CatalogItem.transmission),
+            "transmission_groups": TRANSMISSION_FILTER_GROUPS,
             "years": _year_options(db),
         },
         "vehicle_hierarchy": _build_vehicle_hierarchy_payload(
@@ -1044,7 +1050,7 @@ def _catalog_sidebar_payload(request: Request, db: Session, current_user=None) -
     }
 
 
-_CATALOG_FILTER_PARAM_KEYS = ("body_type", "export_country", "fuel_type", "transmission", "year_from", "year_to")
+_CATALOG_FILTER_PARAM_KEYS = ("body_type", "export_country", "fuel_type", "year_from", "year_to")
 _CATALOG_NAV_EXCLUDE = frozenset({"make", "model", "generation"})
 
 
@@ -1057,7 +1063,7 @@ def _parse_catalog_sidebar_filter_kwargs(request: Request, current_user=None) ->
             "body_type": normalize_body_type_label(q.get("body_type") or "") or None,
             "export_country": (q.get("export_country") or "").strip() or None,
             "fuel_type": normalize_fuel_type_label(q.get("fuel_type") or "") or None,
-            "transmission": (q.get("transmission") or "").strip() or None,
+            "transmission_slugs": parse_transmission_filter_values(q.getlist("transmission")),
             "parsed_year_from": _parse_optional_year(q.get("year_from")),
             "parsed_year_to": _parse_optional_year(q.get("year_to")),
         },
@@ -1084,6 +1090,8 @@ def _catalog_filter_query_pairs(
         pairs.append(("exact_hp", "1"))
     if "with_listings" not in exclude and _query_flag(q.get("with_listings")):
         pairs.append(("with_listings", "1"))
+    for slug in parse_transmission_filter_values(q.getlist("transmission")):
+        pairs.append(("transmission", slug))
     if "make" not in exclude:
         makes = include_makes if include_makes is not None else [m.strip() for m in q.getlist("make") if m.strip()]
         for make_name in makes:
@@ -1113,7 +1121,7 @@ def _home_catalog_quick_links() -> list[dict[str, str]]:
                 "/catalog/models",
                 [
                     ("body_type", "Внедорожник 5 дв."),
-                    ("transmission", "автомат"),
+                    ("transmission", TRANSMISSION_SLUG_AUTO),
                 ],
             ),
         },
@@ -1579,7 +1587,7 @@ def _apply_catalog_item_filters(
     body_type: str | None = None,
     export_country: str | None = None,
     fuel_type: str | None = None,
-    transmission: str | None = None,
+    transmission_slugs: list[str] | None = None,
     parsed_year_from: int | None = None,
     parsed_year_to: int | None = None,
 ):
@@ -1611,8 +1619,13 @@ def _apply_catalog_item_filters(
             else:
                 query = query.filter(CatalogItem.fuel_type.ilike(f"%{fuel_type}%"))
             query = query.filter(~hybrid_pred)
-    if transmission:
-        query = query.filter(CatalogItem.transmission.ilike(f"%{transmission}%"))
+    if transmission_slugs:
+        query = apply_catalog_transmission_filter(
+            query,
+            CatalogItem.transmission,
+            raw_values=_distinct_values(db, CatalogItem.transmission),
+            slugs=transmission_slugs,
+        )
     if parsed_year_from is not None:
         query = query.filter(CatalogItem.year_from >= parsed_year_from)
     if parsed_year_to is not None:
@@ -2312,7 +2325,6 @@ def catalog_modifications(
     body_type: str | None = Query(default=None),
     export_country: str | None = Query(default=None),
     fuel_type: str | None = Query(default=None),
-    transmission: str | None = Query(default=None),
     year_from: str | None = Query(default=None),
     year_to: str | None = Query(default=None),
     exact_hp: bool = Query(default=False),
@@ -2333,6 +2345,7 @@ def catalog_modifications(
     parsed_year_to = _parse_optional_year(year_to)
     body_type = normalize_body_type_label(body_type) if body_type else None
     fuel_type = normalize_fuel_type_label(fuel_type) if fuel_type else None
+    transmission_slugs = parse_transmission_filter_values(request.query_params.getlist("transmission"))
     query = _apply_hp_filter(db.query(CatalogItem), exact_hp=exact_hp)
     query = _apply_catalog_item_filters(
         query=query,
@@ -2341,7 +2354,7 @@ def catalog_modifications(
         body_type=body_type,
         export_country=export_country,
         fuel_type=fuel_type,
-        transmission=transmission,
+        transmission_slugs=transmission_slugs,
         parsed_year_from=parsed_year_from,
         parsed_year_to=parsed_year_to,
     )
@@ -2391,7 +2404,7 @@ def catalog_modifications(
         body_type
         or export_country
         or fuel_type
-        or transmission
+        or transmission_slugs
         or parsed_year_from is not None
         or parsed_year_to is not None
         or exact_hp
@@ -2427,7 +2440,7 @@ def catalog_modifications(
         "body_type": normalize_body_type_label(body_type) or "" if body_type else "",
         "export_country": export_country or "",
         "fuel_type": fuel_type or "",
-        "transmission": transmission or "",
+        "transmission": transmission_slugs,
         "year_from": parsed_year_from if parsed_year_from is not None else "",
         "year_to": parsed_year_to if parsed_year_to is not None else "",
         "exact_hp": exact_hp,
@@ -2442,8 +2455,8 @@ def catalog_modifications(
             pairs.append(("export_country", export_country))
         if fuel_type:
             pairs.append(("fuel_type", fuel_type))
-        if transmission:
-            pairs.append(("transmission", transmission))
+        for slug in transmission_slugs:
+            pairs.append(("transmission", slug))
         if parsed_year_from is not None:
             pairs.append(("year_from", str(parsed_year_from)))
         if parsed_year_to is not None:

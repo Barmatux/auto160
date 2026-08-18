@@ -29,15 +29,36 @@
           {% endfor %}
         </select>
       </label>
-      <label>
-        КПП
-        <select name="transmission">
-          <option value="" {% if catalog_sidebar.filters.transmission == "" %}selected{% endif %}>Любая</option>
-          {% for value in catalog_sidebar.options.transmission %}
-            <option value="{{ value }}" {% if catalog_sidebar.filters.transmission == value %}selected{% endif %}>{{ value }}</option>
-          {% endfor %}
-        </select>
-      </label>
+      <div class="catalog-transmission-filter">
+        <p class="catalog-filter-group-title">КПП</p>
+        {% set selected_transmissions = catalog_sidebar.filters.transmission %}
+        {% for group in catalog_sidebar.options.transmission_groups %}
+          <label class="catalog-transmission-option catalog-transmission-option-group">
+            <input
+              type="checkbox"
+              name="transmission"
+              value="{{ group.slug }}"
+              {% if group.slug in selected_transmissions %}checked{% endif %}
+            />
+            <span>{{ group.label }}</span>
+          </label>
+          {% if group.subtypes %}
+            <div class="catalog-transmission-subtypes">
+              {% for subtype in group.subtypes %}
+                <label class="catalog-transmission-option">
+                  <input
+                    type="checkbox"
+                    name="transmission"
+                    value="{{ subtype.slug }}"
+                    {% if subtype.slug in selected_transmissions %}checked{% endif %}
+                  />
+                  <span>{{ subtype.label }}</span>
+                </label>
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% endfor %}
+      </div>
       <label>
         Год от
         <select name="year_from">
