@@ -1274,6 +1274,60 @@ def _modification_attrs(item: CatalogItem) -> dict[str, str]:
     }
 
 
+def _format_catalog_year_range(item: CatalogItem) -> str:
+    if item.year_from is not None and item.year_to is not None:
+        if item.year_from == item.year_to:
+            return str(item.year_from)
+        return f"{item.year_from}–{item.year_to}"
+    if item.year_from is not None:
+        return f"{item.year_from}–"
+    if item.year_to is not None:
+        return f"–{item.year_to}"
+    return "—"
+
+
+def _modification_row(item: CatalogItem) -> dict:
+    attrs = _modification_attrs(item)
+    return {
+        "id": item.id,
+        "name": _modification_display_name(item) or f"{item.make or ''} {item.model or ''}".strip(),
+        "volume": attrs.get("volume") or "—",
+        "power": attrs.get("power") or "—",
+        "fuel": attrs.get("fuel") or "—",
+        "gearbox": attrs.get("gearbox") or "—",
+        "drive": attrs.get("drive") or "—",
+        "body_type": normalize_body_type_label(item.body_type) or "—",
+        "years": _format_catalog_year_range(item),
+        "rating": float(item.rating) if item.rating is not None else None,
+        "url": f"/catalog/item/{item.id}",
+    }
+
+
+def _modification_power_sort_key(row: dict) -> int:
+    power = row.get("power") or ""
+    match = re.search(r"(\d+)", power)
+    return int(match.group(1)) if match else 0
+
+
+def _build_modification_table_groups(items: list[CatalogItem]) -> list[dict]:
+    grouped: dict[str, list[dict]] = {}
+    order: list[str] = []
+    for item in items:
+        row = _modification_row(item)
+        body_type = row["body_type"] or "—"
+        if body_type not in grouped:
+            grouped[body_type] = []
+            order.append(body_type)
+        grouped[body_type].append(row)
+
+    result: list[dict] = []
+    for body_type in order:
+        rows = grouped[body_type]
+        rows.sort(key=_modification_power_sort_key, reverse=True)
+        result.append({"body_type": body_type, "rows": rows})
+    return result
+
+
 def _build_modification_titles(items: list[CatalogItem]) -> dict[int, str]:
     base_names: dict[int, str] = {}
     attrs_map: dict[int, dict[str, str]] = {}
@@ -2116,7 +2170,7 @@ def catalog_modifications(
     context["items"] = items
     context["generation_rating"] = float(generation_rating) if generation_rating is not None else None
     context["mod_titles"] = _build_modification_titles(items)
-    context["cover_urls"] = _build_cover_url_map([item.id for item in items], db)
+    context["mod_table_groups"] = _build_modification_table_groups(items)
     context["total"] = total
     context["page"] = page
     context["page_size"] = page_size

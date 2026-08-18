@@ -25,36 +25,65 @@
         {% endwith %}
       {% endif %}
     </div>
-    <div class="actions-row">
+    <div class="actions-row modifications-actions">
       <button id="compare-btn" type="button" disabled>Сравнить выбранные</button>
       <span id="compare-count" class="hint">Выбрано: 0</span>
     </div>
 
     <div class="modifications-layout">
       <div class="modifications-main-list">
-        {% if items %}
-          <div class="catalog">
-            {% for item in items %}
-              <article class="listing-card">
-                <label class="hint">
-                  <input type="checkbox" class="compare-checkbox" value="{{ item.id }}" />
-                  Выбрать для сравнения
-                </label>
-                {% if cover_urls.get(item.id) %}
-                  <a class="card-cover-link" href="/catalog/item/{{ item.id }}" aria-label="Открыть спецификацию {{ item.make }} {{ item.model }}">
-                    <img class="catalog-cover" src="{{ cover_urls.get(item.id) }}" alt="{{ item.make }} {{ item.model }}" />
-                  </a>
-                {% endif %}
-                <h3><a href="/catalog/item/{{ item.id }}">{{ mod_titles.get(item.id, item.make ~ " " ~ item.model) }}</a></h3>
-                {% if is_admin %}
-                  {% with rating=item.rating %}
-                    {% include "partials/catalog_admin_rating.html" %}
-                  {% endwith %}
-                {% endif %}
-                <strong><a href="/catalog/item/{{ item.id }}">Открыть спецификацию</a></strong>
-              </article>
-            {% endfor %}
-          </div>
+        {% if mod_table_groups %}
+          {% for group in mod_table_groups %}
+          <section class="modifications-table-section">
+            <h2 class="modifications-table-section-title">{{ group.body_type }}</h2>
+            <div class="modifications-table-wrap">
+              <table class="modifications-table">
+                <thead>
+                  <tr>
+                    <th scope="col" class="modifications-table-col-select">
+                      <span class="visually-hidden">Сравнение</span>
+                    </th>
+                    <th scope="col">Модификация</th>
+                    <th scope="col">Объём</th>
+                    <th scope="col">Мощность</th>
+                    <th scope="col">Топливо</th>
+                    <th scope="col">КПП</th>
+                    <th scope="col">Привод</th>
+                    <th scope="col">Годы</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for row in group.rows %}
+                  <tr class="modifications-table-row">
+                    <td class="modifications-table-col-select">
+                      <input
+                        type="checkbox"
+                        class="compare-checkbox"
+                        value="{{ row.id }}"
+                        aria-label="Выбрать {{ row.name }} для сравнения"
+                      />
+                    </td>
+                    <th scope="row" class="modifications-table-name">
+                      <a href="{{ row.url }}">{{ row.name }}</a>
+                      {% if is_admin %}
+                        {% with rating=row.rating, compact=true %}
+                          {% include "partials/catalog_admin_rating.html" %}
+                        {% endwith %}
+                      {% endif %}
+                    </td>
+                    <td>{{ row.volume }}</td>
+                    <td>{{ row.power }}</td>
+                    <td>{{ row.fuel }}</td>
+                    <td>{{ row.gearbox }}</td>
+                    <td>{{ row.drive }}</td>
+                    <td>{{ row.years }}</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </section>
+          {% endfor %}
         {% else %}
           <p>Модификации не найдены.</p>
         {% endif %}
