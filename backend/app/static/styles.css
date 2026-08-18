@@ -672,8 +672,8 @@ body {
 }
 
 .catalog-page .vehicle-hierarchy-field select {
-  padding: 12px 12px;
-  min-height: 48px;
+  padding: 14px 12px;
+  min-height: 52px;
   font-size: 16px;
   background: linear-gradient(180deg, #eef4ff 0%, #e2ecff 100%);
   border-color: #c9dcff;
@@ -685,8 +685,11 @@ body {
 }
 
 .catalog-page .vehicle-hierarchy-field select:disabled {
-  background: #edf2f9;
-  opacity: 0.72;
+  background: linear-gradient(180deg, #eef4ff 0%, #e2ecff 100%);
+  border-color: #c9dcff;
+  opacity: 1;
+  color: #64748b;
+  cursor: not-allowed;
 }
 
 .catalog-page .vehicle-hierarchy-remove {
@@ -697,7 +700,7 @@ body {
 }
 
 .catalog-page .vehicle-hierarchy-row {
-  grid-template-columns: minmax(140px, 1fr) minmax(140px, 1fr) minmax(180px, 1.4fr) 32px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) 32px;
 }
 
 .catalog-make-card .make-logo-wrap:hover,
@@ -807,8 +810,8 @@ body {
 
 .vehicle-hierarchy-row {
   display: grid;
-  grid-template-columns: minmax(140px, 1fr) minmax(140px, 1fr) minmax(180px, 1.4fr) 32px;
-  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) 32px;
+  gap: 12px;
   align-items: end;
 }
 
@@ -828,19 +831,22 @@ body {
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
-  padding: 9px 8px;
-  min-height: 38px;
-  background: var(--surface-soft);
+  border: 1px solid #c9dcff;
+  border-radius: 8px;
+  padding: 14px 12px;
+  min-height: 52px;
+  background: linear-gradient(180deg, #eef4ff 0%, #e2ecff 100%);
   color: inherit;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 400;
   cursor: pointer;
 }
 
 .vehicle-hierarchy-field select:disabled {
-  opacity: 0.55;
+  background: linear-gradient(180deg, #eef4ff 0%, #e2ecff 100%);
+  border-color: #c9dcff;
+  opacity: 1;
+  color: #64748b;
   cursor: not-allowed;
 }
 
@@ -905,11 +911,11 @@ body {
 
 @media (max-width: 900px) {
   .vehicle-hierarchy-row {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.2fr) 32px;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) 32px;
   }
 
   .catalog-page .vehicle-hierarchy-row {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.2fr) 32px;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) 32px;
   }
 }
 
