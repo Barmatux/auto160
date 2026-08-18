@@ -9,9 +9,10 @@
     {% if preserve_model is defined and preserve_model %}
       <input type="hidden" name="model" value="{{ preserve_model }}" />
     {% endif %}
+    {% set selected_transmission = catalog_sidebar.filters.transmission[0] if catalog_sidebar.filters.transmission else "" %}
     <div class="catalog-filter-group">
       <p class="catalog-filter-group-title">Характеристики</p>
-      <label>
+      <label class="catalog-filter-field{% if catalog_sidebar.filters.body_type %} is-active{% endif %}">
         Тип кузова
         <select name="body_type">
           <option value="" {% if catalog_sidebar.filters.body_type == "" %}selected{% endif %}>Любой</option>
@@ -20,7 +21,7 @@
           {% endfor %}
         </select>
       </label>
-      <label>
+      <label class="catalog-filter-field{% if catalog_sidebar.filters.fuel_type %} is-active{% endif %}">
         Топливо
         <select name="fuel_type">
           <option value="" {% if catalog_sidebar.filters.fuel_type == "" %}selected{% endif %}>Любое</option>
@@ -29,37 +30,25 @@
           {% endfor %}
         </select>
       </label>
-      <div class="catalog-transmission-filter">
-        <p class="catalog-filter-group-title">КПП</p>
-        {% set selected_transmissions = catalog_sidebar.filters.transmission %}
-        {% for group in catalog_sidebar.options.transmission_groups %}
-          <label class="catalog-transmission-option catalog-transmission-option-group">
-            <input
-              type="checkbox"
-              name="transmission"
-              value="{{ group.slug }}"
-              {% if group.slug in selected_transmissions %}checked{% endif %}
-            />
-            <span>{{ group.label }}</span>
-          </label>
-          {% if group.subtypes %}
-            <div class="catalog-transmission-subtypes">
-              {% for subtype in group.subtypes %}
-                <label class="catalog-transmission-option">
-                  <input
-                    type="checkbox"
-                    name="transmission"
-                    value="{{ subtype.slug }}"
-                    {% if subtype.slug in selected_transmissions %}checked{% endif %}
-                  />
-                  <span>{{ subtype.label }}</span>
-                </label>
-              {% endfor %}
-            </div>
-          {% endif %}
-        {% endfor %}
-      </div>
-      <label>
+      <label class="catalog-filter-field{% if selected_transmission %} is-active{% endif %}">
+        КПП
+        <select name="transmission">
+          <option value="" {% if selected_transmission == "" %}selected{% endif %}>Любая</option>
+          {% for group in catalog_sidebar.options.transmission_groups %}
+            {% if group.subtypes %}
+              <optgroup label="{{ group.label }}">
+                <option value="{{ group.slug }}" {% if selected_transmission == group.slug %}selected{% endif %}>{{ group.label }}</option>
+                {% for subtype in group.subtypes %}
+                  <option value="{{ subtype.slug }}" {% if selected_transmission == subtype.slug %}selected{% endif %}>{{ subtype.label }}</option>
+                {% endfor %}
+              </optgroup>
+            {% else %}
+              <option value="{{ group.slug }}" {% if selected_transmission == group.slug %}selected{% endif %}>{{ group.label }}</option>
+            {% endif %}
+          {% endfor %}
+        </select>
+      </label>
+      <label class="catalog-filter-field{% if catalog_sidebar.filters.year_from %} is-active{% endif %}">
         Год от
         <select name="year_from">
           <option value="" {% if catalog_sidebar.filters.year_from == "" %}selected{% endif %}>Не важно</option>
@@ -68,7 +57,7 @@
           {% endfor %}
         </select>
       </label>
-      <label>
+      <label class="catalog-filter-field{% if catalog_sidebar.filters.year_to %} is-active{% endif %}">
         Год до
         <select name="year_to">
           <option value="" {% if catalog_sidebar.filters.year_to == "" %}selected{% endif %}>Не важно</option>
@@ -77,7 +66,7 @@
           {% endfor %}
         </select>
       </label>
-      <label>
+      <label class="catalog-filter-field{% if catalog_sidebar.filters.export_country %} is-active{% endif %}">
         Страна экспорта
         <select name="export_country">
           <option value="" {% if catalog_sidebar.filters.export_country == "" %}selected{% endif %}>Любая</option>
@@ -87,12 +76,12 @@
         </select>
       </label>
       {% if is_admin %}
-      <label class="inline-checkbox">
+      <label class="inline-checkbox catalog-filter-field{% if catalog_sidebar.filters.exact_hp %} is-active{% endif %}">
         <input type="checkbox" name="exact_hp" value="1" {% if catalog_sidebar.filters.exact_hp %}checked{% endif %} />
         Ровно 160 л.с.
       </label>
       {% endif %}
-      <label class="inline-checkbox">
+      <label class="inline-checkbox catalog-filter-field{% if catalog_sidebar.filters.with_listings %} is-active{% endif %}">
         <input type="checkbox" name="with_listings" value="1" {% if catalog_sidebar.filters.with_listings %}checked{% endif %} />
         Только с объявлениями в продаже
       </label>

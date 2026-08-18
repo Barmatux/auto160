@@ -235,35 +235,21 @@ body {
   margin: 0;
 }
 
-.catalog-transmission-filter {
-  display: grid;
-  gap: 6px;
+.catalog-filters-panel .catalog-filter-field.is-active select {
+  background: linear-gradient(180deg, #eef4ff 0%, #e2ecff 100%);
+  border-color: #c9dcff;
 }
 
-.catalog-transmission-option {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.9rem;
-  line-height: 1.3;
-  cursor: pointer;
+.catalog-filters-panel .catalog-filter-field.is-active select:focus {
+  outline: 2px solid #bfdbfe;
+  border-color: #60a5fa;
 }
 
-.catalog-transmission-option input {
-  width: 15px;
-  height: 15px;
-  margin: 0;
-  flex: 0 0 auto;
-}
-
-.catalog-transmission-option-group {
-  font-weight: 600;
-}
-
-.catalog-transmission-subtypes {
-  display: grid;
-  gap: 6px;
-  margin-left: 22px;
+.catalog-filters-panel .catalog-filter-field.is-active.inline-checkbox {
+  background: linear-gradient(180deg, #eef4ff 0%, #e2ecff 100%);
+  border: 1px solid #c9dcff;
+  border-radius: 8px;
+  padding: 8px 10px;
 }
 
 .catalog-filters-panel select:disabled {
