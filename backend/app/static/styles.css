@@ -257,6 +257,15 @@ body {
   gap: 6px;
   position: relative;
   min-width: 0;
+  z-index: 1;
+}
+
+.catalog-transmission-dropdown.is-open {
+  z-index: 50;
+}
+
+.catalog-sidebar:has(.catalog-transmission-dropdown.is-open) {
+  overflow: visible;
 }
 
 .catalog-transmission-label {
@@ -292,18 +301,19 @@ body {
   pointer-events: none;
 }
 
-.catalog-transmission-dropdown.is-active .catalog-transmission-trigger {
+.catalog-transmission-dropdown.is-active .catalog-transmission-trigger,
+.catalog-transmission-dropdown.is-open .catalog-transmission-trigger {
   background: linear-gradient(180deg, #eef4ff 0%, #e2ecff 100%);
   border-color: #c9dcff;
 }
 
 .catalog-transmission-menu {
+  display: none;
   position: absolute;
   top: calc(100% + 4px);
   left: 0;
   right: 0;
-  z-index: 30;
-  display: grid;
+  z-index: 60;
   gap: 0;
   padding: 6px 0;
   border: 1px solid #c9dcff;
@@ -312,6 +322,10 @@ body {
   box-shadow: 0 10px 24px rgba(37, 99, 235, 0.12);
   max-height: 280px;
   overflow-y: auto;
+}
+
+.catalog-transmission-dropdown.is-open .catalog-transmission-menu {
+  display: grid;
 }
 
 .catalog-transmission-row {

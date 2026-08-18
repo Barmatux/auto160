@@ -1,6 +1,5 @@
 (function () {
   const AUTO_PARENT = "auto";
-  const AUTO_SUBTYPES = ["auto-classic", "robot", "cvt"];
   const MANUAL = "manual";
 
   function initTransmissionFilter(root) {
@@ -15,6 +14,12 @@
 
     if (!trigger || !menu || !valuesHost || !parentInput) {
       return;
+    }
+
+    function setMenuOpen(open) {
+      root.classList.toggle("is-open", open);
+      menu.hidden = !open;
+      trigger.setAttribute("aria-expanded", open ? "true" : "false");
     }
 
     function rowForInput(input) {
@@ -89,8 +94,7 @@
     }
 
     function syncParentFromSubtypes() {
-      const allChecked = subtypeInputs.every((input) => input.checked);
-      parentInput.checked = allChecked;
+      parentInput.checked = subtypeInputs.every((input) => input.checked);
     }
 
     parentInput.addEventListener("change", () => {
@@ -118,20 +122,25 @@
       manualInput.addEventListener("change", syncHiddenInputs);
     }
 
-    trigger.addEventListener("click", () => {
-      const willOpen = menu.hidden;
+    trigger.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const willOpen = !root.classList.contains("is-open");
       closeAllMenus();
-      menu.hidden = !willOpen;
-      trigger.setAttribute("aria-expanded", willOpen ? "true" : "false");
+      setMenuOpen(willOpen);
+    });
+
+    menu.addEventListener("click", (event) => {
+      event.stopPropagation();
     });
 
     root.addEventListener("keydown", (event) => {
-      if (event.key === "Escape" && !menu.hidden) {
-        menu.hidden = true;
-        trigger.setAttribute("aria-expanded", "false");
+      if (event.key === "Escape" && root.classList.contains("is-open")) {
+        setMenuOpen(false);
       }
     });
 
+    setMenuOpen(false);
     syncHiddenInputs();
   }
 
@@ -139,6 +148,7 @@
     document.querySelectorAll(".catalog-transmission-dropdown").forEach((root) => {
       const menu = root.querySelector(".catalog-transmission-menu");
       const trigger = root.querySelector(".catalog-transmission-trigger");
+      root.classList.remove("is-open");
       if (menu) {
         menu.hidden = true;
       }
@@ -154,5 +164,13 @@
     }
   });
 
-  document.querySelectorAll("[data-transmission-filter]").forEach(initTransmissionFilter);
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", mountTransmissionFilters);
+  } else {
+    mountTransmissionFilters();
+  }
+
+  function mountTransmissionFilters() {
+    document.querySelectorAll("[data-transmission-filter]").forEach(initTransmissionFilter);
+  }
 })();
