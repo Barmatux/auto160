@@ -656,20 +656,48 @@ body {
   line-height: 1.15;
 }
 
-.catalog-page .filters select,
-.catalog-page .vehicle-hierarchy-field select {
+.catalog-page .filters select {
   padding: 11px 10px;
   min-height: 44px;
   font-size: 15px;
 }
 
+.catalog-page .vehicle-hierarchy-field {
+  font-size: 16px;
+}
+
+.catalog-page .vehicle-hierarchy-label {
+  font-weight: 600;
+  color: #334155;
+}
+
+.catalog-page .vehicle-hierarchy-field select {
+  padding: 12px 12px;
+  min-height: 48px;
+  font-size: 16px;
+  background: linear-gradient(180deg, #eef4ff 0%, #e2ecff 100%);
+  border-color: #c9dcff;
+}
+
+.catalog-page .vehicle-hierarchy-field select:focus {
+  outline: 2px solid #bfdbfe;
+  border-color: #60a5fa;
+}
+
+.catalog-page .vehicle-hierarchy-field select:disabled {
+  background: #edf2f9;
+  opacity: 0.72;
+}
+
 .catalog-page .vehicle-hierarchy-remove {
-  width: 44px;
-  height: 44px;
+  width: 32px;
+  height: 32px;
+  min-height: 32px;
+  font-size: 1rem;
 }
 
 .catalog-page .vehicle-hierarchy-row {
-  grid-template-columns: minmax(140px, 1fr) minmax(140px, 1fr) minmax(180px, 1.4fr) 44px;
+  grid-template-columns: minmax(140px, 1fr) minmax(140px, 1fr) minmax(180px, 1.4fr) 32px;
 }
 
 .catalog-make-card .make-logo-wrap:hover,
@@ -749,27 +777,19 @@ body {
 }
 
 .vehicle-hierarchy-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 10px;
-}
-
-.vehicle-hierarchy-title {
-  margin: 0;
+  display: none;
 }
 
 .vehicle-hierarchy-add {
   appearance: none;
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
-  background: var(--surface-soft);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
   color: var(--primary-dark);
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
   cursor: pointer;
-  padding: 8px 12px;
+  padding: 10px 14px;
   white-space: nowrap;
   transition: border-color 0.15s ease, background 0.15s ease;
 }
@@ -787,7 +807,7 @@ body {
 
 .vehicle-hierarchy-row {
   display: grid;
-  grid-template-columns: minmax(140px, 1fr) minmax(140px, 1fr) minmax(180px, 1.4fr) 38px;
+  grid-template-columns: minmax(140px, 1fr) minmax(140px, 1fr) minmax(180px, 1.4fr) 32px;
   gap: 10px;
   align-items: end;
 }
@@ -835,11 +855,12 @@ body {
   border-radius: 6px;
   background: var(--surface-soft);
   color: #64748b;
-  font-size: 1.1rem;
+  font-size: 1rem;
   line-height: 1;
   cursor: pointer;
-  width: 38px;
-  height: 38px;
+  width: 32px;
+  height: 32px;
+  min-height: 32px;
   padding: 0;
   align-self: end;
   transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
@@ -854,8 +875,8 @@ body {
 .vehicle-hierarchy-actions {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-top: 12px;
+  gap: 10px;
+  margin-top: 14px;
   flex-wrap: wrap;
 }
 
@@ -865,10 +886,17 @@ body {
   background: linear-gradient(180deg, var(--primary), var(--primary-dark));
   color: #fff;
   padding: 10px 14px;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
   cursor: pointer;
   transition: opacity 0.15s ease;
+}
+
+.vehicle-hierarchy-actions .page-link,
+.vehicle-hierarchy-actions .vehicle-hierarchy-reset {
+  padding: 10px 14px;
+  font-size: 15px;
+  font-weight: 600;
 }
 
 .vehicle-hierarchy-submit:hover {
@@ -877,11 +905,11 @@ body {
 
 @media (max-width: 900px) {
   .vehicle-hierarchy-row {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.2fr) 44px;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.2fr) 32px;
   }
 
   .catalog-page .vehicle-hierarchy-row {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.2fr) 44px;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.2fr) 32px;
   }
 }
 
