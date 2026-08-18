@@ -628,7 +628,12 @@ body {
 }
 
 .catalog-make-card {
-  padding: 12px;
+  padding: 14px 10px;
+}
+
+.catalog-makes-grid {
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 10px;
 }
 
 .catalog-make-card .make-logo-wrap:hover,
@@ -746,7 +751,7 @@ body {
 
 .vehicle-hierarchy-row {
   display: grid;
-  grid-template-columns: minmax(140px, 1fr) minmax(140px, 1fr) minmax(180px, 1.4fr) 36px;
+  grid-template-columns: minmax(140px, 1fr) minmax(140px, 1fr) minmax(180px, 1.4fr) 38px;
   gap: 10px;
   align-items: end;
 }
@@ -769,7 +774,8 @@ body {
   box-sizing: border-box;
   border: 1px solid #cbd5e1;
   border-radius: 6px;
-  padding: 8px;
+  padding: 9px 8px;
+  min-height: 38px;
   background: var(--surface-soft);
   color: inherit;
   font-size: 14px;
@@ -796,8 +802,8 @@ body {
   font-size: 1.1rem;
   line-height: 1;
   cursor: pointer;
-  width: 36px;
-  height: 36px;
+  width: 38px;
+  height: 38px;
   padding: 0;
   align-self: end;
   transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
@@ -835,7 +841,7 @@ body {
 
 @media (max-width: 900px) {
   .vehicle-hierarchy-row {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.2fr) 36px;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.2fr) 38px;
   }
 }
 
@@ -2485,7 +2491,8 @@ body.listing-lightbox-open {
   .home-search,
   .home-stats,
   .home-features,
-  .home-makes {
+  .home-makes,
+  .catalog-makes-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
