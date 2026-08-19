@@ -266,30 +266,6 @@ body {
   overflow: visible;
 }
 
-.catalog-transmission-trigger {
-  width: 100%;
-  max-width: 100%;
-  box-sizing: border-box;
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
-  padding: 8px 34px 8px 8px;
-  background: var(--surface-soft);
-  color: inherit;
-  font: inherit;
-  font-size: 14px;
-  line-height: 1.2;
-  text-align: left;
-  cursor: pointer;
-  position: relative;
-  min-height: 0;
-}
-
-.catalog-page .catalog-transmission-trigger {
-  padding: 11px 34px 11px 10px;
-  min-height: 44px;
-  font-size: 15px;
-}
-
 .catalog-transmission-trigger::after {
   content: "";
   position: absolute;
@@ -302,11 +278,6 @@ body {
   border-top: 6px solid #64748b;
   transform: translateY(-35%);
   pointer-events: none;
-}
-
-.catalog-transmission-trigger:focus {
-  outline: 2px solid #bfdbfe;
-  border-color: #60a5fa;
 }
 
 .catalog-filters-panel .catalog-filter-field.is-active .catalog-transmission-trigger {
@@ -720,7 +691,8 @@ body {
 }
 
 .filters input,
-.filters select {
+.filters select,
+.filters .catalog-transmission-trigger {
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
@@ -728,10 +700,22 @@ body {
   border-radius: 6px;
   padding: 8px;
   background: var(--surface-soft);
+  color: inherit;
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.2;
+}
+
+.filters .catalog-transmission-trigger {
+  padding-right: 34px;
+  text-align: left;
+  cursor: pointer;
+  position: relative;
 }
 
 .filters input:focus,
 .filters select:focus,
+.filters .catalog-transmission-trigger:focus,
 .form input:focus,
 .form textarea:focus,
 .form select:focus {
@@ -739,7 +723,7 @@ body {
   border-color: #60a5fa;
 }
 
-.filters button {
+.filters button:not(.catalog-transmission-trigger) {
   align-self: end;
   border: none;
   border-radius: 8px;
@@ -750,7 +734,7 @@ body {
   transition: opacity 0.15s ease;
 }
 
-.filters button:hover {
+.filters button:not(.catalog-transmission-trigger):hover {
   opacity: 0.92;
 }
 
@@ -982,10 +966,17 @@ body {
   line-height: 1.15;
 }
 
-.catalog-page .filters select {
-  padding: 11px 10px;
+.catalog-page .filters select,
+.catalog-page .filters .catalog-transmission-trigger {
+  padding-top: 11px;
+  padding-bottom: 11px;
+  padding-left: 10px;
   min-height: 44px;
   font-size: 15px;
+}
+
+.catalog-page .filters .catalog-transmission-trigger {
+  padding-right: 34px;
 }
 
 .catalog-page .vehicle-hierarchy-field {
