@@ -30,11 +30,11 @@
           {% endfor %}
         </select>
       </label>
-      <div
+      <label
         class="catalog-filter-field catalog-transmission-dropdown{% if catalog_sidebar.filters.transmission %} is-active{% endif %}"
         data-transmission-filter
       >
-        <span class="catalog-transmission-label">КПП</span>
+        Коробка передач
         <button
           type="button"
           class="catalog-transmission-trigger"
@@ -83,7 +83,7 @@
           {% endfor %}
         </div>
         <div class="catalog-transmission-values"></div>
-      </div>
+      </label>
       <label class="catalog-filter-field{% if catalog_sidebar.filters.year_from %} is-active{% endif %}">
         Год от
         <select name="year_from">
@@ -123,7 +123,7 @@
       </label>
     </div>
 
-    <button type="submit">Применить</button>
+    <button type="submit" class="catalog-filters-submit">Применить</button>
     <a class="page-link" href="{{ filters_reset_url | default('/catalog') }}">Сбросить</a>
   </form>
 </aside>
