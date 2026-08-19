@@ -252,86 +252,6 @@ body {
   padding: 8px 10px;
 }
 
-.catalog-transmission-dropdown {
-  position: relative;
-  min-width: 0;
-  z-index: 1;
-}
-
-.catalog-transmission-dropdown.is-open {
-  z-index: 50;
-}
-
-.catalog-sidebar:has(.catalog-transmission-dropdown.is-open) {
-  overflow: visible;
-}
-
-.catalog-transmission-trigger::after {
-  content: "";
-  position: absolute;
-  top: 50%;
-  right: 12px;
-  width: 0;
-  height: 0;
-  border-left: 5px solid transparent;
-  border-right: 5px solid transparent;
-  border-top: 6px solid #64748b;
-  transform: translateY(-35%);
-  pointer-events: none;
-}
-
-.catalog-filters-panel .catalog-filter-field.is-active .catalog-transmission-trigger {
-  background: linear-gradient(180deg, #eef4ff 0%, #e2ecff 100%);
-  border-color: #c9dcff;
-}
-
-.catalog-transmission-menu {
-  display: none;
-  position: absolute;
-  top: calc(100% + 4px);
-  left: 0;
-  right: 0;
-  z-index: 60;
-  gap: 0;
-  padding: 6px 0;
-  border: 1px solid #c9dcff;
-  border-radius: 10px;
-  background: var(--surface);
-  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.12);
-  max-height: 280px;
-  overflow-y: auto;
-}
-
-.catalog-transmission-dropdown.is-open .catalog-transmission-menu {
-  display: grid;
-}
-
-.catalog-transmission-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 9px 12px;
-  font-size: 0.92rem;
-  line-height: 1.3;
-  cursor: pointer;
-}
-
-.catalog-transmission-row-sub {
-  padding-left: 28px;
-}
-
-.catalog-transmission-row.is-selected {
-  background: linear-gradient(180deg, #eef4ff 0%, #e2ecff 100%);
-}
-
-.catalog-transmission-row input {
-  width: 16px;
-  height: 16px;
-  margin: 0;
-  flex: 0 0 auto;
-}
-
 .catalog-filters-panel select:disabled {
   opacity: 0.55;
   cursor: not-allowed;
@@ -691,8 +611,7 @@ body {
 }
 
 .filters input,
-.filters select,
-.filters .catalog-transmission-trigger {
+.filters select {
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
@@ -706,16 +625,8 @@ body {
   line-height: 1.2;
 }
 
-.filters .catalog-transmission-trigger {
-  padding-right: 34px;
-  text-align: left;
-  cursor: pointer;
-  position: relative;
-}
-
 .filters input:focus,
 .filters select:focus,
-.filters .catalog-transmission-trigger:focus,
 .form input:focus,
 .form textarea:focus,
 .form select:focus {
@@ -723,7 +634,7 @@ body {
   border-color: #60a5fa;
 }
 
-.filters button:not(.catalog-transmission-trigger) {
+.filters button {
   align-self: end;
   border: none;
   border-radius: 8px;
@@ -734,7 +645,7 @@ body {
   transition: opacity 0.15s ease;
 }
 
-.filters button:not(.catalog-transmission-trigger):hover {
+.filters button:hover {
   opacity: 0.92;
 }
 
@@ -966,17 +877,10 @@ body {
   line-height: 1.15;
 }
 
-.catalog-page .filters select,
-.catalog-page .filters .catalog-transmission-trigger {
-  padding-top: 11px;
-  padding-bottom: 11px;
-  padding-left: 10px;
+.catalog-page .filters select {
+  padding: 11px 10px;
   min-height: 44px;
   font-size: 15px;
-}
-
-.catalog-page .filters .catalog-transmission-trigger {
-  padding-right: 34px;
 }
 
 .catalog-page .vehicle-hierarchy-field {

@@ -34,8 +34,7 @@ from app.transmission_labels import (
     TRANSMISSION_SLUG_AUTO,
     apply_catalog_transmission_filter,
     parse_transmission_filter_values,
-    transmission_filter_checked_slugs,
-    transmission_filter_display_label,
+    transmission_filter_select_value,
 )
 from app.export_country_labels import (
     EXPORT_COUNTRY_FILTER_OPTIONS,
@@ -1023,8 +1022,7 @@ def _catalog_sidebar_payload(request: Request, db: Session, current_user=None) -
             "export_country": query.get("export_country", ""),
             "fuel_type": fuel_type_filter,
             "transmission": transmission_slugs,
-            "transmission_checked": sorted(transmission_filter_checked_slugs(transmission_slugs)),
-            "transmission_display": transmission_filter_display_label(transmission_slugs),
+            "transmission_select": transmission_filter_select_value(transmission_slugs),
             "year_from": parsed_year_from if parsed_year_from is not None else "",
             "year_to": parsed_year_to if parsed_year_to is not None else "",
             "sort": query.get("sort", "year_desc"),

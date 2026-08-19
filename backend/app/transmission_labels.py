@@ -169,6 +169,21 @@ def transmission_filter_submit_slugs(slugs: list[str]) -> list[str]:
     return submitted
 
 
+def transmission_filter_select_value(slugs: list[str]) -> str:
+    if not slugs:
+        return ""
+    slugs_set = set(slugs)
+    auto_subtypes = set(TRANSMISSION_AUTO_SLUGS)
+    if TRANSMISSION_SLUG_AUTO in slugs_set or auto_subtypes.issubset(slugs_set):
+        return TRANSMISSION_SLUG_AUTO
+    for slug in slugs:
+        if slug in auto_subtypes:
+            return slug
+    if TRANSMISSION_SLUG_MANUAL in slugs_set:
+        return TRANSMISSION_SLUG_MANUAL
+    return slugs[0]
+
+
 def apply_catalog_transmission_filter(query, column, *, raw_values: list[str], slugs: list[str]):
     if not slugs:
         return query

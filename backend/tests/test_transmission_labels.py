@@ -11,6 +11,7 @@ from app.transmission_labels import (
     transmission_db_values_for_slugs,
     transmission_filter_checked_slugs,
     transmission_filter_display_label,
+    transmission_filter_select_value,
     transmission_filter_submit_slugs,
 )
 
@@ -68,3 +69,6 @@ def test_transmission_filter_ui_helpers():
     assert transmission_filter_submit_slugs(
         [TRANSMISSION_SLUG_AUTO_CLASSIC, TRANSMISSION_SLUG_ROBOT, TRANSMISSION_SLUG_CVT]
     ) == [TRANSMISSION_SLUG_AUTO]
+    assert transmission_filter_select_value([TRANSMISSION_SLUG_AUTO]) == TRANSMISSION_SLUG_AUTO
+    assert transmission_filter_select_value([TRANSMISSION_SLUG_ROBOT]) == TRANSMISSION_SLUG_ROBOT
+    assert transmission_filter_select_value([]) == ""

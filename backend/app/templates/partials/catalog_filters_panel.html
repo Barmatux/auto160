@@ -9,7 +9,7 @@
     {% if preserve_model is defined and preserve_model %}
       <input type="hidden" name="model" value="{{ preserve_model }}" />
     {% endif %}
-    {% set checked_transmissions = catalog_sidebar.filters.transmission_checked %}
+    {% set selected_transmission = catalog_sidebar.filters.transmission_select %}
     <div class="catalog-filter-group">
       <p class="catalog-filter-group-title">Характеристики</p>
       <label class="catalog-filter-field{% if catalog_sidebar.filters.body_type %} is-active{% endif %}">
@@ -30,59 +30,23 @@
           {% endfor %}
         </select>
       </label>
-      <label
-        class="catalog-filter-field catalog-transmission-dropdown{% if catalog_sidebar.filters.transmission %} is-active{% endif %}"
-        data-transmission-filter
-      >
+      <label class="catalog-filter-field{% if selected_transmission %} is-active{% endif %}">
         Коробка передач
-        <button
-          type="button"
-          class="catalog-transmission-trigger"
-          aria-expanded="false"
-          aria-haspopup="listbox"
-        >
-          <span class="catalog-transmission-trigger-label">{{ catalog_sidebar.filters.transmission_display }}</span>
-        </button>
-        <div class="catalog-transmission-menu" hidden>
+        <select name="transmission">
+          <option value="" {% if selected_transmission == "" %}selected{% endif %}>Любая</option>
           {% for group in catalog_sidebar.options.transmission_groups %}
             {% if group.subtypes %}
-              <label class="catalog-transmission-row{% if group.slug in checked_transmissions %} is-selected{% endif %}">
-                <span>{{ group.label }}</span>
-                <input
-                  type="checkbox"
-                  value="{{ group.slug }}"
-                  data-transmission-role="parent"
-                  data-label="{{ group.label }}"
-                  {% if group.slug in checked_transmissions %}checked{% endif %}
-                />
-              </label>
-              {% for subtype in group.subtypes %}
-                <label class="catalog-transmission-row catalog-transmission-row-sub{% if subtype.slug in checked_transmissions %} is-selected{% endif %}">
-                  <span>{{ subtype.label }}</span>
-                  <input
-                    type="checkbox"
-                    value="{{ subtype.slug }}"
-                    data-transmission-role="subtype"
-                    data-label="{{ subtype.label }}"
-                    {% if subtype.slug in checked_transmissions %}checked{% endif %}
-                  />
-                </label>
-              {% endfor %}
+              <optgroup label="{{ group.label }}">
+                <option value="{{ group.slug }}" {% if selected_transmission == group.slug %}selected{% endif %}>{{ group.label }}</option>
+                {% for subtype in group.subtypes %}
+                  <option value="{{ subtype.slug }}" {% if selected_transmission == subtype.slug %}selected{% endif %}>{{ subtype.label }}</option>
+                {% endfor %}
+              </optgroup>
             {% else %}
-              <label class="catalog-transmission-row{% if group.slug in checked_transmissions %} is-selected{% endif %}">
-                <span>{{ group.label }}</span>
-                <input
-                  type="checkbox"
-                  value="{{ group.slug }}"
-                  data-transmission-role="manual"
-                  data-label="{{ group.label }}"
-                  {% if group.slug in checked_transmissions %}checked{% endif %}
-                />
-              </label>
+              <option value="{{ group.slug }}" {% if selected_transmission == group.slug %}selected{% endif %}>{{ group.label }}</option>
             {% endif %}
           {% endfor %}
-        </div>
-        <div class="catalog-transmission-values"></div>
+        </select>
       </label>
       <label class="catalog-filter-field{% if catalog_sidebar.filters.year_from %} is-active{% endif %}">
         Год от
@@ -127,4 +91,3 @@
     <a class="page-link" href="{{ filters_reset_url | default('/catalog') }}">Сбросить</a>
   </form>
 </aside>
-<script src="/static/catalog_transmission_filter.js?v=20260819-02" defer></script>
