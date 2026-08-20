@@ -14,7 +14,7 @@
     {% set checked_transmissions = catalog_sidebar.filters.transmission_checked %}
     <div class="catalog-filter-group">
       <p class="catalog-filter-group-title">Характеристики</p>
-      <label
+      <div
         class="catalog-filter-field catalog-multi-select{% if selected_body_types %} is-active{% endif %}"
         data-catalog-multi-select
         data-param-name="body_type"
@@ -44,8 +44,8 @@
           {% endfor %}
         </div>
         <div class="catalog-multi-select-values"></div>
-      </label>
-      <label
+      </div>
+      <div
         class="catalog-filter-field catalog-multi-select{% if selected_fuel_types %} is-active{% endif %}"
         data-catalog-multi-select
         data-param-name="fuel_type"
@@ -75,7 +75,7 @@
           {% endfor %}
         </div>
         <div class="catalog-multi-select-values"></div>
-      </label>
+      </div>
       <div
         class="catalog-filter-field catalog-multi-select{% if catalog_sidebar.filters.transmission %} is-active{% endif %}"
         data-catalog-multi-select
@@ -83,7 +83,7 @@
         data-placeholder="Любая"
         data-hierarchical="transmission"
       >
-        <span class="catalog-filter-field-label">Коробка передач</span>
+        Коробка передач
         <button
           type="button"
           class="catalog-multi-select-trigger"
@@ -175,4 +175,4 @@
     <a class="page-link" href="{{ filters_reset_url | default('/catalog') }}">Сбросить</a>
   </form>
 </aside>
-<script src="/static/catalog_multi_select.js?v=20260820-01" defer></script>
+<script src="/static/catalog_multi_select.js?v=20260820-02" defer></script>
