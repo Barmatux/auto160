@@ -34,7 +34,8 @@ from app.transmission_labels import (
     TRANSMISSION_SLUG_AUTO,
     apply_catalog_transmission_filter,
     parse_transmission_filter_values,
-    transmission_filter_select_value,
+    transmission_filter_checked_slugs,
+    transmission_filter_display_label,
 )
 from app.export_country_labels import (
     EXPORT_COUNTRY_FILTER_OPTIONS,
@@ -1010,19 +1011,22 @@ def _catalog_sidebar_payload(request: Request, db: Session, current_user=None) -
     model_options = make_model_map.get(make, []) if make else []
     generation_options = make_model_generation_map.get(make, {}).get(model, []) if make and model else []
     body_type_raw = _catalog_body_type_values(db)
-    body_type_filter = normalize_body_type_label(query.get("body_type") or "") or ""
-    fuel_type_filter = normalize_fuel_type_label(query.get("fuel_type") or "") or ""
+    body_types = _parse_multi_catalog_filter_values(query.getlist("body_type"), normalize_body_type_label)
+    fuel_types = _parse_multi_catalog_filter_values(query.getlist("fuel_type"), normalize_fuel_type_label)
     transmission_slugs = parse_transmission_filter_values(query.getlist("transmission"))
     return {
         "filters": {
             "make": make,
             "model": model,
             "generation": generation,
-            "body_type": body_type_filter,
+            "body_types": body_types,
+            "body_type_display": _multi_filter_display_label(body_types, "Любой"),
             "export_country": query.get("export_country", ""),
-            "fuel_type": fuel_type_filter,
+            "fuel_types": fuel_types,
+            "fuel_type_display": _multi_filter_display_label(fuel_types, "Любое"),
             "transmission": transmission_slugs,
-            "transmission_select": transmission_filter_select_value(transmission_slugs),
+            "transmission_checked": sorted(transmission_filter_checked_slugs(transmission_slugs)),
+            "transmission_display": transmission_filter_display_label(transmission_slugs),
             "year_from": parsed_year_from if parsed_year_from is not None else "",
             "year_to": parsed_year_to if parsed_year_to is not None else "",
             "sort": query.get("sort", "year_desc"),
@@ -1053,20 +1057,38 @@ def _catalog_sidebar_payload(request: Request, db: Session, current_user=None) -
     }
 
 
-_CATALOG_FILTER_PARAM_KEYS = ("body_type", "export_country", "fuel_type", "year_from", "year_to")
+_CATALOG_FILTER_PARAM_KEYS = ("export_country", "year_from", "year_to")
 _CATALOG_NAV_EXCLUDE = frozenset({"make", "model", "generation"})
+
+
+def _parse_multi_catalog_filter_values(raw_values: list[str], normalize_fn) -> list[str]:
+    result: list[str] = []
+    for raw in raw_values:
+        if not raw:
+            continue
+        val = normalize_fn(raw) or raw.strip()
+        if val and val not in result:
+            result.append(val)
+    return result
+
+
+def _multi_filter_display_label(selected: list[str], placeholder: str) -> str:
+    return ", ".join(selected) if selected else placeholder
 
 
 def _parse_catalog_sidebar_filter_kwargs(request: Request, current_user=None) -> tuple[dict, bool, bool]:
     q = request.query_params
     exact_hp = _catalog_admin_exact_hp(request, current_user)
     with_listings = _query_flag(q.get("with_listings"))
+    body_types = _parse_multi_catalog_filter_values(q.getlist("body_type"), normalize_body_type_label)
+    fuel_types = _parse_multi_catalog_filter_values(q.getlist("fuel_type"), normalize_fuel_type_label)
+    transmission_slugs = parse_transmission_filter_values(q.getlist("transmission"))
     return (
         {
-            "body_type": normalize_body_type_label(q.get("body_type") or "") or None,
+            "body_types": body_types,
             "export_country": (q.get("export_country") or "").strip() or None,
-            "fuel_type": normalize_fuel_type_label(q.get("fuel_type") or "") or None,
-            "transmission_slugs": parse_transmission_filter_values(q.getlist("transmission")),
+            "fuel_types": fuel_types,
+            "transmission_slugs": transmission_slugs,
             "parsed_year_from": _parse_optional_year(q.get("year_from")),
             "parsed_year_to": _parse_optional_year(q.get("year_to")),
         },
@@ -1089,6 +1111,12 @@ def _catalog_filter_query_pairs(
         val = (q.get(key) or "").strip()
         if val:
             pairs.append((key, val))
+    if "body_type" not in exclude:
+        for val in _parse_multi_catalog_filter_values(q.getlist("body_type"), normalize_body_type_label):
+            pairs.append(("body_type", val))
+    if "fuel_type" not in exclude:
+        for val in _parse_multi_catalog_filter_values(q.getlist("fuel_type"), normalize_fuel_type_label):
+            pairs.append(("fuel_type", val))
     if "exact_hp" not in exclude and _query_flag(q.get("exact_hp")):
         pairs.append(("exact_hp", "1"))
     if "with_listings" not in exclude and _query_flag(q.get("with_listings")):
@@ -1588,8 +1616,10 @@ def _apply_catalog_item_filters(
     model: str | None = None,
     generation: str | None = None,
     body_type: str | None = None,
+    body_types: list[str] | None = None,
     export_country: str | None = None,
     fuel_type: str | None = None,
+    fuel_types: list[str] | None = None,
     transmission_slugs: list[str] | None = None,
     parsed_year_from: int | None = None,
     parsed_year_to: int | None = None,
@@ -1603,25 +1633,41 @@ def _apply_catalog_item_filters(
             query = query.filter(CatalogItem.model == _canonical_model_name(model))
         if generation:
             query = query.filter(CatalogItem.generation == generation)
-    if body_type:
-        canonical = normalize_body_type_label(body_type) or body_type
-        match_values = body_type_db_values_for_filter(_catalog_body_type_values(db), canonical)
-        if match_values:
-            query = query.filter(CatalogItem.body_type.in_(match_values))
+    selected_body_types = list(body_types or [])
+    if body_type and not selected_body_types:
+        selected_body_types = [body_type]
+    if selected_body_types:
+        all_body_matches: list[str] = []
+        raw_body = _catalog_body_type_values(db)
+        for bt in selected_body_types:
+            canonical = normalize_body_type_label(bt) or bt
+            all_body_matches.extend(body_type_db_values_for_filter(raw_body, canonical))
+        unique_body = list(dict.fromkeys(all_body_matches))
+        if unique_body:
+            query = query.filter(CatalogItem.body_type.in_(unique_body))
     if export_country and not is_belarus_export_country(export_country):
         query = query.filter(CatalogItem.export_country.ilike(f"%{export_country}%"))
-    if fuel_type:
-        canonical = normalize_fuel_type_label(fuel_type) or fuel_type
+    selected_fuel_types = list(fuel_types or [])
+    if fuel_type and not selected_fuel_types:
+        selected_fuel_types = [fuel_type]
+    if selected_fuel_types:
         hybrid_pred = _catalog_is_hybrid_predicate()
-        if canonical == FUEL_GROUP_HYBRID:
-            query = query.filter(hybrid_pred)
-        else:
-            match_values = fuel_type_db_values_for_filter(_catalog_fuel_type_values(db), canonical)
-            if match_values:
-                query = query.filter(CatalogItem.fuel_type.in_(match_values))
+        fuel_preds = []
+        raw_fuel = _catalog_fuel_type_values(db)
+        for ft in selected_fuel_types:
+            canonical = normalize_fuel_type_label(ft) or ft
+            if canonical == FUEL_GROUP_HYBRID:
+                fuel_preds.append(hybrid_pred)
             else:
-                query = query.filter(CatalogItem.fuel_type.ilike(f"%{fuel_type}%"))
-            query = query.filter(~hybrid_pred)
+                match_values = fuel_type_db_values_for_filter(raw_fuel, canonical)
+                if match_values:
+                    fuel_preds.append(CatalogItem.fuel_type.in_(match_values))
+                else:
+                    fuel_preds.append(CatalogItem.fuel_type.ilike(f"%{ft}%"))
+        if fuel_preds:
+            query = query.filter(or_(*fuel_preds))
+            if not any((normalize_fuel_type_label(ft) or ft) == FUEL_GROUP_HYBRID for ft in selected_fuel_types):
+                query = query.filter(~hybrid_pred)
     if transmission_slugs:
         query = apply_catalog_transmission_filter(
             query,
@@ -2325,9 +2371,7 @@ def catalog_generations(
 @router.get("/catalog/modifications")
 def catalog_modifications(
     request: Request,
-    body_type: str | None = Query(default=None),
     export_country: str | None = Query(default=None),
-    fuel_type: str | None = Query(default=None),
     year_from: str | None = Query(default=None),
     year_to: str | None = Query(default=None),
     exact_hp: bool = Query(default=False),
@@ -2344,19 +2388,25 @@ def catalog_modifications(
     make = primary_row.get("make") or None
     model = primary_row.get("model") or None
     generation = primary_row.get("generation") or None
-    parsed_year_from = _parse_optional_year(year_from)
-    parsed_year_to = _parse_optional_year(year_to)
-    body_type = normalize_body_type_label(body_type) if body_type else None
-    fuel_type = normalize_fuel_type_label(fuel_type) if fuel_type else None
+    parsed_year_from = _parse_optional_year(request.query_params.get("year_from"))
+    parsed_year_to = _parse_optional_year(request.query_params.get("year_to"))
+    body_types = _parse_multi_catalog_filter_values(
+        request.query_params.getlist("body_type"),
+        normalize_body_type_label,
+    )
+    fuel_types = _parse_multi_catalog_filter_values(
+        request.query_params.getlist("fuel_type"),
+        normalize_fuel_type_label,
+    )
     transmission_slugs = parse_transmission_filter_values(request.query_params.getlist("transmission"))
     query = _apply_hp_filter(db.query(CatalogItem), exact_hp=exact_hp)
     query = _apply_catalog_item_filters(
         query=query,
         db=db,
         vehicle_rows=vehicle_rows,
-        body_type=body_type,
+        body_types=body_types,
         export_country=export_country,
-        fuel_type=fuel_type,
+        fuel_types=fuel_types,
         transmission_slugs=transmission_slugs,
         parsed_year_from=parsed_year_from,
         parsed_year_to=parsed_year_to,
@@ -2404,9 +2454,9 @@ def catalog_modifications(
     offset = (page - 1) * page_size
     items = deduped_items[offset : offset + page_size]
     extra_filters = bool(
-        body_type
+        body_types
         or export_country
-        or fuel_type
+        or fuel_types
         or transmission_slugs
         or parsed_year_from is not None
         or parsed_year_to is not None
@@ -2440,9 +2490,9 @@ def catalog_modifications(
         "make": make or "",
         "model": model or "",
         "generation": generation or "",
-        "body_type": normalize_body_type_label(body_type) or "" if body_type else "",
+        "body_types": body_types,
         "export_country": export_country or "",
-        "fuel_type": fuel_type or "",
+        "fuel_types": fuel_types,
         "transmission": transmission_slugs,
         "year_from": parsed_year_from if parsed_year_from is not None else "",
         "year_to": parsed_year_to if parsed_year_to is not None else "",
@@ -2452,12 +2502,14 @@ def catalog_modifications(
 
     def build_page_url(page_num: int) -> str:
         pairs = _vehicle_rows_to_query_pairs(vehicle_rows, make_key="make", model_key="model", generation_key="generation")
-        if body_type:
-            pairs.append(("body_type", body_type))
+        if body_types:
+            for val in body_types:
+                pairs.append(("body_type", val))
         if export_country:
             pairs.append(("export_country", export_country))
-        if fuel_type:
-            pairs.append(("fuel_type", fuel_type))
+        if fuel_types:
+            for val in fuel_types:
+                pairs.append(("fuel_type", val))
         for slug in transmission_slugs:
             pairs.append(("transmission", slug))
         if parsed_year_from is not None:

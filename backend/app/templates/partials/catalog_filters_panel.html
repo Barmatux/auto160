@@ -9,63 +9,147 @@
     {% if preserve_model is defined and preserve_model %}
       <input type="hidden" name="model" value="{{ preserve_model }}" />
     {% endif %}
-    {% set selected_transmission = catalog_sidebar.filters.transmission_select %}
+    {% set selected_body_types = catalog_sidebar.filters.body_types %}
+    {% set selected_fuel_types = catalog_sidebar.filters.fuel_types %}
+    {% set checked_transmissions = catalog_sidebar.filters.transmission_checked %}
     <div class="catalog-filter-group">
       <p class="catalog-filter-group-title">Характеристики</p>
-      <label class="catalog-filter-field{% if catalog_sidebar.filters.body_type %} is-active{% endif %}">
+      <label
+        class="catalog-filter-field catalog-multi-select{% if selected_body_types %} is-active{% endif %}"
+        data-catalog-multi-select
+        data-param-name="body_type"
+        data-placeholder="Любой"
+      >
         Тип кузова
-        <select name="body_type">
-          <option value="" {% if catalog_sidebar.filters.body_type == "" %}selected{% endif %}>Любой</option>
+        <button
+          type="button"
+          class="catalog-multi-select-trigger"
+          aria-expanded="false"
+          aria-haspopup="listbox"
+        >
+          <span class="catalog-multi-select-trigger-label">{{ catalog_sidebar.filters.body_type_display }}</span>
+        </button>
+        <div class="catalog-multi-select-menu" hidden>
           {% for value in catalog_sidebar.options.body_type %}
-            <option value="{{ value }}" {% if catalog_sidebar.filters.body_type == value %}selected{% endif %}>{{ value }}</option>
+            <label class="catalog-multi-select-row{% if value in selected_body_types %} is-selected{% endif %}">
+              <span>{{ value }}</span>
+              <input
+                type="checkbox"
+                value="{{ value }}"
+                data-multi-select-role="option"
+                data-label="{{ value }}"
+                {% if value in selected_body_types %}checked{% endif %}
+              />
+            </label>
           {% endfor %}
-        </select>
+        </div>
+        <div class="catalog-multi-select-values"></div>
       </label>
-      <label class="catalog-filter-field{% if catalog_sidebar.filters.fuel_type %} is-active{% endif %}">
+      <label
+        class="catalog-filter-field catalog-multi-select{% if selected_fuel_types %} is-active{% endif %}"
+        data-catalog-multi-select
+        data-param-name="fuel_type"
+        data-placeholder="Любое"
+      >
         Топливо
-        <select name="fuel_type">
-          <option value="" {% if catalog_sidebar.filters.fuel_type == "" %}selected{% endif %}>Любое</option>
+        <button
+          type="button"
+          class="catalog-multi-select-trigger"
+          aria-expanded="false"
+          aria-haspopup="listbox"
+        >
+          <span class="catalog-multi-select-trigger-label">{{ catalog_sidebar.filters.fuel_type_display }}</span>
+        </button>
+        <div class="catalog-multi-select-menu" hidden>
           {% for value in catalog_sidebar.options.fuel_type %}
-            <option value="{{ value }}" {% if catalog_sidebar.filters.fuel_type == value %}selected{% endif %}>{{ value }}</option>
+            <label class="catalog-multi-select-row{% if value in selected_fuel_types %} is-selected{% endif %}">
+              <span>{{ value }}</span>
+              <input
+                type="checkbox"
+                value="{{ value }}"
+                data-multi-select-role="option"
+                data-label="{{ value }}"
+                {% if value in selected_fuel_types %}checked{% endif %}
+              />
+            </label>
           {% endfor %}
-        </select>
+        </div>
+        <div class="catalog-multi-select-values"></div>
       </label>
-      <label class="catalog-filter-field{% if selected_transmission %} is-active{% endif %}">
-        Коробка передач
-        <select name="transmission">
-          <option value="" {% if selected_transmission == "" %}selected{% endif %}>Любая</option>
+      <div
+        class="catalog-filter-field catalog-multi-select{% if catalog_sidebar.filters.transmission %} is-active{% endif %}"
+        data-catalog-multi-select
+        data-param-name="transmission"
+        data-placeholder="Любая"
+        data-hierarchical="transmission"
+      >
+        <span class="catalog-filter-field-label">Коробка передач</span>
+        <button
+          type="button"
+          class="catalog-multi-select-trigger"
+          aria-expanded="false"
+          aria-haspopup="listbox"
+        >
+          <span class="catalog-multi-select-trigger-label">{{ catalog_sidebar.filters.transmission_display }}</span>
+        </button>
+        <div class="catalog-multi-select-menu" hidden>
           {% for group in catalog_sidebar.options.transmission_groups %}
             {% if group.subtypes %}
-              <optgroup label="{{ group.label }}">
-                <option value="{{ group.slug }}" {% if selected_transmission == group.slug %}selected{% endif %}>{{ group.label }}</option>
-                {% for subtype in group.subtypes %}
-                  <option value="{{ subtype.slug }}" {% if selected_transmission == subtype.slug %}selected{% endif %}>{{ subtype.label }}</option>
-                {% endfor %}
-              </optgroup>
+              <label class="catalog-multi-select-row catalog-multi-select-row-group{% if group.slug in checked_transmissions %} is-selected{% endif %}">
+                <span>{{ group.label }}</span>
+                <input
+                  type="checkbox"
+                  value="{{ group.slug }}"
+                  data-multi-select-role="parent"
+                  data-label="{{ group.label }}"
+                  {% if group.slug in checked_transmissions %}checked{% endif %}
+                />
+              </label>
+              {% for subtype in group.subtypes %}
+                <label class="catalog-multi-select-row catalog-multi-select-row-sub{% if subtype.slug in checked_transmissions %} is-selected{% endif %}">
+                  <span>{{ subtype.label }}</span>
+                  <input
+                    type="checkbox"
+                    value="{{ subtype.slug }}"
+                    data-multi-select-role="subtype"
+                    data-label="{{ subtype.label }}"
+                    {% if subtype.slug in checked_transmissions %}checked{% endif %}
+                  />
+                </label>
+              {% endfor %}
             {% else %}
-              <option value="{{ group.slug }}" {% if selected_transmission == group.slug %}selected{% endif %}>{{ group.label }}</option>
+              <label class="catalog-multi-select-row{% if group.slug in checked_transmissions %} is-selected{% endif %}">
+                <span>{{ group.label }}</span>
+                <input
+                  type="checkbox"
+                  value="{{ group.slug }}"
+                  data-multi-select-role="manual"
+                  data-label="{{ group.label }}"
+                  {% if group.slug in checked_transmissions %}checked{% endif %}
+                />
+              </label>
             {% endif %}
           {% endfor %}
-        </select>
-      </label>
-      <label class="catalog-filter-field{% if catalog_sidebar.filters.year_from %} is-active{% endif %}">
-        Год от
-        <select name="year_from">
-          <option value="" {% if catalog_sidebar.filters.year_from == "" %}selected{% endif %}>Не важно</option>
-          {% for year in catalog_sidebar.options.years %}
-            <option value="{{ year }}" {% if catalog_sidebar.filters.year_from == year %}selected{% endif %}>{{ year }}</option>
-          {% endfor %}
-        </select>
-      </label>
-      <label class="catalog-filter-field{% if catalog_sidebar.filters.year_to %} is-active{% endif %}">
-        Год до
-        <select name="year_to">
-          <option value="" {% if catalog_sidebar.filters.year_to == "" %}selected{% endif %}>Не важно</option>
-          {% for year in catalog_sidebar.options.years %}
-            <option value="{{ year }}" {% if catalog_sidebar.filters.year_to == year %}selected{% endif %}>{{ year }}</option>
-          {% endfor %}
-        </select>
-      </label>
+        </div>
+        <div class="catalog-multi-select-values"></div>
+      </div>
+      <div class="catalog-filter-field catalog-filter-year-range{% if catalog_sidebar.filters.year_from or catalog_sidebar.filters.year_to %} is-active{% endif %}">
+        <span class="catalog-filter-field-label">Год</span>
+        <div class="catalog-filter-year-range-inputs">
+          <select name="year_from">
+            <option value="" {% if catalog_sidebar.filters.year_from == "" %}selected{% endif %}>от</option>
+            {% for year in catalog_sidebar.options.years %}
+              <option value="{{ year }}" {% if catalog_sidebar.filters.year_from == year %}selected{% endif %}>{{ year }}</option>
+            {% endfor %}
+          </select>
+          <select name="year_to">
+            <option value="" {% if catalog_sidebar.filters.year_to == "" %}selected{% endif %}>до</option>
+            {% for year in catalog_sidebar.options.years %}
+              <option value="{{ year }}" {% if catalog_sidebar.filters.year_to == year %}selected{% endif %}>{{ year }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
       <label class="catalog-filter-field{% if catalog_sidebar.filters.export_country %} is-active{% endif %}">
         Страна экспорта
         <select name="export_country">
@@ -91,3 +175,4 @@
     <a class="page-link" href="{{ filters_reset_url | default('/catalog') }}">Сбросить</a>
   </form>
 </aside>
+<script src="/static/catalog_multi_select.js?v=20260820-01" defer></script>
