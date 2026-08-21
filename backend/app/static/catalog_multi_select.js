@@ -16,10 +16,13 @@
     const optionInputs = hierarchical
       ? []
       : Array.from(root.querySelectorAll('[data-multi-select-role="option"]'));
-    const rows = Array.from(root.querySelectorAll(".catalog-multi-select-row"));
 
     if (!trigger || !menu || !valuesHost || !labelNode || !paramName) {
       return;
+    }
+
+    if (root.dataset.menuFit === "content") {
+      menu.classList.add("is-fit-content");
     }
 
     function allInputs() {
@@ -38,10 +41,29 @@
       return optionInputs;
     }
 
+    function referenceSelect() {
+      const form = root.closest("form");
+      return form ? form.querySelector('select[name="export_country"]') : null;
+    }
+
+    function syncTriggerHeight() {
+      const ref = referenceSelect();
+      if (!ref) {
+        return;
+      }
+      const height = ref.getBoundingClientRect().height;
+      trigger.style.height = `${height}px`;
+      trigger.style.minHeight = `${height}px`;
+      trigger.style.maxHeight = `${height}px`;
+    }
+
     function setMenuOpen(open) {
       root.classList.toggle("is-open", open);
       menu.hidden = !open;
       trigger.setAttribute("aria-expanded", open ? "true" : "false");
+      if (open) {
+        syncTriggerHeight();
+      }
     }
 
     function setRowSelected(input, selected) {
@@ -134,6 +156,12 @@
       parentInput.checked = subtypeInputs.length > 0 && subtypeInputs.every((input) => input.checked);
     }
 
+    function toggleMenu() {
+      const willOpen = !root.classList.contains("is-open");
+      closeAllMenus();
+      setMenuOpen(willOpen);
+    }
+
     if (hierarchical && parentInput) {
       parentInput.addEventListener("change", () => {
         setAutoGroupChecked(parentInput.checked);
@@ -169,9 +197,14 @@
     trigger.addEventListener("click", (event) => {
       event.preventDefault();
       event.stopPropagation();
-      const willOpen = !root.classList.contains("is-open");
-      closeAllMenus();
-      setMenuOpen(willOpen);
+      toggleMenu();
+    });
+
+    trigger.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        toggleMenu();
+      }
     });
 
     menu.addEventListener("click", (event) => {
@@ -186,6 +219,8 @@
 
     setMenuOpen(false);
     syncHiddenInputs();
+    syncTriggerHeight();
+    window.addEventListener("resize", syncTriggerHeight);
   }
 
   function closeAllMenus() {
