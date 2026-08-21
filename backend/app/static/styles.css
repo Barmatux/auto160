@@ -1558,6 +1558,24 @@ body {
   color: var(--danger);
 }
 
+.admin-ratings-row-hidden td {
+  opacity: 0.72;
+}
+
+.admin-catalog-visibility-btn {
+  margin-top: 8px;
+}
+
+.admin-catalog-visibility-status {
+  margin-top: 4px;
+  font-size: 0.82rem;
+  color: #166534;
+}
+
+.admin-catalog-visibility-status.is-error {
+  color: var(--danger);
+}
+
 .admin-analytics-tabs {
   display: flex;
   flex-wrap: wrap;

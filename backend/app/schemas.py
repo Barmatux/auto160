@@ -297,6 +297,21 @@ class CatalogGenerationRatingResult(BaseModel):
     mixed: bool = False
 
 
+class CatalogGenerationVisibilityUpdate(BaseModel):
+    make: str = Field(min_length=1, max_length=80)
+    model: str = Field(min_length=1, max_length=120)
+    generation: str = ""
+    hidden: bool
+
+
+class CatalogGenerationVisibilityResult(BaseModel):
+    make: str
+    model: str
+    generation: str
+    hidden: bool
+    updated_items: int
+
+
 class AnalyticsSummaryResponse(BaseModel):
     days: int
     views_today: int

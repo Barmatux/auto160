@@ -15,6 +15,7 @@ from app.avby_accounts import (
 from app.avby_session import AvbySessionError, get_avby_session
 from app.avby_vin import AvbyVinError, get_or_fetch_listing_vin
 from app.catalog_ratings import apply_generation_rating, generation_label
+from app.catalog_visibility import apply_generation_catalog_visibility
 from app.db import get_db
 from app.deps import require_admin, require_admin_flexible
 from app.logging_setup import LOG_SERVICES, format_log_time, log_dir, log_timezone, tail_log
@@ -29,6 +30,8 @@ from app.schemas import (
     AppLogTailResponse,
     CatalogGenerationRatingResult,
     CatalogGenerationRatingUpdate,
+    CatalogGenerationVisibilityResult,
+    CatalogGenerationVisibilityUpdate,
     ListingVinResponse,
     UserPublic,
     UserRoleUpdateRequest,
@@ -307,6 +310,31 @@ def update_catalog_generation_rating(
         model=payload.model.strip(),
         generation=generation_label(payload.generation),
         rating=payload.rating,
+        updated_items=updated,
+    )
+
+
+@router.patch("/catalog-generations/visibility", response_model=CatalogGenerationVisibilityResult)
+def update_catalog_generation_visibility(
+    payload: CatalogGenerationVisibilityUpdate,
+    _: User = Depends(require_admin_flexible),
+    db: Session = Depends(get_db),
+):
+    items, updated = apply_generation_catalog_visibility(
+        db,
+        make=payload.make,
+        model=payload.model,
+        generation=payload.generation,
+        hidden=payload.hidden,
+    )
+    if not items:
+        raise HTTPException(status_code=404, detail="Поколение не найдено в каталоге")
+    db.commit()
+    return CatalogGenerationVisibilityResult(
+        make=payload.make.strip(),
+        model=payload.model.strip(),
+        generation=generation_label(payload.generation),
+        hidden=payload.hidden,
         updated_items=updated,
     )
 

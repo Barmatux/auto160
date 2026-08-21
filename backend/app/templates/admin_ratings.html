@@ -47,12 +47,25 @@
     </thead>
     <tbody>
       {% for row in rating_rows %}
-        <tr>
+        <tr{% if row.hidden %} class="admin-ratings-row-hidden"{% endif %}>
           <td>{{ row.make }}</td>
           <td>{{ row.model }}</td>
           <td>
             <a href="{{ row.mods_url }}">{{ row.generation }}</a>
-            <div class="admin-vin-listing-meta">{{ row.item_count }} компл.{% if row.mixed %} · рейтинги различаются{% endif %}</div>
+            <div class="admin-vin-listing-meta">
+              {{ row.item_count }} компл.{% if row.mixed %} · рейтинги различаются{% endif %}{% if row.hidden %} · скрыто из каталога{% endif %}
+            </div>
+            <button
+              type="button"
+              class="page-link admin-catalog-visibility-btn"
+              data-make="{{ row.make }}"
+              data-model="{{ row.model }}"
+              data-generation="{{ row.generation_key }}"
+              data-hidden="{{ 'true' if row.hidden else 'false' }}"
+            >
+              {% if row.hidden %}Показать в каталоге{% else %}Скрыть из каталога{% endif %}
+            </button>
+            <div class="admin-catalog-visibility-status" hidden></div>
           </td>
           <td>
             <form class="admin-rating-form" data-make="{{ row.make }}" data-model="{{ row.model }}" data-generation="{{ row.generation_key }}">
@@ -153,6 +166,44 @@
         const detail = data.detail;
         const message = typeof detail === "string" ? detail : "Не удалось сохранить рейтинг";
         setRowStatus(form, message, true);
+        return;
+      }
+      window.location.reload();
+    });
+  });
+
+  function setVisibilityStatus(button, text, isError) {
+    const row = button.closest("td");
+    const el = row ? row.querySelector(".admin-catalog-visibility-status") : null;
+    if (!el) return;
+    el.hidden = !text;
+    el.textContent = text || "";
+    el.classList.toggle("is-error", Boolean(isError));
+  }
+
+  document.querySelectorAll(".admin-catalog-visibility-btn").forEach(function (button) {
+    button.addEventListener("click", async function () {
+      const hidden = button.dataset.hidden === "true";
+      const payload = {
+        make: button.dataset.make || "",
+        model: button.dataset.model || "",
+        generation: button.dataset.generation || "",
+        hidden: !hidden,
+      };
+      button.disabled = true;
+      setVisibilityStatus(button, hidden ? "Показываем…" : "Скрываем…", false);
+      const response = await adminFetch("/api/v1/admin/catalog-generations/visibility", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      button.disabled = false;
+      if (!response) return;
+      const data = await response.json().catch(function () { return {}; });
+      if (!response.ok) {
+        const detail = data.detail;
+        const message = typeof detail === "string" ? detail : "Не удалось обновить видимость";
+        setVisibilityStatus(button, message, true);
         return;
       }
       window.location.reload();

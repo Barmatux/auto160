@@ -42,7 +42,7 @@ from app.export_country_labels import (
     EXPORT_COUNTRY_FILTER_OPTIONS,
     is_belarus_export_country,
 )
-from app.customs_vin import CustomsVinError, lookup_customs_vin, normalize_vin, report_rows, vin_is_valid
+from app.catalog_visibility import apply_visible_catalog_filter
 from app.avby_accounts import list_active_vin_accounts, serialize_account_public
 from app.db import get_db
 from app.logging_setup import LOG_SERVICES, LOG_SERVICE_LABELS, format_log_time, log_dir, log_timezone, tail_log
@@ -585,7 +585,12 @@ def _listing_ids_for_catalog_item(db: Session, item: CatalogItem, *, published_o
 def _make_model_map(db: Session) -> dict[str, list[str]]:
     rows = (
         db.query(CatalogItem.make, CatalogItem.model)
-        .filter(CatalogItem.make.isnot(None), CatalogItem.model.isnot(None), CatalogItem.source_site == "av.by")
+        .filter(
+            CatalogItem.make.isnot(None),
+            CatalogItem.model.isnot(None),
+            CatalogItem.source_site == "av.by",
+            CatalogItem.hidden_from_catalog.is_(False),
+        )
         .distinct()
         .order_by(CatalogItem.make.asc(), CatalogItem.model.asc())
         .all()
@@ -608,6 +613,7 @@ def _make_model_generation_map(db: Session) -> dict[str, dict[str, list[str]]]:
             CatalogItem.model.isnot(None),
             CatalogItem.generation.isnot(None),
             CatalogItem.source_site == "av.by",
+            CatalogItem.hidden_from_catalog.is_(False),
         )
         .distinct()
         .order_by(CatalogItem.make.asc(), CatalogItem.model.asc(), CatalogItem.generation.asc())
@@ -1173,6 +1179,7 @@ def _home_catalog_quick_links() -> list[dict[str, str]]:
 def _catalog_items_base_query(db: Session, request: Request, current_user=None) -> tuple:
     filter_kwargs, exact_hp, with_listings = _parse_catalog_sidebar_filter_kwargs(request, current_user)
     query = db.query(CatalogItem).filter(CatalogItem.source_site == "av.by")
+    query = apply_visible_catalog_filter(query)
     query = _apply_hp_filter(query, exact_hp=exact_hp)
     query = _apply_catalog_item_filters(query, db=db, **filter_kwargs)
     return query, exact_hp, with_listings
@@ -1699,6 +1706,7 @@ def _home_stats(db: Session) -> dict:
     catalog_filters = (
         CatalogItem.source_site == "av.by",
         hp_filter,
+        CatalogItem.hidden_from_catalog.is_(False),
     )
     catalog_items_count = (
         db.query(CatalogItem)
@@ -1734,7 +1742,7 @@ def _home_stats(db: Session) -> dict:
 
 def _home_popular_makes(db: Session, *, limit: int = 10) -> list[dict]:
     rows = (
-        _apply_max_hp_filter(db.query(CatalogItem))
+        apply_visible_catalog_filter(_apply_max_hp_filter(db.query(CatalogItem)))
         .filter(CatalogItem.make.isnot(None), CatalogItem.source_site == "av.by")
         .order_by(CatalogItem.make.asc(), CatalogItem.created_at.desc())
         .all()
@@ -2625,7 +2633,12 @@ def catalog_modifications(
 def catalog_item_detail(request: Request, item_id: int, db: Session = Depends(get_db)):
     current_user = _resolve_user_from_request(request, db)
     item = db.query(CatalogItem).filter(CatalogItem.id == item_id).first()
-    if not item or (item.engine_power_hp is not None and item.engine_power_hp > 160) or is_hidden_body_type(item.body_type):
+    if (
+        not item
+        or (item.engine_power_hp is not None and item.engine_power_hp > 160)
+        or is_hidden_body_type(item.body_type)
+        or item.hidden_from_catalog
+    ):
         context = _template_context(
             request,
             _resolve_user_from_request(request, db),

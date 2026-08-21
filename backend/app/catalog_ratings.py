@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from decimal import Decimal
 from urllib.parse import urlencode
 
-from sqlalchemy import func, or_
+from sqlalchemy import case, func, or_
 from sqlalchemy.orm import Session
 
 from app.models import CatalogItem
@@ -27,6 +27,7 @@ class CatalogRatingRow:
     rated_count: int
     rating: float | None
     mixed: bool
+    hidden: bool
     mods_url: str
 
 
@@ -116,6 +117,7 @@ def _grouped_query(
             func.count(CatalogItem.rating).label("rated_count"),
             func.min(CatalogItem.rating).label("rating_min"),
             func.max(CatalogItem.rating).label("rating_max"),
+            func.sum(case((CatalogItem.hidden_from_catalog.is_(True), 1), else_=0)).label("hidden_count"),
         )
         .filter(CatalogItem.source_site == "av.by")
         .group_by(CatalogItem.make, CatalogItem.model, CatalogItem.generation)
@@ -162,15 +164,18 @@ def _row_from_group(row) -> CatalogRatingRow:
     params = {"make": make, "model": model}
     if key:
         params["generation"] = key
+    item_count = int(row.item_count or 0)
+    hidden_count = int(row.hidden_count or 0)
     return CatalogRatingRow(
         make=make,
         model=model,
         generation=generation_label(row.generation),
         generation_key=key,
-        item_count=int(row.item_count or 0),
+        item_count=item_count,
         rated_count=int(row.rated_count or 0),
         rating=rating,
         mixed=mixed,
+        hidden=item_count > 0 and hidden_count >= item_count,
         mods_url="/catalog/modifications?" + urlencode(params),
     )
 

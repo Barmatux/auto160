@@ -9,6 +9,7 @@ from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.body_type_labels import exclude_hidden_body_type
+from app.catalog_visibility import apply_visible_catalog_filter
 from app.models import CarListing, CatalogItem, ListingStatus
 
 MIN_LINK_SCORE = 10
@@ -121,7 +122,7 @@ def _catalog_candidates(db: Session, listing: CarListing) -> list[CatalogItem]:
     model = canonical_model_name(listing.model)
     if not make or not model:
         return []
-    return (
+    return apply_visible_catalog_filter(
         db.query(CatalogItem)
         .filter(
             CatalogItem.source_site == "av.by",
@@ -130,8 +131,7 @@ def _catalog_candidates(db: Session, listing: CarListing) -> list[CatalogItem]:
             or_(CatalogItem.engine_power_hp.is_(None), CatalogItem.engine_power_hp <= 160),
         )
         .order_by(CatalogItem.year_from.desc(), CatalogItem.id.asc())
-        .all()
-    )
+    ).all()
 
 
 def link_listing_to_catalog(db: Session, listing: CarListing, *, commit: bool = False) -> CatalogItem | None:
