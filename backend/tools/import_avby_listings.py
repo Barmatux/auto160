@@ -14,6 +14,7 @@ if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 os.chdir(ROOT_DIR)
 
+from app.listing_missing_byn import apply_import_byn_price_state
 from app.avby_price import extract_price_byn_from_advert
     build_catalog_generation_index,
     normalize_catalog_match_name as _normalize_name,
@@ -291,8 +292,7 @@ def _avby_payload_to_listing(advert: dict[str, Any], fallback_brand: str, fallba
 
     mileage = _to_int(props.get("mileage_km")) or 0
     price_byn = extract_price_byn_from_advert(advert)
-    if price_byn is None:
-        return None
+    price_byn_missing = price_byn is None
 
     city = (advert.get("shortLocationName") or advert.get("locationName") or "Не указан").strip()
     public_url = (advert.get("publicUrl") or "").strip()
@@ -321,6 +321,7 @@ def _avby_payload_to_listing(advert: dict[str, Any], fallback_brand: str, fallba
         "year": year,
         "mileage": mileage,
         "price": price_byn,
+        "price_byn_missing": price_byn_missing,
         "city": city[:80],
         "body_type": str(props.get("body_type") or "").strip()[:60] or None,
         "drive_type": str(props.get("drive_type") or "").strip()[:40] or None,
@@ -608,6 +609,7 @@ def run_import(
     skipped_by_hp = 0
     skipped_by_catalog = 0
     skipped_by_generation = 0
+    imported_without_byn = 0
     archived_non_catalog = 0
     archived_wrong_generation = 0
     failed_brands = 0
@@ -727,6 +729,8 @@ def run_import(
                         skipped += 1
                         continue
                     avby_id = payload.pop("avby_id")
+                    price_byn_missing = payload.pop("price_byn_missing", False)
+                    price_byn = payload.get("price")
                     existing = existing_map.get(avby_id)
 
                     if is_hidden_body_type(payload.get("body_type")):
@@ -749,7 +753,13 @@ def run_import(
                             if field in PRESERVE_ON_UPDATE_FIELDS:
                                 continue
                             setattr(existing, field, value)
-                        existing.status = ListingStatus.published
+                        apply_import_byn_price_state(
+                            existing,
+                            price_byn=price_byn,
+                            price_byn_missing=price_byn_missing,
+                        )
+                        if price_byn_missing:
+                            imported_without_byn += 1
                         updated += 1
                         imported_per_model[target_key] = imported_per_model.get(target_key, 0) + 1
                         touched_listings[avby_id] = existing
@@ -763,9 +773,12 @@ def run_import(
                     listing = CarListing(
                         seller_id=seller.id,
                         avby_id=avby_id,
-                        status=ListingStatus.published,
+                        status=ListingStatus.draft if price_byn_missing else ListingStatus.published,
+                        price_byn_missing=price_byn_missing,
                         **payload,
                     )
+                    if price_byn_missing:
+                        imported_without_byn += 1
                     db.add(listing)
                     existing_map[avby_id] = listing
                     created += 1
@@ -860,6 +873,7 @@ def run_import(
             f"skipped_by_catalog={skipped_by_catalog} skipped_by_generation={skipped_by_generation} "
             f"skipped_by_hp={skipped_by_hp} "
             f"archived_non_catalog={archived_non_catalog} archived_wrong_generation={archived_wrong_generation} "
+            f"imported_without_byn={imported_without_byn} "
             f"failed_brands={failed_brands} "
             f"pages_fetched={pages_fetched} "
             f"year_min={year_min} price_usd_min={price_usd_min} max_hp={max_hp} "
@@ -877,6 +891,7 @@ def run_import(
             "skipped_by_hp": skipped_by_hp,
             "archived_non_catalog": archived_non_catalog,
             "archived_wrong_generation": archived_wrong_generation,
+            "imported_without_byn": imported_without_byn,
             "failed_brands": failed_brands,
             "pages_fetched": pages_fetched,
         }

@@ -95,6 +95,9 @@
         {% endwith %}
         {% if is_admin %}
           <p class="listing-admin-meta"><strong>Статус:</strong> {{ listing.status.value }}</p>
+          {% if listing.price_byn_missing %}
+            <p class="listing-admin-meta"><span class="status-pill missing-byn-price">Нет цены BYN на av.by</span></p>
+          {% endif %}
         {% endif %}
         <div class="listing-detail-side-actions">
           <a class="listing-detail-side-action listing-detail-side-action-primary" href="/inspection?listing_id={{ listing.id }}">Проверить VIN</a>

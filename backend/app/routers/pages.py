@@ -29,6 +29,10 @@ from app.fuel_type_labels import (
     resolved_catalog_fuel_type,
 )
 from app.drive_type_labels import normalize_drive_display_label
+from app.listing_missing_byn import (
+    count_listings_missing_byn_price,
+    paginate_listings_missing_byn_price,
+)
 from app.listing_archive_scope import (
     ARCHIVE_REASON_LABELS,
     ARCHIVE_REASON_NON_CATALOG,
@@ -3167,6 +3171,7 @@ def admin_avby_sync_page(request: Request, db: Session = Depends(get_db)):
         .filter(avby_filter, CarListing.status == ListingStatus.archived)
         .count()
     )
+    avby_missing_byn = count_listings_missing_byn_price(db)
     catalog_models = (
         db.query(CatalogItem)
         .filter(CatalogItem.source_site == "av.by")
@@ -3238,6 +3243,7 @@ def admin_avby_sync_page(request: Request, db: Session = Depends(get_db)):
             "avby_total": avby_total,
             "avby_published": avby_published,
             "avby_archived": avby_archived,
+            "avby_missing_byn": avby_missing_byn,
             "catalog_models": catalog_models,
             "last_run": last_run,
             "last_run_duration": last_run_duration,
@@ -3352,6 +3358,77 @@ def admin_archived_listings_page(
         }
     )
     return templates.TemplateResponse(request, "admin_archived_listings.html", context)
+
+
+@router.get("/admin/listings-without-byn")
+def admin_listings_without_byn_page(
+    request: Request,
+    q: str = Query(default=""),
+    page: int = Query(default=1, ge=1),
+    db: Session = Depends(get_db),
+):
+    current_user = _resolve_user_from_request(request, db)
+    if not current_user:
+        return RedirectResponse(url="/login", status_code=302)
+    if current_user.role != UserRole.admin:
+        return RedirectResponse(url="/", status_code=302)
+
+    per_page = 48
+    listings, filtered_total = paginate_listings_missing_byn_price(
+        db,
+        q=q,
+        page=page,
+        per_page=per_page,
+    )
+    missing_byn_total = count_listings_missing_byn_price(db)
+    total_pages = max(1, (filtered_total + per_page - 1) // per_page)
+    if page > total_pages and filtered_total:
+        pairs = [("page", str(total_pages))]
+        if q.strip():
+            pairs.insert(0, ("q", q.strip()))
+        return RedirectResponse(url="/admin/listings-without-byn?" + urlencode(pairs), status_code=302)
+
+    def _missing_byn_url(**params) -> str:
+        pairs: list[tuple[str, str]] = []
+        next_q = params.get("q", q.strip())
+        next_page = params.get("page", page)
+        if next_q:
+            pairs.append(("q", str(next_q)))
+        if int(next_page or 1) > 1:
+            pairs.append(("page", str(next_page)))
+        query = urlencode(pairs)
+        return "/admin/listings-without-byn" + (f"?{query}" if query else "")
+
+    avby_filter = CarListing.avby_id.isnot(None)
+    avby_published = (
+        db.query(CarListing)
+        .filter(avby_filter, CarListing.status == ListingStatus.published)
+        .count()
+    )
+    avby_archived = (
+        db.query(CarListing)
+        .filter(avby_filter, CarListing.status == ListingStatus.archived)
+        .count()
+    )
+
+    context = _template_context(request, current_user)
+    context.update(
+        {
+            "listing_rows": listings,
+            "missing_byn_total": missing_byn_total,
+            "missing_byn_total_filtered": filtered_total,
+            "missing_byn_q": q.strip(),
+            "missing_byn_page": page,
+            "missing_byn_total_pages": total_pages,
+            "missing_byn_has_prev": page > 1,
+            "missing_byn_has_next": page < total_pages,
+            "missing_byn_prev_url": _missing_byn_url(page=page - 1) if page > 1 else None,
+            "missing_byn_next_url": _missing_byn_url(page=page + 1) if page < total_pages else None,
+            "avby_published": avby_published,
+            "avby_archived": avby_archived,
+        }
+    )
+    return templates.TemplateResponse(request, "admin_listings_without_byn.html", context)
 
 
 @router.get("/admin/avby-sync/{run_id}")

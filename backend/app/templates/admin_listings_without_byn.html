@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}Админка — Без цены BYN{% endblock %}
+{% block content %}
+{% set admin_section = "listings-without-byn" %}
+{% include "partials/admin_nav.html" %}
+
+<h1>Объявления без цены BYN</h1>
+<p class="hint">
+  Импортированные объявления av.by, у которых на источнике нет белорусской цены.
+  Они не публикуются в ленте, пока при синхронизации не появится цена BYN.
+</p>
+
+<section class="admin-stats-grid">
+  <article class="admin-stat-card">
+    <div class="label">Без цены BYN</div>
+    <div class="value">{{ missing_byn_total }}</div>
+    <div class="sub">статус draft · только av.by</div>
+  </article>
+  <article class="admin-stat-card">
+    <div class="label">Опубликовано</div>
+    <div class="value">{{ avby_published }}</div>
+    <div class="sub"><a href="/admin/avby-sync">Парсинг av.by</a></div>
+  </article>
+  <article class="admin-stat-card">
+    <div class="label">В архиве</div>
+    <div class="value">{{ avby_archived }}</div>
+    <div class="sub"><a href="/admin/archived-listings">Архив объявлений</a></div>
+  </article>
+</section>
+
+<form class="filters filters-inline" method="get" action="/admin/listings-without-byn">
+  <label>
+    Поиск по марке/модели
+    <input type="search" name="q" value="{{ missing_byn_q }}" placeholder="Peugeot 308" />
+  </label>
+  <button type="submit">Найти</button>
+  {% if missing_byn_q %}
+    <a class="page-link" href="/admin/listings-without-byn">Сбросить</a>
+  {% endif %}
+</form>
+
+<p class="hint">Показано: {{ missing_byn_total_filtered }} · Страница {{ missing_byn_page }} из {{ missing_byn_total_pages }}</p>
+
+<div class="admin-listings-column-wrap">
+  <section class="admin-listings-column">
+    <h2>Без цены BYN</h2>
+    {% if listing_rows %}
+    <table class="users-table listings-without-byn-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Марка / модель</th>
+          <th>Поколение</th>
+          <th>Год</th>
+          <th>Город</th>
+          <th>Цена BYN</th>
+          <th>Мощность</th>
+          <th>Ссылки</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for listing in listing_rows %}
+          <tr>
+            <td>{{ listing.id }}</td>
+            <td>{{ listing.brand }} {{ listing.model }}</td>
+            <td>{{ listing.generation or "—" }}</td>
+            <td>{{ listing.year }}</td>
+            <td>{{ listing.city }}</td>
+            <td><span class="status-pill missing-byn-price">нет BYN</span></td>
+            <td>{% if listing.engine_power_hp %}{{ listing.engine_power_hp }} л.с.{% else %}—{% endif %}</td>
+            <td>
+              <a class="btn-link" href="/listings/{{ listing.id }}">Просмотр</a>
+              {% set source_href = listing | listing_source_href %}
+              {% if source_href %}
+                · <a class="btn-link" href="{{ source_href }}" target="_blank" rel="noopener">av.by</a>
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+      <p>Объявлений без цены BYN не найдено.</p>
+    {% endif %}
+  </section>
+</div>
+
+{% if missing_byn_total_pages > 1 %}
+<div class="actions-row">
+  {% if missing_byn_has_prev %}
+    <a class="btn-link" href="{{ missing_byn_prev_url }}">← Назад</a>
+  {% endif %}
+  <span class="hint">страница {{ missing_byn_page }} из {{ missing_byn_total_pages }}</span>
+  {% if missing_byn_has_next %}
+    <a class="btn-link" href="{{ missing_byn_next_url }}">Вперёд →</a>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}
