@@ -988,6 +988,9 @@ body {
 }
 
 .listings-feed .listing-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
   padding: 10px;
 }
 
@@ -2576,22 +2579,58 @@ body {
   color: #64748b;
 }
 
-.offer-feed-price .listing-price,
-.listings-feed-price .listing-price {
+.offer-feed-price .listing-price {
   display: inline-flex;
 }
 
-.offer-feed-price,
-.listings-feed-price {
+.offer-feed-price {
   max-width: 100%;
   overflow-x: auto;
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
 }
 
-.offer-feed-price p,
-.listings-feed-price p {
+.offer-feed-price p {
   white-space: nowrap;
+}
+
+.listings-feed .listings-feed-price {
+  margin-top: auto;
+  padding-top: 10px;
+  max-width: 100%;
+}
+
+.listings-feed .listings-feed-price .listing-price {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #cfe0fb;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #f8fbff 0%, #eef4ff 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  white-space: normal;
+  cursor: help;
+}
+
+.listings-feed .listings-feed-price .listing-price-primary {
+  font-size: 17px;
+  font-weight: 700;
+  color: #1e3a8a;
+}
+
+.listings-feed .listings-feed-price .listing-price-converted-rub {
+  font-size: 15px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.listings-feed .listings-feed-price .listing-price-converted-usd {
+  font-size: 14px;
+  font-weight: 500;
+  color: #64748b;
 }
 
 .listing-spec-row-icon dd {

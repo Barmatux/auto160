@@ -52,7 +52,6 @@
               {% endif %}
               <h3><a href="/listings/{{ listing.id }}">{{ listing.title | listing_display_title }}</a></h3>
               <p><strong>{{ listing.brand }} {{ listing.model }}</strong> · {{ listing.year }}{% if listing.generation %} · {{ listing.generation }}{% endif %}</p>
-              <p class="listings-feed-price"><strong>Цена:</strong> {% include "partials/listing_price_display.html" %}</p>
               <p><strong>Пробег:</strong> {{ listing.mileage | format_mileage_km }} км</p>
               <p><strong>Город:</strong> {{ listing.city }}</p>
               <p><strong>Продавец:</strong> {{ listing.seller_name | listing_seller_label }}</p>
@@ -76,6 +75,7 @@
                 <p><strong>Статус:</strong> {{ listing.status.value }}</p>
                 {% include "partials/listing_vin_admin.html" %}
               {% endif %}
+              <div class="listings-feed-price">{% include "partials/listing_price_display.html" %}</div>
             </article>
           {% endfor %}
         </div>
