@@ -9,7 +9,7 @@
     {% if mod_name %}
       <p class="offer-feed-modification">{{ mod_name }}</p>
     {% endif %}
-    <p><strong>Цена:</strong> {{ listing.price | format_price_rub }} ₽</p>
+    <p class="offer-feed-price"><strong>Цена:</strong> {% include "partials/listing_price_display.html" %}</p>
     <p><strong>Пробег:</strong> {{ listing.mileage | format_mileage_km }} км</p>
     <p><strong>Город:</strong> {{ listing.city }}</p>
   </div>

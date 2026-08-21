@@ -204,7 +204,7 @@ def listing_offer_json_ld(
         "@context": "https://schema.org",
         "@type": "Offer",
         "url": url,
-        "priceCurrency": "RUB",
+        "priceCurrency": "BYN",
         "price": str(listing.price) if listing.price is not None else None,
         "availability": "https://schema.org/InStock",
         "itemOffered": vehicle,

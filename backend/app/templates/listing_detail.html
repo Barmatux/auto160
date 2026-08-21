@@ -27,7 +27,7 @@
         <dl class="listing-spec-list">
           <div class="listing-spec-row listing-spec-row-price">
             <dt>Цена</dt>
-            <dd>{{ listing.price | format_price_rub }} ₽</dd>
+            <dd>{% include "partials/listing_price_display.html" %}</dd>
           </div>
           <div class="listing-spec-row">
             <dt>Год выпуска:</dt>

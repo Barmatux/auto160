@@ -253,11 +253,11 @@ def _avby_payload_to_listing(advert: dict[str, Any], fallback_brand: str, fallba
         return None
 
     mileage = _to_int(props.get("mileage_km")) or 0
-    price_rub = _to_float((((advert.get("price") or {}).get("rub") or {}).get("amount")))
-    if price_rub is None:
-        price_rub = _to_float((((advert.get("price") or {}).get("byn") or {}).get("amount")))
-    if price_rub is None:
-        price_rub = 0.0
+    price_byn = _to_float((((advert.get("price") or {}).get("byn") or {}).get("amount")))
+    if price_byn is None:
+        price_byn = _to_float((((advert.get("price") or {}).get("rub") or {}).get("amount")))
+    if price_byn is None:
+        price_byn = 0.0
 
     city = (advert.get("shortLocationName") or advert.get("locationName") or "Не указан").strip()
     public_url = (advert.get("publicUrl") or "").strip()
@@ -285,7 +285,7 @@ def _avby_payload_to_listing(advert: dict[str, Any], fallback_brand: str, fallba
         "generation": str(props.get("generation") or "").strip()[:120] or None,
         "year": year,
         "mileage": mileage,
-        "price": price_rub,
+        "price": price_byn,
         "city": city[:80],
         "body_type": str(props.get("body_type") or "").strip()[:60] or None,
         "drive_type": str(props.get("drive_type") or "").strip()[:40] or None,
