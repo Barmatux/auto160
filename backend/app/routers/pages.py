@@ -2941,16 +2941,39 @@ def create_listing_page(request: Request, db: Session = Depends(get_db)):
 
 
 @router.get("/profile/my-listings")
-def profile_my_listings(request: Request, db: Session = Depends(get_db)):
+def profile_my_listings(
+    request: Request,
+    page: int = Query(default=1, ge=1),
+    db: Session = Depends(get_db),
+):
     current_user = _resolve_user_from_request(request, db)
     if not current_user:
         return RedirectResponse(url="/login", status_code=302)
     if current_user.role != UserRole.admin:
         return RedirectResponse(url="/", status_code=302)
-    listings = db.query(CatalogItem).order_by(desc(CatalogItem.created_at)).all()
+    per_page = 48
+    total = db.query(CatalogItem).count()
+    offset = (page - 1) * per_page
+    listings = (
+        db.query(CatalogItem)
+        .order_by(desc(CatalogItem.created_at))
+        .offset(offset)
+        .limit(per_page)
+        .all()
+    )
+    total_pages = max(1, (total + per_page - 1) // per_page)
+    if page > total_pages:
+        return RedirectResponse(url=f"/profile/my-listings?page={total_pages}", status_code=302)
     context = _template_context(request, current_user)
     context["listings"] = listings
     context["cover_urls"] = _build_cover_url_map([item.id for item in listings], db)
+    context["page"] = page
+    context["total"] = total
+    context["total_pages"] = total_pages
+    context["has_prev"] = page > 1
+    context["has_next"] = page < total_pages
+    context["prev_url"] = f"/profile/my-listings?page={page - 1}" if page > 1 else None
+    context["next_url"] = f"/profile/my-listings?page={page + 1}" if page < total_pages else None
     return templates.TemplateResponse(request, "profile_listings.html", context)
 
 
