@@ -1732,7 +1732,7 @@ def _home_stats(db: Session) -> dict:
     }
 
 
-def _home_popular_makes(db: Session, *, limit: int = 8) -> list[dict]:
+def _home_popular_makes(db: Session, *, limit: int = 10) -> list[dict]:
     rows = (
         _apply_max_hp_filter(db.query(CatalogItem))
         .filter(CatalogItem.make.isnot(None), CatalogItem.source_site == "av.by")

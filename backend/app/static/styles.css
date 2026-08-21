@@ -2870,7 +2870,7 @@ body.listing-lightbox-open {
 
 .home-makes {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   gap: 10px;
 }
 
