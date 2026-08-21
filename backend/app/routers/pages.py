@@ -33,6 +33,7 @@ from app.transmission_labels import (
     TRANSMISSION_FILTER_GROUPS,
     TRANSMISSION_SLUG_AUTO,
     apply_catalog_transmission_filter,
+    multi_filter_selection_label,
     parse_transmission_filter_values,
     transmission_filter_checked_slugs,
     transmission_filter_display_label,
@@ -1073,7 +1074,7 @@ def _parse_multi_catalog_filter_values(raw_values: list[str], normalize_fn) -> l
 
 
 def _multi_filter_display_label(selected: list[str], placeholder: str) -> str:
-    return ", ".join(selected) if selected else placeholder
+    return multi_filter_selection_label(selected, placeholder)
 
 
 def _parse_catalog_sidebar_filter_kwargs(request: Request, current_user=None) -> tuple[dict, bool, bool]:

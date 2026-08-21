@@ -152,7 +152,16 @@ def transmission_filter_display_label(slugs: list[str]) -> str:
                 labels.append(subtype_labels[slug])
     if TRANSMISSION_SLUG_MANUAL in slugs_set:
         labels.append("механика")
-    return ", ".join(labels) if labels else "Любая"
+    return multi_filter_selection_label(labels, "Любая")
+
+
+def multi_filter_selection_label(selected_labels: list[str], placeholder: str) -> str:
+    count = len(selected_labels)
+    if count == 0:
+        return placeholder
+    if count == 1:
+        return selected_labels[0]
+    return f"Выбрано пунктов: {count}"
 
 
 def transmission_filter_submit_slugs(slugs: list[str]) -> list[str]:

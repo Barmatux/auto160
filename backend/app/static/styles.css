@@ -382,21 +382,17 @@ body {
 }
 
 .catalog-multi-select-mark {
-  flex: 0 0 20px;
-  width: 20px;
+  flex: 0 0 22px;
+  width: 22px;
+  height: 14px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 13px;
-  line-height: 1;
-  color: #fff;
 }
 
-.catalog-multi-select-row.is-selected .catalog-multi-select-mark::before {
-  content: "✓";
-  display: block;
-  font-weight: 600;
-  transform: translateY(-0.5px);
+.catalog-multi-select-row.is-selected .catalog-multi-select-mark {
+  background: center / 13px 10px no-repeat
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 13 10'%3E%3Cpath fill='%23fff' d='M4.8 9.5 0.5 5.2 1.6 4.1 4.8 7.3 11.4 0.7 12.5 1.8z'/%3E%3C/svg%3E");
 }
 
 .catalog-multi-select-input {
@@ -833,6 +829,15 @@ body {
 
 .catalog-page .filters .catalog-multi-select-trigger {
   padding-right: 32px;
+}
+
+.catalog-multi-select-trigger-label {
+  display: block;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .listing-card {

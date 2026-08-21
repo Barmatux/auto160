@@ -78,6 +78,16 @@
       root.classList.toggle("is-active", valuesHost.children.length > 0);
     }
 
+    function formatSelectionLabel(labels, emptyPlaceholder) {
+      if (!labels.length) {
+        return emptyPlaceholder;
+      }
+      if (labels.length === 1) {
+        return labels[0];
+      }
+      return `Выбрано пунктов: ${labels.length}`;
+    }
+
     function buildDisplayLabel() {
       const labels = [];
       if (hierarchical) {
@@ -101,7 +111,7 @@
           }
         });
       }
-      return labels.length ? labels.join(", ") : placeholder;
+      return formatSelectionLabel(labels, placeholder);
     }
 
     function syncHiddenInputs() {

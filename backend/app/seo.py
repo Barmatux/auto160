@@ -405,10 +405,10 @@ def catalog_models_seo_meta(make: str | None, *, total: int) -> SeoMeta:
         )
         noindex = False
     else:
-        title = "Все модели до 160 л.с. — Auto160"
+        title = "Все модели под льготный утильсбор (до 160 л.с.) — Auto160"
         description = f"Модели автомобилей до 160 л.с. в каталоге Auto160. Найдено: {total}."
         path = "/catalog/models"
-        h1 = "Все модели до 160 л.с."
+        h1 = "Все модели под льготный утильсбор (до 160 л.с.)"
         intro = "Каталог моделей с ограничением по мощности до 160 л.с. для рынка Беларуси."
         noindex = True
     return SeoMeta(

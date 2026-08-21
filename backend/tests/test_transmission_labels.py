@@ -65,7 +65,7 @@ def test_transmission_filter_ui_helpers():
         TRANSMISSION_SLUG_CVT,
     }
     assert transmission_filter_display_label([TRANSMISSION_SLUG_AUTO]) == "автомат"
-    assert transmission_filter_display_label([TRANSMISSION_SLUG_ROBOT, TRANSMISSION_SLUG_MANUAL]) == "робот, механика"
+    assert transmission_filter_display_label([TRANSMISSION_SLUG_ROBOT, TRANSMISSION_SLUG_MANUAL]) == "Выбрано пунктов: 2"
     assert transmission_filter_submit_slugs(
         [TRANSMISSION_SLUG_AUTO_CLASSIC, TRANSMISSION_SLUG_ROBOT, TRANSMISSION_SLUG_CVT]
     ) == [TRANSMISSION_SLUG_AUTO]
