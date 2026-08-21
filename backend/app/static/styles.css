@@ -1625,45 +1625,6 @@ body {
   opacity: 0.72;
 }
 
-.admin-ratings-table {
-  table-layout: fixed;
-}
-
-.admin-ratings-table th:nth-child(1),
-.admin-ratings-table td:nth-child(1) {
-  width: 72px;
-  padding-left: 12px;
-  padding-right: 4px;
-}
-
-.admin-ratings-table th:nth-child(2),
-.admin-ratings-table td:nth-child(2) {
-  width: 64px;
-  padding-left: 4px;
-  padding-right: 4px;
-}
-
-.admin-ratings-table th:nth-child(3),
-.admin-ratings-table td:nth-child(3) {
-  padding-left: 4px;
-  padding-right: 6px;
-}
-
-.admin-ratings-table th:nth-child(4),
-.admin-ratings-table td:nth-child(4) {
-  width: 104px;
-  padding-left: 6px;
-  padding-right: 8px;
-  white-space: nowrap;
-}
-
-.admin-ratings-table th:nth-child(5),
-.admin-ratings-table td:nth-child(5) {
-  width: 188px;
-  padding-left: 8px;
-  padding-right: 8px;
-}
-
 .admin-catalog-visibility-btn {
   margin-top: 8px;
 }
@@ -1679,7 +1640,6 @@ body {
 }
 
 .admin-ratings-photo-cell {
-  width: 210px;
   padding: 0;
   vertical-align: stretch;
   height: 1px;
@@ -1697,14 +1657,15 @@ body {
   flex-direction: column;
   justify-content: center;
   gap: 6px;
-  flex: 0 0 auto;
-  padding: 14px 6px 14px 10px;
+  flex: 1 1 46%;
+  padding: 12px 8px 12px 10px;
   min-width: 0;
 }
 
 .admin-ratings-photo-media {
-  flex: 0 0 128px;
-  width: 128px;
+  flex: 1 1 54%;
+  min-width: 0;
+  max-width: 54%;
   align-self: stretch;
   display: flex;
   overflow: hidden;
@@ -1815,6 +1776,62 @@ body {
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--muted);
+}
+
+.admin-vin-table.admin-ratings-table {
+  table-layout: fixed;
+}
+
+.admin-vin-table.admin-ratings-table th,
+.admin-vin-table.admin-ratings-table td {
+  padding: 12px 10px;
+  overflow-wrap: anywhere;
+}
+
+.admin-vin-table.admin-ratings-table th {
+  white-space: normal;
+  line-height: 1.25;
+  vertical-align: bottom;
+}
+
+.admin-vin-table.admin-ratings-table th:nth-child(1),
+.admin-vin-table.admin-ratings-table td:nth-child(1) {
+  width: 8%;
+}
+
+.admin-vin-table.admin-ratings-table th:nth-child(2),
+.admin-vin-table.admin-ratings-table td:nth-child(2) {
+  width: 8%;
+}
+
+.admin-vin-table.admin-ratings-table th:nth-child(3),
+.admin-vin-table.admin-ratings-table td:nth-child(3) {
+  width: 24%;
+}
+
+.admin-vin-table.admin-ratings-table th:nth-child(4),
+.admin-vin-table.admin-ratings-table td:nth-child(4) {
+  width: 14%;
+}
+
+.admin-vin-table.admin-ratings-table th:nth-child(5),
+.admin-vin-table.admin-ratings-table td:nth-child(5) {
+  width: 24%;
+}
+
+.admin-vin-table.admin-ratings-table th:nth-child(6),
+.admin-vin-table.admin-ratings-table td:nth-child(6) {
+  width: 22%;
+}
+
+.admin-vin-table.admin-ratings-table td:nth-child(4) {
+  white-space: nowrap;
+}
+
+.admin-vin-table.admin-ratings-table .admin-ratings-photo-cell {
+  padding: 0;
+  vertical-align: stretch;
+  height: 1px;
 }
 
 .admin-vin-sort {
