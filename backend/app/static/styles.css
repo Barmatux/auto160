@@ -328,9 +328,12 @@ body {
   position: absolute;
   top: calc(100% + 4px);
   left: 0;
-  right: 0;
+  right: auto;
   z-index: 60;
-  padding: 2px 0;
+  min-width: 100%;
+  width: max-content;
+  max-width: min(420px, calc(100vw - 24px));
+  padding: 1px 0;
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 8px;
   background: rgba(45, 45, 45, 0.96);
@@ -350,46 +353,61 @@ body {
   gap: 0;
 }
 
-.catalog-multi-select-row {
+.filters label.catalog-multi-select-row {
   display: flex;
+  flex-direction: row;
   align-items: center;
   justify-content: flex-start;
-  gap: 6px;
-  padding: 2px 10px;
-  min-height: 22px;
+  gap: 8px;
+  width: auto;
+  min-width: 0;
+  margin: 0;
+}
+
+.catalog-multi-select-row {
+  padding: 0 10px;
+  min-height: 20px;
   font-size: 13px;
-  line-height: 1.1;
+  line-height: 1.2;
   cursor: pointer;
   color: #fff;
+  white-space: nowrap;
 }
 
 .catalog-multi-select-row-sub {
-  padding-left: 24px;
+  padding-left: 22px;
 }
 
 .catalog-multi-select-row.is-selected {
   background: rgba(0, 122, 255, 0.88);
 }
 
-.catalog-multi-select-row input[type="checkbox"] {
+.filters .catalog-multi-select-row input[type="checkbox"] {
   appearance: none;
   -webkit-appearance: none;
-  width: 12px;
-  height: 12px;
+  width: 14px;
+  height: 14px;
+  max-width: 14px;
   margin: 0;
-  flex: 0 0 12px;
+  flex: 0 0 14px;
   border: none;
   background: transparent;
   color: #fff;
-  font-size: 11px;
-  line-height: 12px;
+  font-size: 12px;
+  line-height: 14px;
   text-align: center;
+  align-self: center;
 }
 
-.catalog-multi-select-row input[type="checkbox"]:checked::before {
+.filters .catalog-multi-select-row input[type="checkbox"]:checked::before {
   content: "✓";
   display: block;
   font-weight: 600;
+}
+
+.filters .catalog-multi-select-row > span {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .catalog-sidebar {
