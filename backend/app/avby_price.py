@@ -6,6 +6,7 @@ Russian rubles and US dollars are derived later via NBRB rates for reference onl
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from app.exchange_rates import NbrbRates, fetch_nbrb_rates
@@ -24,6 +25,40 @@ def _byn_amount(currency_block: dict[str, Any] | None) -> float | None:
     if not isinstance(currency_block, dict):
         return None
     return _to_float(currency_block.get("amountFiat") or currency_block.get("amount"))
+
+
+def fetch_price_byn_from_avby_public_url(url: str, *, user_agent: str = "Mozilla/5.0") -> float | None:
+    """Fetch exact BYN price from a public cars.av.by advert page."""
+    from curl_cffi import requests
+
+    page_url = (url or "").strip()
+    if not page_url:
+        return None
+    response = requests.get(
+        page_url,
+        impersonate="chrome124",
+        timeout=30,
+        headers={
+            "User-Agent": user_agent,
+            "Accept-Language": "ru-RU,ru;q=0.9",
+        },
+    )
+    response.raise_for_status()
+    match = re.search(
+        r'"byn"\s*:\s*\{\s*"currency"\s*:\s*"byn"\s*,\s*"amount"\s*:\s*(\d+(?:\.\d+)?)\s*,\s*"amountFiat"\s*:\s*(\d+(?:\.\d+)?)',
+        response.text,
+        flags=re.IGNORECASE,
+    )
+    if not match:
+        match = re.search(
+            r'"byn"\s*:\s*\{\s*"currency"\s*:\s*"byn"\s*,\s*"amountFiat"\s*:\s*(\d+(?:\.\d+)?)',
+            response.text,
+            flags=re.IGNORECASE,
+        )
+        if match:
+            return _to_float(match.group(1))
+        return None
+    return _to_float(match.group(2) or match.group(1))
 
 
 def extract_price_byn_from_advert(advert: dict[str, Any]) -> float | None:

@@ -545,6 +545,8 @@ def run_import(
     creation_date: int | None = DEFAULT_CREATION_DATE,
     sort: int = DEFAULT_SORT,
     update_existing: bool = True,
+    create_new: bool = True,
+    refresh_prices_only: bool = False,
     archive_overpowered: bool = False,
     prune_non_catalog: bool = True,
     dry_run: bool = False,
@@ -552,6 +554,16 @@ def run_import(
     vin_metadata_limit: int = 100,
     vin_enrich_limit: int = 20,
 ) -> dict[str, Any]:
+    if refresh_prices_only:
+        create_new = False
+        update_existing = True
+        prune_non_catalog = False
+        archive_overpowered = False
+        vin_metadata_limit = 0
+        vin_enrich_limit = 0
+        creation_date = None
+        trigger = trigger or "price_refresh"
+
     targets = _collect_target_models(make, model, limit_models)
     catalog_targets = _collect_target_models(None, None, None)
     fetch_targets = _collect_target_models(make, model, None)
@@ -598,6 +610,7 @@ def run_import(
         f"{len(brand_to_models)} brands to sync "
         f"filters: year>={year_min} price_usd>={price_usd_min} hp<={max_hp} "
         f"creation_date={creation_date} sort={sort}"
+        + (" [refresh-prices-only]" if refresh_prices_only else "")
     )
     brand_id_map = _fetch_brand_id_map(user_agent)
 
@@ -686,6 +699,25 @@ def run_import(
                     avby_id = _to_int(advert.get("id"))
                     existing = existing_map.get(avby_id) if avby_id is not None else None
 
+                    if refresh_prices_only:
+                        if existing is None or avby_id is None:
+                            skipped += 1
+                            continue
+                        price_byn = extract_price_byn_from_advert(advert)
+                        price_byn_missing = price_byn is None
+                        if not dry_run:
+                            apply_import_byn_price_state(
+                                existing,
+                                price_byn=price_byn,
+                                price_byn_missing=price_byn_missing,
+                            )
+                            public_url = (advert.get("publicUrl") or "").strip()
+                            if public_url:
+                                existing.source_url = public_url[:500]
+                        updated += 1
+                        touched_listings[avby_id] = existing
+                        continue
+
                     advert_generation = str(props.get("generation") or "").strip() or None
                     catalog_generations, catalog_allows_unrated = catalog_generation_index.get(
                         target_key,
@@ -702,7 +734,7 @@ def run_import(
                             existing.status = ListingStatus.archived
                         continue
 
-                    if per_model_limit > 0 and imported_per_model.get(target_key, 0) >= per_model_limit:
+                    if per_model_limit > 0 and existing is None and imported_per_model.get(target_key, 0) >= per_model_limit:
                         skipped += 1
                         continue
 
@@ -746,7 +778,6 @@ def run_import(
                             continue
                         if dry_run:
                             updated += 1
-                            imported_per_model[target_key] = imported_per_model.get(target_key, 0) + 1
                             continue
                         existing.avby_id = avby_id
                         for field, value in payload.items():
@@ -761,8 +792,11 @@ def run_import(
                         if price_byn_missing:
                             imported_without_byn += 1
                         updated += 1
-                        imported_per_model[target_key] = imported_per_model.get(target_key, 0) + 1
                         touched_listings[avby_id] = existing
+                        continue
+
+                    if not create_new:
+                        skipped += 1
                         continue
 
                     if dry_run:
@@ -984,6 +1018,11 @@ def main() -> None:
         help="Auto-fetch VIN+customs for rating=1 listings touched in this run (0=off, -1=no limit)",
     )
     parser.add_argument("--trigger", default="manual", help="Sync trigger label: manual, scheduler, admin")
+    parser.add_argument(
+        "--refresh-prices-only",
+        action="store_true",
+        help="Only refresh BYN prices for existing listings (no creation_date filter, no new imports)",
+    )
     args = parser.parse_args()
 
     creation_date = args.creation_date if args.creation_date > 0 else None
@@ -1008,6 +1047,7 @@ def main() -> None:
             trigger=args.trigger,
             vin_metadata_limit=args.vin_metadata_limit,
             vin_enrich_limit=args.vin_enrich_limit,
+            refresh_prices_only=args.refresh_prices_only,
         )
     except Exception:
         raise SystemExit(1) from None

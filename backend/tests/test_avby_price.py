@@ -45,6 +45,29 @@ def test_extract_price_byn_ignores_other_currencies():
     assert extract_price_byn_from_advert(advert) is None
 
 
+def test_fetch_price_byn_from_avby_public_url_parses_html(monkeypatch):
+    from app.avby_price import fetch_price_byn_from_avby_public_url
+
+    html = (
+        '"price":{"usd":{"currency":"usd","amount":15600},'
+        '"byn":{"currency":"byn","amount":46533,"amountFiat":46533.24},'
+        '"rub":{"currency":"rub","amount":1300392}},"description":"x"'
+    )
+
+    class FakeResponse:
+        text = html
+
+        @staticmethod
+        def raise_for_status() -> None:
+            return None
+
+    monkeypatch.setattr(
+        "curl_cffi.requests.get",
+        lambda *args, **kwargs: FakeResponse(),
+    )
+    assert fetch_price_byn_from_avby_public_url("https://cars.av.by/peugeot/308/1") == 46533.24
+
+
 def test_fix_rub_stored_as_byn_corrects_legacy_rows():
     rates = _sample_rates()
     corrected = fix_rub_stored_as_byn(1_325_934, rates)
