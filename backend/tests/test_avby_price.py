@@ -14,41 +14,35 @@ def _sample_rates() -> NbrbRates:
     )
 
 
-def test_extract_price_byn_prefers_byn_amount():
+def test_extract_price_byn_prefers_amount_fiat():
     advert = {
         "price": {
-            "byn": {"currency": "byn", "amount": 46533},
+            "byn": {"currency": "byn", "amount": 46533, "amountFiat": 46533.24},
             "rub": {"currency": "rub", "amount": 1300392},
             "usd": {"currency": "usd", "amount": 15600},
-        }
-    }
-    assert extract_price_byn_from_advert(advert) == 46533
-
-
-def test_extract_price_byn_uses_amount_fiat():
-    advert = {
-        "price": {
-            "byn": {"currency": "byn", "amountFiat": 46533.24},
-            "rub": {"currency": "rub", "amount": 1300392},
         }
     }
     assert extract_price_byn_from_advert(advert) == 46533.24
 
 
-def test_extract_price_byn_converts_usd_when_byn_missing(monkeypatch):
+def test_extract_price_byn_uses_amount_when_fiat_missing():
+    advert = {
+        "price": {
+            "byn": {"currency": "byn", "amount": 46533},
+            "rub": {"currency": "rub", "amount": 1300392},
+        }
+    }
+    assert extract_price_byn_from_advert(advert) == 46533
+
+
+def test_extract_price_byn_ignores_other_currencies():
     advert = {
         "price": {
             "usd": {"currency": "usd", "amount": 15600},
             "rub": {"currency": "rub", "amount": 1300392},
         }
     }
-    monkeypatch.setattr("app.avby_price.fetch_nbrb_rates", lambda: _sample_rates())
-    assert round(extract_price_byn_from_advert(advert)) == round(15600 * 2.9829)
-
-
-def test_extract_price_byn_does_not_use_rub_fallback():
-    advert = {"price": {"rub": {"currency": "rub", "amount": 1300392}}}
-    assert extract_price_byn_from_advert(advert) == 0.0
+    assert extract_price_byn_from_advert(advert) is None
 
 
 def test_fix_rub_stored_as_byn_corrects_legacy_rows():

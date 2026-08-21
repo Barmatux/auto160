@@ -130,7 +130,7 @@ def build_listing_price_display(
     usd_value = resolved_rates.convert_byn_to_usd(amount_byn)
     rate_date_label = resolved_rates.rate_date.strftime("%d.%m.%Y")
     disclaimer = (
-        f"Цены в российских рублях и долларах США указаны справочно по официальному курсу "
+        f"Ориентировочная цена в российских рублях и долларах США рассчитана по официальному курсу "
         f"{resolved_rates.source_label} на {rate_date_label}."
     )
     return ListingPriceDisplay(

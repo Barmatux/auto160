@@ -29,5 +29,6 @@ def test_build_listing_price_display_includes_reference_disclaimer():
     assert display.rub_formatted == "833 600"
     assert display.usd_formatted == "$10 000"
     assert display.has_conversions is True
+    assert "ориентировоч" in (display.disclaimer or "").lower()
     assert "НБ РБ" in (display.disclaimer or "")
     assert "21.08.2026" in (display.disclaimer or "")

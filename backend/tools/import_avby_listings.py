@@ -291,6 +291,8 @@ def _avby_payload_to_listing(advert: dict[str, Any], fallback_brand: str, fallba
 
     mileage = _to_int(props.get("mileage_km")) or 0
     price_byn = extract_price_byn_from_advert(advert)
+    if price_byn is None:
+        return None
 
     city = (advert.get("shortLocationName") or advert.get("locationName") or "Не указан").strip()
     public_url = (advert.get("publicUrl") or "").strip()

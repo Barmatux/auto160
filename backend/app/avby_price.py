@@ -1,4 +1,8 @@
-"""Extract listing prices from av.by advert payloads (stored as BYN)."""
+"""Extract listing prices from av.by advert payloads.
+
+Stored and displayed price is always Belarusian rubles (BYN) exactly as on av.by.
+Russian rubles and US dollars are derived later via NBRB rates for reference only.
+"""
 
 from __future__ import annotations
 
@@ -16,26 +20,16 @@ def _to_float(value: Any) -> float | None:
         return None
 
 
-def _currency_amount(currency_block: dict[str, Any] | None) -> float | None:
+def _byn_amount(currency_block: dict[str, Any] | None) -> float | None:
     if not isinstance(currency_block, dict):
         return None
-    return _to_float(currency_block.get("amount") or currency_block.get("amountFiat"))
+    return _to_float(currency_block.get("amountFiat") or currency_block.get("amount"))
 
 
-def extract_price_byn_from_advert(advert: dict[str, Any]) -> float:
-    """Return advert price in Belarusian rubles."""
+def extract_price_byn_from_advert(advert: dict[str, Any]) -> float | None:
+    """Return BYN price from av.by advert payload, unchanged."""
     price = advert.get("price") or {}
-    byn = _currency_amount(price.get("byn"))
-    if byn is not None:
-        return byn
-
-    usd = _currency_amount(price.get("usd"))
-    if usd is not None:
-        rates = fetch_nbrb_rates()
-        if rates and rates.usd_rate > 0:
-            return usd * rates.usd_rate / rates.usd_scale
-
-    return 0.0
+    return _byn_amount(price.get("byn"))
 
 
 def fix_rub_stored_as_byn(price: float | int | None, rates: NbrbRates | None = None) -> float | None:
