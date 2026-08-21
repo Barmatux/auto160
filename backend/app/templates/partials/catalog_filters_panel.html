@@ -34,14 +34,16 @@
         <div class="catalog-multi-select-menu" hidden>
           {% for value in catalog_sidebar.options.body_type %}
             <label class="catalog-multi-select-row{% if value in selected_body_types %} is-selected{% endif %}">
+              <span class="catalog-multi-select-mark" aria-hidden="true"></span>
               <input
                 type="checkbox"
+                class="catalog-multi-select-input"
                 value="{{ value }}"
                 data-multi-select-role="option"
                 data-label="{{ value }}"
                 {% if value in selected_body_types %}checked{% endif %}
               />
-              <span>{{ value }}</span>
+              <span class="catalog-multi-select-label">{{ value }}</span>
             </label>
           {% endfor %}
         </div>
@@ -66,14 +68,16 @@
         <div class="catalog-multi-select-menu" hidden>
           {% for value in catalog_sidebar.options.fuel_type %}
             <label class="catalog-multi-select-row{% if value in selected_fuel_types %} is-selected{% endif %}">
+              <span class="catalog-multi-select-mark" aria-hidden="true"></span>
               <input
                 type="checkbox"
+                class="catalog-multi-select-input"
                 value="{{ value }}"
                 data-multi-select-role="option"
                 data-label="{{ value }}"
                 {% if value in selected_fuel_types %}checked{% endif %}
               />
-              <span>{{ value }}</span>
+              <span class="catalog-multi-select-label">{{ value }}</span>
             </label>
           {% endfor %}
         </div>
@@ -100,37 +104,43 @@
           {% for group in catalog_sidebar.options.transmission_groups %}
             {% if group.subtypes %}
               <label class="catalog-multi-select-row catalog-multi-select-row-group{% if group.slug in checked_transmissions %} is-selected{% endif %}">
+                <span class="catalog-multi-select-mark" aria-hidden="true"></span>
                 <input
                   type="checkbox"
+                  class="catalog-multi-select-input"
                   value="{{ group.slug }}"
                   data-multi-select-role="parent"
                   data-label="{{ group.label }}"
                   {% if group.slug in checked_transmissions %}checked{% endif %}
                 />
-                <span>{{ group.label }}</span>
+                <span class="catalog-multi-select-label">{{ group.label }}</span>
               </label>
               {% for subtype in group.subtypes %}
                 <label class="catalog-multi-select-row catalog-multi-select-row-sub{% if subtype.slug in checked_transmissions %} is-selected{% endif %}">
+                  <span class="catalog-multi-select-mark" aria-hidden="true"></span>
                   <input
                     type="checkbox"
+                    class="catalog-multi-select-input"
                     value="{{ subtype.slug }}"
                     data-multi-select-role="subtype"
                     data-label="{{ subtype.label }}"
                     {% if subtype.slug in checked_transmissions %}checked{% endif %}
                   />
-                  <span>{{ subtype.label }}</span>
+                  <span class="catalog-multi-select-label">{{ subtype.label }}</span>
                 </label>
               {% endfor %}
             {% else %}
               <label class="catalog-multi-select-row{% if group.slug in checked_transmissions %} is-selected{% endif %}">
+                <span class="catalog-multi-select-mark" aria-hidden="true"></span>
                 <input
                   type="checkbox"
+                  class="catalog-multi-select-input"
                   value="{{ group.slug }}"
                   data-multi-select-role="manual"
                   data-label="{{ group.label }}"
                   {% if group.slug in checked_transmissions %}checked{% endif %}
                 />
-                <span>{{ group.label }}</span>
+                <span class="catalog-multi-select-label">{{ group.label }}</span>
               </label>
             {% endif %}
           {% endfor %}
