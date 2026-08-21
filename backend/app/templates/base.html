@@ -30,7 +30,7 @@
     {% if seo_json_ld_script %}
       <script type="application/ld+json">{{ seo_json_ld_script | safe }}</script>
     {% endif %}
-    <link rel="stylesheet" href="/static/styles.css?v=20260821-11" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260821-12" />
   </head>
   <body>
     <header class="header">
@@ -61,7 +61,7 @@
           <a href="/admin/archived-listings">Архив объявлений</a>
           <a href="/admin/listings-without-byn">Без цены BYN</a>
           <a href="/admin/analytics">Аналитика</a>
-          <a href="/admin/ratings">Рейтинг</a>
+          <a href="/admin/ratings">Управление каталогом</a>
           <a href="/admin/logs">Логи</a>
         {% endif %}
         {% if is_authenticated %}

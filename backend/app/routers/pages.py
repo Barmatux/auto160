@@ -3097,10 +3097,14 @@ def admin_ratings_page(
         query = urlencode(pairs)
         return "/admin/ratings" + (f"?{query}" if query else "")
 
+    photo_item_ids = [row.photo_item_id for row in rows if row.photo_item_id]
+    rating_cover_urls = _build_cover_url_map(photo_item_ids, db)
+
     context = _template_context(request, current_user)
     context.update(
         {
             "rating_rows": rows,
+            "rating_cover_urls": rating_cover_urls,
             "rating_total": total,
             "rating_page": page,
             "rating_total_pages": total_pages,

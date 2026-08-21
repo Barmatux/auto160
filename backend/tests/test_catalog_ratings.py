@@ -1,11 +1,18 @@
 from decimal import Decimal
 
 from app.catalog_ratings import (
+    format_production_years,
     format_rating,
     generation_key,
     generation_label,
     parse_rating,
 )
+
+
+def test_format_production_years():
+    assert format_production_years(None, None) == "—"
+    assert format_production_years(2019, 2024) == "2019 – 2024"
+    assert format_production_years(2019, None) == "2019 – ?"
 
 
 def test_generation_key_and_label():

@@ -13,10 +13,15 @@ def test_row_from_group_marks_fully_hidden_generation():
         rated_count=0,
         rating_min=None,
         rating_max=None,
+        year_from_min=2011,
+        year_to_max=2014,
+        first_item_id=42,
         hidden_count=3,
     )
     result = _row_from_group(row)
     assert result.hidden is True
+    assert result.production_years == "2011 – 2014"
+    assert result.photo_item_id == 42
 
 
 def test_row_from_group_not_hidden_when_partially_visible():
@@ -28,6 +33,9 @@ def test_row_from_group_not_hidden_when_partially_visible():
         rated_count=0,
         rating_min=None,
         rating_max=None,
+        year_from_min=None,
+        year_to_max=None,
+        first_item_id=99,
         hidden_count=1,
     )
     result = _row_from_group(row)

@@ -29,6 +29,16 @@ class CatalogRatingRow:
     mixed: bool
     hidden: bool
     mods_url: str
+    production_years: str
+    photo_item_id: int | None
+
+
+def format_production_years(year_from: int | None, year_to: int | None) -> str:
+    if year_from is None and year_to is None:
+        return "—"
+    start = str(year_from) if year_from is not None else "?"
+    end = str(year_to) if year_to is not None else "?"
+    return f"{start} – {end}"
 
 
 def generation_key(value: str | None) -> str:
@@ -117,6 +127,9 @@ def _grouped_query(
             func.count(CatalogItem.rating).label("rated_count"),
             func.min(CatalogItem.rating).label("rating_min"),
             func.max(CatalogItem.rating).label("rating_max"),
+            func.min(CatalogItem.year_from).label("year_from_min"),
+            func.max(CatalogItem.year_to).label("year_to_max"),
+            func.min(CatalogItem.id).label("first_item_id"),
             func.sum(case((CatalogItem.hidden_from_catalog.is_(True), 1), else_=0)).label("hidden_count"),
         )
         .filter(CatalogItem.source_site == "av.by")
@@ -166,6 +179,9 @@ def _row_from_group(row) -> CatalogRatingRow:
         params["generation"] = key
     item_count = int(row.item_count or 0)
     hidden_count = int(row.hidden_count or 0)
+    year_from = int(row.year_from_min) if row.year_from_min is not None else None
+    year_to = int(row.year_to_max) if row.year_to_max is not None else None
+    photo_item_id = int(row.first_item_id) if row.first_item_id is not None else None
     return CatalogRatingRow(
         make=make,
         model=model,
@@ -177,6 +193,8 @@ def _row_from_group(row) -> CatalogRatingRow:
         mixed=mixed,
         hidden=item_count > 0 and hidden_count >= item_count,
         mods_url="/catalog/modifications?" + urlencode(params),
+        production_years=format_production_years(year_from, year_to),
+        photo_item_id=photo_item_id,
     )
 
 

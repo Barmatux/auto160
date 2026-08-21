@@ -1,10 +1,10 @@
 {% extends "base.html" %}
-{% block title %}Админка — Рейтинг каталога{% endblock %}
+{% block title %}Админка — Управление каталогом{% endblock %}
 {% block content %}
 {% set admin_section = "ratings" %}
 {% include "partials/admin_nav.html" %}
 
-<h1>Рейтинг каталога</h1>
+<h1>Управление каталогом</h1>
 <p class="hint">
   Внутренний рейтинг поколений (марка → модель → поколение). Сохранение меняет рейтинг у всех комплектаций этого поколения.
   Скрытие из каталога также отправляет связанные объявления в архив — они пропадут с главной и из ленты.
@@ -43,7 +43,9 @@
         <th>Марка</th>
         <th>Модель</th>
         <th>Поколение</th>
+        <th>Годы производства</th>
         <th>Рейтинг</th>
+        <th>Фото</th>
       </tr>
     </thead>
     <tbody>
@@ -68,6 +70,7 @@
             </button>
             <div class="admin-catalog-visibility-status" hidden></div>
           </td>
+          <td>{{ row.production_years }}</td>
           <td>
             <form class="admin-rating-form" data-make="{{ row.make }}" data-model="{{ row.model }}" data-generation="{{ row.generation_key }}">
               <select name="rating" aria-label="Рейтинг {{ row.make }} {{ row.model }}">
@@ -84,9 +87,40 @@
             </form>
             <div class="admin-rating-status" hidden></div>
           </td>
+          <td class="admin-ratings-photo-cell">
+            {% if row.photo_item_id %}
+              {% set cover_url = rating_cover_urls.get(row.photo_item_id) %}
+              {% if cover_url %}
+                <img
+                  class="admin-ratings-photo-thumb"
+                  src="{{ cover_url }}"
+                  alt="{{ row.make }} {{ row.model }}"
+                  data-photo-thumb="{{ row.photo_item_id }}"
+                />
+              {% else %}
+                <div class="admin-ratings-photo-placeholder" data-photo-thumb="{{ row.photo_item_id }}">нет фото</div>
+              {% endif %}
+              <input
+                type="file"
+                class="admin-ratings-photo-input"
+                accept="image/jpeg,image/png,image/webp"
+                hidden
+                data-item-id="{{ row.photo_item_id }}"
+              />
+              <button
+                type="button"
+                class="page-link admin-ratings-replace-photo-btn"
+                data-item-id="{{ row.photo_item_id }}"
+              >Заменить картинку</button>
+              <a class="page-link admin-ratings-all-photos-link" href="/admin/catalog/{{ row.photo_item_id }}/photos">Все фото</a>
+              <div class="admin-ratings-photo-status" hidden></div>
+            {% else %}
+              —
+            {% endif %}
+          </td>
         </tr>
       {% else %}
-        <tr><td colspan="4">Поколений по этому фильтру нет.</td></tr>
+        <tr><td colspan="6">Поколений по этому фильтру нет.</td></tr>
       {% endfor %}
     </tbody>
   </table>
@@ -208,6 +242,101 @@
         return;
       }
       window.location.reload();
+    });
+  });
+
+  function setPhotoStatus(cell, text, isError) {
+    const el = cell.querySelector(".admin-ratings-photo-status");
+    if (!el) return;
+    el.hidden = !text;
+    el.textContent = text || "";
+    el.classList.toggle("is-error", Boolean(isError));
+  }
+
+  async function replaceCatalogCover(itemId, file, cell) {
+    const allowed = new Set(["image/jpeg", "image/png", "image/webp"]);
+    if (!allowed.has(file.type)) {
+      setPhotoStatus(cell, "Поддерживаются JPEG, PNG и WebP", true);
+      return;
+    }
+    setPhotoStatus(cell, "Загрузка…", false);
+    const presignResponse = await adminFetch(`/api/v1/catalog/${itemId}/photos/presign`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        filename: file.name,
+        content_type: file.type,
+      }),
+    });
+    if (!presignResponse || !presignResponse.ok) {
+      setPhotoStatus(cell, "Не удалось подготовить загрузку", true);
+      return;
+    }
+    const presignData = await presignResponse.json();
+    const uploadResponse = await fetch(presignData.upload_url, {
+      method: "PUT",
+      headers: { "Content-Type": file.type },
+      body: file,
+    });
+    if (!uploadResponse.ok) {
+      setPhotoStatus(cell, "Ошибка загрузки файла", true);
+      return;
+    }
+    const confirmResponse = await adminFetch(`/api/v1/catalog/${itemId}/photos/confirm`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        storage_key: presignData.storage_key,
+        content_type: file.type,
+        sort_order: 0,
+        is_cover: true,
+      }),
+    });
+    if (!confirmResponse || !confirmResponse.ok) {
+      setPhotoStatus(cell, "Не удалось сохранить фото", true);
+      return;
+    }
+    const photoData = await confirmResponse.json().catch(function () { return {}; });
+    const fileUrl = photoData.file_url;
+    if (fileUrl) {
+      let img = cell.querySelector("[data-photo-thumb='" + itemId + "']");
+      if (img && img.tagName === "IMG") {
+        img.src = fileUrl;
+      } else if (img) {
+        const newImg = document.createElement("img");
+        newImg.className = "admin-ratings-photo-thumb";
+        newImg.src = fileUrl;
+        newImg.alt = "catalog photo";
+        newImg.dataset.photoThumb = String(itemId);
+        img.replaceWith(newImg);
+      } else {
+        const newImg = document.createElement("img");
+        newImg.className = "admin-ratings-photo-thumb";
+        newImg.src = fileUrl;
+        newImg.alt = "catalog photo";
+        newImg.dataset.photoThumb = String(itemId);
+        cell.insertBefore(newImg, cell.querySelector(".admin-ratings-photo-input"));
+      }
+    }
+    setPhotoStatus(cell, "Сохранено", false);
+  }
+
+  document.querySelectorAll(".admin-ratings-photo-cell").forEach(function (cell) {
+    const button = cell.querySelector(".admin-ratings-replace-photo-btn");
+    const input = cell.querySelector(".admin-ratings-photo-input");
+    if (!button || !input) return;
+    button.addEventListener("click", function () {
+      input.click();
+    });
+    input.addEventListener("change", async function () {
+      const file = input.files && input.files[0];
+      input.value = "";
+      if (!file) return;
+      const itemId = button.dataset.itemId;
+      if (!itemId) return;
+      button.disabled = true;
+      await replaceCatalogCover(itemId, file, cell);
+      button.disabled = false;
     });
   });
 </script>
