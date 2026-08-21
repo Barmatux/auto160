@@ -90,30 +90,36 @@
           <td class="admin-ratings-photo-cell">
             {% if row.photo_item_id %}
               {% set cover_url = rating_cover_urls.get(row.photo_item_id) %}
-              {% if cover_url %}
-                <img
-                  class="admin-ratings-photo-thumb"
-                  src="{{ cover_url }}"
-                  alt="{{ row.make }} {{ row.model }}"
-                  data-photo-thumb="{{ row.photo_item_id }}"
-                />
-              {% else %}
-                <div class="admin-ratings-photo-placeholder" data-photo-thumb="{{ row.photo_item_id }}">нет фото</div>
-              {% endif %}
-              <input
-                type="file"
-                class="admin-ratings-photo-input"
-                accept="image/jpeg,image/png,image/webp"
-                hidden
-                data-item-id="{{ row.photo_item_id }}"
-              />
-              <button
-                type="button"
-                class="page-link admin-ratings-replace-photo-btn"
-                data-item-id="{{ row.photo_item_id }}"
-              >Заменить картинку</button>
-              <a class="page-link admin-ratings-all-photos-link" href="/admin/catalog/{{ row.photo_item_id }}/photos">Все фото</a>
-              <div class="admin-ratings-photo-status" hidden></div>
+              <div class="admin-ratings-photo-wrap">
+                <div class="admin-ratings-photo-actions">
+                  <input
+                    type="file"
+                    class="admin-ratings-photo-input"
+                    accept="image/jpeg,image/png,image/webp"
+                    hidden
+                    data-item-id="{{ row.photo_item_id }}"
+                  />
+                  <button
+                    type="button"
+                    class="page-link admin-ratings-replace-photo-btn"
+                    data-item-id="{{ row.photo_item_id }}"
+                  >Заменить картинку</button>
+                  <a class="page-link admin-ratings-all-photos-link" href="/admin/catalog/{{ row.photo_item_id }}/photos">Все фото</a>
+                  <div class="admin-ratings-photo-status" hidden></div>
+                </div>
+                <div class="admin-ratings-photo-media">
+                  {% if cover_url %}
+                    <img
+                      class="admin-ratings-photo-thumb"
+                      src="{{ cover_url }}"
+                      alt="{{ row.make }} {{ row.model }}"
+                      data-photo-thumb="{{ row.photo_item_id }}"
+                    />
+                  {% else %}
+                    <div class="admin-ratings-photo-placeholder" data-photo-thumb="{{ row.photo_item_id }}">нет фото</div>
+                  {% endif %}
+                </div>
+              </div>
             {% else %}
               —
             {% endif %}
@@ -298,8 +304,9 @@
     }
     const photoData = await confirmResponse.json().catch(function () { return {}; });
     const fileUrl = photoData.file_url;
-    if (fileUrl) {
-      let img = cell.querySelector("[data-photo-thumb='" + itemId + "']");
+    const media = cell.querySelector(".admin-ratings-photo-media");
+    if (fileUrl && media) {
+      let img = media.querySelector("[data-photo-thumb='" + itemId + "']");
       if (img && img.tagName === "IMG") {
         img.src = fileUrl;
       } else if (img) {
@@ -315,7 +322,7 @@
         newImg.src = fileUrl;
         newImg.alt = "catalog photo";
         newImg.dataset.photoThumb = String(itemId);
-        cell.insertBefore(newImg, cell.querySelector(".admin-ratings-photo-input"));
+        media.appendChild(newImg);
       }
     }
     setPhotoStatus(cell, "Сохранено", false);

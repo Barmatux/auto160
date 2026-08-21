@@ -1640,25 +1640,55 @@ body {
 }
 
 .admin-ratings-photo-cell {
-  width: 130px;
-  vertical-align: top;
+  width: 280px;
+  padding: 0;
+  vertical-align: stretch;
+  height: 1px;
+}
+
+.admin-ratings-photo-wrap {
+  display: flex;
+  align-items: stretch;
+  height: 100%;
+  min-height: 100%;
+}
+
+.admin-ratings-photo-actions {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  padding: 14px 10px 14px 16px;
+  min-width: 0;
+}
+
+.admin-ratings-photo-media {
+  flex: 0 0 168px;
+  width: 168px;
+  align-self: stretch;
+  display: flex;
+  overflow: hidden;
+  border-left: 1px solid var(--border);
 }
 
 .admin-ratings-photo-thumb {
-  width: 108px;
-  height: 72px;
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
   object-fit: cover;
-  border-radius: 8px;
-  border: 1px solid #dbeafe;
-  background: #f8fafc;
   display: block;
+  border: none;
+  border-radius: 0;
+  background: #f8fafc;
 }
 
 .admin-ratings-photo-placeholder {
-  width: 108px;
-  height: 72px;
-  border-radius: 8px;
-  border: 1px dashed #cbd5e1;
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+  border: none;
+  border-radius: 0;
   background: #f8fafc;
   color: #94a3b8;
   font-size: 12px;
@@ -1672,14 +1702,17 @@ body {
 .admin-ratings-replace-photo-btn,
 .admin-ratings-all-photos-link {
   display: inline-block;
-  margin-top: 6px;
+  margin: 0;
   font-size: 12px;
+  line-height: 1.25;
+  white-space: normal;
 }
 
 .admin-ratings-photo-status {
-  margin-top: 4px;
-  font-size: 12px;
+  margin-top: 2px;
+  font-size: 11px;
   color: #166534;
+  line-height: 1.25;
 }
 
 .admin-ratings-photo-status.is-error {
