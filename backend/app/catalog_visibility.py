@@ -41,6 +41,23 @@ def listing_matches_generation(listing_generation: str | None, target_generation
     return False
 
 
+def listing_generation_allowed_for_model(
+    listing_generation: str | None,
+    *,
+    catalog_generations: frozenset[str] | set[str],
+    catalog_allows_unrated: bool,
+) -> bool:
+    """True when advert generation matches at least one catalog generation for the model."""
+    if catalog_generations:
+        return any(
+            listing_matches_generation(listing_generation, catalog_generation)
+            for catalog_generation in catalog_generations
+        )
+    if catalog_allows_unrated:
+        return listing_matches_generation(listing_generation, "")
+    return False
+
+
 def find_listings_for_catalog_generation(
     db: Session,
     *,

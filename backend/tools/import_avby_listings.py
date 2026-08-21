@@ -14,6 +14,8 @@ if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 os.chdir(ROOT_DIR)
 
+from app.catalog_ratings import generation_key
+from app.catalog_visibility import listing_generation_allowed_for_model
 from app.db import SessionLocal
 from app.listing_enrichment import build_rating_one_targets, enrich_rating_one_listings, listing_needs_enrichment
 from app.listing_catalog_link import link_listing_to_catalog
@@ -166,6 +168,74 @@ def _build_catalog_brand_models(targets: list[tuple[str, str]]) -> dict[str, set
 
 def _is_in_catalog(brand_n: str, model_n: str, brand_to_models: dict[str, set[str]]) -> bool:
     return brand_n in brand_to_models and model_n in brand_to_models[brand_n]
+
+
+def _build_catalog_generation_index(db) -> dict[tuple[str, str], tuple[frozenset[str], bool]]:
+    index: dict[tuple[str, str], tuple[set[str], bool]] = {}
+    rows = (
+        db.query(CatalogItem)
+        .filter(CatalogItem.source_site == "av.by")
+        .order_by(CatalogItem.id.asc())
+        .all()
+    )
+    for item in rows:
+        make = (item.make or "").strip()
+        model = (item.model or "").strip()
+        if not make or not model:
+            continue
+        key = (_normalize_name(make), _normalize_name(model))
+        generations, allows_unrated = index.get(key, (set(), False))
+        generation = generation_key(item.generation)
+        if generation:
+            generations.add(generation)
+        else:
+            allows_unrated = True
+        index[key] = (generations, allows_unrated)
+    return {
+        key: (frozenset(generations), allows_unrated)
+        for key, (generations, allows_unrated) in index.items()
+    }
+
+
+def _archive_wrong_generation_listings(
+    catalog_generation_index: dict[tuple[str, str], tuple[frozenset[str], bool]],
+    *,
+    dry_run: bool,
+) -> int:
+    db = SessionLocal()
+    try:
+        archived = 0
+        rows = (
+            db.query(CarListing)
+            .filter(
+                CarListing.avby_id.isnot(None),
+                CarListing.status == ListingStatus.published,
+            )
+            .all()
+        )
+        for listing in rows:
+            key = (_normalize_name(listing.brand), _normalize_name(listing.model))
+            catalog_generations, catalog_allows_unrated = catalog_generation_index.get(
+                key,
+                (frozenset(), False),
+            )
+            if not catalog_generations and not catalog_allows_unrated:
+                continue
+            if listing_generation_allowed_for_model(
+                listing.generation,
+                catalog_generations=catalog_generations,
+                catalog_allows_unrated=catalog_allows_unrated,
+            ):
+                continue
+            archived += 1
+            if dry_run:
+                continue
+            listing.status = ListingStatus.archived
+        if archived and not dry_run:
+            db.commit()
+        return archived
+    finally:
+        db.close()
 
 
 def _archive_non_catalog_avby_listings(
@@ -572,7 +642,9 @@ def run_import(
     skipped = 0
     skipped_by_hp = 0
     skipped_by_catalog = 0
+    skipped_by_generation = 0
     archived_non_catalog = 0
+    archived_wrong_generation = 0
     failed_brands = 0
     pages_fetched = 0
     touched_listings: dict[int, CarListing] = {}
@@ -584,6 +656,8 @@ def run_import(
         imported_per_model: dict[tuple[str, str], int] = {}
         if not dry_run and vin_enrich_limit != 0:
             rating_one_targets = build_rating_one_targets(db)
+
+        catalog_generation_index = _build_catalog_generation_index(db)
 
         for brand_n, model_set in brand_to_models.items():
             brand_id = brand_id_map.get(brand_n)
@@ -642,12 +716,28 @@ def run_import(
                         skipped_by_catalog += 1
                         continue
 
+                    avby_id = _to_int(advert.get("id"))
+                    existing = existing_map.get(avby_id) if avby_id is not None else None
+
+                    advert_generation = str(props.get("generation") or "").strip() or None
+                    catalog_generations, catalog_allows_unrated = catalog_generation_index.get(
+                        target_key,
+                        (frozenset(), False),
+                    )
+                    if not listing_generation_allowed_for_model(
+                        advert_generation,
+                        catalog_generations=catalog_generations,
+                        catalog_allows_unrated=catalog_allows_unrated,
+                    ):
+                        skipped += 1
+                        skipped_by_generation += 1
+                        if existing and not dry_run:
+                            existing.status = ListingStatus.archived
+                        continue
+
                     if per_model_limit > 0 and imported_per_model.get(target_key, 0) >= per_model_limit:
                         skipped += 1
                         continue
-
-                    avby_id = _to_int(advert.get("id"))
-                    existing = existing_map.get(avby_id) if avby_id is not None else None
 
                     if not _advert_matches_filters(
                         advert,
@@ -732,6 +822,10 @@ def run_import(
                 catalog_brand_models,
                 dry_run=dry_run,
             )
+            archived_wrong_generation = _archive_wrong_generation_listings(
+                catalog_generation_index,
+                dry_run=dry_run,
+            )
 
         enrich_stats = None
         metadata_stats = None
@@ -798,8 +892,10 @@ def run_import(
         print(
             "summary: "
             f"created={created} updated={updated} skipped={skipped} "
-            f"skipped_by_catalog={skipped_by_catalog} skipped_by_hp={skipped_by_hp} "
-            f"archived_non_catalog={archived_non_catalog} failed_brands={failed_brands} "
+            f"skipped_by_catalog={skipped_by_catalog} skipped_by_generation={skipped_by_generation} "
+            f"skipped_by_hp={skipped_by_hp} "
+            f"archived_non_catalog={archived_non_catalog} archived_wrong_generation={archived_wrong_generation} "
+            f"failed_brands={failed_brands} "
             f"pages_fetched={pages_fetched} "
             f"year_min={year_min} price_usd_min={price_usd_min} max_hp={max_hp} "
             f"creation_date={creation_date} dry_run={dry_run}"
@@ -812,8 +908,10 @@ def run_import(
             "updated": updated,
             "skipped": skipped,
             "skipped_by_catalog": skipped_by_catalog,
+            "skipped_by_generation": skipped_by_generation,
             "skipped_by_hp": skipped_by_hp,
             "archived_non_catalog": archived_non_catalog,
+            "archived_wrong_generation": archived_wrong_generation,
             "failed_brands": failed_brands,
             "pages_fetched": pages_fetched,
         }
