@@ -16,6 +16,7 @@ os.chdir(ROOT_DIR)
 
 from app.listing_missing_byn import apply_import_byn_price_state
 from app.avby_price import extract_price_byn_from_advert
+from app.listing_archive_scope import (
     build_catalog_generation_index,
     normalize_catalog_match_name as _normalize_name,
 )
