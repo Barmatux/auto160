@@ -377,6 +377,66 @@ body {
   padding-left: 28px;
 }
 
+.catalog-multi-select-row-region {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-right: 8px;
+}
+
+.catalog-multi-select-row-main {
+  display: flex;
+  align-items: center;
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  cursor: pointer;
+}
+
+.catalog-multi-select-expand {
+  flex: 0 0 24px;
+  width: 24px;
+  height: 24px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+  position: relative;
+}
+
+.catalog-multi-select-expand::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 6px solid #94a3b8;
+  transform: translate(-50%, -35%);
+  transition: transform 0.15s ease;
+}
+
+.catalog-multi-select-region-group.is-expanded .catalog-multi-select-expand::before {
+  transform: translate(-50%, -15%) rotate(180deg);
+}
+
+.catalog-multi-select-expand:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.catalog-multi-select-region-cities {
+  display: grid;
+  gap: 0;
+}
+
+.catalog-multi-select-region-cities[hidden] {
+  display: none !important;
+}
+
 .catalog-multi-select-row.is-selected {
   background: rgba(0, 122, 255, 0.88);
 }

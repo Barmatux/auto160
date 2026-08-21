@@ -7,17 +7,93 @@
     {% set selected_body_types = listings_filters.filters.body_types %}
     {% set selected_fuel_types = listings_filters.filters.fuel_types %}
     {% set checked_transmissions = listings_filters.filters.transmission_checked %}
+    {% set location_checked = listings_filters.filters.location_checked %}
+    {% set selected_location_regions = listings_filters.filters.location_regions %}
+    {% set selected_location_cities = listings_filters.filters.location_cities %}
     <div class="catalog-filter-group">
       <p class="catalog-filter-group-title">Параметры объявления</p>
-      <label class="catalog-filter-field{% if listings_filters.filters.city %} is-active{% endif %}">
+      <div
+        class="catalog-filter-field catalog-multi-select{% if selected_location_regions or selected_location_cities %} is-active{% endif %}"
+        data-catalog-multi-select
+        data-hierarchical="location"
+        data-param-region="region"
+        data-param-city="city"
+        data-placeholder="Любой"
+      >
         Город
-        <select name="city">
-          <option value="" {% if listings_filters.filters.city == "" %}selected{% endif %}>Любой</option>
-          {% for value in listings_filters.options.cities %}
-            <option value="{{ value }}" {% if listings_filters.filters.city == value %}selected{% endif %}>{{ value }}</option>
+        <div
+          class="catalog-multi-select-trigger"
+          role="button"
+          tabindex="0"
+          aria-expanded="false"
+          aria-haspopup="listbox"
+        >
+          <span class="catalog-multi-select-trigger-label">{{ listings_filters.filters.location_display }}</span>
+        </div>
+        <div class="catalog-multi-select-menu" hidden>
+          {% for group in listings_filters.options.location_groups %}
+            {% if group.type == "standalone" %}
+              <label class="catalog-multi-select-row{% if location_checked.standalone %} is-selected{% endif %}">
+                <span class="catalog-multi-select-mark" aria-hidden="true"></span>
+                <input
+                  type="checkbox"
+                  class="catalog-multi-select-input"
+                  value="{{ group.slug }}"
+                  data-multi-select-role="standalone"
+                  data-label="{{ group.label }}"
+                  {% if location_checked.standalone %}checked{% endif %}
+                />
+                <span class="catalog-multi-select-label">{{ group.label }}</span>
+              </label>
+            {% else %}
+              <div class="catalog-multi-select-region-group" data-region-slug="{{ group.slug }}">
+                <div class="catalog-multi-select-row catalog-multi-select-row-region{% if group.slug in location_checked.regions %} is-selected{% endif %}">
+                  <label class="catalog-multi-select-row-main">
+                    <span class="catalog-multi-select-mark" aria-hidden="true"></span>
+                    <input
+                      type="checkbox"
+                      class="catalog-multi-select-input"
+                      value="{{ group.slug }}"
+                      data-multi-select-role="region"
+                      data-label="{{ group.label }}"
+                      {% if group.slug in location_checked.regions %}checked{% endif %}
+                    />
+                    <span class="catalog-multi-select-label">{{ group.label }}</span>
+                  </label>
+                  {% if group.cities %}
+                    <button
+                      type="button"
+                      class="catalog-multi-select-expand"
+                      aria-label="Показать города"
+                      aria-expanded="false"
+                    ></button>
+                  {% endif %}
+                </div>
+                {% if group.cities %}
+                  <div class="catalog-multi-select-region-cities" hidden>
+                    {% for city in group.cities %}
+                      <label class="catalog-multi-select-row catalog-multi-select-row-sub{% if city.slug in location_checked.cities %} is-selected{% endif %}">
+                        <span class="catalog-multi-select-mark" aria-hidden="true"></span>
+                        <input
+                          type="checkbox"
+                          class="catalog-multi-select-input"
+                          value="{{ city.slug }}"
+                          data-multi-select-role="city"
+                          data-region-slug="{{ group.slug }}"
+                          data-label="{{ city.label }}"
+                          {% if city.slug in location_checked.cities %}checked{% endif %}
+                        />
+                        <span class="catalog-multi-select-label">{{ city.label }}</span>
+                      </label>
+                    {% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+            {% endif %}
           {% endfor %}
-        </select>
-      </label>
+        </div>
+        <div class="catalog-multi-select-values"></div>
+      </div>
       <div
         class="catalog-filter-field catalog-multi-select{% if selected_body_types %} is-active{% endif %}"
         data-catalog-multi-select
@@ -201,4 +277,4 @@
     <a class="page-link" href="/listings">Сбросить</a>
   </form>
 </aside>
-<script src="/static/catalog_multi_select.js?v=20260821-09" defer></script>
+<script src="/static/catalog_multi_select.js?v=20260729-01" defer></script>
