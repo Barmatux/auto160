@@ -306,7 +306,7 @@ def home_seo_meta(request: Request) -> SeoMeta:
         description=description,
         path="/",
         json_ld=[organization_json_ld(base), website_json_ld(base)],
-        h1="Подбор авто до 160 л.с. в Беларуси",
+        h1="Подбор авто под льготный утильсбор (до 160 л.с.) в Беларуси",
     )
 
 
