@@ -14,7 +14,10 @@ if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 os.chdir(ROOT_DIR)
 
-from app.catalog_ratings import generation_key
+from app.listing_archive_scope import (
+    build_catalog_generation_index,
+    normalize_catalog_match_name as _normalize_name,
+)
 from app.catalog_visibility import listing_generation_allowed_for_model
 from app.db import SessionLocal
 from app.listing_enrichment import build_rating_one_targets, enrich_rating_one_listings, listing_needs_enrichment
@@ -112,15 +115,6 @@ def _ensure_importer_user(db) -> User:
     return created
 
 
-def _normalize_name(value: str | None) -> str:
-    if not value:
-        return ""
-    normalized = value.strip().lower().replace("ё", "е")
-    normalized = re.sub(r"[^a-zа-я0-9]+", " ", normalized, flags=re.IGNORECASE)
-    normalized = re.sub(r"\s+", " ", normalized)
-    return normalized.strip()
-
-
 def _collect_target_models(
     make_filter: str | None,
     model_filter: str | None,
@@ -168,33 +162,6 @@ def _build_catalog_brand_models(targets: list[tuple[str, str]]) -> dict[str, set
 
 def _is_in_catalog(brand_n: str, model_n: str, brand_to_models: dict[str, set[str]]) -> bool:
     return brand_n in brand_to_models and model_n in brand_to_models[brand_n]
-
-
-def _build_catalog_generation_index(db) -> dict[tuple[str, str], tuple[frozenset[str], bool]]:
-    index: dict[tuple[str, str], tuple[set[str], bool]] = {}
-    rows = (
-        db.query(CatalogItem)
-        .filter(CatalogItem.source_site == "av.by")
-        .order_by(CatalogItem.id.asc())
-        .all()
-    )
-    for item in rows:
-        make = (item.make or "").strip()
-        model = (item.model or "").strip()
-        if not make or not model:
-            continue
-        key = (_normalize_name(make), _normalize_name(model))
-        generations, allows_unrated = index.get(key, (set(), False))
-        generation = generation_key(item.generation)
-        if generation:
-            generations.add(generation)
-        else:
-            allows_unrated = True
-        index[key] = (generations, allows_unrated)
-    return {
-        key: (frozenset(generations), allows_unrated)
-        for key, (generations, allows_unrated) in index.items()
-    }
 
 
 def _archive_wrong_generation_listings(
@@ -657,7 +624,7 @@ def run_import(
         if not dry_run and vin_enrich_limit != 0:
             rating_one_targets = build_rating_one_targets(db)
 
-        catalog_generation_index = _build_catalog_generation_index(db)
+        catalog_generation_index = build_catalog_generation_index(db)
 
         for brand_n, model_set in brand_to_models.items():
             brand_id = brand_id_map.get(brand_n)

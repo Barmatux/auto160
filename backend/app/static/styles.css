@@ -1830,6 +1830,33 @@ body {
   line-height: 1.35;
 }
 
+.admin-stat-card .sub a {
+  color: inherit;
+  text-decoration: underline;
+}
+
+.archived-listings-table .status-pill {
+  white-space: nowrap;
+}
+
+.filters-inline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.filters-inline label {
+  display: grid;
+  gap: 6px;
+}
+
+.actions-row .btn-link.active {
+  font-weight: 700;
+  text-decoration: underline;
+}
+
 .admin-analytics-columns {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));

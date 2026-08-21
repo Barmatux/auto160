@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}Админка — Архив объявлений{% endblock %}
+{% block content %}
+{% set admin_section = "archived-listings" %}
+{% include "partials/admin_nav.html" %}
+
+<h1>Архив объявлений av.by</h1>
+<p class="hint">
+  Здесь собраны импортированные объявления со статусом «archived». Причина определяется по текущему каталогу:
+  модель отсутствует, поколение не совпадает или другая причина (снято с av.by, &gt;160 л.с. и т.д.).
+</p>
+
+<section class="admin-stats-grid">
+  <article class="admin-stat-card">
+    <div class="label">Всего в архиве</div>
+    <div class="value">{{ archived_total }}</div>
+    <div class="sub">только объявления с av.by</div>
+  </article>
+  <article class="admin-stat-card">
+    <div class="label">Нет в каталоге</div>
+    <div class="value">{{ scope_counts.non_catalog }}</div>
+    <div class="sub">марка/модель отсутствуют в catalog_items</div>
+  </article>
+  <article class="admin-stat-card">
+    <div class="label">Чужое поколение</div>
+    <div class="value">{{ scope_counts.wrong_generation }}</div>
+    <div class="sub">модель есть, поколение не из каталога</div>
+  </article>
+  <article class="admin-stat-card">
+    <div class="label">Другое</div>
+    <div class="value">{{ scope_counts.other }}</div>
+    <div class="sub">снято, перегруз, скрытое поколение и т.п.</div>
+  </article>
+</section>
+
+<div class="actions-row">
+  <a class="btn-link{% if archived_reason == 'all' %} active{% endif %}" href="{{ archived_filter_urls.all }}">Все</a>
+  <a class="btn-link{% if archived_reason == 'non_catalog' %} active{% endif %}" href="{{ archived_filter_urls.non_catalog }}">Нет в каталоге</a>
+  <a class="btn-link{% if archived_reason == 'wrong_generation' %} active{% endif %}" href="{{ archived_filter_urls.wrong_generation }}">Чужое поколение</a>
+  <a class="btn-link{% if archived_reason == 'other' %} active{% endif %}" href="{{ archived_filter_urls.other }}">Другое</a>
+</div>
+
+<form class="filters filters-inline" method="get" action="/admin/archived-listings">
+  {% if archived_reason != "all" %}
+    <input type="hidden" name="reason" value="{{ archived_reason }}" />
+  {% endif %}
+  <label>
+    Поиск по марке/модели
+    <input type="search" name="q" value="{{ archived_q }}" placeholder="Opel Zafira" />
+  </label>
+  <button type="submit">Найти</button>
+  {% if archived_q %}
+    <a class="page-link" href="{{ archived_filter_urls[archived_reason] }}">Сбросить</a>
+  {% endif %}
+</form>
+
+<p class="hint">Показано: {{ archived_total_filtered }} · Страница {{ archived_page }} из {{ archived_total_pages }}</p>
+
+{% if listing_rows %}
+<table class="users-table archived-listings-table">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Марка / модель</th>
+      <th>Поколение</th>
+      <th>Год</th>
+      <th>Город</th>
+      <th>Мощность</th>
+      <th>Причина</th>
+      <th>Ссылки</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for row in listing_rows %}
+      {% set listing = row.listing %}
+      <tr>
+        <td>{{ listing.id }}</td>
+        <td>{{ listing.brand }} {{ listing.model }}</td>
+        <td>{{ listing.generation or "—" }}</td>
+        <td>{{ listing.year }}</td>
+        <td>{{ listing.city }}</td>
+        <td>{% if listing.engine_power_hp %}{{ listing.engine_power_hp }} л.с.{% else %}—{% endif %}</td>
+        <td><span class="status-pill archived-reason-{{ row.reason }}">{{ row.reason_label }}</span></td>
+        <td>
+          <a class="btn-link" href="/listings/{{ listing.id }}">На сайте</a>
+          {% set source_href = listing | listing_source_href %}
+          {% if source_href %}
+            · <a class="btn-link" href="{{ source_href }}" target="_blank" rel="noopener">av.by</a>
+          {% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+  <p>Архивных объявлений по этому фильтру не найдено.</p>
+{% endif %}
+
+{% if archived_total_pages > 1 %}
+<div class="actions-row">
+  {% if archived_has_prev %}
+    <a class="btn-link" href="{{ archived_prev_url }}">← Назад</a>
+  {% endif %}
+  <span class="hint">страница {{ archived_page }} из {{ archived_total_pages }}</span>
+  {% if archived_has_next %}
+    <a class="btn-link" href="{{ archived_next_url }}">Вперёд →</a>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

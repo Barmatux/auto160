@@ -29,6 +29,17 @@ from app.fuel_type_labels import (
     resolved_catalog_fuel_type,
 )
 from app.drive_type_labels import normalize_drive_display_label
+from app.listing_archive_scope import (
+    ARCHIVE_REASON_LABELS,
+    ARCHIVE_REASON_NON_CATALOG,
+    ARCHIVE_REASON_OTHER,
+    ARCHIVE_REASON_WRONG_GENERATION,
+    archived_avby_listings_query,
+    build_catalog_brand_model_index,
+    build_catalog_generation_index,
+    count_archived_by_scope,
+    paginate_archived_listings,
+)
 from app.belarus_locations import (
     MINSK_CITY,
     apply_listings_location_filter,
@@ -3241,6 +3252,106 @@ def admin_avby_sync_page(request: Request, db: Session = Depends(get_db)):
         }
     )
     return templates.TemplateResponse(request, "admin_avby_sync.html", context)
+
+
+@router.get("/admin/archived-listings")
+def admin_archived_listings_page(
+    request: Request,
+    reason: str = Query(default="all"),
+    q: str = Query(default=""),
+    page: int = Query(default=1, ge=1),
+    db: Session = Depends(get_db),
+):
+    current_user = _resolve_user_from_request(request, db)
+    if not current_user:
+        return RedirectResponse(url="/login", status_code=302)
+    if current_user.role != UserRole.admin:
+        return RedirectResponse(url="/", status_code=302)
+
+    allowed_reasons = {
+        "all",
+        ARCHIVE_REASON_NON_CATALOG,
+        ARCHIVE_REASON_WRONG_GENERATION,
+        ARCHIVE_REASON_OTHER,
+    }
+    reason_filter = reason if reason in allowed_reasons else "all"
+    per_page = 48
+    brand_models = build_catalog_brand_model_index(db)
+    generation_index = build_catalog_generation_index(db)
+    scope_counts = count_archived_by_scope(
+        db,
+        brand_models=brand_models,
+        generation_index=generation_index,
+    )
+    archived_total = archived_avby_listings_query(db).count()
+    listings, filtered_total, reason_by_id = paginate_archived_listings(
+        db,
+        reason=reason_filter,
+        q=q,
+        page=page,
+        per_page=per_page,
+        brand_models=brand_models,
+        generation_index=generation_index,
+    )
+    total_pages = max(1, (filtered_total + per_page - 1) // per_page)
+    if page > total_pages and filtered_total:
+        pairs = [("reason", reason_filter)] if reason_filter != "all" else []
+        if q.strip():
+            pairs.append(("q", q.strip()))
+        pairs.append(("page", str(total_pages)))
+        return RedirectResponse(url="/admin/archived-listings?" + urlencode(pairs), status_code=302)
+
+    def _archived_url(**params) -> str:
+        pairs: list[tuple[str, str]] = []
+        next_reason = params.get("reason", reason_filter)
+        next_q = params.get("q", q.strip())
+        next_page = params.get("page", page)
+        if next_reason and next_reason != "all":
+            pairs.append(("reason", str(next_reason)))
+        if next_q:
+            pairs.append(("q", str(next_q)))
+        if int(next_page or 1) > 1:
+            pairs.append(("page", str(next_page)))
+        query = urlencode(pairs)
+        return "/admin/archived-listings" + (f"?{query}" if query else "")
+
+    listing_rows = [
+        {
+            "listing": listing,
+            "reason": reason_by_id.get(listing.id, ARCHIVE_REASON_OTHER),
+            "reason_label": ARCHIVE_REASON_LABELS.get(
+                reason_by_id.get(listing.id, ARCHIVE_REASON_OTHER),
+                "Другое",
+            ),
+        }
+        for listing in listings
+    ]
+
+    context = _template_context(request, current_user)
+    context.update(
+        {
+            "archived_total": archived_total,
+            "scope_counts": scope_counts,
+            "listing_rows": listing_rows,
+            "archived_q": q.strip(),
+            "archived_reason": reason_filter,
+            "archived_page": page,
+            "archived_total_filtered": filtered_total,
+            "archived_total_pages": total_pages,
+            "archived_has_prev": page > 1,
+            "archived_has_next": page < total_pages,
+            "archived_prev_url": _archived_url(page=page - 1) if page > 1 else None,
+            "archived_next_url": _archived_url(page=page + 1) if page < total_pages else None,
+            "archived_reason_labels": ARCHIVE_REASON_LABELS,
+            "archived_filter_urls": {
+                "all": _archived_url(reason="all", page=1),
+                ARCHIVE_REASON_NON_CATALOG: _archived_url(reason=ARCHIVE_REASON_NON_CATALOG, page=1),
+                ARCHIVE_REASON_WRONG_GENERATION: _archived_url(reason=ARCHIVE_REASON_WRONG_GENERATION, page=1),
+                ARCHIVE_REASON_OTHER: _archived_url(reason=ARCHIVE_REASON_OTHER, page=1),
+            },
+        }
+    )
+    return templates.TemplateResponse(request, "admin_archived_listings.html", context)
 
 
 @router.get("/admin/avby-sync/{run_id}")
