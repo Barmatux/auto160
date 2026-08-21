@@ -771,6 +771,60 @@ def _catalog_body_type_values(db: Session) -> list[str]:
     return _distinct_values(db, CatalogItem.body_type)
 
 
+def _apply_listings_characteristic_filters(
+    query,
+    db: Session,
+    *,
+    body_types: list[str],
+    fuel_types: list[str],
+    transmission_slugs: list[str],
+    published_only: bool = True,
+):
+    if body_types:
+        raw_body = _listing_body_type_values(db, published_only=published_only)
+        body_matches: list[str] = []
+        for body_type in body_types:
+            canonical = normalize_body_type_label(body_type) or body_type
+            body_matches.extend(body_type_db_values_for_filter(raw_body, canonical))
+        unique_body = list(dict.fromkeys(body_matches))
+        if unique_body:
+            query = query.filter(CarListing.body_type.in_(unique_body))
+    if fuel_types:
+        raw_fuel = _distinct_listing_values(db, CarListing.engine_type, published_only=published_only)
+        fuel_matches: list[str] = []
+        fuel_preds = []
+        for fuel_type in fuel_types:
+            canonical = normalize_fuel_type_label(fuel_type) or fuel_type
+            if canonical == FUEL_GROUP_HYBRID:
+                fuel_preds.append(_listing_hybrid_predicate())
+            else:
+                fuel_matches.extend(fuel_type_db_values_for_filter(raw_fuel, canonical))
+        if fuel_matches:
+            fuel_preds.append(CarListing.engine_type.in_(list(dict.fromkeys(fuel_matches))))
+        if fuel_preds:
+            query = query.filter(or_(*fuel_preds))
+    if transmission_slugs:
+        raw_transmission = _distinct_listing_values(
+            db,
+            CarListing.transmission_type,
+            published_only=published_only,
+        )
+        query = apply_catalog_transmission_filter(
+            query,
+            CarListing.transmission_type,
+            raw_values=raw_transmission,
+            slugs=transmission_slugs,
+        )
+    return query
+
+
+def _listing_hybrid_predicate():
+    return or_(
+        _sql_has_hybrid_marker(CarListing.engine_type),
+        _sql_has_hybrid_marker(CarListing.description),
+    )
+
+
 def _listings_filters_payload(request: Request, db: Session, *, published_only: bool = True) -> dict:
     query = request.query_params
     parsed_year_from = _parse_optional_year(query.get("year_from"))
@@ -791,9 +845,16 @@ def _listings_filters_payload(request: Request, db: Session, *, published_only: 
     model_options = brand_model_map.get(brand, []) if brand else []
     generation_options = brand_model_generation_map.get(brand, {}).get(model, []) if brand and model else []
     body_type_raw = _listing_body_type_values(db, published_only=published_only)
-    body_type_filter = normalize_body_type_label((query.get("body_type") or "").strip()) or ""
     engine_type_raw = _distinct_listing_values(db, CarListing.engine_type, published_only=published_only)
-    engine_type_filter = normalize_fuel_type_label((query.get("engine_type") or "").strip()) or ""
+    body_types = _parse_multi_catalog_filter_values(query.getlist("body_type"), normalize_body_type_label)
+    fuel_types = _parse_multi_catalog_filter_values(query.getlist("engine_type"), normalize_fuel_type_label)
+    transmission_slugs = parse_transmission_filter_values(
+        query.getlist("transmission") or query.getlist("transmission_type")
+    )
+    engine_options = fuel_type_filter_options(engine_type_raw)
+    if db.query(CarListing.id).filter(_listing_hybrid_predicate()).limit(1).first():
+        if FUEL_GROUP_HYBRID not in engine_options:
+            engine_options = [*engine_options, FUEL_GROUP_HYBRID]
     return {
         "filters": {
             "brand": brand,
@@ -801,9 +862,13 @@ def _listings_filters_payload(request: Request, db: Session, *, published_only: 
             "generation": generation,
             "catalog_item_id": catalog_item_id if catalog_item_id is not None else "",
             "city": (query.get("city") or "").strip(),
-            "body_type": body_type_filter,
-            "engine_type": engine_type_filter,
-            "transmission_type": (query.get("transmission_type") or "").strip(),
+            "body_types": body_types,
+            "body_type_display": _multi_filter_display_label(body_types, "Любой"),
+            "fuel_types": fuel_types,
+            "engine_type_display": _multi_filter_display_label(fuel_types, "Любое"),
+            "transmission_slugs": transmission_slugs,
+            "transmission_checked": sorted(transmission_filter_checked_slugs(transmission_slugs)),
+            "transmission_display": transmission_filter_display_label(transmission_slugs),
             "year_from": parsed_year_from if parsed_year_from is not None else "",
             "year_to": parsed_year_to if parsed_year_to is not None else "",
             "passable": query.get("passable") in ("1", "true", "on"),
@@ -818,8 +883,8 @@ def _listings_filters_payload(request: Request, db: Session, *, published_only: 
             "brand_model_generation_map": brand_model_generation_map,
             "cities": _distinct_listing_values(db, CarListing.city, published_only=published_only),
             "body_type": body_type_filter_options(body_type_raw),
-            "engine_type": fuel_type_filter_options(engine_type_raw),
-            "transmission_type": _distinct_listing_values(db, CarListing.transmission_type, published_only=published_only),
+            "engine_type": engine_options,
+            "transmission_groups": TRANSMISSION_FILTER_GROUPS,
             "years": _listing_year_options(db, published_only=published_only),
         },
         "vehicle_hierarchy": _build_vehicle_hierarchy_payload(
@@ -1841,9 +1906,6 @@ def sitemap_xml(request: Request, db: Session = Depends(get_db)):
 def listings_page(
     request: Request,
     city: str | None = Query(default=None),
-    body_type: str | None = Query(default=None),
-    engine_type: str | None = Query(default=None),
-    transmission_type: str | None = Query(default=None),
     year_from: str | None = Query(default=None),
     year_to: str | None = Query(default=None),
     catalog_item_id: int | None = Query(default=None),
@@ -1858,6 +1920,17 @@ def listings_page(
     vehicle_rows = _parse_vehicle_filter_rows(request.query_params, make_key="brand", model_key="model", generation_key="generation")
     parsed_year_from = _parse_optional_year(year_from)
     parsed_year_to = _parse_optional_year(year_to)
+    body_types = _parse_multi_catalog_filter_values(
+        request.query_params.getlist("body_type"),
+        normalize_body_type_label,
+    )
+    fuel_types = _parse_multi_catalog_filter_values(
+        request.query_params.getlist("engine_type"),
+        normalize_fuel_type_label,
+    )
+    transmission_slugs = parse_transmission_filter_values(
+        request.query_params.getlist("transmission") or request.query_params.getlist("transmission_type")
+    )
     query = exclude_hidden_body_type(db.query(CarListing), CarListing.body_type)
     is_admin = _is_admin_user(current_user)
     if not is_admin:
@@ -1871,26 +1944,14 @@ def listings_page(
         query = _apply_listing_vehicle_rows_filter(query, vehicle_rows)
     if city:
         query = query.filter(CarListing.city == city)
-    if body_type:
-        canonical = normalize_body_type_label(body_type) or body_type
-        match_values = body_type_db_values_for_filter(
-            _listing_body_type_values(db, published_only=not is_admin),
-            canonical,
-        )
-        if match_values:
-            query = query.filter(CarListing.body_type.in_(match_values))
-    if engine_type:
-        canonical = normalize_fuel_type_label(engine_type) or engine_type
-        match_values = fuel_type_db_values_for_filter(
-            _distinct_listing_values(db, CarListing.engine_type, published_only=not is_admin),
-            canonical,
-        )
-        if match_values:
-            query = query.filter(CarListing.engine_type.in_(match_values))
-        else:
-            query = query.filter(CarListing.engine_type.ilike(f"%{engine_type}%"))
-    if transmission_type:
-        query = query.filter(CarListing.transmission_type == transmission_type)
+    query = _apply_listings_characteristic_filters(
+        query,
+        db,
+        body_types=body_types,
+        fuel_types=fuel_types,
+        transmission_slugs=transmission_slugs,
+        published_only=not is_admin,
+    )
     if parsed_year_from is not None:
         query = query.filter(CarListing.year >= parsed_year_from)
     if parsed_year_to is not None:
@@ -1927,27 +1988,34 @@ def listings_page(
     context["has_next"] = offset + len(listings) < total
     context["listings_filters"] = _listings_filters_payload(request, db, published_only=not is_admin)
     context["catalog_item_filter"] = catalog_item_filter
-    normalized_body_type = context["listings_filters"]["filters"]["body_type"] or None
 
-    query_params = {
-        "catalog_item_id": catalog_item_id if catalog_item_id else None,
-        "city": city or None,
-        "body_type": normalized_body_type,
-        "engine_type": engine_type or None,
-        "transmission_type": transmission_type or None,
-        "year_from": parsed_year_from,
-        "year_to": parsed_year_to,
-        "passable": "1" if passable else None,
-        "freshness": freshness if freshness and freshness != "all" else None,
-        "sort": sort if sort else None,
-        "page_size": page_size if page_size != 20 else None,
-    }
+    query_params: list[tuple[str, str]] = []
+    if catalog_item_id:
+        query_params.append(("catalog_item_id", str(catalog_item_id)))
+    if city:
+        query_params.append(("city", city))
+    for val in body_types:
+        query_params.append(("body_type", val))
+    for val in fuel_types:
+        query_params.append(("engine_type", val))
+    for slug in transmission_slugs:
+        query_params.append(("transmission", slug))
+    if parsed_year_from is not None:
+        query_params.append(("year_from", str(parsed_year_from)))
+    if parsed_year_to is not None:
+        query_params.append(("year_to", str(parsed_year_to)))
+    if passable:
+        query_params.append(("passable", "1"))
+    if freshness and freshness != "all":
+        query_params.append(("freshness", freshness))
+    if sort and sort != "newest":
+        query_params.append(("sort", sort))
+    if page_size != 20:
+        query_params.append(("page_size", str(page_size)))
 
     def build_page_url(page_num: int) -> str:
         pairs = _vehicle_rows_to_query_pairs(vehicle_rows, make_key="brand", model_key="model", generation_key="generation")
-        for key, value in query_params.items():
-            if value not in (None, ""):
-                pairs.append((key, str(value)))
+        pairs.extend(query_params)
         pairs.append(("page", str(page_num)))
         return "/listings?" + urlencode(pairs)
 
@@ -1964,9 +2032,9 @@ def listings_page(
         brand = "__multi__"
     noisy_filters = bool(
         catalog_item_id
-        or body_type
-        or engine_type
-        or transmission_type
+        or body_types
+        or fuel_types
+        or transmission_slugs
         or parsed_year_from is not None
         or parsed_year_to is not None
         or passable

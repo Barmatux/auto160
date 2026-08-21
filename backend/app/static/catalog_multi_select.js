@@ -43,7 +43,14 @@
 
     function referenceSelect() {
       const form = root.closest("form");
-      return form ? form.querySelector('select[name="export_country"]') : null;
+      if (!form) {
+        return null;
+      }
+      return (
+        form.querySelector('select[name="export_country"]')
+        || form.querySelector('select[name="city"]')
+        || form.querySelector("select")
+      );
     }
 
     function syncTriggerHeight() {
