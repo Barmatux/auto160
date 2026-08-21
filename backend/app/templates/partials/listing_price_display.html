@@ -1,13 +1,17 @@
 {% set price = listing.price | listing_price_display %}
 <div class="listing-price{% if price.has_conversions %} listing-price-has-conversions{% endif %}" tabindex="0">
-  <span class="listing-price-primary">{{ price.byn_formatted }} бел. руб.</span>
+  <span class="listing-price-primary">
+    <span class="listing-price-byn">{{ price.byn_formatted }}{% include "partials/byn_sign.html" %}</span>
+  </span>
   {% if price.has_conversions %}
-    <span class="listing-price-converted">≈ {{ price.rub_formatted }} ₽</span>
-    <span class="listing-price-converted">≈ {{ price.usd_formatted }}</span>
+    <span class="listing-price-converted listing-price-converted-rub">≈ {{ price.rub_formatted }} ₽</span>
+    <span class="listing-price-converted listing-price-converted-usd">≈ {{ price.usd_formatted }}</span>
     <div class="listing-price-tooltip" role="tooltip">
-      <p class="listing-price-tooltip-primary">{{ price.byn_formatted }} бел. руб.</p>
-      <p class="listing-price-tooltip-converted">≈ {{ price.rub_formatted }} ₽</p>
-      <p class="listing-price-tooltip-converted">≈ {{ price.usd_formatted }}</p>
+      <p class="listing-price-tooltip-primary">
+        <span class="listing-price-byn">{{ price.byn_formatted }}{% include "partials/byn_sign.html" %}</span>
+      </p>
+      <p class="listing-price-tooltip-converted listing-price-tooltip-converted-rub">≈ {{ price.rub_formatted }} ₽</p>
+      <p class="listing-price-tooltip-converted listing-price-tooltip-converted-usd">≈ {{ price.usd_formatted }}</p>
       <p class="listing-price-tooltip-note">{{ price.disclaimer }}</p>
     </div>
   {% endif %}

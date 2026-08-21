@@ -2477,21 +2477,51 @@ body {
 .listing-price {
   position: relative;
   display: inline-flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: baseline;
   gap: 0.35em 0.75em;
+  max-width: 100%;
+  white-space: nowrap;
   cursor: help;
   outline: none;
 }
 
+.listing-price-byn {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.12em;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.byn-sign {
+  display: inline-block;
+  width: 0.72em;
+  height: 0.88em;
+  flex-shrink: 0;
+  vertical-align: -0.06em;
+}
+
 .listing-price-primary {
-  font-weight: 700;
+  font-weight: 400;
+  color: #475569;
 }
 
 .listing-price-converted {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.listing-price-converted-rub {
+  font-size: 1.12em;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.listing-price-converted-usd {
   font-size: 0.92em;
-  color: #475569;
   font-weight: 500;
+  color: #64748b;
 }
 
 .listing-price-tooltip {
@@ -2515,18 +2545,28 @@ body {
 
 .listing-price-tooltip-primary {
   margin: 0 0 8px;
-  font-size: 24px;
+  font-size: 20px;
   line-height: 1.2;
-  font-weight: 700;
-  color: #1e3a8a;
+  font-weight: 400;
+  color: #475569;
 }
 
 .listing-price-tooltip-converted {
   margin: 0 0 4px;
-  font-size: 20px;
   line-height: 1.25;
-  font-weight: 600;
+  white-space: nowrap;
+}
+
+.listing-price-tooltip-converted-rub {
+  font-size: 24px;
+  font-weight: 700;
   color: #0f172a;
+}
+
+.listing-price-tooltip-converted-usd {
+  font-size: 18px;
+  font-weight: 500;
+  color: #64748b;
 }
 
 .listing-price-tooltip-note {
@@ -2539,6 +2579,19 @@ body {
 .offer-feed-price .listing-price,
 .listings-feed-price .listing-price {
   display: inline-flex;
+}
+
+.offer-feed-price,
+.listings-feed-price {
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+.offer-feed-price p,
+.listings-feed-price p {
+  white-space: nowrap;
 }
 
 .listing-spec-row-icon dd {

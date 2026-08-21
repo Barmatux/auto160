@@ -325,7 +325,7 @@ def listing_seo_meta(
     price_label = build_listing_price_display(listing.price).byn_formatted
     description = _truncate(
         f"{listing.title}. {listing.brand} {listing.model}, {listing.year} г., "
-        f"{listing.mileage:,} км, {listing.city}. Цена {price_label} бел. руб.".replace(",", " "),
+        f"{listing.mileage:,} км, {listing.city}. Цена {price_label} Br.".replace(",", " "),
         160,
     )
     crumbs = [
