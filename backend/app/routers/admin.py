@@ -320,14 +320,14 @@ def update_catalog_generation_visibility(
     _: User = Depends(require_admin_flexible),
     db: Session = Depends(get_db),
 ):
-    items, updated = apply_generation_catalog_visibility(
+    result = apply_generation_catalog_visibility(
         db,
         make=payload.make,
         model=payload.model,
         generation=payload.generation,
         hidden=payload.hidden,
     )
-    if not items:
+    if not result.items:
         raise HTTPException(status_code=404, detail="Поколение не найдено в каталоге")
     db.commit()
     return CatalogGenerationVisibilityResult(
@@ -335,7 +335,8 @@ def update_catalog_generation_visibility(
         model=payload.model.strip(),
         generation=generation_label(payload.generation),
         hidden=payload.hidden,
-        updated_items=updated,
+        updated_items=result.updated_items,
+        archived_listings=result.archived_listings,
     )
 
 

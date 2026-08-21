@@ -310,6 +310,7 @@ class CatalogGenerationVisibilityResult(BaseModel):
     generation: str
     hidden: bool
     updated_items: int
+    archived_listings: int = 0
 
 
 class AnalyticsSummaryResponse(BaseModel):
