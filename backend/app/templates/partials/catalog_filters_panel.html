@@ -32,7 +32,6 @@
         <div class="catalog-multi-select-menu" hidden>
           {% for value in catalog_sidebar.options.body_type %}
             <label class="catalog-multi-select-row{% if value in selected_body_types %} is-selected{% endif %}">
-              <span>{{ value }}</span>
               <input
                 type="checkbox"
                 value="{{ value }}"
@@ -40,6 +39,7 @@
                 data-label="{{ value }}"
                 {% if value in selected_body_types %}checked{% endif %}
               />
+              <span>{{ value }}</span>
             </label>
           {% endfor %}
         </div>
@@ -63,7 +63,6 @@
         <div class="catalog-multi-select-menu" hidden>
           {% for value in catalog_sidebar.options.fuel_type %}
             <label class="catalog-multi-select-row{% if value in selected_fuel_types %} is-selected{% endif %}">
-              <span>{{ value }}</span>
               <input
                 type="checkbox"
                 value="{{ value }}"
@@ -71,6 +70,7 @@
                 data-label="{{ value }}"
                 {% if value in selected_fuel_types %}checked{% endif %}
               />
+              <span>{{ value }}</span>
             </label>
           {% endfor %}
         </div>
@@ -96,7 +96,6 @@
           {% for group in catalog_sidebar.options.transmission_groups %}
             {% if group.subtypes %}
               <label class="catalog-multi-select-row catalog-multi-select-row-group{% if group.slug in checked_transmissions %} is-selected{% endif %}">
-                <span>{{ group.label }}</span>
                 <input
                   type="checkbox"
                   value="{{ group.slug }}"
@@ -104,10 +103,10 @@
                   data-label="{{ group.label }}"
                   {% if group.slug in checked_transmissions %}checked{% endif %}
                 />
+                <span>{{ group.label }}</span>
               </label>
               {% for subtype in group.subtypes %}
                 <label class="catalog-multi-select-row catalog-multi-select-row-sub{% if subtype.slug in checked_transmissions %} is-selected{% endif %}">
-                  <span>{{ subtype.label }}</span>
                   <input
                     type="checkbox"
                     value="{{ subtype.slug }}"
@@ -115,11 +114,11 @@
                     data-label="{{ subtype.label }}"
                     {% if subtype.slug in checked_transmissions %}checked{% endif %}
                   />
+                  <span>{{ subtype.label }}</span>
                 </label>
               {% endfor %}
             {% else %}
               <label class="catalog-multi-select-row{% if group.slug in checked_transmissions %} is-selected{% endif %}">
-                <span>{{ group.label }}</span>
                 <input
                   type="checkbox"
                   value="{{ group.slug }}"
@@ -127,6 +126,7 @@
                   data-label="{{ group.label }}"
                   {% if group.slug in checked_transmissions %}checked{% endif %}
                 />
+                <span>{{ group.label }}</span>
               </label>
             {% endif %}
           {% endfor %}
@@ -175,4 +175,4 @@
     <a class="page-link" href="{{ filters_reset_url | default('/catalog') }}">Сбросить</a>
   </form>
 </aside>
-<script src="/static/catalog_multi_select.js?v=20260820-02" defer></script>
+<script src="/static/catalog_multi_select.js?v=20260821-01" defer></script>

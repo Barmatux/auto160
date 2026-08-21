@@ -330,13 +330,14 @@ body {
   left: 0;
   right: 0;
   z-index: 60;
-  padding: 6px 0;
-  border: 1px solid #c9dcff;
-  border-radius: 10px;
-  background: var(--surface);
-  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.12);
+  padding: 4px 0;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  background: rgba(45, 45, 45, 0.96);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
   max-height: 280px;
   overflow-y: auto;
+  color: #fff;
 }
 
 .catalog-multi-select.is-open .catalog-multi-select-menu {
@@ -347,12 +348,13 @@ body {
 .catalog-multi-select-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 8px;
-  padding: 6px 10px;
-  font-size: 0.875rem;
-  line-height: 1.25;
+  padding: 5px 12px;
+  font-size: 15px;
+  line-height: 1.2;
   cursor: pointer;
+  color: #fff;
 }
 
 .catalog-multi-select-row-sub {
@@ -360,14 +362,28 @@ body {
 }
 
 .catalog-multi-select-row.is-selected {
-  background: linear-gradient(180deg, #eef4ff 0%, #e2ecff 100%);
+  background: rgba(0, 122, 255, 0.88);
 }
 
-.catalog-multi-select-row input {
-  width: 16px;
-  height: 16px;
+.catalog-multi-select-row input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
   margin: 0;
-  flex: 0 0 auto;
+  flex: 0 0 14px;
+  border: none;
+  background: transparent;
+  color: #fff;
+  font-size: 13px;
+  line-height: 14px;
+  text-align: center;
+}
+
+.catalog-multi-select-row input[type="checkbox"]:checked::before {
+  content: "✓";
+  display: block;
+  font-weight: 600;
 }
 
 .catalog-sidebar {
@@ -726,7 +742,8 @@ body {
   color: inherit;
   font: inherit;
   font-size: 14px;
-  line-height: 1.2;
+  line-height: 1.15;
+  min-height: 0;
 }
 
 .filters input:focus,
@@ -760,22 +777,30 @@ body {
   box-sizing: border-box;
   border: 1px solid #cbd5e1;
   border-radius: 6px;
-  padding: 8px 34px 8px 8px;
+  padding: 8px 32px 8px 8px;
   background: var(--surface-soft);
   color: inherit;
   font: inherit;
   font-size: 14px;
-  line-height: 1.2;
+  line-height: 1.15;
   text-align: left;
   cursor: pointer;
   position: relative;
   font-weight: 400;
+  margin: 0;
+  min-height: 0;
+}
+
+.catalog-page .filters select,
+.catalog-page .filters .catalog-multi-select-trigger {
+  padding: 11px 10px;
+  font-size: 15px;
+  line-height: 1.15;
+  min-height: 0;
 }
 
 .catalog-page .filters .catalog-multi-select-trigger {
-  padding: 11px 34px 11px 10px;
-  min-height: 44px;
-  font-size: 15px;
+  padding-right: 32px;
 }
 
 .listing-card {
@@ -1008,8 +1033,9 @@ body {
 
 .catalog-page .filters select {
   padding: 11px 10px;
-  min-height: 44px;
   font-size: 15px;
+  line-height: 1.15;
+  min-height: 0;
 }
 
 .catalog-page .vehicle-hierarchy-field {
