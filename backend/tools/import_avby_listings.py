@@ -14,7 +14,7 @@ if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 os.chdir(ROOT_DIR)
 
-from app.listing_archive_scope import (
+from app.avby_price import extract_price_byn_from_advert
     build_catalog_generation_index,
     normalize_catalog_match_name as _normalize_name,
 )
@@ -290,11 +290,7 @@ def _avby_payload_to_listing(advert: dict[str, Any], fallback_brand: str, fallba
         return None
 
     mileage = _to_int(props.get("mileage_km")) or 0
-    price_byn = _to_float((((advert.get("price") or {}).get("byn") or {}).get("amount")))
-    if price_byn is None:
-        price_byn = _to_float((((advert.get("price") or {}).get("rub") or {}).get("amount")))
-    if price_byn is None:
-        price_byn = 0.0
+    price_byn = extract_price_byn_from_advert(advert)
 
     city = (advert.get("shortLocationName") or advert.get("locationName") or "Не указан").strip()
     public_url = (advert.get("publicUrl") or "").strip()

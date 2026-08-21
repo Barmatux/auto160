@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.body_type_labels import exclude_hidden_body_type
-from app.models import CarListing, CatalogItem, ListingStatus
+from app.listing_display import build_listing_price_display
 
 SITE_NAME = "Auto160"
 DEFAULT_DESCRIPTION = (
@@ -322,9 +322,10 @@ def listing_seo_meta(
         f"{listing.brand} {listing.model} {listing.year}{hp_part} — {listing.city} — Auto160",
         70,
     )
+    price_label = build_listing_price_display(listing.price).byn_formatted
     description = _truncate(
         f"{listing.title}. {listing.brand} {listing.model}, {listing.year} г., "
-        f"{listing.mileage:,} км, {listing.city}. Цена {listing.price} ₽.".replace(",", " "),
+        f"{listing.mileage:,} км, {listing.city}. Цена {price_label} бел. руб.".replace(",", " "),
         160,
     )
     crumbs = [
