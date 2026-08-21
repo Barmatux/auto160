@@ -14,7 +14,7 @@ def _sample_rates() -> NbrbRates:
     )
 
 
-def test_extract_price_byn_prefers_amount_fiat():
+def test_extract_price_byn_prefers_display_amount():
     advert = {
         "price": {
             "byn": {"currency": "byn", "amount": 46533, "amountFiat": 46533.24},
@@ -22,7 +22,7 @@ def test_extract_price_byn_prefers_amount_fiat():
             "usd": {"currency": "usd", "amount": 15600},
         }
     }
-    assert extract_price_byn_from_advert(advert) == 46533.24
+    assert extract_price_byn_from_advert(advert) == 46533
 
 
 def test_extract_price_byn_uses_amount_when_fiat_missing():
@@ -65,7 +65,7 @@ def test_fetch_price_byn_from_avby_public_url_parses_html(monkeypatch):
         "curl_cffi.requests.get",
         lambda *args, **kwargs: FakeResponse(),
     )
-    assert fetch_price_byn_from_avby_public_url("https://cars.av.by/peugeot/308/1") == 46533.24
+    assert fetch_price_byn_from_avby_public_url("https://cars.av.by/peugeot/308/1") == 46533
 
 
 def test_fix_rub_stored_as_byn_corrects_legacy_rows():

@@ -24,7 +24,8 @@ def _to_float(value: Any) -> float | None:
 def _byn_amount(currency_block: dict[str, Any] | None) -> float | None:
     if not isinstance(currency_block, dict):
         return None
-    return _to_float(currency_block.get("amountFiat") or currency_block.get("amount"))
+    # av.by UI shows integer `amount`; `amountFiat` is an internal precise value with kopecks.
+    return _to_float(currency_block.get("amount") or currency_block.get("amountFiat"))
 
 
 def fetch_price_byn_from_avby_public_url(url: str, *, user_agent: str = "Mozilla/5.0") -> float | None:
@@ -58,7 +59,7 @@ def fetch_price_byn_from_avby_public_url(url: str, *, user_agent: str = "Mozilla
         if match:
             return _to_float(match.group(1))
         return None
-    return _to_float(match.group(2) or match.group(1))
+    return _to_float(match.group(1) or match.group(2))
 
 
 def extract_price_byn_from_advert(advert: dict[str, Any]) -> float | None:
