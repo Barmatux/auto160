@@ -10,6 +10,3 @@ python tools/import_catalog_ratings.py data/catalog_generations_ratings_20260821
 
 echo "==> Restore archived listings now matching catalog scope"
 python tools/restore_archived_catalog_scope_listings.py --relink
-
-echo "==> Re-link all published listings to catalog"
-python tools/link_listings_to_catalog.py --relink
