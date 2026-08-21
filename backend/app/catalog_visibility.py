@@ -48,7 +48,12 @@ def listing_generation_allowed_for_model(
     catalog_allows_unrated: bool,
 ) -> bool:
     """True when advert generation matches at least one catalog generation for the model."""
+    from app.listing_catalog_link import normalize_match_text
+
+    normalized_listing = normalize_match_text(listing_generation)
     if catalog_generations:
+        if not normalized_listing and len(catalog_generations) == 1:
+            return True
         return any(
             listing_matches_generation(listing_generation, catalog_generation)
             for catalog_generation in catalog_generations

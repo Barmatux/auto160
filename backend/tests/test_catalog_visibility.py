@@ -64,3 +64,16 @@ def test_listing_generation_allowed_for_model():
         catalog_generations=frozenset(),
         catalog_allows_unrated=True,
     ) is True
+
+
+def test_listing_generation_allowed_for_single_catalog_generation_without_listing_generation():
+    assert listing_generation_allowed_for_model(
+        None,
+        catalog_generations=frozenset({"I"}),
+        catalog_allows_unrated=False,
+    ) is True
+    assert listing_generation_allowed_for_model(
+        None,
+        catalog_generations=frozenset({"I", "I · Рестайлинг"}),
+        catalog_allows_unrated=False,
+    ) is False

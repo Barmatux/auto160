@@ -221,3 +221,50 @@ def paginate_archived_listings(
     rows_by_id = {row.id: row for row in rows}
     ordered_rows = [rows_by_id[listing_id] for listing_id in page_ids if listing_id in rows_by_id]
     return ordered_rows, total, reasons
+
+
+def restore_archived_listings_in_catalog_scope(
+    db: Session,
+    *,
+    dry_run: bool = False,
+    max_hp: int = 160,
+) -> dict[str, int | list[int]]:
+    """Republish archived av.by listings that now match catalog make/model/generation."""
+    brand_models = build_catalog_brand_model_index(db)
+    generation_index = build_catalog_generation_index(db)
+    stats: dict[str, int | list[int]] = {
+        "checked": 0,
+        "restored": 0,
+        "still_non_catalog": 0,
+        "still_wrong_generation": 0,
+        "skipped_overpowered": 0,
+        "restored_ids": [],
+    }
+    restored_ids: list[int] = []
+    rows = archived_avby_listings_query(db).order_by(CarListing.id.asc()).all()
+    for listing in rows:
+        stats["checked"] = int(stats["checked"]) + 1
+        reason = classify_listing_catalog_scope(
+            brand=listing.brand,
+            model=listing.model,
+            generation=listing.generation,
+            brand_models=brand_models,
+            generation_index=generation_index,
+        )
+        if reason == ARCHIVE_REASON_NON_CATALOG:
+            stats["still_non_catalog"] = int(stats["still_non_catalog"]) + 1
+            continue
+        if reason == ARCHIVE_REASON_WRONG_GENERATION:
+            stats["still_wrong_generation"] = int(stats["still_wrong_generation"]) + 1
+            continue
+        if listing.engine_power_hp is not None and listing.engine_power_hp > max_hp:
+            stats["skipped_overpowered"] = int(stats["skipped_overpowered"]) + 1
+            continue
+        stats["restored"] = int(stats["restored"]) + 1
+        restored_ids.append(listing.id)
+        if not dry_run:
+            listing.status = ListingStatus.published
+    stats["restored_ids"] = restored_ids
+    if restored_ids and not dry_run:
+        db.commit()
+    return stats
