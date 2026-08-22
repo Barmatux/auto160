@@ -24,59 +24,7 @@
       {% if listings %}
         <div class="catalog listings-feed">
             {% for listing in listings %}
-            <article class="listing-card avby-listing-card">
-              {% set gallery_urls = listing_gallery_urls.get(listing.id, []) %}
-              {% if gallery_urls %}
-                <div
-                  class="listings-feed-gallery"
-                  data-listings-feed-gallery
-                  data-photo-urls='{{ gallery_urls | tojson }}'
-                >
-                  <a class="card-cover-link" href="/listings/{{ listing.id }}" aria-label="Открыть объявление {{ listing.brand }} {{ listing.model }}">
-                    <img
-                      class="catalog-cover listings-feed-gallery-photo"
-                      src="{{ gallery_urls[0] }}"
-                      alt="{{ listing.brand }} {{ listing.model }}"
-                      data-listings-feed-gallery-photo
-                    />
-                  </a>
-                  {% if gallery_urls|length > 1 %}
-                    <button type="button" class="listings-feed-gallery-nav listings-feed-gallery-prev" aria-label="Предыдущее фото">
-                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 6.5 9 12l5.5 5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                    </button>
-                    <button type="button" class="listings-feed-gallery-nav listings-feed-gallery-next" aria-label="Следующее фото">
-                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 6.5 15 12l-5.5 5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                    </button>
-                  {% endif %}
-                </div>
-              {% endif %}
-              <h3><a href="/listings/{{ listing.id }}">{{ listing.title | listing_display_title }}</a></h3>
-              <p><strong>{{ listing.brand }} {{ listing.model }}</strong> · {{ listing.year }}{% if listing.generation %} · {{ listing.generation }}{% endif %}</p>
-              <p><strong>Пробег:</strong> {{ listing.mileage | format_mileage_km }} км</p>
-              <p><strong>Город:</strong> {{ listing.city }}</p>
-              <p><strong>Продавец:</strong> {{ listing.seller_name | listing_seller_label }}</p>
-              <div class="listing-spec-tags">
-                {% if listing.engine_capacity_l %}<span>{{ listing.engine_capacity_l }} л</span>{% endif %}
-                {% if listing.engine_power_hp %}<span>{{ listing.engine_power_hp }} л.с.</span>{% endif %}
-                {% if listing.engine_type %}<span>{{ listing.engine_type }}</span>{% endif %}
-                {% if listing.transmission_type %}<span>{{ listing.transmission_type }}</span>{% endif %}
-                {% if listing.drive_type %}<span>{{ listing.drive_type }}</span>{% endif %}
-                {% if listing.body_type %}<span>{{ listing.body_type | body_type_label }}</span>{% endif %}
-                {% if listing.vin_indicated is not none %}<span>{% if listing.vin_indicated %}VIN указан{% else %}VIN скрыт{% endif %}</span>{% endif %}
-              </div>
-              {% set source_href = listing | listing_source_href %}
-              {% if source_href %}
-                <p class="hint listings-feed-source">Оригинал объявления: <a href="{{ source_href }}" target="_blank" rel="noopener">{{ source_href | listing_source_label }}</a></p>
-              {% endif %}
-              {% with customs=listing_customs_map.get(listing.id) %}
-                {% include "partials/listing_customs_info.html" %}
-              {% endwith %}
-              {% if is_admin %}
-                <p><strong>Статус:</strong> {{ listing.status.value }}</p>
-                {% include "partials/listing_vin_admin.html" %}
-              {% endif %}
-              <div class="listings-feed-price">{% include "partials/listing_price_display.html" %}</div>
-            </article>
+            {% include "partials/listing_feed_card.html" %}
           {% endfor %}
         </div>
       {% else %}

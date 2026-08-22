@@ -51,11 +51,9 @@
     <a class="home-link" href="/listings">Вся лента →</a>
   </div>
   {% if latest_listings %}
-    <div class="home-listings-grid">
+    <div class="catalog listings-feed home-listings-feed">
       {% for listing in latest_listings %}
-        {% with cover_url=listing_cover_urls.get(listing.id), mod_name=listing_mod_names.get(listing.id) %}
-          {% include "partials/listing_offer_feed_card.html" %}
-        {% endwith %}
+        {% include "partials/listing_feed_card.html" %}
       {% endfor %}
     </div>
   {% else %}
@@ -77,4 +75,8 @@
     </li>
   </ol>
 </section>
+{% if is_admin and latest_listings %}
+  {% include "partials/listing_vin_admin_script.html" %}
+{% endif %}
+<script src="/static/listings_feed_gallery.js?v=20260730-01" defer></script>
 {% endblock %}

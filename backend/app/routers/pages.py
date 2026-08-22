@@ -1895,8 +1895,8 @@ def home(request: Request, db: Session = Depends(get_db)):
     context.update(_home_stats(db))
     context["popular_makes"] = _home_popular_makes(db)
     context["latest_listings"] = latest_listings
-    context["listing_cover_urls"] = _resolve_listing_cover_urls(latest_listings, db)
-    context["listing_mod_names"] = _listing_modification_names(db, latest_listings)
+    context["listing_gallery_urls"] = resolve_listing_gallery_urls_map(latest_listings, limit=5)
+    context["listing_customs_map"] = build_listing_customs_map(db, latest_listings) if latest_listings else {}
     context["catalog_quick_links"] = _home_catalog_quick_links()
     return templates.TemplateResponse(request, "index.html", context)
 

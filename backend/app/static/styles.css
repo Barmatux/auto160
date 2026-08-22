@@ -1488,7 +1488,7 @@ body {
     justify-self: end;
   }
 
-  .home-listings-grid {
+  .catalog.listings-feed {
     grid-template-columns: 1fr;
   }
 }
@@ -3467,35 +3467,8 @@ body.listing-lightbox-open {
   color: var(--muted);
 }
 
-.home-listings-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.home-listings-grid .offer-feed-card {
-  flex-direction: column;
-  gap: 8px;
-  padding: 10px;
-  height: 100%;
-}
-
-.home-listings-grid .offer-feed-thumb-wrap {
-  flex: none;
-  width: 100%;
-  aspect-ratio: 16 / 10;
-}
-
-.home-listings-grid .offer-feed-body h3 {
-  font-size: 0.88rem;
-}
-
-.home-listings-grid .offer-feed-modification {
-  font-size: 0.78rem;
-}
-
-.home-listings-grid .offer-feed-body p {
-  font-size: 0.8rem;
+.home-listings-feed {
+  margin-top: 4px;
 }
 
 .home-how {
@@ -3530,14 +3503,10 @@ body.listing-lightbox-open {
   .catalog.listings-feed {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-
-  .home-listings-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
 }
 
 @media (max-width: 900px) {
-  .home-listings-grid {
+  .catalog.listings-feed {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
