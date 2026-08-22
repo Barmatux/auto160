@@ -418,7 +418,8 @@ body {
   gap: 0;
 }
 
-.filters label.catalog-multi-select-row {
+.filters label.catalog-multi-select-row,
+.filters label.catalog-multi-select-row-main {
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -445,8 +446,9 @@ body {
 .catalog-multi-select-row-region {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding-right: 8px;
+  gap: 2px;
+  padding: 6px 6px 6px 12px;
+  min-height: 0;
 }
 
 .catalog-multi-select-row-main {
@@ -456,19 +458,21 @@ body {
   min-width: 0;
   margin: 0;
   cursor: pointer;
+  gap: 0;
 }
 
 .catalog-multi-select-expand {
-  flex: 0 0 24px;
-  width: 24px;
-  height: 24px;
+  flex: 0 0 16px;
+  width: 16px;
+  height: 16px;
   margin: 0;
   padding: 0;
   border: 0;
-  border-radius: 4px;
+  border-radius: 3px;
   background: transparent;
   cursor: pointer;
   position: relative;
+  align-self: center;
 }
 
 .catalog-multi-select-expand::before {
@@ -478,15 +482,15 @@ body {
   left: 50%;
   width: 0;
   height: 0;
-  border-left: 5px solid transparent;
-  border-right: 5px solid transparent;
-  border-top: 6px solid #94a3b8;
-  transform: translate(-50%, -35%);
+  border-left: 3px solid transparent;
+  border-right: 3px solid transparent;
+  border-top: 4px solid #94a3b8;
+  transform: translate(-50%, -40%);
   transition: transform 0.15s ease;
 }
 
 .catalog-multi-select-region-group.is-expanded .catalog-multi-select-expand::before {
-  transform: translate(-50%, -15%) rotate(180deg);
+  transform: translate(-50%, -60%) rotate(180deg);
 }
 
 .catalog-multi-select-expand:hover {
