@@ -1621,6 +1621,57 @@ body {
   color: var(--danger);
 }
 
+.admin-years-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.admin-years-inputs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: nowrap;
+}
+
+.admin-years-inputs input {
+  width: 72px;
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.admin-years-sep {
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+.admin-years-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.admin-years-form button.admin-years-sync {
+  background: #fff;
+  color: var(--primary);
+  border: 1px solid #bfdbfe;
+}
+
+.admin-years-status {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #166534;
+}
+
+.admin-years-status.is-error {
+  color: var(--danger);
+}
+
 .admin-ratings-row-hidden td {
   opacity: 0.72;
 }

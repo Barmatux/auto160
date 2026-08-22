@@ -7,6 +7,7 @@
 <h1>Управление каталогом</h1>
 <p class="hint">
   Внутренний рейтинг поколений (марка → модель → поколение). Сохранение меняет рейтинг у всех комплектаций этого поколения.
+  Годы производства можно задать вручную или подтянуть кнопкой «С av.by» из slug/URL, сохранённых при импорте каталога.
   Скрытие из каталога также отправляет связанные объявления в архив — они пропадут с главной и из ленты.
   Найдено: {{ rating_total }}.
 </p>
@@ -70,7 +71,36 @@
             </button>
             <div class="admin-catalog-visibility-status" hidden></div>
           </td>
-          <td>{{ row.production_years }}</td>
+          <td>
+            <form class="admin-years-form" data-make="{{ row.make }}" data-model="{{ row.model }}" data-generation="{{ row.generation_key }}">
+              <div class="admin-years-inputs">
+                <input
+                  type="number"
+                  name="year_from"
+                  value="{{ row.year_from if row.year_from is not none else '' }}"
+                  placeholder="от"
+                  min="1950"
+                  max="2100"
+                  aria-label="Год начала {{ row.make }} {{ row.model }}"
+                />
+                <span class="admin-years-sep">–</span>
+                <input
+                  type="number"
+                  name="year_to"
+                  value="{{ row.year_to if row.year_to is not none else '' }}"
+                  placeholder="до"
+                  min="1950"
+                  max="2100"
+                  aria-label="Год окончания {{ row.make }} {{ row.model }}"
+                />
+              </div>
+              <div class="admin-years-actions">
+                <button type="submit" name="action" value="save">Сохранить</button>
+                <button type="submit" name="action" value="sync" class="admin-years-sync">С av.by</button>
+              </div>
+            </form>
+            <div class="admin-years-status" hidden></div>
+          </td>
           <td>
             <form class="admin-rating-form" data-make="{{ row.make }}" data-model="{{ row.model }}" data-generation="{{ row.generation_key }}">
               <select name="rating" aria-label="Рейтинг {{ row.make }} {{ row.model }}">
@@ -344,6 +374,56 @@
       button.disabled = true;
       await replaceCatalogCover(itemId, file, cell);
       button.disabled = false;
+    });
+  });
+
+  function setYearsStatus(form, text, isError) {
+    const el = form.parentElement.querySelector(".admin-years-status");
+    if (!el) return;
+    el.hidden = !text;
+    el.textContent = text || "";
+    el.classList.toggle("is-error", Boolean(isError));
+  }
+
+  function parseYearInput(input) {
+    if (!input) return null;
+    const raw = (input.value || "").trim();
+    if (!raw) return null;
+    const value = Number(raw);
+    return Number.isFinite(value) ? value : null;
+  }
+
+  document.querySelectorAll(".admin-years-form").forEach(function (form) {
+    form.addEventListener("submit", async function (event) {
+      event.preventDefault();
+      const action = event.submitter && event.submitter.value;
+      const payload = {
+        make: form.dataset.make || "",
+        model: form.dataset.model || "",
+        generation: form.dataset.generation || "",
+        year_from: parseYearInput(form.querySelector("input[name='year_from']")),
+        year_to: parseYearInput(form.querySelector("input[name='year_to']")),
+      };
+      Array.from(form.querySelectorAll("button")).forEach(function (btn) { btn.disabled = true; });
+      setYearsStatus(form, action === "sync" ? "Подтягиваем…" : "Сохранение…", false);
+      const url = action === "sync"
+        ? "/api/v1/admin/catalog-generations/years/sync"
+        : "/api/v1/admin/catalog-generations/years";
+      const response = await adminFetch(url, {
+        method: action === "sync" ? "POST" : "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      Array.from(form.querySelectorAll("button")).forEach(function (btn) { btn.disabled = false; });
+      if (!response) return;
+      const data = await response.json().catch(function () { return {}; });
+      if (!response.ok) {
+        const detail = data.detail;
+        const message = typeof detail === "string" ? detail : "Не удалось сохранить годы";
+        setYearsStatus(form, message, true);
+        return;
+      }
+      window.location.reload();
     });
   });
 </script>

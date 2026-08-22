@@ -313,6 +313,30 @@ class CatalogGenerationVisibilityResult(BaseModel):
     archived_listings: int = 0
 
 
+class CatalogGenerationYearsUpdate(BaseModel):
+    make: str = Field(min_length=1, max_length=80)
+    model: str = Field(min_length=1, max_length=120)
+    generation: str = ""
+    year_from: int | None = Field(default=None, ge=1950, le=2100)
+    year_to: int | None = Field(default=None, ge=1950, le=2100)
+
+    @model_validator(mode="after")
+    def validate_years(self):
+        if self.year_from is not None and self.year_to is not None and self.year_from > self.year_to:
+            raise ValueError("Год начала не может быть позже года окончания")
+        return self
+
+
+class CatalogGenerationYearsResult(BaseModel):
+    make: str
+    model: str
+    generation: str
+    year_from: int | None
+    year_to: int | None
+    production_years: str
+    updated_items: int
+
+
 class AnalyticsSummaryResponse(BaseModel):
     days: int
     views_today: int

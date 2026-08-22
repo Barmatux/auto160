@@ -14,7 +14,8 @@ from app.avby_accounts import (
 )
 from app.avby_session import AvbySessionError, get_avby_session
 from app.avby_vin import AvbyVinError, get_or_fetch_listing_vin
-from app.catalog_ratings import apply_generation_rating, generation_label
+from app.catalog_generation_years import apply_generation_years, sync_generation_years_from_sources
+from app.catalog_ratings import apply_generation_rating, format_production_years, generation_label
 from app.catalog_visibility import apply_generation_catalog_visibility
 from app.db import get_db
 from app.deps import require_admin, require_admin_flexible
@@ -32,6 +33,8 @@ from app.schemas import (
     CatalogGenerationRatingUpdate,
     CatalogGenerationVisibilityResult,
     CatalogGenerationVisibilityUpdate,
+    CatalogGenerationYearsResult,
+    CatalogGenerationYearsUpdate,
     ListingVinResponse,
     UserPublic,
     UserRoleUpdateRequest,
@@ -337,6 +340,69 @@ def update_catalog_generation_visibility(
         hidden=payload.hidden,
         updated_items=result.updated_items,
         archived_listings=result.archived_listings,
+    )
+
+
+@router.patch("/catalog-generations/years", response_model=CatalogGenerationYearsResult)
+def update_catalog_generation_years(
+    payload: CatalogGenerationYearsUpdate,
+    _: User = Depends(require_admin_flexible),
+    db: Session = Depends(get_db),
+):
+    try:
+        items, updated = apply_generation_years(
+            db,
+            make=payload.make,
+            model=payload.model,
+            generation=payload.generation,
+            year_from=payload.year_from,
+            year_to=payload.year_to,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if not items:
+        raise HTTPException(status_code=404, detail="Поколение не найдено в каталоге")
+    db.commit()
+    return CatalogGenerationYearsResult(
+        make=payload.make.strip(),
+        model=payload.model.strip(),
+        generation=generation_label(payload.generation),
+        year_from=payload.year_from,
+        year_to=payload.year_to,
+        production_years=format_production_years(payload.year_from, payload.year_to),
+        updated_items=updated,
+    )
+
+
+@router.post("/catalog-generations/years/sync", response_model=CatalogGenerationYearsResult)
+def sync_catalog_generation_years_from_avby(
+    payload: CatalogGenerationYearsUpdate,
+    _: User = Depends(require_admin_flexible),
+    db: Session = Depends(get_db),
+):
+    items, updated, production_years = sync_generation_years_from_sources(
+        db,
+        make=payload.make,
+        model=payload.model,
+        generation=payload.generation,
+    )
+    if not items:
+        raise HTTPException(status_code=404, detail="Поколение не найдено в каталоге")
+    if updated == 0:
+        raise HTTPException(
+            status_code=404,
+            detail="Не удалось определить годы из сохранённых данных av.by. Задайте вручную или переимпортируйте поколение.",
+        )
+    db.commit()
+    sample = items[0]
+    return CatalogGenerationYearsResult(
+        make=payload.make.strip(),
+        model=payload.model.strip(),
+        generation=generation_label(payload.generation),
+        year_from=sample.year_from,
+        year_to=sample.year_to,
+        production_years=production_years,
+        updated_items=updated,
     )
 
 

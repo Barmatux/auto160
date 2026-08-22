@@ -21,6 +21,8 @@ def test_row_from_group_marks_fully_hidden_generation():
     result = _row_from_group(row)
     assert result.hidden is True
     assert result.production_years == "2011 – 2014"
+    assert result.year_from == 2011
+    assert result.year_to == 2014
     assert result.photo_item_id == 42
 
 

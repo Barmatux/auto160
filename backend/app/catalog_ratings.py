@@ -30,6 +30,8 @@ class CatalogRatingRow:
     hidden: bool
     mods_url: str
     production_years: str
+    year_from: int | None
+    year_to: int | None
     photo_item_id: int | None
 
 
@@ -194,6 +196,8 @@ def _row_from_group(row) -> CatalogRatingRow:
         hidden=item_count > 0 and hidden_count >= item_count,
         mods_url="/catalog/modifications?" + urlencode(params),
         production_years=format_production_years(year_from, year_to),
+        year_from=year_from,
+        year_to=year_to,
         photo_item_id=photo_item_id,
     )
 
