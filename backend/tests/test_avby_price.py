@@ -25,6 +25,15 @@ def test_extract_price_byn_prefers_display_amount():
     assert extract_price_byn_from_advert(advert) == 46533
 
 
+def test_extract_price_byn_ignores_amount_fiat_when_amount_present():
+    advert = {
+        "price": {
+            "byn": {"currency": "byn", "amount": 54438, "amountFiat": 54437.93},
+        }
+    }
+    assert extract_price_byn_from_advert(advert) == 54438
+
+
 def test_extract_price_byn_uses_amount_when_fiat_missing():
     advert = {
         "price": {

@@ -25,7 +25,10 @@ def _byn_amount(currency_block: dict[str, Any] | None) -> float | None:
     if not isinstance(currency_block, dict):
         return None
     # av.by UI shows integer `amount`; `amountFiat` is an internal precise value with kopecks.
-    return _to_float(currency_block.get("amount") or currency_block.get("amountFiat"))
+    amount = _to_float(currency_block.get("amount"))
+    if amount is not None:
+        return float(int(round(amount)))
+    return _to_float(currency_block.get("amountFiat"))
 
 
 def fetch_price_byn_from_avby_public_url(url: str, *, user_agent: str = "Mozilla/5.0") -> float | None:
@@ -52,6 +55,14 @@ def fetch_price_byn_from_avby_public_url(url: str, *, user_agent: str = "Mozilla
     )
     if not match:
         match = re.search(
+            r'"byn"\s*:\s*\{\s*"currency"\s*:\s*"byn"\s*,\s*"amount"\s*:\s*(\d+(?:\.\d+)?)',
+            response.text,
+            flags=re.IGNORECASE,
+        )
+        if match:
+            amount = _to_float(match.group(1))
+            return float(int(round(amount))) if amount is not None else None
+        match = re.search(
             r'"byn"\s*:\s*\{\s*"currency"\s*:\s*"byn"\s*,\s*"amountFiat"\s*:\s*(\d+(?:\.\d+)?)',
             response.text,
             flags=re.IGNORECASE,
@@ -59,7 +70,10 @@ def fetch_price_byn_from_avby_public_url(url: str, *, user_agent: str = "Mozilla
         if match:
             return _to_float(match.group(1))
         return None
-    return _to_float(match.group(1) or match.group(2))
+    amount = _to_float(match.group(1))
+    if amount is not None:
+        return float(int(round(amount)))
+    return _to_float(match.group(2))
 
 
 def extract_price_byn_from_advert(advert: dict[str, Any]) -> float | None:

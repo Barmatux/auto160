@@ -15,6 +15,7 @@ from app.logging_setup import setup_logging
 from app.models import AvbySyncRun
 
 IMPORTER_PATH = ROOT_DIR / "tools" / "import_avby_listings.py"
+REFRESH_PRICES_PATH = ROOT_DIR / "tools" / "refresh_listing_prices_from_avby.py"
 logger = logging.getLogger(__name__)
 
 
@@ -35,6 +36,25 @@ def _fail_stale_running_runs() -> None:
         db.close()
 
 
+def run_price_refresh(*, delay: float = 0.12) -> int:
+    cmd = [
+        sys.executable,
+        str(REFRESH_PRICES_PATH),
+        "--delay",
+        str(delay),
+    ]
+    logger.info("price-refresh-start: %s", " ".join(cmd))
+    result = subprocess.run(cmd, cwd=str(ROOT_DIR), capture_output=True, text=True)
+    if result.stdout:
+        for line in result.stdout.splitlines()[-20:]:
+            logger.info("price-refresh | %s", line)
+    if result.stderr:
+        for line in result.stderr.splitlines()[-10:]:
+            logger.warning("price-refresh ! %s", line)
+    logger.info("price-refresh-finish: exit_code=%s", result.returncode)
+    return result.returncode
+
+
 def run_once(
     max_hp: int,
     max_pages: int,
@@ -46,6 +66,8 @@ def run_once(
     creation_date: int,
     sort: int,
     trigger: str = "scheduler",
+    refresh_prices: bool = True,
+    price_refresh_delay: float = 0.12,
 ) -> int:
     cmd = [
         sys.executable,
@@ -81,7 +103,13 @@ def run_once(
         for line in result.stderr.splitlines()[-20:]:
             logger.warning("importer ! %s", line)
     logger.info("sync-finish: exit_code=%s", result.returncode)
-    return result.returncode
+    if result.returncode != 0:
+        return result.returncode
+    if refresh_prices:
+        refresh_code = run_price_refresh(delay=price_refresh_delay)
+        if refresh_code != 0:
+            return refresh_code
+    return 0
 
 
 def main() -> None:
@@ -103,9 +131,21 @@ def main() -> None:
         help="Archive existing listing if AVBY advert power is above max-hp",
     )
     parser.add_argument("--run-once", action="store_true", help="Run sync once and exit")
+    parser.add_argument(
+        "--skip-price-refresh",
+        action="store_true",
+        help="Do not refresh BYN prices from av.by advert pages after sync",
+    )
+    parser.add_argument(
+        "--price-refresh-delay",
+        type=float,
+        default=0.12,
+        help="Delay between av.by page fetches during price refresh",
+    )
     args = parser.parse_args()
 
     update_existing = not args.no_update_existing
+    refresh_prices = not args.skip_price_refresh
     if args.run_once:
         raise SystemExit(
             run_once(
@@ -118,6 +158,8 @@ def main() -> None:
                 price_usd_min=args.price_usd_min,
                 creation_date=args.creation_date,
                 sort=args.sort,
+                refresh_prices=refresh_prices,
+                price_refresh_delay=args.price_refresh_delay,
             )
         )
 
@@ -133,6 +175,8 @@ def main() -> None:
             price_usd_min=args.price_usd_min,
             creation_date=args.creation_date,
             sort=args.sort,
+            refresh_prices=refresh_prices,
+            price_refresh_delay=args.price_refresh_delay,
         )
         logger.info("sleep: %ss", interval_seconds)
         time.sleep(interval_seconds)
