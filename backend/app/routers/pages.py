@@ -3070,7 +3070,6 @@ def admin_ratings_page(
     request: Request,
     q: str = Query(default=""),
     make: str = Query(default=""),
-    status: str = Query(default="all"),
     page: int = Query(default=1, ge=1),
     db: Session = Depends(get_db),
 ):
@@ -3080,7 +3079,7 @@ def admin_ratings_page(
     if current_user.role != UserRole.admin:
         return RedirectResponse(url="/", status_code=302)
 
-    status_filter = status if status in {"all", "rated", "unrated"} else "all"
+    status_filter = "all"
     selected_rating_filters, include_unrated_rating = parse_rating_filter_values(
         request.query_params.getlist("filter_rating")
     )
@@ -3118,7 +3117,6 @@ def admin_ratings_page(
         params = {
             "q": q.strip(),
             "make": make.strip(),
-            "status": status_filter,
             "page": page,
             "filter_rating": overrides.pop("filter_rating", active_rating_filter_tokens),
         }
@@ -3128,8 +3126,6 @@ def admin_ratings_page(
             pairs.append(("q", params["q"]))
         if params["make"]:
             pairs.append(("make", params["make"]))
-        if params["status"] != "all":
-            pairs.append(("status", params["status"]))
         for token in params["filter_rating"] or []:
             pairs.append(("filter_rating", token))
         if int(params["page"] or 1) > 1:
@@ -3154,15 +3150,9 @@ def admin_ratings_page(
             "rating_next_url": _ratings_url(page=page + 1) if page < total_pages else None,
             "rating_q": q.strip(),
             "rating_make": make.strip(),
-            "rating_status": status_filter,
             "rating_makes": list_catalog_makes(db),
             "rating_choices": RATING_CHOICES,
             "format_rating": format_rating,
-            "rating_filter_urls": {
-                "all": _ratings_url(status="all", page=1),
-                "rated": _ratings_url(status="rated", page=1),
-                "unrated": _ratings_url(status="unrated", page=1),
-            },
             "rating_filter_tokens": active_rating_filter_tokens,
             "rating_filter_unrated_value": RATING_FILTER_UNRATED,
             "rating_filters_active": bool(active_rating_filter_tokens),

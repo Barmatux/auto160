@@ -12,14 +12,7 @@
   Найдено: {{ rating_total }}.
 </p>
 
-<nav class="admin-analytics-tabs">
-  <a href="{{ rating_filter_urls.all }}"{% if rating_status == "all" %} class="active"{% endif %}>Все</a>
-  <a href="{{ rating_filter_urls.rated }}"{% if rating_status == "rated" %} class="active"{% endif %}>С рейтингом</a>
-  <a href="{{ rating_filter_urls.unrated }}"{% if rating_status == "unrated" %} class="active"{% endif %}>Без рейтинга</a>
-</nav>
-
 <form class="filters admin-log-toolbar" method="get" action="/admin/ratings">
-  <input type="hidden" name="status" value="{{ rating_status }}" />
   <label>
     Поиск
     <input type="text" name="q" value="{{ rating_q }}" placeholder="Марка, модель, поколение" />
@@ -52,7 +45,6 @@
             data-ratings-base-url="/admin/ratings"
             data-ratings-q="{{ rating_q }}"
             data-ratings-make="{{ rating_make }}"
-            data-ratings-status="{{ rating_status }}"
           >
             <button
               type="button"
@@ -515,10 +507,8 @@
     const params = new URLSearchParams();
     const q = (root.dataset.ratingsQ || "").trim();
     const make = (root.dataset.ratingsMake || "").trim();
-    const status = (root.dataset.ratingsStatus || "all").trim();
     if (q) params.set("q", q);
     if (make) params.set("make", make);
-    if (status && status !== "all") params.set("status", status);
     selectedTokens.forEach(function (token) {
       params.append("filter_rating", token);
     });
