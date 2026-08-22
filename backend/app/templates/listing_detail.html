@@ -17,6 +17,10 @@
           </p>
         {% endif %}
       </div>
+      <div class="listing-detail-header-price">
+        <span class="listing-detail-header-price-label">Цена</span>
+        {% include "partials/listing_price_display.html" %}
+      </div>
     </header>
 
     <div class="listing-detail-layout">
@@ -25,10 +29,6 @@
           <a class="listing-detail-catalog-link" href="/catalog/item/{{ catalog_item.id }}">Характеристики</a>
         {% endif %}
         <dl class="listing-spec-list">
-          <div class="listing-spec-row listing-spec-row-price">
-            <dt>Цена</dt>
-            <dd>{% include "partials/listing_price_display.html" %}</dd>
-          </div>
           <div class="listing-spec-row">
             <dt>Год выпуска:</dt>
             <dd>{{ listing.year }}</dd>
