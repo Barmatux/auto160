@@ -393,6 +393,18 @@
     return Number.isFinite(value) ? value : null;
   }
 
+  function applyYearsFormSuccess(form, data) {
+    const yearFromInput = form.querySelector("input[name='year_from']");
+    const yearToInput = form.querySelector("input[name='year_to']");
+    if (yearFromInput) {
+      yearFromInput.value = data.year_from != null ? String(data.year_from) : "";
+    }
+    if (yearToInput) {
+      yearToInput.value = data.year_to != null ? String(data.year_to) : "";
+    }
+    setYearsStatus(form, "Сохранено", false);
+  }
+
   document.querySelectorAll(".admin-years-form").forEach(function (form) {
     form.addEventListener("submit", async function (event) {
       event.preventDefault();
@@ -423,7 +435,7 @@
         setYearsStatus(form, message, true);
         return;
       }
-      window.location.reload();
+      applyYearsFormSuccess(form, data);
     });
   });
 </script>
