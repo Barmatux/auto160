@@ -2857,15 +2857,18 @@ body {
   left: 0;
   top: calc(100% + 8px);
   z-index: 120;
-  width: max-content;
-  max-width: min(360px, calc(100vw - 32px));
-  min-width: min(280px, calc(100vw - 32px));
+  box-sizing: border-box;
+  width: min(360px, calc(100vw - 32px));
+  max-width: 100%;
+  min-width: 0;
   padding: 14px 16px;
   border: 1px solid #cbd5e1;
   border-radius: 12px;
   background: #fff;
   box-shadow: 0 12px 28px rgba(15, 23, 42, 0.14);
   pointer-events: none;
+  white-space: normal;
+  overflow-wrap: break-word;
 }
 
 .listing-price-has-conversions.is-price-tooltip-open .listing-price-tooltip,
@@ -2912,6 +2915,8 @@ body {
   font-size: 13px;
   line-height: 1.45;
   color: #64748b;
+  white-space: normal;
+  overflow-wrap: break-word;
 }
 
 .offer-feed-price .listing-price {
@@ -2975,8 +2980,9 @@ body {
   bottom: calc(100% + 8px);
   left: 0;
   right: 0;
-  width: auto;
-  max-width: none;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .listings-feed .listings-feed-price .listing-price-primary,
