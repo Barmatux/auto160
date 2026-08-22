@@ -2780,10 +2780,17 @@ body {
 
 .byn-sign {
   display: inline-block;
-  width: 0.72em;
-  height: 0.88em;
+  width: 0.62em;
+  height: 0.72em;
   flex-shrink: 0;
-  vertical-align: -0.06em;
+  vertical-align: -0.08em;
+}
+
+.listing-spec-row-price .byn-sign {
+  width: 0.55em;
+  height: 0.65em;
+  vertical-align: -0.05em;
+  opacity: 0.92;
 }
 
 .listing-price-primary {
