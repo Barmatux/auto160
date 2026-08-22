@@ -244,6 +244,15 @@
           </select>
         </div>
       </div>
+      <label class="catalog-filter-field{% if listings_filters.filters.price_range %} is-active{% endif %}">
+        Цена
+        <select name="price_range">
+          <option value="" {% if listings_filters.filters.price_range == "" %}selected{% endif %}>Любая</option>
+          {% for option in listings_filters.options.price_ranges %}
+            <option value="{{ option.slug }}" {% if listings_filters.filters.price_range == option.slug %}selected{% endif %}>{{ option.label }}</option>
+          {% endfor %}
+        </select>
+      </label>
       <label class="catalog-filter-field{% if listings_filters.filters.freshness != 'all' %} is-active{% endif %}">
         Актуальность
         <select name="freshness">

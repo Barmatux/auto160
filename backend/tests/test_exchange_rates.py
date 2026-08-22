@@ -14,6 +14,7 @@ def test_nbrb_rates_convert_byn_to_foreign_currencies():
     )
     assert round(rates.convert_byn_to_usd(29_829)) == 10_000
     assert round(rates.convert_byn_to_rub(3_578.4)) == 100_000
+    assert round(rates.convert_rub_to_byn(100_000)) == 3_578
 
 
 def test_build_listing_price_display_includes_reference_disclaimer():

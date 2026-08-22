@@ -120,6 +120,11 @@ from app.listing_display import (
     listing_source_href,
     listing_source_label,
 )
+from app.listing_price_filter import (
+    apply_listings_price_range_filter,
+    listing_price_range_options,
+    parse_listing_price_range,
+)
 from app.listing_photos import (
     pick_listing_cover_url,
     resolve_listing_cover_urls,
@@ -914,6 +919,7 @@ def _listings_filters_payload(request: Request, db: Session, *, published_only: 
             "transmission_display": transmission_filter_display_label(transmission_slugs),
             "year_from": parsed_year_from if parsed_year_from is not None else "",
             "year_to": parsed_year_to if parsed_year_to is not None else "",
+            "price_range": parse_listing_price_range(query.get("price_range")) or "",
             "passable": query.get("passable") in ("1", "true", "on"),
             "freshness": query.get("freshness") or "all",
             "sort": query.get("sort") or "newest",
@@ -929,6 +935,7 @@ def _listings_filters_payload(request: Request, db: Session, *, published_only: 
             "engine_type": engine_options,
             "transmission_groups": TRANSMISSION_FILTER_GROUPS,
             "years": _listing_year_options(db, published_only=published_only),
+            "price_ranges": listing_price_range_options(),
         },
         "vehicle_hierarchy": _build_vehicle_hierarchy_payload(
             make_field="brand",
@@ -1979,6 +1986,7 @@ def listings_page(
         request.query_params.getlist("region"),
         request.query_params.getlist("city"),
     )
+    price_range = parse_listing_price_range(request.query_params.get("price_range"))
     query = exclude_hidden_body_type(db.query(CarListing), CarListing.body_type)
     is_admin = _is_admin_user(current_user)
     if not is_admin:
@@ -2012,6 +2020,7 @@ def listings_page(
         query = query.filter(CarListing.year >= parsed_year_from)
     if parsed_year_to is not None:
         query = query.filter(CarListing.year <= parsed_year_to)
+    query = apply_listings_price_range_filter(query, price_range)
     if passable:
         year_min, year_max = _passable_year_bounds()
         query = query.filter(CarListing.year >= year_min, CarListing.year <= year_max)
@@ -2062,6 +2071,8 @@ def listings_page(
         query_params.append(("year_from", str(parsed_year_from)))
     if parsed_year_to is not None:
         query_params.append(("year_to", str(parsed_year_to)))
+    if price_range:
+        query_params.append(("price_range", price_range))
     if passable:
         query_params.append(("passable", "1"))
     if freshness and freshness != "all":
@@ -2093,6 +2104,7 @@ def listings_page(
         or transmission_slugs
         or parsed_year_from is not None
         or parsed_year_to is not None
+        or price_range
         or passable
         or (freshness and freshness != "all")
         or (sort and sort != "newest")

@@ -35,6 +35,11 @@ class NbrbRates:
             return 0.0
         return amount_byn / self.rub_rate * self.rub_scale
 
+    def convert_rub_to_byn(self, amount_rub: float) -> float:
+        if self.rub_scale <= 0:
+            return 0.0
+        return amount_rub * self.rub_rate / self.rub_scale
+
 
 def _parse_rate_date(raw: str | None) -> date:
     if not raw:
