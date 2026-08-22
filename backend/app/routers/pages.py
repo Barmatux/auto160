@@ -67,6 +67,13 @@ from app.export_country_labels import (
     is_belarus_export_country,
 )
 from app.catalog_visibility import apply_visible_catalog_filter
+from app.customs_vin import (
+    CustomsVinError,
+    lookup_customs_vin,
+    normalize_vin,
+    report_rows,
+    vin_is_valid,
+)
 from app.avby_accounts import list_active_vin_accounts, serialize_account_public
 from app.db import get_db
 from app.logging_setup import LOG_SERVICES, LOG_SERVICE_LABELS, format_log_time, log_dir, log_timezone, tail_log
