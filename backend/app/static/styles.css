@@ -1924,7 +1924,7 @@ body {
   align-items: center;
 }
 
-.admin-ratings-rating-filter-trigger {
+.admin-vin-table.admin-ratings-table .admin-ratings-rating-filter-trigger {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -1943,10 +1943,25 @@ body {
   cursor: pointer;
 }
 
-.admin-ratings-rating-filter.is-active .admin-ratings-rating-filter-trigger {
+.admin-vin-table.admin-ratings-table .admin-ratings-rating-filter-trigger:hover,
+.admin-vin-table.admin-ratings-table .admin-ratings-rating-filter-trigger:focus,
+.admin-vin-table.admin-ratings-table .admin-ratings-rating-filter-trigger:focus-visible {
+  background: transparent;
+  color: inherit;
+  opacity: 1;
+}
+
+.admin-vin-table.admin-ratings-table .admin-ratings-rating-filter.is-active .admin-ratings-rating-filter-trigger {
   padding: 4px 10px 4px 12px;
   border: 1px solid #c9dcff;
   border-radius: 999px;
+  background: linear-gradient(180deg, #eef4ff 0%, #e2ecff 100%);
+  color: #1e3a8a;
+}
+
+.admin-vin-table.admin-ratings-table .admin-ratings-rating-filter.is-active .admin-ratings-rating-filter-trigger:hover,
+.admin-vin-table.admin-ratings-table .admin-ratings-rating-filter.is-active .admin-ratings-rating-filter-trigger:focus,
+.admin-vin-table.admin-ratings-table .admin-ratings-rating-filter.is-active .admin-ratings-rating-filter-trigger:focus-visible {
   background: linear-gradient(180deg, #eef4ff 0%, #e2ecff 100%);
   color: #1e3a8a;
 }
