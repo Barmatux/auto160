@@ -938,6 +938,9 @@ def _listings_filters_payload(request: Request, db: Session, *, published_only: 
     }
 
 
+LISTINGS_PAGE_SIZE = 21
+
+
 def _build_listings_url(
     *,
     brand: str | None = None,
@@ -1952,7 +1955,6 @@ def listings_page(
     freshness: str = Query(default="all"),
     sort: str = Query(default="newest"),
     page: int = Query(default=1, ge=1),
-    page_size: int = Query(default=20, ge=1, le=50),
     db: Session = Depends(get_db),
 ):
     current_user = _resolve_user_from_request(request, db)
@@ -2024,6 +2026,7 @@ def listings_page(
         query = query.order_by(CarListing.created_at.desc())
 
     total = query.count()
+    page_size = LISTINGS_PAGE_SIZE
     offset = (page - 1) * page_size
     listings = query.offset(offset).limit(page_size).all()
     context = _template_context(request, current_user)
@@ -2033,7 +2036,6 @@ def listings_page(
     context["listing_catalog_items"] = resolve_catalog_items_for_listings(db, listings)
     context["total"] = total
     context["page"] = page
-    context["page_size"] = page_size
     context["total_pages"] = max(1, (total + page_size - 1) // page_size)
     context["has_prev"] = page > 1
     context["has_next"] = offset + len(listings) < total
@@ -2063,8 +2065,6 @@ def listings_page(
         query_params.append(("freshness", freshness))
     if sort and sort != "newest":
         query_params.append(("sort", sort))
-    if page_size != 20:
-        query_params.append(("page_size", str(page_size)))
 
     def build_page_url(page_num: int) -> str:
         pairs = _vehicle_rows_to_query_pairs(vehicle_rows, make_key="brand", model_key="model", generation_key="generation")
@@ -2093,7 +2093,6 @@ def listings_page(
         or passable
         or (freshness and freshness != "all")
         or (sort and sort != "newest")
-        or page_size != 20
         or brand == "__multi__"
         or any((row.get("generation") or "").strip() for row in vehicle_rows)
         or location_regions

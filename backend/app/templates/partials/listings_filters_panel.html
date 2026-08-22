@@ -263,14 +263,6 @@
           <option value="year_asc" {% if listings_filters.filters.sort == "year_asc" %}selected{% endif %}>Год по возрастанию</option>
         </select>
       </label>
-      <label class="catalog-filter-field{% if page_size != 20 %} is-active{% endif %}">
-        На странице
-        <select name="page_size">
-          <option value="12" {% if page_size == 12 %}selected{% endif %}>12</option>
-          <option value="20" {% if page_size == 20 %}selected{% endif %}>20</option>
-          <option value="40" {% if page_size == 40 %}selected{% endif %}>40</option>
-        </select>
-      </label>
     </div>
 
     <button type="submit" class="catalog-filters-submit">Применить</button>

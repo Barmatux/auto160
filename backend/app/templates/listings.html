@@ -19,8 +19,6 @@
         {% endif %}
       </div>
 
-      <p class="hint">Найдено объявлений: {{ total }} · Страница {{ page }} из {{ total_pages }}</p>
-
       {% if listings %}
         <div class="catalog listings-feed">
             {% for listing in listings %}
@@ -32,16 +30,21 @@
       {% endif %}
 
       <div class="pager">
-        {% if has_prev %}
-          <a class="page-link" href="{{ prev_url }}">← Назад</a>
-        {% else %}
-          <span class="page-link disabled">← Назад</span>
-        {% endif %}
-        {% if has_next %}
-          <a class="page-link" href="{{ next_url }}">Вперед →</a>
-        {% else %}
-          <span class="page-link disabled">Вперед →</span>
-        {% endif %}
+        <div class="pager-nav pager-nav-prev">
+          {% if has_prev %}
+            <a class="page-link" href="{{ prev_url }}">← Назад</a>
+          {% else %}
+            <span class="page-link disabled">← Назад</span>
+          {% endif %}
+        </div>
+        <p class="pager-summary hint">Найдено объявлений: {{ total }} · Страница {{ page }} из {{ total_pages }}</p>
+        <div class="pager-nav pager-nav-next">
+          {% if has_next %}
+            <a class="page-link" href="{{ next_url }}">Вперед →</a>
+          {% else %}
+            <span class="page-link disabled">Вперед →</span>
+          {% endif %}
+        </div>
       </div>
     </section>
   </div>
