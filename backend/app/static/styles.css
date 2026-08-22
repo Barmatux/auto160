@@ -3048,8 +3048,8 @@ body {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  margin-top: auto;
-  padding-top: 16px;
+  margin: 12px 0 0;
+  padding-top: 0;
 }
 
 .listing-detail-side-action {

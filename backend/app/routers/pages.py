@@ -2148,10 +2148,26 @@ def listing_item(request: Request, listing_id: int, db: Session = Depends(get_db
         )
     context = _template_context(request, current_user, seo)
     context["listing"] = listing
+    context["generation_listings_url"] = None
+    context["modification_listings_url"] = None
     if listing:
         catalog_items = resolve_catalog_items_for_listings(db, [listing])
-        context["catalog_item"] = catalog_items.get(listing.id)
+        catalog_item = catalog_items.get(listing.id)
+        context["catalog_item"] = catalog_item
         context["gallery_urls"] = resolve_listing_gallery_urls(listing)
+        if catalog_item:
+            context["generation_listings_url"] = _generation_listings_url(db, catalog_item)
+            context["modification_listings_url"] = _build_listings_url(catalog_item_id=catalog_item.id)
+        else:
+            brand = (listing.brand or "").strip()
+            model = _canonical_model_name(listing.model) or (listing.model or "").strip()
+            generation = (listing.generation or "").strip()
+            if brand and model and generation:
+                context["generation_listings_url"] = _build_listings_url(
+                    brand=brand,
+                    model=model,
+                    generation=generation,
+                )
     else:
         context["catalog_item"] = None
         context["gallery_urls"] = []

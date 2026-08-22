@@ -81,13 +81,24 @@
             <dt>Продавец</dt>
             <dd>{{ listing.seller_name | listing_seller_label }}</dd>
           </div>
-          {% if listing.vin_indicated is not none %}
+        </dl>
+        <div class="listing-detail-side-actions">
+          <a class="listing-detail-side-action listing-detail-side-action-primary" href="/inspection?listing_id={{ listing.id }}">Проверить VIN</a>
+          {% if generation_listings_url %}
+            <a class="listing-detail-side-action" href="{{ generation_listings_url }}">Другие объявления по этому поколению</a>
+          {% endif %}
+          {% if modification_listings_url %}
+            <a class="listing-detail-side-action" href="{{ modification_listings_url }}">Другие объявления по этой модификации</a>
+          {% endif %}
+        </div>
+        {% if listing.vin_indicated is not none %}
+          <dl class="listing-spec-list">
             <div class="listing-spec-row">
               <dt>VIN на av.by</dt>
               <dd>{% if listing.vin_indicated %}указан{% else %}не указан{% endif %}</dd>
             </div>
-          {% endif %}
-        </dl>
+          </dl>
+        {% endif %}
         {% include "partials/listing_vin_admin.html" %}
         {% with customs=listing_customs %}
           {% include "partials/listing_customs_info.html" %}
@@ -98,12 +109,6 @@
             <p class="listing-admin-meta"><span class="status-pill missing-byn-price">Нет цены BYN на av.by</span></p>
           {% endif %}
         {% endif %}
-        <div class="listing-detail-side-actions">
-          <a class="listing-detail-side-action listing-detail-side-action-primary" href="/inspection?listing_id={{ listing.id }}">Проверить VIN</a>
-          {% if catalog_item %}
-            <a class="listing-detail-side-action" href="/catalog/item/{{ catalog_item.id }}">Комплектация в каталоге</a>
-          {% endif %}
-        </div>
       </aside>
 
       <div class="listing-detail-center">
