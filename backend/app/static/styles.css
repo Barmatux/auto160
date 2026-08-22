@@ -1176,28 +1176,28 @@ body {
 }
 
 .catalog-makes-grid {
-  grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(auto-fill, minmax(116px, 1fr));
+  gap: 10px;
 }
 
 .catalog-page .catalog-makes-grid .home-make-card {
-  padding: 10px 6px 8px;
-  gap: 4px;
+  padding: 12px 8px 10px;
+  gap: 6px;
 }
 
 .catalog-page .catalog-makes-grid .make-logo,
 .catalog-page .catalog-makes-grid .home-make-fallback {
-  width: 60px;
-  height: 60px;
+  width: 76px;
+  height: 76px;
 }
 
 .catalog-page .catalog-makes-grid .home-make-fallback {
-  font-size: 1.35rem;
+  font-size: 1.6rem;
 }
 
 .catalog-page .catalog-makes-grid .home-make-card strong {
-  font-size: 0.78rem;
-  line-height: 1.15;
+  font-size: 0.88rem;
+  line-height: 1.2;
 }
 
 .catalog-page .filters select {
