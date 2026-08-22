@@ -1927,13 +1927,13 @@ body {
 .admin-ratings-rating-filter-trigger {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   margin: 0;
-  padding: 4px 8px 4px 12px;
-  border: 1px solid transparent;
-  border-radius: 999px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
   background: transparent;
-  color: var(--muted);
+  color: inherit;
   font: inherit;
   font-size: inherit;
   font-weight: 700;
@@ -1944,8 +1944,10 @@ body {
 }
 
 .admin-ratings-rating-filter.is-active .admin-ratings-rating-filter-trigger {
+  padding: 4px 10px 4px 12px;
+  border: 1px solid #c9dcff;
+  border-radius: 999px;
   background: linear-gradient(180deg, #eef4ff 0%, #e2ecff 100%);
-  border-color: #c9dcff;
   color: #1e3a8a;
 }
 
@@ -1958,8 +1960,12 @@ body {
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  background: rgba(191, 219, 254, 0.45);
+  background: rgba(191, 219, 254, 0.35);
   position: relative;
+}
+
+.admin-ratings-rating-filter.is-active .admin-ratings-rating-filter-arrow {
+  background: transparent;
 }
 
 .admin-ratings-rating-filter-arrow::after {
