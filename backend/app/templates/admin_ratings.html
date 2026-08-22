@@ -45,7 +45,51 @@
         <th>Модель</th>
         <th>Поколение</th>
         <th>Годы<br />производства</th>
-        <th>Рейтинг</th>
+        <th class="admin-ratings-rating-head">
+          <div class="admin-ratings-rating-head-inner">
+            <span>Рейтинг</span>
+            <div
+              class="admin-ratings-rating-filter{% if rating_filters_active %} is-active{% endif %}"
+              data-admin-rating-filter
+              data-ratings-base-url="/admin/ratings"
+              data-ratings-q="{{ rating_q }}"
+              data-ratings-make="{{ rating_make }}"
+              data-ratings-status="{{ rating_status }}"
+            >
+              <button
+                type="button"
+                class="admin-ratings-rating-filter-trigger"
+                aria-expanded="false"
+                aria-haspopup="listbox"
+                aria-label="Фильтр по рейтингу"
+              ></button>
+              <div class="admin-ratings-rating-filter-menu" hidden>
+                <label class="admin-ratings-rating-filter-option">
+                  <input
+                    type="checkbox"
+                    value="{{ rating_filter_unrated_value }}"
+                    {% if rating_filter_unrated_value in rating_filter_tokens %}checked{% endif %}
+                  />
+                  <span>не задан</span>
+                </label>
+                {% for choice in rating_choices %}
+                  <label class="admin-ratings-rating-filter-option">
+                    <input
+                      type="checkbox"
+                      value="{{ choice }}"
+                      {% if choice|string in rating_filter_tokens %}checked{% endif %}
+                    />
+                    <span>{{ choice }}</span>
+                  </label>
+                {% endfor %}
+                <div class="admin-ratings-rating-filter-actions">
+                  <button type="button" class="page-link" data-rating-filter-apply>Применить</button>
+                  <button type="button" class="page-link" data-rating-filter-clear>Сбросить</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </th>
         <th>Фото</th>
       </tr>
     </thead>
@@ -469,6 +513,77 @@
       }
       applyYearsFormSuccess(form, data);
     });
+  });
+
+  function buildRatingsFilterUrl(root, selectedTokens) {
+    const params = new URLSearchParams();
+    const q = (root.dataset.ratingsQ || "").trim();
+    const make = (root.dataset.ratingsMake || "").trim();
+    const status = (root.dataset.ratingsStatus || "all").trim();
+    if (q) params.set("q", q);
+    if (make) params.set("make", make);
+    if (status && status !== "all") params.set("status", status);
+    selectedTokens.forEach(function (token) {
+      params.append("filter_rating", token);
+    });
+    const query = params.toString();
+    return (root.dataset.ratingsBaseUrl || "/admin/ratings") + (query ? "?" + query : "");
+  }
+
+  function closeRatingFilterMenus(exceptRoot) {
+    document.querySelectorAll("[data-admin-rating-filter]").forEach(function (root) {
+      if (exceptRoot && root === exceptRoot) return;
+      root.classList.remove("is-open");
+      const trigger = root.querySelector(".admin-ratings-rating-filter-trigger");
+      const menu = root.querySelector(".admin-ratings-rating-filter-menu");
+      if (menu) menu.hidden = true;
+      if (trigger) trigger.setAttribute("aria-expanded", "false");
+    });
+  }
+
+  document.querySelectorAll("[data-admin-rating-filter]").forEach(function (root) {
+    const trigger = root.querySelector(".admin-ratings-rating-filter-trigger");
+    const menu = root.querySelector(".admin-ratings-rating-filter-menu");
+    const applyBtn = root.querySelector("[data-rating-filter-apply]");
+    const clearBtn = root.querySelector("[data-rating-filter-clear]");
+    if (!trigger || !menu) return;
+
+    trigger.addEventListener("click", function (event) {
+      event.stopPropagation();
+      const willOpen = !root.classList.contains("is-open");
+      closeRatingFilterMenus(root);
+      root.classList.toggle("is-open", willOpen);
+      menu.hidden = !willOpen;
+      trigger.setAttribute("aria-expanded", willOpen ? "true" : "false");
+    });
+
+    menu.addEventListener("click", function (event) {
+      event.stopPropagation();
+    });
+
+    if (applyBtn) {
+      applyBtn.addEventListener("click", function () {
+        const selected = Array.from(menu.querySelectorAll("input[type='checkbox']:checked"))
+          .map(function (input) { return input.value; });
+        window.location.href = buildRatingsFilterUrl(root, selected);
+      });
+    }
+
+    if (clearBtn) {
+      clearBtn.addEventListener("click", function () {
+        window.location.href = buildRatingsFilterUrl(root, []);
+      });
+    }
+  });
+
+  document.addEventListener("click", function () {
+    closeRatingFilterMenus(null);
+  });
+
+  document.addEventListener("keydown", function (event) {
+    if (event.key === "Escape") {
+      closeRatingFilterMenus(null);
+    }
   });
 </script>
 {% endblock %}

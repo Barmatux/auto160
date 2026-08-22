@@ -1,11 +1,14 @@
 from decimal import Decimal
 
 from app.catalog_ratings import (
+    RATING_FILTER_UNRATED,
     format_production_years,
     format_rating,
     generation_key,
     generation_label,
     parse_rating,
+    parse_rating_filter_values,
+    rating_filter_tokens,
 )
 
 
@@ -47,3 +50,22 @@ def test_parse_rating_rejects_out_of_range():
         except ValueError:
             continue
         raise AssertionError(f"expected ValueError for {raw!r}")
+
+
+def test_parse_rating_filter_values():
+    ratings, include_unrated = parse_rating_filter_values([])
+    assert ratings == frozenset()
+    assert include_unrated is False
+
+    ratings, include_unrated = parse_rating_filter_values(["1", "2", RATING_FILTER_UNRATED])
+    assert ratings == frozenset({1, 2})
+    assert include_unrated is True
+
+    ratings, include_unrated = parse_rating_filter_values(["9", "bad", ""])
+    assert ratings == frozenset()
+    assert include_unrated is False
+
+
+def test_rating_filter_tokens():
+    assert rating_filter_tokens(frozenset({3, 1}), include_unrated=False) == ["1", "3"]
+    assert rating_filter_tokens(frozenset({2}), include_unrated=True) == ["2", RATING_FILTER_UNRATED]

@@ -1914,6 +1914,102 @@ body {
   vertical-align: bottom;
 }
 
+.admin-ratings-rating-head {
+  overflow: visible;
+}
+
+.admin-ratings-rating-head-inner {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.admin-ratings-rating-filter {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.admin-ratings-rating-filter-trigger {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  padding: 0;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+  position: relative;
+}
+
+.admin-ratings-rating-filter-trigger::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid #64748b;
+  transform: translate(-50%, -35%);
+}
+
+.admin-ratings-rating-filter.is-active .admin-ratings-rating-filter-trigger {
+  border-color: #60a5fa;
+  background: #eef4ff;
+}
+
+.admin-ratings-rating-filter.is-open .admin-ratings-rating-filter-trigger::after {
+  transform: translate(-50%, -55%) rotate(180deg);
+}
+
+.admin-ratings-rating-filter-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 40;
+  min-width: 148px;
+  padding: 8px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+}
+
+.admin-ratings-rating-filter-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 6px 4px;
+  font-size: 14px;
+  line-height: 1.2;
+  color: #0f172a;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.admin-ratings-rating-filter-option input {
+  width: auto;
+  margin: 0;
+}
+
+.admin-ratings-rating-filter-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+  padding-top: 8px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.admin-ratings-rating-filter-actions .page-link {
+  flex: 1 1 auto;
+  text-align: center;
+  font-size: 12px;
+  padding: 6px 8px;
+}
+
 .admin-vin-table.admin-ratings-table th:nth-child(1),
 .admin-vin-table.admin-ratings-table td:nth-child(1) {
   width: 8%;

@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from app.models import CatalogItem
 
 RATING_CHOICES = (1, 2, 3)
+RATING_FILTER_UNRATED = "unrated"
 UNRATED_GENERATION_LABEL = "Без поколения"
 DEFAULT_PAGE_SIZE = 50
 MAX_PAGE_SIZE = 200
@@ -76,6 +77,33 @@ def parse_rating(raw: object) -> float | None:
     return value
 
 
+def parse_rating_filter_values(values: list[str] | None) -> tuple[frozenset[int], bool]:
+    """Parse multi-value rating filter query params."""
+    ratings: set[int] = set()
+    include_unrated = False
+    for raw in values or []:
+        token = (raw or "").strip().lower()
+        if not token:
+            continue
+        if token in {RATING_FILTER_UNRATED, "none", "unset", "null"}:
+            include_unrated = True
+            continue
+        try:
+            number = int(float(token.replace(",", ".")))
+        except ValueError:
+            continue
+        if number in RATING_CHOICES:
+            ratings.add(number)
+    return frozenset(ratings), include_unrated
+
+
+def rating_filter_tokens(ratings: frozenset[int], *, include_unrated: bool) -> list[str]:
+    tokens = [str(value) for value in sorted(ratings)]
+    if include_unrated:
+        tokens.append(RATING_FILTER_UNRATED)
+    return tokens
+
+
 def _generation_filter(query, generation: str | None):
     key = generation_key(generation)
     if key and key != UNRATED_GENERATION_LABEL:
@@ -119,6 +147,8 @@ def _grouped_query(
     make: str | None = None,
     q: str | None = None,
     status: str = "all",
+    rating_filters: frozenset[int] | None = None,
+    include_unrated_rating: bool = False,
 ):
     query = (
         db.query(
@@ -154,6 +184,18 @@ def _grouped_query(
         query = query.having(func.count(CatalogItem.rating) > 0)
     elif status == "unrated":
         query = query.having(func.count(CatalogItem.rating) == 0)
+    if rating_filters or include_unrated_rating:
+        parts = []
+        if include_unrated_rating:
+            parts.append(func.count(CatalogItem.rating) == 0)
+        for rating_value in sorted(rating_filters or ()):
+            parts.append(
+                (func.count(CatalogItem.rating) > 0)
+                & (func.min(CatalogItem.rating) <= rating_value)
+                & (func.max(CatalogItem.rating) >= rating_value)
+            )
+        if parts:
+            query = query.having(or_(*parts))
     return query
 
 
@@ -208,12 +250,21 @@ def list_generation_ratings(
     make: str | None = None,
     q: str | None = None,
     status: str = "all",
+    rating_filters: frozenset[int] | None = None,
+    include_unrated_rating: bool = False,
     page: int = 1,
     per_page: int = DEFAULT_PAGE_SIZE,
 ) -> tuple[list[CatalogRatingRow], int]:
     page = max(page, 1)
     per_page = max(min(per_page, MAX_PAGE_SIZE), 1)
-    grouped = _grouped_query(db, make=make, q=q, status=status)
+    grouped = _grouped_query(
+        db,
+        make=make,
+        q=q,
+        status=status,
+        rating_filters=rating_filters,
+        include_unrated_rating=include_unrated_rating,
+    )
     total = db.query(func.count()).select_from(grouped.subquery()).scalar() or 0
     rows = (
         grouped.order_by(CatalogItem.make.asc(), CatalogItem.model.asc(), CatalogItem.generation.asc())

@@ -132,9 +132,12 @@ from app.vin_analytics import SORT_COLUMNS, VinListingSort, build_vin_listings_r
 from app.catalog_ratings import (
     DEFAULT_PAGE_SIZE,
     RATING_CHOICES,
+    RATING_FILTER_UNRATED,
     format_rating,
     list_catalog_makes,
     list_generation_ratings,
+    parse_rating_filter_values,
+    rating_filter_tokens,
 )
 
 router = APIRouter(tags=["pages"])
@@ -3078,12 +3081,17 @@ def admin_ratings_page(
         return RedirectResponse(url="/", status_code=302)
 
     status_filter = status if status in {"all", "rated", "unrated"} else "all"
+    selected_rating_filters, include_unrated_rating = parse_rating_filter_values(
+        request.query_params.getlist("filter_rating")
+    )
     per_page = DEFAULT_PAGE_SIZE
     rows, total = list_generation_ratings(
         db,
         make=make,
         q=q,
         status=status_filter,
+        rating_filters=selected_rating_filters,
+        include_unrated_rating=include_unrated_rating,
         page=page,
         per_page=per_page,
     )
@@ -3095,9 +3103,16 @@ def admin_ratings_page(
             make=make,
             q=q,
             status=status_filter,
+            rating_filters=selected_rating_filters,
+            include_unrated_rating=include_unrated_rating,
             page=page,
             per_page=per_page,
         )
+
+    active_rating_filter_tokens = rating_filter_tokens(
+        selected_rating_filters,
+        include_unrated=include_unrated_rating,
+    )
 
     def _ratings_url(**overrides) -> str:
         params = {
@@ -3105,6 +3120,7 @@ def admin_ratings_page(
             "make": make.strip(),
             "status": status_filter,
             "page": page,
+            "filter_rating": overrides.pop("filter_rating", active_rating_filter_tokens),
         }
         params.update(overrides)
         pairs = []
@@ -3114,6 +3130,8 @@ def admin_ratings_page(
             pairs.append(("make", params["make"]))
         if params["status"] != "all":
             pairs.append(("status", params["status"]))
+        for token in params["filter_rating"] or []:
+            pairs.append(("filter_rating", token))
         if int(params["page"] or 1) > 1:
             pairs.append(("page", str(params["page"])))
         query = urlencode(pairs)
@@ -3145,6 +3163,9 @@ def admin_ratings_page(
                 "rated": _ratings_url(status="rated", page=1),
                 "unrated": _ratings_url(status="unrated", page=1),
             },
+            "rating_filter_tokens": active_rating_filter_tokens,
+            "rating_filter_unrated_value": RATING_FILTER_UNRATED,
+            "rating_filters_active": bool(active_rating_filter_tokens),
         }
     )
     return templates.TemplateResponse(request, "admin_ratings.html", context)
