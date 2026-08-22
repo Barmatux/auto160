@@ -2667,7 +2667,7 @@ body {
   max-width: 100%;
 }
 
-.listing-detail-header-price .listing-price-has-conversions {
+.listing-detail-header-price .listing-price-values {
   display: grid;
   grid-template-columns: max-content max-content;
   justify-content: end;
@@ -2695,6 +2695,13 @@ body {
   font-size: 14px;
   font-weight: 500;
   color: #64748b;
+}
+
+.listing-detail-header-price .listing-price-has-conversions .listing-price-tooltip {
+  top: auto;
+  bottom: calc(100% + 8px);
+  left: auto;
+  right: 0;
 }
 
 .listing-detail-header-price .listing-price:not(.listing-price-has-conversions) .listing-price-primary {
@@ -2791,14 +2798,19 @@ body {
 
 .listing-price {
   position: relative;
+  display: inline-block;
+  max-width: 100%;
+  white-space: nowrap;
+  cursor: help;
+  outline: none;
+}
+
+.listing-price-values {
   display: inline-flex;
   flex-wrap: nowrap;
   align-items: baseline;
   gap: 0.35em 0.75em;
   max-width: 100%;
-  white-space: nowrap;
-  cursor: help;
-  outline: none;
 }
 
 .listing-price-byn {
@@ -2844,18 +2856,29 @@ body {
   position: absolute;
   left: 0;
   top: calc(100% + 8px);
-  z-index: 40;
-  min-width: min(320px, calc(100vw - 32px));
+  z-index: 120;
+  width: max-content;
+  max-width: min(360px, calc(100vw - 32px));
+  min-width: min(280px, calc(100vw - 32px));
   padding: 14px 16px;
   border: 1px solid #cbd5e1;
   border-radius: 12px;
   background: #fff;
   box-shadow: 0 12px 28px rgba(15, 23, 42, 0.14);
+  pointer-events: none;
 }
 
+.listing-price-has-conversions.is-price-tooltip-open .listing-price-tooltip,
 .listing-price-has-conversions:hover .listing-price-tooltip,
 .listing-price-has-conversions:focus-within .listing-price-tooltip {
   display: block;
+}
+
+.listing-detail-header:has(.listing-price-has-conversions.is-price-tooltip-open),
+.listing-detail-header:has(.listing-price-has-conversions:hover),
+.listing-detail-header:has(.listing-price-has-conversions:focus-within) {
+  position: relative;
+  z-index: 30;
 }
 
 .listing-price-tooltip-primary {
@@ -2902,6 +2925,10 @@ body {
   -webkit-overflow-scrolling: touch;
 }
 
+.offer-feed-price:has(.listing-price-has-conversions) {
+  overflow: visible;
+}
+
 .offer-feed-price p {
   white-space: nowrap;
 }
@@ -2916,12 +2943,12 @@ body {
   max-width: none;
 }
 
+.listings-feed .listings-feed-price {
+  overflow: visible;
+}
+
 .listings-feed .listings-feed-price .listing-price {
-  display: flex;
-  flex-wrap: nowrap;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
+  display: block;
   width: 100%;
   box-sizing: border-box;
   padding: 10px 14px;
@@ -2934,10 +2961,35 @@ body {
   cursor: help;
 }
 
+.listings-feed .listings-feed-price .listing-price-values {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+}
+
+.listings-feed .listings-feed-price .listing-price-has-conversions .listing-price-tooltip {
+  top: auto;
+  bottom: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  width: auto;
+  max-width: none;
+}
+
 .listings-feed .listings-feed-price .listing-price-primary,
 .listings-feed .listings-feed-price .listing-price-converted {
   flex: 0 1 auto;
   min-width: 0;
+}
+
+.listings-feed .listing-card:has(.listing-price-has-conversions.is-price-tooltip-open),
+.listings-feed .listing-card:has(.listing-price-has-conversions:hover),
+.listings-feed .listing-card:has(.listing-price-has-conversions:focus-within) {
+  position: relative;
+  z-index: 25;
 }
 
 .listings-feed .listings-feed-price .listing-price-primary {
@@ -3770,8 +3822,13 @@ body.listing-lightbox-open {
     text-align: left;
   }
 
-  .listing-detail-header-price .listing-price-has-conversions {
+  .listing-detail-header-price .listing-price-values {
     justify-content: start;
+  }
+
+  .listing-detail-header-price .listing-price-has-conversions .listing-price-tooltip {
+    left: 0;
+    right: auto;
   }
 
   .listing-detail-layout {
