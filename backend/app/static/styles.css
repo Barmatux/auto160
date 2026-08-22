@@ -2729,6 +2729,35 @@ body {
   color: #1e3a8a;
 }
 
+.listing-spec-row-price .listing-price {
+  white-space: normal;
+  max-width: 100%;
+}
+
+.listing-spec-row-price .listing-price-has-conversions {
+  display: grid;
+  grid-template-columns: max-content max-content;
+  column-gap: 0.85em;
+  row-gap: 6px;
+  align-items: baseline;
+}
+
+.listing-spec-row-price .listing-price-has-conversions .listing-price-primary {
+  grid-column: 1 / -1;
+}
+
+.listing-spec-row-price .listing-price-has-conversions .listing-price-converted-rub {
+  grid-column: 1;
+  font-size: 16px;
+}
+
+.listing-spec-row-price .listing-price-has-conversions .listing-price-converted-usd {
+  grid-column: 2;
+  font-size: 14px;
+  font-weight: 500;
+  color: #64748b;
+}
+
 .listing-price {
   position: relative;
   display: inline-flex;
