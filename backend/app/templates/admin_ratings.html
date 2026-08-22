@@ -211,6 +211,38 @@
     el.classList.toggle("is-error", Boolean(isError));
   }
 
+  function formatRatingValue(value) {
+    if (value == null) return "";
+    const number = Number(value);
+    if (!Number.isFinite(number)) return "";
+    return Number.isInteger(number) ? String(number) : String(number);
+  }
+
+  function applyRatingFormSuccess(form, data) {
+    const select = form.querySelector("select[name='rating']");
+    const clearBtn = form.querySelector("button.admin-rating-clear");
+    const rating = data.rating;
+    if (select) {
+      if (rating == null) {
+        select.value = "";
+      } else {
+        const formatted = formatRatingValue(rating);
+        const hasOption = Array.from(select.options).some(function (opt) { return opt.value === formatted; });
+        if (!hasOption) {
+          const option = document.createElement("option");
+          option.value = formatted;
+          option.textContent = formatted;
+          select.appendChild(option);
+        }
+        select.value = formatted;
+      }
+    }
+    if (clearBtn) {
+      clearBtn.disabled = rating == null;
+    }
+    setRowStatus(form, "Сохранено", false);
+  }
+
   document.querySelectorAll(".admin-rating-form").forEach(function (form) {
     form.addEventListener("submit", async function (event) {
       event.preventDefault();
@@ -239,7 +271,7 @@
         setRowStatus(form, message, true);
         return;
       }
-      window.location.reload();
+      applyRatingFormSuccess(form, data);
     });
   });
 
