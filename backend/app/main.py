@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.bootstrap import safe_bootstrap_admin
@@ -14,6 +15,13 @@ setup_logging("api")
 app = FastAPI(title="Auto160 Backend", version="0.1.0")
 app.add_middleware(AnalyticsMiddleware)
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
+
+FAVICON_URL = "/static/favicon.svg?v=20260824-01"
+
+
+@app.get("/favicon.ico", include_in_schema=False)
+def favicon():
+    return RedirectResponse(url=FAVICON_URL, status_code=301)
 
 
 @app.on_event("startup")

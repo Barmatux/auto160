@@ -15,7 +15,7 @@
     {% if seo_canonical %}
       <link rel="canonical" href="{{ seo_canonical }}" />
     {% endif %}
-    <link rel="icon" href="/static/favicon.svg?v=20260822-20" type="image/svg+xml" />
+    {% include "partials/site_icons.html" %}
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Auto160" />
     <meta property="og:locale" content="ru_RU" />
@@ -99,7 +99,7 @@
         <a href="/listings">Лента объявлений</a>
         <a href="/inspection">Проверка VIN</a>
         <a href="/guides/vin">Гайд: VIN</a>
-        <a href="/guides/do-160-hp">Гайд: до 160 л.с.</a>
+        <a href="/guides/do-160-hp">Гайд: до 160 л.с. — без утильсбора</a>
         <a href="/listings?city=%D0%9C%D0%B8%D0%BD%D1%81%D0%BA">Авто в Минске</a>
       </div>
     </footer>
