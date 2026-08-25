@@ -710,6 +710,8 @@ def _catalog_flag_query_pairs(request: Request, current_user) -> list[tuple[str,
         pairs.append(("exact_hp", "1"))
     if _query_flag(request.query_params.get("with_listings")):
         pairs.append(("with_listings", "1"))
+    if _query_flag(request.query_params.get("seats_7")):
+        pairs.append(("seats_7", "1"))
     return pairs
 
 
@@ -1160,6 +1162,7 @@ def _catalog_sidebar_payload(request: Request, db: Session, current_user=None) -
             "page_size": page_size,
             "exact_hp": _catalog_admin_exact_hp(request, current_user),
             "with_listings": _query_flag(query.get("with_listings")),
+            "seats_7": _query_flag(query.get("seats_7")),
         },
         "options": {
             "makes": sorted(make_model_map.keys()),
@@ -1218,6 +1221,7 @@ def _parse_catalog_sidebar_filter_kwargs(request: Request, current_user=None) ->
             "transmission_slugs": transmission_slugs,
             "parsed_year_from": _parse_optional_year(q.get("year_from")),
             "parsed_year_to": _parse_optional_year(q.get("year_to")),
+            "seats_7": _query_flag(q.get("seats_7")),
         },
         exact_hp,
         with_listings,
@@ -1248,6 +1252,8 @@ def _catalog_filter_query_pairs(
         pairs.append(("exact_hp", "1"))
     if "with_listings" not in exclude and _query_flag(q.get("with_listings")):
         pairs.append(("with_listings", "1"))
+    if "seats_7" not in exclude and _query_flag(q.get("seats_7")):
+        pairs.append(("seats_7", "1"))
     for slug in parse_transmission_filter_values(q.getlist("transmission")):
         pairs.append(("transmission", slug))
     if "make" not in exclude:
@@ -1751,6 +1757,7 @@ def _apply_catalog_item_filters(
     transmission_slugs: list[str] | None = None,
     parsed_year_from: int | None = None,
     parsed_year_to: int | None = None,
+    seats_7: bool = False,
 ):
     if vehicle_rows:
         query = _apply_catalog_vehicle_rows_filter(query, vehicle_rows)
@@ -1807,6 +1814,8 @@ def _apply_catalog_item_filters(
         query = query.filter(CatalogItem.year_from >= parsed_year_from)
     if parsed_year_to is not None:
         query = query.filter(CatalogItem.year_to <= parsed_year_to)
+    if seats_7:
+        query = query.filter(CatalogItem.has_7_seats.is_(True))
     return query
 
 
@@ -2402,7 +2411,7 @@ def catalog_models(
         current_user,
         catalog_models_seo_meta(make, total=len(models)),
     )
-    if exact_hp or with_listings or not make:
+    if exact_hp or with_listings or _query_flag(request.query_params.get("seats_7")) or not make:
         context["seo_noindex"] = True
     context["make"] = make
     context["selected_makes"] = selected_makes
@@ -2509,7 +2518,7 @@ def catalog_generations(
         current_user,
         catalog_generations_seo_meta(make, canonical_model or None, total=len(generations)),
     )
-    if exact_hp or with_listings or not (make and canonical_model):
+    if exact_hp or with_listings or _query_flag(request.query_params.get("seats_7")) or not (make and canonical_model):
         context["seo_noindex"] = True
     context["make"] = make
     context["model"] = canonical_model
@@ -2554,6 +2563,7 @@ def catalog_modifications(
     current_user = _resolve_user_from_request(request, db)
     exact_hp = _catalog_admin_exact_hp(request, current_user)
     with_listings = _query_flag(request.query_params.get("with_listings"))
+    seats_7 = _query_flag(request.query_params.get("seats_7"))
     vehicle_rows = _parse_vehicle_filter_rows(request.query_params)
     primary_row = vehicle_rows[0] if vehicle_rows else {"make": "", "model": "", "generation": ""}
     make = primary_row.get("make") or None
@@ -2581,6 +2591,7 @@ def catalog_modifications(
         transmission_slugs=transmission_slugs,
         parsed_year_from=parsed_year_from,
         parsed_year_to=parsed_year_to,
+        seats_7=seats_7,
     )
     query = query.filter(CatalogItem.source_site == "av.by")
     # If enriched source exists for selected generation, hide legacy duplicates.
@@ -2633,6 +2644,7 @@ def catalog_modifications(
         or parsed_year_to is not None
         or exact_hp
         or with_listings
+        or seats_7
         or sort not in ("", "year_desc")
         or page > 1
         or page_size != 20
@@ -2691,6 +2703,8 @@ def catalog_modifications(
             pairs.append(("exact_hp", "1"))
         if with_listings:
             pairs.append(("with_listings", "1"))
+        if seats_7:
+            pairs.append(("seats_7", "1"))
         if sort:
             pairs.append(("sort", sort))
         if page_size != 20:

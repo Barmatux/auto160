@@ -94,6 +94,7 @@ class CatalogItem(Base):
     raw_specs: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     rating: Mapped[float | None] = mapped_column(Numeric(6, 2), nullable=True, index=True)
     hidden_from_catalog: Mapped[bool] = mapped_column(default=False, index=True)
+    has_7_seats: Mapped[bool] = mapped_column(default=False, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
     photos: Mapped[list["CatalogItemPhoto"]] = relationship(back_populates="catalog_item", cascade="all, delete-orphan")
 

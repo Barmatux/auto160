@@ -179,6 +179,10 @@
         Ровно 160 л.с.
       </label>
       {% endif %}
+      <label class="inline-checkbox catalog-filter-field{% if catalog_sidebar.filters.seats_7 %} is-active{% endif %}">
+        <input type="checkbox" name="seats_7" value="1" {% if catalog_sidebar.filters.seats_7 %}checked{% endif %} />
+        7 мест
+      </label>
       <label class="inline-checkbox catalog-filter-field{% if catalog_sidebar.filters.with_listings %} is-active{% endif %}">
         <input type="checkbox" name="with_listings" value="1" {% if catalog_sidebar.filters.with_listings %}checked{% endif %} />
         Только с объявлениями в продаже

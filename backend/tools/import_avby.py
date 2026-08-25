@@ -23,6 +23,7 @@ from app.export_country_labels import export_country_for_avby
 from app.fuel_type_labels import preferred_fuel_type, resolved_catalog_fuel_type
 from app.body_type_labels import is_hidden_body_type
 from app.models import CatalogItem
+from app.seat_labels import has_7_seats_from_raw
 
 
 def _to_int(value: str | None) -> int | None:
@@ -233,6 +234,7 @@ def parse_generation_page(url: str, state: dict[str, Any], user_agent: str) -> l
         if is_hidden_body_type(resolved_body):
             continue
 
+        seats_raw = mod_detail.get("numberOfSeats")
         payloads.append(
             {
                 "make": make,
@@ -249,6 +251,7 @@ def parse_generation_page(url: str, state: dict[str, Any], user_agent: str) -> l
                 "engine_volume_l": _engine_volume_from_detail(mod_detail, mod_name),
                 "drivetrain": full_drive or drivetrain,
                 "transmission": full_transmission or transmission,
+                "has_7_seats": has_7_seats_from_raw(seats_raw),
                 "source_url": source_url,
                 "source_external_id": source_external_id,
                 "raw_specs": {
@@ -362,6 +365,7 @@ def enrich_missing_spec_details(user_agent: str) -> None:
             if mod_detail.get("maxPowerHP") or mod_detail.get("enginePower"):
                 item.engine_power_hp = _to_int(mod_detail.get("maxPowerHP") or mod_detail.get("enginePower"))
             item.engine_volume_l = _engine_volume_from_detail(mod_detail, item.model)
+            item.has_7_seats = has_7_seats_from_raw(mod_detail.get("numberOfSeats"))
             enriched += 1
             if enriched % 25 == 0:
                 db.commit()
