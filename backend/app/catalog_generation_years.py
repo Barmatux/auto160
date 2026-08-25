@@ -9,18 +9,18 @@ from sqlalchemy.orm import Session
 from app.catalog_ratings import format_production_years, matching_catalog_items
 from app.models import CatalogItem
 
-_GENERATION_SLUG_YEARS_RE = re.compile(r"^([a-z0-9]+)-(\d{4})-(\d{4})?$", flags=re.IGNORECASE)
-_CATALOG_URL_YEARS_RE = re.compile(r"-(\d{4})-(\d{4})?$")
+# Matches ...-2018, ...-2018-, ...-2015-2021 (optional restyling segment before years).
+_YEARS_TAIL_RE = re.compile(r"-(\d{4})(?:-(\d{4})?)?$")
 
 
 def parse_years_from_generation_slug(slug: str | None) -> tuple[int | None, int | None]:
     if not slug:
         return None, None
-    match = _GENERATION_SLUG_YEARS_RE.match(slug.strip())
+    match = _YEARS_TAIL_RE.search(slug.strip().rstrip("-"))
     if not match:
         return None, None
-    year_from = int(match.group(2))
-    year_to = int(match.group(3)) if match.group(3) else None
+    year_from = int(match.group(1))
+    year_to = int(match.group(2)) if match.group(2) else None
     return year_from, year_to
 
 
@@ -30,8 +30,11 @@ def parse_years_from_avby_catalog_url(url: str | None) -> tuple[int | None, int 
     if "/catalog/modification/" in url:
         return None, None
     path = url.split("#")[0].split("?")[0].rstrip("/")
+    # Drop trailing /modification/<id> if present on generation URLs.
+    if "/modification/" in path:
+        path = path.split("/modification/", 1)[0]
     tail = path.rsplit("/", 1)[-1]
-    match = _CATALOG_URL_YEARS_RE.search(tail.rstrip("-"))
+    match = _YEARS_TAIL_RE.search(tail.rstrip("-"))
     if not match:
         return None, None
     year_from = int(match.group(1))

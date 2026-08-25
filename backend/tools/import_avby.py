@@ -51,15 +51,17 @@ def _to_float(value: str | None) -> float | None:
 
 
 def _extract_generation_from_slug(slug: str | None) -> tuple[str | None, int | None, int | None]:
-    # Example slug: "u11-2022-" or "e84-2009-2015"
+    # Example slug: "u11-2022-", "e84-2009-2015", "i-2018", "i-restajling-2015-2021"
     if not slug:
         return None, None, None
-    match = re.search(r"^([a-z0-9]+)-(\d{4})-(\d{4})?$", slug, flags=re.IGNORECASE)
+    cleaned = slug.strip().rstrip("-")
+    match = re.search(r"-(\d{4})(?:-(\d{4})?)?$", cleaned, flags=re.IGNORECASE)
     if not match:
         return None, None, None
-    generation = match.group(1).upper()
-    year_from = _to_int(match.group(2))
-    year_to = _to_int(match.group(3))
+    year_from = _to_int(match.group(1))
+    year_to = _to_int(match.group(2))
+    prefix = cleaned[: match.start()].strip("-")
+    generation = prefix.split("-", 1)[0].upper() if prefix else None
     return generation, year_from, year_to
 
 
