@@ -26,16 +26,18 @@ def main() -> None:
     try:
         updated = 0
         checked = 0
-        for item in db.query(CatalogItem).yield_per(500):
+        rows = db.query(CatalogItem.id, CatalogItem.has_7_seats, CatalogItem.raw_specs).all()
+        for item_id, current, raw_specs in rows:
             checked += 1
-            desired = has_7_seats_from_raw(raw_specs=item.raw_specs if isinstance(item.raw_specs, dict) else None)
-            if bool(item.has_7_seats) == desired:
+            desired = has_7_seats_from_raw(raw_specs=raw_specs if isinstance(raw_specs, dict) else None)
+            if bool(current) == desired:
                 continue
             updated += 1
             if not args.dry_run:
-                item.has_7_seats = desired
-            if updated % 500 == 0 and not args.dry_run:
-                db.commit()
+                db.query(CatalogItem).filter(CatalogItem.id == item_id).update(
+                    {"has_7_seats": desired},
+                    synchronize_session=False,
+                )
         if not args.dry_run:
             db.commit()
         print(f"backfill-has-7-seats: checked={checked} updated={updated} dry_run={args.dry_run}")
