@@ -89,7 +89,7 @@ def site_base_url(request: Request | None = None) -> str:
         return configured
     if request is not None:
         return str(request.base_url).rstrip("/")
-    return "https://auto160.by"
+    return "https://auto160.ru"
 
 
 def absolute_url(base: str, url: str | None) -> str | None:
@@ -316,7 +316,7 @@ def listing_seo_meta(
     cover_url: str | None = None,
     base: str | None = None,
 ) -> SeoMeta:
-    resolved_base = (base or "").rstrip("/") or "https://auto160.by"
+    resolved_base = (base or "").rstrip("/") or "https://auto160.ru"
     hp_part = f", {listing.engine_power_hp} л.с." if listing.engine_power_hp else ""
     title = _truncate(
         f"{listing.brand} {listing.model} {listing.year}{hp_part} — {listing.city} — Auto160",
@@ -351,7 +351,7 @@ def catalog_item_seo_meta(
     cover_url: str | None = None,
     base: str | None = None,
 ) -> SeoMeta:
-    resolved_base = (base or "").rstrip("/") or "https://auto160.by"
+    resolved_base = (base or "").rstrip("/") or "https://auto160.ru"
     generation = f", {item.generation}" if item.generation else ""
     hp_part = f", {item.engine_power_hp} л.с." if item.engine_power_hp else ""
     title = _truncate(f"{item.make} {item.model}{generation}{hp_part} — Auto160", 70)
