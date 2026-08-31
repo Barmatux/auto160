@@ -25,7 +25,7 @@ if [[ ! -f "$ENV_FILE" ]]; then
 fi
 
 echo "==> Ensure PUBLIC_SITE_URL canonical host"
-CANONICAL_SITE_URL="https://auto160.ru"
+CANONICAL_SITE_URL="https://auto160.by"
 if grep -qE '^[[:space:]]*PUBLIC_SITE_URL=' "$ENV_FILE"; then
   sed -i "s|^[[:space:]]*PUBLIC_SITE_URL=.*|PUBLIC_SITE_URL=${CANONICAL_SITE_URL}|" "$ENV_FILE"
 else

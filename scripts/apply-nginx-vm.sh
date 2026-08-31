@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Apply repo nginx config on the VM (canonical https://auto160.ru).
+# Apply repo nginx config on the VM (canonical https://auto160.by).
 set -euo pipefail
 
 APP_DIR="${APP_DIR:-$HOME/auto160}"
@@ -61,4 +61,4 @@ run nginx -t
 echo "==> reload nginx"
 run systemctl reload nginx
 
-echo "Nginx config applied (canonical https://auto160.ru)."
+echo "Nginx config applied (canonical https://auto160.by)."
