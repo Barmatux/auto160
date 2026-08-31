@@ -27,4 +27,4 @@ Use a commit message file (`git commit -F .commit-msg.txt`) on Windows if HEREDO
 
 ## Deploy note
 
-If VM deploy used SCP before push, still commit and push so git remains the source of truth.
+For **autoplius-scraper** VM: always push to `origin/main` first, then run `deploy/deploy-from-git.sh` on the server. Do not use scp for routine updates. See `.cursor/rules/autoplius-deploy.mdc`.

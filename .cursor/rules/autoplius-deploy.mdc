@@ -1,0 +1,33 @@
+---
+description: Deploy autoplius-scraper only via git; pull main before VM deploy
+globs: autoplius-scraper/**
+alwaysApply: false
+---
+
+# autoplius-scraper: git-first deploy
+
+All changes to `autoplius-scraper` must flow through git. Do **not** deploy by copying single files with `scp`.
+
+## Local workflow
+
+1. Before starting work: `git fetch origin main` and integrate (`git pull --no-rebase origin main` or rebase if the branch requires it).
+2. Implement, commit, push: `git push origin HEAD`.
+3. Never commit secrets (`.env`, keys, `app.db`).
+
+## VM deploy (84.252.139.137, `/opt/autoplius-scraper`)
+
+After push to `origin/main`:
+
+```bash
+ssh romanshleg@84.252.139.137 "sudo bash /opt/autoplius-scraper/deploy/deploy-from-git.sh"
+```
+
+The script runs `git fetch` + `git pull --ff-only origin main`, installs deps, refreshes systemd units, restarts UI.
+
+- Do **not** use `git reset --hard` on VM unless fixing deliberate drift.
+- Do **not** `scp` Python/templates unless git is blocked and user approved a hotfix.
+- Scraper timer picks up code on the next scheduled run; no need to restart mid-scrape.
+
+## If pull fails on VM
+
+Report dirty tree or diverged history to the user; merge/rebase locally and push rather than overwriting VM with scp copies.
