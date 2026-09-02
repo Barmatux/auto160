@@ -55,7 +55,7 @@ jobs:
           ssh -o BatchMode=yes -o StrictHostKeyChecking=yes \
             "${VM_USER}@${VM_HOST}" <<REMOTE
           set -euo pipefail
-          sudo rsync -a --delete "${SYNC_DIR}/" "${APP_DIR}/"
+          sudo rsync -a "${SYNC_DIR}/" "${APP_DIR}/"
           sudo chown -R auto160:auto160 "${APP_DIR}"
           rm -rf "${SYNC_DIR}"
           REMOTE
