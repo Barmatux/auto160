@@ -26,7 +26,8 @@ jobs:
             set -euo pipefail
             APP_DIR="${{ secrets.VM_APP_DIR }}"
             if [ -z "$APP_DIR" ]; then
-              APP_DIR="$HOME/auto160"
+              APP_DIR="/home/auto160/auto160"
             fi
             export APP_DIR
-            bash "$APP_DIR/scripts/deploy-vm.sh"
+            export GIT_TERMINAL_PROMPT=0
+            sudo -u auto160 env APP_DIR="$APP_DIR" GIT_TERMINAL_PROMPT=0 bash "$APP_DIR/scripts/deploy-vm.sh"
