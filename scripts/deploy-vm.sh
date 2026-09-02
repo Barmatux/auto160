@@ -13,8 +13,14 @@ fi
 
 cd "$APP_DIR"
 echo "==> Pull latest code"
-git fetch origin master
-git reset --hard origin/master
+if ! GIT_TERMINAL_PROMPT=0 git fetch origin master; then
+  echo "==> git fetch as $(id -un) failed; retry via sudo"
+  sudo -n git config --global --add safe.directory "$APP_DIR" 2>/dev/null || true
+  sudo -n GIT_TERMINAL_PROMPT=0 git -C "$APP_DIR" fetch origin master
+  sudo -n git -C "$APP_DIR" reset --hard origin/master
+else
+  git reset --hard origin/master
+fi
 
 cd "$BACKEND_DIR"
 mkdir -p "$APP_DIR/logs"
