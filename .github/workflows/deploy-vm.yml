@@ -17,6 +17,9 @@ jobs:
     timeout-minutes: 30
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Load SSH key
         uses: webfactory/ssh-agent@v0.9.0
         with:
@@ -30,6 +33,30 @@ jobs:
           chmod 700 ~/.ssh
           ssh-keyscan -H "$VM_HOST" >> ~/.ssh/known_hosts
 
+      - name: Sync code to VM
+        env:
+          VM_HOST: ${{ secrets.VM_HOST }}
+          VM_USER: ${{ secrets.VM_USER }}
+        run: |
+          set -euo pipefail
+          RSYNC_DST="/tmp/auto160-rsync-$$"
+          APP_DIR="/home/auto160/auto160"
+          rsync -az --delete \
+            --exclude '.git' \
+            --exclude 'backend/.env.vm' \
+            --exclude 'backend/docker-compose.override.yml' \
+            --exclude 'logs/' \
+            --exclude 'autoplius-parser/.browser-profile/' \
+            -e "ssh -o BatchMode=yes -o StrictHostKeyChecking=yes" \
+            ./ "${VM_USER}@${VM_HOST}:${RSYNC_DST}/"
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes \
+            "${VM_USER}@${VM_HOST}" <<REMOTE
+          set -euo pipefail
+          sudo rsync -a --delete "${RSYNC_DST}/" "${APP_DIR}/"
+          sudo chown -R auto160:auto160 "${APP_DIR}"
+          rm -rf "${RSYNC_DST}"
+          REMOTE
+
       - name: Run deploy-vm.sh on VM
         env:
           VM_HOST: ${{ secrets.VM_HOST }}
@@ -39,11 +66,11 @@ jobs:
             "${VM_USER}@${VM_HOST}" <<'REMOTE'
           set -euo pipefail
           APP_DIR="/home/auto160/auto160"
-          if [ ! -d "$APP_DIR/.git" ]; then
-            echo "ERROR: git repo not found at $APP_DIR" >&2
+          if [ ! -d "$APP_DIR/backend" ]; then
+            echo "ERROR: app dir not found at $APP_DIR" >&2
             exit 1
           fi
-          sudo -u auto160 env APP_DIR="$APP_DIR" GIT_TERMINAL_PROMPT=0 \
+          sudo -u auto160 env APP_DIR="$APP_DIR" SKIP_GIT_PULL=1 \
             bash "$APP_DIR/scripts/deploy-vm.sh"
           REMOTE
 

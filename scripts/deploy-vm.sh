@@ -12,14 +12,18 @@ if [[ ! -d "$APP_DIR/.git" ]]; then
 fi
 
 cd "$APP_DIR"
-echo "==> Pull latest code"
-if ! GIT_TERMINAL_PROMPT=0 git fetch origin master; then
-  echo "==> git fetch as $(id -un) failed; retry via sudo"
-  sudo -n git config --global --add safe.directory "$APP_DIR" 2>/dev/null || true
-  sudo -n GIT_TERMINAL_PROMPT=0 git -C "$APP_DIR" fetch origin master
-  sudo -n git -C "$APP_DIR" reset --hard origin/master
+if [[ "${SKIP_GIT_PULL:-}" == "1" ]]; then
+  echo "==> Skip git pull (code synced by CI)"
 else
-  git reset --hard origin/master
+  echo "==> Pull latest code"
+  if ! GIT_TERMINAL_PROMPT=0 git fetch origin master; then
+    echo "==> git fetch as $(id -un) failed; retry via sudo"
+    sudo -n git config --global --add safe.directory "$APP_DIR" 2>/dev/null || true
+    sudo -n GIT_TERMINAL_PROMPT=0 git -C "$APP_DIR" fetch origin master
+    sudo -n git -C "$APP_DIR" reset --hard origin/master
+  else
+    git reset --hard origin/master
+  fi
 fi
 
 cd "$BACKEND_DIR"
