@@ -39,22 +39,25 @@ jobs:
           VM_USER: ${{ secrets.VM_USER }}
         run: |
           set -euo pipefail
-          RSYNC_DST="/tmp/auto160-rsync-$$"
+          SYNC_DIR="/tmp/auto160-sync-$$"
           APP_DIR="/home/auto160/auto160"
-          rsync -az --delete \
-            --exclude '.git' \
-            --exclude 'backend/.env.vm' \
-            --exclude 'backend/docker-compose.override.yml' \
-            --exclude 'logs/' \
-            --exclude 'autoplius-parser/.browser-profile/' \
-            -e "ssh -o BatchMode=yes -o StrictHostKeyChecking=yes" \
-            ./ "${VM_USER}@${VM_HOST}:${RSYNC_DST}/"
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes \
+            "${VM_USER}@${VM_HOST}" "rm -rf '${SYNC_DIR}' && mkdir -p '${SYNC_DIR}'"
+          tar czf - \
+            --exclude='.git' \
+            --exclude='backend/.env.vm' \
+            --exclude='backend/docker-compose.override.yml' \
+            --exclude='logs' \
+            --exclude='autoplius-parser/.browser-profile' \
+            -C . . \
+            | ssh -o BatchMode=yes -o StrictHostKeyChecking=yes \
+              "${VM_USER}@${VM_HOST}" "tar xzf - -C '${SYNC_DIR}'"
           ssh -o BatchMode=yes -o StrictHostKeyChecking=yes \
             "${VM_USER}@${VM_HOST}" <<REMOTE
           set -euo pipefail
-          sudo rsync -a --delete "${RSYNC_DST}/" "${APP_DIR}/"
+          sudo rsync -a --delete "${SYNC_DIR}/" "${APP_DIR}/"
           sudo chown -R auto160:auto160 "${APP_DIR}"
-          rm -rf "${RSYNC_DST}"
+          rm -rf "${SYNC_DIR}"
           REMOTE
 
       - name: Run deploy-vm.sh on VM
