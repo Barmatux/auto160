@@ -13,6 +13,7 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - name: Deploy over SSH
         uses: appleboy/ssh-action@v1.2.0
@@ -21,12 +22,17 @@ jobs:
           username: ${{ secrets.VM_USER }}
           key: ${{ secrets.VM_SSH_KEY }}
           port: ${{ secrets.VM_SSH_PORT || 22 }}
+          command_timeout: 25m
           script_stop: true
           script: |
             set -euo pipefail
-            APP_DIR="${{ secrets.VM_APP_DIR }}"
-            if [ -z "$APP_DIR" ]; then
-              APP_DIR="/home/auto160/auto160"
+            APP_DIR="/home/auto160/auto160"
+            if [ -n "${{ secrets.VM_APP_DIR }}" ] && [ -d "${{ secrets.VM_APP_DIR }}/.git" ]; then
+              APP_DIR="${{ secrets.VM_APP_DIR }}"
+            fi
+            if [ ! -d "$APP_DIR/.git" ]; then
+              echo "ERROR: git repo not found at $APP_DIR" >&2
+              exit 1
             fi
             export APP_DIR
             export GIT_TERMINAL_PROMPT=0
