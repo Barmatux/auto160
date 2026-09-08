@@ -177,6 +177,38 @@ class CatalogItemPhoto(Base):
     catalog_item: Mapped[CatalogItem] = relationship(back_populates="photos")
 
 
+class CatalogGap(Base):
+    """Queue of catalog holes reported by internal consumers (eu2.by match not_found)."""
+
+    __tablename__ = "catalog_gaps"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    source: Mapped[str] = mapped_column(String(40), default="eu2", index=True)
+    external_ref: Mapped[str | None] = mapped_column(String(120), nullable=True, index=True)
+    make: Mapped[str] = mapped_column(String(80), index=True)
+    model: Mapped[str] = mapped_column(String(120), index=True)
+    generation: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    year: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    body_type: Mapped[str | None] = mapped_column(String(60), nullable=True)
+    fuel_type: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    engine_power_hp: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    engine_volume_l: Mapped[float | None] = mapped_column(Numeric(4, 1), nullable=True)
+    drivetrain: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    transmission: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    source_external_id: Mapped[str | None] = mapped_column(String(120), nullable=True, index=True)
+    payload: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    status: Mapped[str] = mapped_column(String(20), default="open", index=True)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    resolved_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    resolved_catalog_item_id: Mapped[int | None] = mapped_column(
+        ForeignKey("catalog_items.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+
+
 class SiteEvent(Base):
     __tablename__ = "site_events"
 

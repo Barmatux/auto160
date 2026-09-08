@@ -61,60 +61,37 @@ def body_types_compatible(catalog_body: str | None, listing_body: str | None) ->
     return left in right or right in left
 
 
+def _listing_match_input(listing: CarListing):
+    from app.catalog_match import CatalogMatchInput
+
+    return CatalogMatchInput(
+        make=listing.brand or "",
+        model=listing.model or "",
+        generation=listing.generation,
+        year=listing.year,
+        body_type=listing.body_type,
+        fuel_type=listing.engine_type,
+        engine_power_hp=listing.engine_power_hp,
+        cover_photo_url=listing.cover_photo_url,
+    )
+
+
 def score_listing_catalog_match(
     listing: CarListing,
     item: CatalogItem,
     *,
     require_cover: bool = False,
 ) -> int:
-    if require_cover and not listing.cover_photo_url:
-        return -1
-    if normalize_match_text(listing.brand) != normalize_match_text(item.make):
-        return -1
-    if canonical_model_name(listing.model) != canonical_model_name(item.model):
-        return -1
-    if not body_types_compatible(item.body_type, listing.body_type):
-        return -1
+    from app.catalog_match import score_catalog_match
 
-    score = 10
-    if item.body_type and listing.body_type:
-        if normalize_match_text(item.body_type) == normalize_match_text(listing.body_type):
-            score += 40
-        else:
-            score += 25
-    if item.generation and listing.generation:
-        if normalize_match_text(item.generation) == normalize_match_text(listing.generation):
-            score += 20
-        elif normalize_match_text(listing.generation) in normalize_match_text(item.generation):
-            score += 10
-    if item.year_from is not None and listing.year is not None:
-        year_to = item.year_to if item.year_to is not None else item.year_from
-        if item.year_from <= listing.year <= year_to:
-            score += 15
-        elif abs(listing.year - item.year_from) <= 1 or abs(listing.year - year_to) <= 1:
-            score += 5
-    if item.engine_power_hp is not None and listing.engine_power_hp is not None:
-        diff = abs(item.engine_power_hp - listing.engine_power_hp)
-        if diff <= 5:
-            score += 25
-        elif diff <= 15:
-            score += 12
-        elif diff <= 30:
-            score += 5
-    return score
+    return score_catalog_match(_listing_match_input(listing), item, require_cover=require_cover)
 
 
 def find_best_catalog_item(listing: CarListing, catalog_items: list[CatalogItem]) -> CatalogItem | None:
-    best_item: CatalogItem | None = None
-    best_score = -1
-    for item in catalog_items:
-        score = score_listing_catalog_match(listing, item)
-        if score < MIN_LINK_SCORE:
-            continue
-        if score > best_score or (score == best_score and best_item and item.id < best_item.id):
-            best_score = score
-            best_item = item
-    return best_item
+    from app.catalog_match import find_best_catalog_match
+
+    best, _score = find_best_catalog_match(_listing_match_input(listing), catalog_items)
+    return best
 
 
 def _catalog_candidates(db: Session, listing: CarListing) -> list[CatalogItem]:

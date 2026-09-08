@@ -20,6 +20,10 @@ class Settings(BaseSettings):
     s3_presign_expires_seconds: int = 3600
     public_site_url: str = ""
     yandex_metrika_id: str = ""
+    # Internal Catalog API for colocated services (eu2.by). Empty = deny all.
+    internal_catalog_api_key: str = ""
+    # Comma-separated IPs/CIDRs; empty = skip app-level IP check (rely on nginx + key).
+    internal_catalog_allowed_ips: str = ""
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

@@ -349,3 +349,116 @@ class AnalyticsSummaryResponse(BaseModel):
     recent_events: list[SiteEventOut]
     event_labels: dict[str, str]
     fetched_at: str
+
+
+class CatalogMatchCandidateIn(BaseModel):
+    """Modification-level candidate from eu2 (same grain as catalog_items)."""
+
+    external_ref: str | None = Field(default=None, max_length=120)
+    make: str = Field(min_length=1, max_length=80)
+    model: str = Field(min_length=1, max_length=120)
+    generation: str | None = Field(default=None, max_length=120)
+    year: int | None = Field(default=None, ge=1950, le=2100)
+    body_type: str | None = Field(default=None, max_length=60)
+    fuel_type: str | None = Field(default=None, max_length=30)
+    engine_power_hp: int | None = Field(default=None, ge=1, le=2000)
+    engine_volume_l: float | None = Field(default=None, ge=0.1, le=20)
+    drivetrain: str | None = Field(default=None, max_length=30)
+    transmission: str | None = Field(default=None, max_length=30)
+    source_external_id: str | None = Field(default=None, max_length=120)
+
+
+class CatalogMatchRequest(BaseModel):
+    candidates: list[CatalogMatchCandidateIn] = Field(min_length=1, max_length=500)
+    enqueue_gaps: bool = True
+    source: str = Field(default="eu2", max_length=40)
+
+
+class CatalogMatchResultOut(BaseModel):
+    external_ref: str | None = None
+    matched_catalog_item_id: int | None = None
+    match_confidence: int = 0
+    reason: str
+    make: str
+    model: str
+    gap_id: int | None = None
+
+
+class CatalogMatchResponse(BaseModel):
+    results: list[CatalogMatchResultOut]
+    matched: int
+    not_found: int
+    gaps_enqueued: int = 0
+
+
+class CatalogItemPublic(BaseModel):
+    id: int
+    make: str
+    model: str
+    generation: str | None = None
+    year_from: int | None = None
+    year_to: int | None = None
+    body_type: str | None = None
+    fuel_type: str | None = None
+    engine_power_hp: int | None = None
+    engine_volume_l: float | None = None
+    drivetrain: str | None = None
+    transmission: str | None = None
+    source_site: str | None = None
+    source_external_id: str | None = None
+    source_url: str | None = None
+    rating: float | None = None
+    has_7_seats: bool = False
+    hidden_from_catalog: bool = False
+
+
+class CatalogGapIn(BaseModel):
+    external_ref: str | None = Field(default=None, max_length=120)
+    make: str = Field(min_length=1, max_length=80)
+    model: str = Field(min_length=1, max_length=120)
+    generation: str | None = Field(default=None, max_length=120)
+    year: int | None = Field(default=None, ge=1950, le=2100)
+    body_type: str | None = Field(default=None, max_length=60)
+    fuel_type: str | None = Field(default=None, max_length=30)
+    engine_power_hp: int | None = Field(default=None, ge=1, le=2000)
+    engine_volume_l: float | None = Field(default=None, ge=0.1, le=20)
+    drivetrain: str | None = Field(default=None, max_length=30)
+    transmission: str | None = Field(default=None, max_length=30)
+    source_external_id: str | None = Field(default=None, max_length=120)
+    notes: str | None = Field(default=None, max_length=500)
+
+
+class CatalogGapBatchRequest(BaseModel):
+    gaps: list[CatalogGapIn] = Field(min_length=1, max_length=500)
+    source: str = Field(default="eu2", max_length=40)
+
+
+class CatalogGapOut(BaseModel):
+    id: int
+    source: str
+    external_ref: str | None = None
+    make: str
+    model: str
+    generation: str | None = None
+    year: int | None = None
+    body_type: str | None = None
+    fuel_type: str | None = None
+    engine_power_hp: int | None = None
+    engine_volume_l: float | None = None
+    drivetrain: str | None = None
+    transmission: str | None = None
+    source_external_id: str | None = None
+    status: str
+    notes: str | None = None
+    created_at: datetime
+    updated_at: datetime
+    resolved_at: datetime | None = None
+    resolved_catalog_item_id: int | None = None
+
+    class Config:
+        from_attributes = True
+
+
+class CatalogGapBatchResponse(BaseModel):
+    created: int
+    gaps: list[CatalogGapOut]
