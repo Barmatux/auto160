@@ -1,7 +1,7 @@
 import enum
 from datetime import date, datetime
 
-from sqlalchemy import JSON, Date, DateTime, Enum, ForeignKey, Integer, Numeric, String, Text
+from sqlalchemy import JSON, Date, DateTime, Enum, ForeignKey, Integer, Numeric, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db import Base
@@ -97,6 +97,28 @@ class CatalogItem(Base):
     has_7_seats: Mapped[bool] = mapped_column(default=False, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
     photos: Mapped[list["CatalogItemPhoto"]] = relationship(back_populates="catalog_item", cascade="all, delete-orphan")
+
+
+class ListingAvgPrice(Base):
+    """Market average BYN price by brand/model/year over a rolling window (not shown in UI yet)."""
+
+    __tablename__ = "listing_avg_prices"
+    __table_args__ = (
+        UniqueConstraint("brand", "model", "year", name="uq_listing_avg_prices_brand_model_year"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    brand: Mapped[str] = mapped_column(String(80), index=True)
+    model: Mapped[str] = mapped_column(String(120), index=True)
+    year: Mapped[int] = mapped_column(Integer, index=True)
+    avg_price_byn: Mapped[float] = mapped_column(Numeric(12, 2))
+    min_price_byn: Mapped[float | None] = mapped_column(Numeric(12, 2), nullable=True)
+    max_price_byn: Mapped[float | None] = mapped_column(Numeric(12, 2), nullable=True)
+    sample_count: Mapped[int] = mapped_column(Integer, default=0)
+    window_days: Mapped[int] = mapped_column(Integer, default=90)
+    window_start: Mapped[datetime] = mapped_column(DateTime)
+    window_end: Mapped[datetime] = mapped_column(DateTime)
+    computed_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
 
 
 class AvbySyncRun(Base):

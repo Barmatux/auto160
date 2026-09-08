@@ -11,6 +11,7 @@ if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
 from app.db import SessionLocal
+from app.listing_avg_prices import recompute_listing_avg_prices
 from app.logging_setup import setup_logging
 from app.models import AvbySyncRun
 
@@ -55,6 +56,25 @@ def run_price_refresh(*, delay: float = 0.12) -> int:
     return result.returncode
 
 
+def run_avg_price_recompute(*, window_days: int = 90) -> int:
+    db = SessionLocal()
+    try:
+        stats = recompute_listing_avg_prices(db, window_days=window_days)
+    except Exception:
+        logger.exception("avg-prices-recompute failed")
+        return 1
+    finally:
+        db.close()
+    logger.info(
+        "avg-prices: window_days=%s scanned=%s groups=%s written=%s",
+        stats.window_days,
+        stats.listings_scanned,
+        stats.groups,
+        stats.rows_written,
+    )
+    return 0
+
+
 def run_once(
     max_hp: int,
     max_pages: int,
@@ -68,6 +88,7 @@ def run_once(
     trigger: str = "scheduler",
     refresh_prices: bool = True,
     price_refresh_delay: float = 0.12,
+    recompute_avg_prices: bool = True,
 ) -> int:
     cmd = [
         sys.executable,
@@ -109,6 +130,10 @@ def run_once(
         refresh_code = run_price_refresh(delay=price_refresh_delay)
         if refresh_code != 0:
             return refresh_code
+    if recompute_avg_prices:
+        avg_code = run_avg_price_recompute()
+        if avg_code != 0:
+            logger.warning("avg-prices recompute failed; continuing")
     return 0
 
 
@@ -142,10 +167,16 @@ def main() -> None:
         default=0.12,
         help="Delay between av.by page fetches during price refresh",
     )
+    parser.add_argument(
+        "--skip-avg-prices",
+        action="store_true",
+        help="Do not recompute brand/model/year average prices after sync",
+    )
     args = parser.parse_args()
 
     update_existing = not args.no_update_existing
     refresh_prices = not args.skip_price_refresh
+    recompute_avg_prices = not args.skip_avg_prices
     if args.run_once:
         raise SystemExit(
             run_once(
@@ -160,6 +191,7 @@ def main() -> None:
                 sort=args.sort,
                 refresh_prices=refresh_prices,
                 price_refresh_delay=args.price_refresh_delay,
+                recompute_avg_prices=recompute_avg_prices,
             )
         )
 
@@ -177,6 +209,7 @@ def main() -> None:
             sort=args.sort,
             refresh_prices=refresh_prices,
             price_refresh_delay=args.price_refresh_delay,
+            recompute_avg_prices=recompute_avg_prices,
         )
         logger.info("sleep: %ss", interval_seconds)
         time.sleep(interval_seconds)
