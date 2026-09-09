@@ -260,16 +260,21 @@ def consume_vin_check(db: Session, account: AvbyServiceAccount) -> bool:
 VIN_ACCOUNT_STATUSES = ("confirmed", "phone_verified")
 
 
+def _vin_account_base_query(db: Session, *, require_active: bool):
+    query = db.query(AvbyServiceAccount).filter(
+        AvbyServiceAccount.purpose == "vin_test",
+        AvbyServiceAccount.status.in_(VIN_ACCOUNT_STATUSES),
+        AvbyServiceAccount.api_key.isnot(None),
+    )
+    if require_active:
+        query = query.filter(AvbyServiceAccount.is_active.is_(True))
+    return query
+
+
 def list_active_auth_accounts(db: Session) -> list[AvbyServiceAccount]:
     """Verified vin_test accounts for automated authenticated av.by API calls."""
     return (
-        db.query(AvbyServiceAccount)
-        .filter(
-            AvbyServiceAccount.purpose == "vin_test",
-            AvbyServiceAccount.is_active.is_(True),
-            AvbyServiceAccount.status.in_(VIN_ACCOUNT_STATUSES),
-            AvbyServiceAccount.api_key.isnot(None),
-        )
+        _vin_account_base_query(db, require_active=True)
         .order_by(AvbyServiceAccount.id.asc())
         .all()
     )
@@ -283,24 +288,32 @@ def select_auth_account(db: Session, *, exclude_ids: set[int] | None = None) -> 
     return None
 
 
-def list_active_vin_accounts(db: Session) -> list[AvbyServiceAccount]:
+def list_vin_accounts_for_checks(db: Session, *, require_active: bool = True) -> list[AvbyServiceAccount]:
+    """VIN pool with remaining daily quota.
+
+    require_active=True — automatic parser/enrichment rotation.
+    require_active=False — admin manual VIN reveal (inactive accounts still allowed).
+    """
     rows = (
-        db.query(AvbyServiceAccount)
-        .filter(
-            AvbyServiceAccount.purpose == "vin_test",
-            AvbyServiceAccount.is_active.is_(True),
-            AvbyServiceAccount.status.in_(VIN_ACCOUNT_STATUSES),
-            AvbyServiceAccount.api_key.isnot(None),
-        )
+        _vin_account_base_query(db, require_active=require_active)
         .order_by(AvbyServiceAccount.vin_checks_today.asc(), AvbyServiceAccount.id.asc())
         .all()
     )
     return [account for account in rows if can_consume_vin_check(account)]
 
 
-def select_vin_account(db: Session, *, exclude_ids: set[int] | None = None) -> AvbyServiceAccount | None:
+def list_active_vin_accounts(db: Session) -> list[AvbyServiceAccount]:
+    return list_vin_accounts_for_checks(db, require_active=True)
+
+
+def select_vin_account(
+    db: Session,
+    *,
+    exclude_ids: set[int] | None = None,
+    require_active: bool = True,
+) -> AvbyServiceAccount | None:
     excluded = exclude_ids or set()
-    for account in list_active_vin_accounts(db):
+    for account in list_vin_accounts_for_checks(db, require_active=require_active):
         if account.id not in excluded:
             return account
     return None
@@ -308,12 +321,7 @@ def select_vin_account(db: Session, *, exclude_ids: set[int] | None = None) -> A
 
 def list_vin_accounts_for_keepalive(db: Session) -> list[AvbyServiceAccount]:
     return (
-        db.query(AvbyServiceAccount)
-        .filter(
-            AvbyServiceAccount.purpose == "vin_test",
-            AvbyServiceAccount.is_active.is_(True),
-            AvbyServiceAccount.status.in_(VIN_ACCOUNT_STATUSES),
-        )
+        _vin_account_base_query(db, require_active=True)
         .order_by(AvbyServiceAccount.id.asc())
         .all()
     )

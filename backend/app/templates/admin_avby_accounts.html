@@ -8,8 +8,9 @@
 
 <h1>Аккаунты av.by</h1>
 <p class="hint">
-  Сервисные аккаунты для парсера и ротации VIN. Верифицированные аккаунты добавляйте формой ниже —
-  они сразу попадут в пул VIN (purpose=vin_test, активные).
+  Сервисные аккаунты для парсера и ротации VIN. Галка «Активен» включает аккаунт
+  <strong>только в автоматическую</strong> ротацию парсера. Отключённые vin_test-аккаунты
+  по-прежнему можно использовать для ручной проверки VIN в карточке объявления.
 </p>
 
 <section class="admin-stats-grid">
@@ -73,7 +74,7 @@
     </label>
     <label class="inline-checkbox">
       <input type="checkbox" name="is_active" checked />
-      Включить в ротацию VIN
+      Включить в автоматическую ротацию парсера
     </label>
     <label class="inline-checkbox">
       <input type="checkbox" name="login_on_create" checked />
@@ -158,9 +159,9 @@
           </td>
           <td>{{ account.api_key_masked or "—" }}</td>
           <td>
-            <label class="hint account-active-toggle">
+            <label class="hint account-active-toggle" title="Только автопарсер. Ручная проверка VIN админом работает и без галки.">
               <input type="checkbox" class="active-checkbox" {% if account.is_active %}checked{% endif %} />
-              да
+              авто
             </label>
           </td>
           <td>

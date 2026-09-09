@@ -71,3 +71,66 @@ def test_reset_vin_checks_clears_stale_paywall_error():
     assert account.vin_checks_today == 0
     assert account.vin_checks_day == date(2026, 1, 2)
     assert account.error_message is None
+
+
+def test_manual_vin_fetch_allows_inactive_pool(monkeypatch):
+    from app import avby_vin
+    from app.avby_vin import AvbyVinError, get_or_fetch_listing_vin
+    from app.models import CarListing
+
+    inactive = AvbyServiceAccount(
+        id=42,
+        email="manual@test.local",
+        status="phone_verified",
+        purpose="vin_test",
+        is_active=False,
+        api_key="key",
+        daily_vin_limit=30,
+        vin_checks_today=0,
+        vin_checks_day=date.today(),
+    )
+    listing = CarListing(
+        id=1,
+        seller_id=1,
+        title="t",
+        brand="BMW",
+        model="3",
+        year=2015,
+        mileage=1,
+        price=1,
+        city="Minsk",
+        description="d",
+        avby_id=999,
+        vin=None,
+    )
+
+    monkeypatch.setattr(
+        avby_vin,
+        "list_vin_accounts_for_checks",
+        lambda db, require_active=True: [] if require_active else [inactive],
+    )
+    monkeypatch.setattr(
+        avby_vin,
+        "select_vin_account",
+        lambda db, exclude_ids=None, require_active=True: None if require_active else inactive,
+    )
+    monkeypatch.setattr(
+        avby_vin,
+        "get_avby_session",
+        lambda db, account, allow_captcha=None: MagicMock(api_key="k", token="t"),
+    )
+    monkeypatch.setattr(avby_vin, "_fetch_vin_from_avby", lambda *args, **kwargs: "WBATESTVIN123456789")
+    monkeypatch.setattr(avby_vin, "consume_vin_check", lambda db, account: True)
+    monkeypatch.setattr(avby_vin, "vin_checks_remaining", lambda account: 29)
+
+    db = MagicMock()
+    try:
+        get_or_fetch_listing_vin(db, listing, allow_inactive=False)
+        assert False, "expected no active pool"
+    except AvbyVinError as exc:
+        assert exc.status_code == 503
+
+    result = get_or_fetch_listing_vin(db, listing, allow_inactive=True)
+    assert result.vin == "WBATESTVIN123456789"
+    assert result.source == "avby"
+    assert listing.vin == "WBATESTVIN123456789"

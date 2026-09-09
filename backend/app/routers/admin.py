@@ -416,7 +416,7 @@ def fetch_listing_vin(
     if not listing:
         raise HTTPException(status_code=404, detail="Listing not found")
     try:
-        result = get_or_fetch_listing_vin(db, listing)
+        result = get_or_fetch_listing_vin(db, listing, allow_inactive=True)
     except AvbyVinError as exc:
         raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
     if not result.vin:

@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from app.avby_accounts import (
     consume_vin_check,
     is_avby_vin_daily_limit_response,
-    list_active_vin_accounts,
+    list_vin_accounts_for_checks,
     mark_vin_daily_limit_exhausted,
     select_vin_account,
     vin_checks_remaining,
@@ -77,12 +77,22 @@ def _fetch_vin_from_avby(api_key: str, token: str, avby_id: int) -> str:
     return vin
 
 
-def get_or_fetch_listing_vin(db: Session, listing: CarListing) -> ListingVinResult:
-    pool = list_active_vin_accounts(db)
+def get_or_fetch_listing_vin(
+    db: Session,
+    listing: CarListing,
+    *,
+    allow_inactive: bool = False,
+) -> ListingVinResult:
+    """Fetch VIN via av.by account pool.
+
+    allow_inactive=False — only is_active accounts (parser/auto enrichment).
+    allow_inactive=True — also inactive vin_test accounts (admin manual check).
+    """
+    require_active = not allow_inactive
+    pool = list_vin_accounts_for_checks(db, require_active=require_active)
     remaining_pool = sum(vin_checks_remaining(account) or 0 for account in pool)
 
     if listing.vin:
-        first = pool[0] if pool else None
         return ListingVinResult(
             vin=listing.vin,
             source="database",
@@ -95,20 +105,29 @@ def get_or_fetch_listing_vin(db: Session, listing: CarListing) -> ListingVinResu
         raise AvbyVinError("Listing has no av.by id", status_code=400)
 
     if not pool:
-        raise AvbyVinError("No active VIN accounts in rotation (add verified account in admin)", status_code=503)
+        if allow_inactive:
+            raise AvbyVinError(
+                "Нет доступных VIN-аккаунтов (нужен vin_test с api_key и остатком дневного лимита)",
+                status_code=503,
+            )
+        raise AvbyVinError(
+            "No active VIN accounts in rotation (add verified account in admin)",
+            status_code=503,
+        )
 
     tried: set[int] = set()
     last_error: str | None = None
 
     while True:
-        account = select_vin_account(db, exclude_ids=tried)
+        account = select_vin_account(db, exclude_ids=tried, require_active=require_active)
         if account is None:
             detail = last_error or "Daily VIN limit reached on all accounts"
             raise AvbyVinError(detail, status_code=429 if last_error is None else 502)
 
         tried.add(account.id)
         try:
-            session = get_avby_session(db, account)
+            # Manual admin path may need captcha if tokens expired on idle accounts.
+            session = get_avby_session(db, account, allow_captcha=allow_inactive or None)
         except AvbySessionError as exc:
             last_error = str(exc)
             account.error_message = last_error[:500]
@@ -144,6 +163,9 @@ def get_or_fetch_listing_vin(db: Session, listing: CarListing) -> ListingVinResu
             vin=vin,
             source="avby",
             cached=False,
-            checks_remaining=sum(vin_checks_remaining(row) or 0 for row in list_active_vin_accounts(db)),
+            checks_remaining=sum(
+                vin_checks_remaining(row) or 0
+                for row in list_vin_accounts_for_checks(db, require_active=require_active)
+            ),
             fetched_at=listing.vin_fetched_at,
         )
