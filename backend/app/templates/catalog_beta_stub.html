@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}beta Каталог — шаг {{ step }} — Auto160{% endblock %}
+{% block content %}
+<div class="catalog-page catalog-beta-page">
+  <section class="catalog-main catalog-beta-main">
+    <div class="catalog-main-head">
+      <h1>beta Каталог</h1>
+      <p class="hint catalog-step-label">Шаг {{ step }}: {{ step_title }}</p>
+      <p class="hint"><a href="{{ back_url }}">← Назад</a></p>
+    </div>
+
+    {% if selected_makes %}
+      <div class="catalog-beta-selected-makes">
+        <span class="catalog-beta-selected-makes-label">Марки:</span>
+        {% for make_name in selected_makes %}
+          <span class="catalog-beta-make-chip">{{ make_name }}</span>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    {% if selected_model %}
+      <p class="hint">Модель: <strong>{{ selected_model }}</strong></p>
+    {% elif skip_model %}
+      <p class="hint">Модель: <strong>не выбрана</strong></p>
+    {% endif %}
+
+    <div class="catalog-beta-stub">
+      <p>Этот шаг пока в разработке.</p>
+      <p class="hint">Содержимое шага {{ step }} будет добавлено позже.</p>
+    </div>
+  </section>
+</div>
+{% endblock %}

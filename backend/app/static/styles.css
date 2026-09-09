@@ -646,6 +646,143 @@ body {
   margin-top: 12px;
 }
 
+.header-beta-link {
+  color: #7c3aed;
+  font-weight: 600;
+}
+
+.catalog-beta-page {
+  width: 100%;
+}
+
+.catalog-beta-main {
+  width: 100%;
+  max-width: none;
+}
+
+.catalog-beta-makes-grid {
+  grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+  gap: 14px;
+}
+
+.catalog-beta-page .catalog-beta-makes-grid .home-make-card {
+  padding: 16px 10px 12px;
+  min-height: 0;
+}
+
+.catalog-beta-page .catalog-beta-makes-grid .make-logo,
+.catalog-beta-page .catalog-beta-makes-grid .home-make-fallback {
+  width: 100%;
+  max-width: 132px;
+  height: auto;
+  aspect-ratio: 1;
+  object-fit: contain;
+}
+
+.catalog-beta-page .catalog-beta-makes-grid .home-make-fallback {
+  font-size: 2.4rem;
+}
+
+.catalog-beta-page .catalog-beta-makes-grid .home-make-card strong {
+  font-size: 0.92rem;
+}
+
+.catalog-beta-make-visual {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.catalog-beta-actions {
+  margin-top: 18px;
+}
+
+.catalog-beta-actions .catalog-go-models-btn {
+  font-weight: 600;
+}
+
+.catalog-beta-selected-makes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0 8px;
+}
+
+.catalog-beta-selected-makes-label {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.catalog-beta-make-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #eef4ff;
+  border: 1px solid #c9dcff;
+  color: #1e3a8a;
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.catalog-beta-make-chip-all {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #475569;
+}
+
+.catalog-beta-text-tile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 132px;
+  aspect-ratio: 1;
+  padding: 10px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: #fff;
+  text-align: center;
+  font-size: 0.92rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: inherit;
+  box-shadow: var(--shadow);
+}
+
+.catalog-beta-model-card {
+  text-decoration: none;
+  color: inherit;
+}
+
+.catalog-beta-model-card:hover .catalog-beta-text-tile {
+  border-color: #93c5fd;
+  background: #f0f6ff;
+}
+
+.catalog-beta-skip-model .catalog-beta-text-tile {
+  background: #f8fafc;
+  color: #475569;
+}
+
+.catalog-beta-model-make {
+  font-size: 0.78rem;
+  color: #64748b;
+  line-height: 1.2;
+}
+
+.catalog-beta-stub {
+  margin-top: 24px;
+  padding: 28px 24px;
+  border-radius: 16px;
+  border: 1px dashed #cbd5e1;
+  background: #f8fafc;
+  text-align: center;
+}
+
 .catalog-go-models-btn {
   cursor: pointer;
   border: 1px solid var(--border);
@@ -3865,6 +4002,21 @@ body.listing-lightbox-open {
   .catalog-makes-grid {
     grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 6px;
+  }
+
+  .catalog-beta-makes-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .catalog-beta-page .catalog-beta-makes-grid .make-logo,
+  .catalog-beta-page .catalog-beta-makes-grid .home-make-fallback,
+  .catalog-beta-text-tile {
+    max-width: 100%;
+  }
+
+  .catalog-beta-page .catalog-beta-makes-grid .home-make-fallback {
+    font-size: 1.6rem;
   }
 
   .catalog-page .catalog-makes-grid .make-logo,

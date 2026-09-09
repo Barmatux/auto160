@@ -311,10 +311,12 @@ MAKE_LOGO_SLUGS = frozenset(
         "bmw",
         "citroen",
         "dacia",
+        "ds",
         "fiat",
         "ford",
         "honda",
         "hyundai",
+        "jeep",
         "kia",
         "mercedes-benz",
         "mini",
@@ -1566,6 +1568,79 @@ def _make_logo_url(make: str | None) -> str | None:
     if key not in MAKE_LOGO_SLUGS:
         return None
     return f"/static/logos/{key}.svg"
+
+
+def _admin_page_redirect(current_user) -> RedirectResponse | None:
+    if current_user is None:
+        return RedirectResponse(url="/login", status_code=302)
+    if current_user.role != UserRole.admin:
+        return RedirectResponse(url="/", status_code=302)
+    return None
+
+
+def _catalog_beta_base_query(db: Session):
+    query = db.query(CatalogItem).filter(CatalogItem.source_site == "av.by")
+    query = apply_visible_catalog_filter(query)
+    return _apply_hp_filter(query, exact_hp=False)
+
+
+def _load_catalog_makes(db: Session) -> list[dict]:
+    rows = (
+        _catalog_beta_base_query(db)
+        .filter(CatalogItem.make.isnot(None))
+        .order_by(CatalogItem.make.asc(), CatalogItem.created_at.desc())
+        .all()
+    )
+    grouped: dict[str, dict] = {}
+    for item in rows:
+        make = (item.make or "").strip()
+        if not make:
+            continue
+        if make not in grouped:
+            grouped[make] = {"make": make, "count": 0}
+        grouped[make]["count"] += 1
+    makes = sorted(grouped.values(), key=lambda row: row["make"])
+    for make_row in makes:
+        make_row["logo_url"] = _make_logo_url(make_row["make"])
+    return makes
+
+
+def _load_catalog_beta_models(db: Session, selected_makes: list[str]) -> list[dict]:
+    query = _catalog_beta_base_query(db).filter(CatalogItem.model.isnot(None))
+    if selected_makes:
+        query = query.filter(CatalogItem.make.in_(selected_makes))
+    rows = query.order_by(CatalogItem.make.asc(), CatalogItem.model.asc(), CatalogItem.created_at.desc()).all()
+    grouped: dict[str, dict] = {}
+    for item in rows:
+        make_name = (item.make or "").strip()
+        if not make_name:
+            continue
+        canonical_model = _canonical_model_name(item.model)
+        if not canonical_model:
+            continue
+        group_key = f"{make_name}|||{canonical_model}"
+        if group_key not in grouped:
+            grouped[group_key] = {
+                "make": make_name,
+                "model": canonical_model,
+                "count": 0,
+            }
+        grouped[group_key]["count"] += 1
+    return sorted(grouped.values(), key=lambda row: (row["make"], row["model"]))
+
+
+def _catalog_beta_make_query_pairs(selected_makes: list[str]) -> list[tuple[str, str]]:
+    return [("make", make_name) for make_name in selected_makes]
+
+
+def _catalog_beta_step_url(step: int, selected_makes: list[str], *, model: str | None = None, skip_model: bool = False) -> str:
+    pairs = _catalog_beta_make_query_pairs(selected_makes)
+    if model:
+        pairs.append(("model", model))
+    if skip_model:
+        pairs.append(("skip_model", "1"))
+    query = urlencode(pairs)
+    return f"/catalog/beta/step/{step}" + (f"?{query}" if query else "")
 
 
 def _distinct_canonical_models(db: Session) -> list[str]:
@@ -3199,6 +3274,106 @@ def guide_do_160_page(request: Request, db: Session = Depends(get_db)):
     current_user = _resolve_user_from_request(request, db)
     context = _template_context(request, current_user, guide_do_160_seo_meta(site_base_url(request)))
     return templates.TemplateResponse(request, "guide_do_160.html", context)
+
+
+@router.get("/catalog/beta")
+def catalog_beta_makes(request: Request, db: Session = Depends(get_db)):
+    current_user = _resolve_user_from_request(request, db)
+    redirect = _admin_page_redirect(current_user)
+    if redirect:
+        return redirect
+
+    makes = _load_catalog_makes(db)
+    context = _template_context(
+        request,
+        current_user,
+        SeoMeta(
+            title="beta Каталог — шаг 1 — Auto160",
+            description="beta-версия каталога Auto160 для администраторов.",
+            path="/catalog/beta",
+            noindex=True,
+        ),
+    )
+    context["makes"] = makes
+    context["total"] = len(makes)
+    return templates.TemplateResponse(request, "catalog_beta_makes.html", context)
+
+
+@router.get("/catalog/beta/models")
+def catalog_beta_models(request: Request, db: Session = Depends(get_db)):
+    current_user = _resolve_user_from_request(request, db)
+    redirect = _admin_page_redirect(current_user)
+    if redirect:
+        return redirect
+
+    selected_makes = [make.strip() for make in request.query_params.getlist("make") if make.strip()]
+    models = _load_catalog_beta_models(db, selected_makes)
+    for model_row in models:
+        model_row["step_url"] = _catalog_beta_step_url(3, selected_makes, model=model_row["model"])
+
+    context = _template_context(
+        request,
+        current_user,
+        SeoMeta(
+            title="beta Каталог — шаг 2 — Auto160",
+            description="beta-версия каталога Auto160 для администраторов.",
+            path="/catalog/beta/models",
+            noindex=True,
+        ),
+    )
+    context["selected_makes"] = selected_makes
+    context["models"] = models
+    context["total"] = len(models)
+    context["show_make_labels"] = len(selected_makes) != 1
+    context["skip_model_url"] = _catalog_beta_step_url(3, selected_makes, skip_model=True)
+    return templates.TemplateResponse(request, "catalog_beta_models.html", context)
+
+
+@router.get("/catalog/beta/step/{step}")
+def catalog_beta_step(
+    request: Request,
+    step: int,
+    db: Session = Depends(get_db),
+):
+    current_user = _resolve_user_from_request(request, db)
+    redirect = _admin_page_redirect(current_user)
+    if redirect:
+        return redirect
+
+    if step < 3:
+        return RedirectResponse(url="/catalog/beta", status_code=302)
+
+    selected_makes = [make.strip() for make in request.query_params.getlist("make") if make.strip()]
+    selected_model = (request.query_params.get("model") or "").strip() or None
+    skip_model = _query_flag(request.query_params.get("skip_model"))
+
+    step_titles = {
+        3: "поколение",
+        4: "комплектации",
+    }
+    step_title = step_titles.get(step, f"шаг {step}")
+
+    back_url = "/catalog/beta/models"
+    if selected_makes:
+        back_url += "?" + urlencode(_catalog_beta_make_query_pairs(selected_makes))
+
+    context = _template_context(
+        request,
+        current_user,
+        SeoMeta(
+            title=f"beta Каталог — шаг {step} — Auto160",
+            description="beta-версия каталога Auto160 для администраторов.",
+            path=f"/catalog/beta/step/{step}",
+            noindex=True,
+        ),
+    )
+    context["step"] = step
+    context["step_title"] = step_title
+    context["selected_makes"] = selected_makes
+    context["selected_model"] = selected_model
+    context["skip_model"] = skip_model and not selected_model
+    context["back_url"] = back_url
+    return templates.TemplateResponse(request, "catalog_beta_stub.html", context)
 
 
 @router.get("/catalog/{listing_id}")

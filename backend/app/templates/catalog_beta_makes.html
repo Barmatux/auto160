@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}beta Каталог — шаг 1 — Auto160{% endblock %}
+{% block content %}
+<div class="catalog-page catalog-beta-page">
+  <section class="catalog-main catalog-beta-main">
+    <div class="catalog-main-head">
+      <h1>beta Каталог</h1>
+      <p class="hint catalog-step-label">Шаг 1: выбери марку.</p>
+    </div>
+    <p class="hint">Найдено марок: {{ total }}</p>
+
+    {% if makes %}
+      <div class="catalog catalog-makes-grid catalog-beta-makes-grid">
+        {% for item in makes %}
+          <article class="home-make-card catalog-make-card catalog-make-selectable catalog-beta-make-card">
+            <label class="catalog-make-check" title="Выбрать {{ item.make }}">
+              <input type="checkbox" class="catalog-make-checkbox" value="{{ item.make }}" />
+            </label>
+            <div class="catalog-make-link catalog-beta-make-visual">
+              {% if item.logo_url %}
+                <img class="make-logo" src="{{ item.logo_url }}" alt="{{ item.make }}" loading="lazy" />
+              {% else %}
+                <span class="home-make-fallback">{{ item.make[:1] }}</span>
+              {% endif %}
+            </div>
+            <strong>{{ item.make }}</strong>
+          </article>
+        {% endfor %}
+      </div>
+      <div class="actions-row catalog-makes-actions catalog-beta-actions">
+        <button type="button" id="catalog-beta-next-btn" class="page-link catalog-go-models-btn">Перейти к следующему шагу</button>
+      </div>
+    {% else %}
+      <p>В каталоге нет марок.</p>
+    {% endif %}
+  </section>
+</div>
+<script src="/static/catalog_beta_makes.js?v=20260909-01" defer></script>
+{% endblock %}
