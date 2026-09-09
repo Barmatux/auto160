@@ -18,6 +18,7 @@ if str(ROOT_DIR) not in sys.path:
 # Keep SQLite relative paths stable regardless of launch directory.
 os.chdir(ROOT_DIR)
 
+from app.catalog_exclusions import is_excluded_make_model
 from app.db import SessionLocal
 from app.export_country_labels import export_country_for_avby
 from app.fuel_type_labels import preferred_fuel_type, resolved_catalog_fuel_type
@@ -288,6 +289,27 @@ def parse_model_page_generation_urls(state: dict[str, Any]) -> list[str]:
 def upsert_catalog_item(payload: dict[str, Any]) -> None:
     db = SessionLocal()
     try:
+        if is_excluded_make_model(payload.get("make"), payload.get("model")):
+            source_external_id = payload.get("source_external_id")
+            source_url = payload.get("source_url")
+            existing = None
+            if source_external_id:
+                existing = (
+                    db.query(CatalogItem)
+                    .filter(CatalogItem.source_site == "av.by", CatalogItem.source_external_id == source_external_id)
+                    .first()
+                )
+            elif source_url:
+                existing = (
+                    db.query(CatalogItem)
+                    .filter(CatalogItem.source_site == "av.by", CatalogItem.source_url == source_url)
+                    .first()
+                )
+            if existing:
+                db.delete(existing)
+                db.commit()
+            return
+
         source_external_id = payload.get("source_external_id")
         if source_external_id:
             existing = (
