@@ -37,10 +37,12 @@ jobs:
         env:
           VM_HOST: ${{ secrets.VM_HOST }}
           VM_USER: ${{ secrets.VM_USER }}
+          VM_APP_DIR: ${{ secrets.VM_APP_DIR }}
         run: |
           set -euo pipefail
           SYNC_DIR="/tmp/auto160-sync-$$"
-          APP_DIR="/home/auto160/auto160"
+          APP_DIR="${VM_APP_DIR:-/home/${VM_USER}/auto160}"
+          echo "Syncing to ${VM_USER}@${VM_HOST}:${APP_DIR}"
           tar czf - \
             --exclude='.git' \
             --exclude='backend/.env.vm' \
@@ -50,31 +52,23 @@ jobs:
             -C . . \
             | ssh -o BatchMode=yes -o StrictHostKeyChecking=yes \
               "${VM_USER}@${VM_HOST}" \
-              "rm -rf '${SYNC_DIR}' && mkdir -p '${SYNC_DIR}' && tar xzf - -C '${SYNC_DIR}' && sudo rsync -a '${SYNC_DIR}/' '${APP_DIR}/' && sudo chown -R auto160:auto160 '${APP_DIR}' && rm -rf '${SYNC_DIR}'"
+              "rm -rf '${SYNC_DIR}' && mkdir -p '${SYNC_DIR}' && tar xzf - -C '${SYNC_DIR}' && sudo rsync -a --exclude='.git' --exclude='backend/.env.vm' --exclude='logs' --exclude='backend/docker-compose.override.yml' '${SYNC_DIR}/' '${APP_DIR}/' && sudo chown -R '${VM_USER}:${VM_USER}' '${APP_DIR}' && rm -rf '${SYNC_DIR}'"
 
       - name: Run deploy-vm.sh on VM
         env:
           VM_HOST: ${{ secrets.VM_HOST }}
           VM_USER: ${{ secrets.VM_USER }}
+          VM_APP_DIR: ${{ secrets.VM_APP_DIR }}
         run: |
+          APP_DIR="${VM_APP_DIR:-/home/${VM_USER}/auto160}"
           ssh -o BatchMode=yes -o StrictHostKeyChecking=yes \
-            "${VM_USER}@${VM_HOST}" <<'REMOTE'
-          set -euo pipefail
-          APP_DIR="/home/auto160/auto160"
-          if [ ! -d "$APP_DIR/backend" ]; then
-            echo "ERROR: app dir not found at $APP_DIR" >&2
-            exit 1
-          fi
-          sudo -u auto160 env APP_DIR="$APP_DIR" SKIP_GIT_PULL=1 \
-            bash "$APP_DIR/scripts/deploy-vm.sh"
-          REMOTE
+            "${VM_USER}@${VM_HOST}" \
+            "set -euo pipefail; APP_DIR='${APP_DIR}'; if [ ! -d \"\$APP_DIR/backend\" ]; then echo \"ERROR: app dir not found at \$APP_DIR\" >&2; exit 1; fi; cd \"\$APP_DIR\"; env APP_DIR=\"\$APP_DIR\" SKIP_GIT_PULL=1 bash \"\$APP_DIR/scripts/deploy-vm.sh\""
 
       - name: Smoke test API
         env:
           VM_HOST: ${{ secrets.VM_HOST }}
           VM_USER: ${{ secrets.VM_USER }}
         run: |
-          ssh -o BatchMode=yes "${VM_USER}@${VM_HOST}" <<'REMOTE'
-          set -euo pipefail
-          curl -fsS http://127.0.0.1:8000/health
-          REMOTE
+          ssh -o BatchMode=yes "${VM_USER}@${VM_HOST}" \
+            "set -euo pipefail; curl -fsS http://127.0.0.1:8000/health"
