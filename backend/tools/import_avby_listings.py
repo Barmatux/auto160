@@ -14,7 +14,6 @@ if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 os.chdir(ROOT_DIR)
 
-from app.catalog_exclusions import is_excluded_make_model
 from app.listing_missing_byn import apply_import_byn_price_state
 from app.avby_price import extract_price_byn_from_advert
 from app.listing_archive_scope import (
@@ -687,14 +686,6 @@ def run_import(
                     advert_brand_n = _normalize_name(advert_brand)
                     advert_model_n = _normalize_name(advert_model)
                     target_key = (advert_brand_n, advert_model_n)
-
-                    if is_excluded_make_model(advert_brand, advert_model):
-                        skipped += 1
-                        skipped_by_catalog += 1
-                        if existing and not dry_run:
-                            existing.status = ListingStatus.archived
-                            existing.catalog_item_id = None
-                        continue
 
                     if not _is_in_catalog(advert_brand_n, advert_model_n, catalog_brand_models):
                         skipped += 1

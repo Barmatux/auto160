@@ -19,9 +19,7 @@ class GenerationVisibilityResult:
 
 
 def apply_visible_catalog_filter(query):
-    from app.catalog_exclusions import apply_catalog_exclusion_filter
-
-    return apply_catalog_exclusion_filter(query.filter(CatalogItem.hidden_from_catalog.is_(False)))
+    return query.filter(CatalogItem.hidden_from_catalog.is_(False))
 
 
 def listing_matches_generation(listing_generation: str | None, target_generation: str | None) -> bool:

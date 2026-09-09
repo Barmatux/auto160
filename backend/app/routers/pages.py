@@ -66,7 +66,6 @@ from app.export_country_labels import (
     EXPORT_COUNTRY_FILTER_OPTIONS,
     is_belarus_export_country,
 )
-from app.catalog_exclusions import apply_listing_exclusion_filter, is_excluded_make_model
 from app.catalog_visibility import apply_visible_catalog_filter
 from app.customs_vin import (
     CustomsVinError,
@@ -626,12 +625,12 @@ def _listing_ids_for_catalog_item(db: Session, item: CatalogItem, *, published_o
 
 def _make_model_map(db: Session) -> dict[str, list[str]]:
     rows = (
-        apply_visible_catalog_filter(
-            db.query(CatalogItem.make, CatalogItem.model).filter(
-                CatalogItem.make.isnot(None),
-                CatalogItem.model.isnot(None),
-                CatalogItem.source_site == "av.by",
-            )
+        db.query(CatalogItem.make, CatalogItem.model)
+        .filter(
+            CatalogItem.make.isnot(None),
+            CatalogItem.model.isnot(None),
+            CatalogItem.source_site == "av.by",
+            CatalogItem.hidden_from_catalog.is_(False),
         )
         .distinct()
         .order_by(CatalogItem.make.asc(), CatalogItem.model.asc())
@@ -649,13 +648,13 @@ def _make_model_map(db: Session) -> dict[str, list[str]]:
 
 def _make_model_generation_map(db: Session) -> dict[str, dict[str, list[str]]]:
     rows = (
-        apply_visible_catalog_filter(
-            db.query(CatalogItem.make, CatalogItem.model, CatalogItem.generation).filter(
-                CatalogItem.make.isnot(None),
-                CatalogItem.model.isnot(None),
-                CatalogItem.generation.isnot(None),
-                CatalogItem.source_site == "av.by",
-            )
+        db.query(CatalogItem.make, CatalogItem.model, CatalogItem.generation)
+        .filter(
+            CatalogItem.make.isnot(None),
+            CatalogItem.model.isnot(None),
+            CatalogItem.generation.isnot(None),
+            CatalogItem.source_site == "av.by",
+            CatalogItem.hidden_from_catalog.is_(False),
         )
         .distinct()
         .order_by(CatalogItem.make.asc(), CatalogItem.model.asc(), CatalogItem.generation.asc())
@@ -773,11 +772,9 @@ def _apply_passable_catalog_filter(query):
 
 
 def _listing_brand_model_map(db: Session, *, published_only: bool = True) -> dict[str, list[str]]:
-    query = apply_listing_exclusion_filter(
-        db.query(CarListing.brand, CarListing.model).filter(
-            CarListing.brand.isnot(None),
-            CarListing.model.isnot(None),
-        )
+    query = db.query(CarListing.brand, CarListing.model).filter(
+        CarListing.brand.isnot(None),
+        CarListing.model.isnot(None),
     )
     if published_only:
         query = query.filter(CarListing.status == ListingStatus.published)
@@ -1909,11 +1906,9 @@ def _listing_modification_names(db: Session, listings: list[CarListing]) -> dict
 
 def _home_latest_listings(db: Session, *, limit: int = 20) -> list[CarListing]:
     return (
-        apply_listing_exclusion_filter(
-            exclude_hidden_body_type(
-                db.query(CarListing).filter(CarListing.status == ListingStatus.published),
-                CarListing.body_type,
-            )
+        exclude_hidden_body_type(
+            db.query(CarListing).filter(CarListing.status == ListingStatus.published),
+            CarListing.body_type,
         )
         .order_by(desc(CarListing.created_at))
         .limit(limit)
@@ -2001,9 +1996,7 @@ def listings_page(
         request.query_params.getlist("city"),
     )
     price_range = parse_listing_price_range(request.query_params.get("price_range"))
-    query = apply_listing_exclusion_filter(
-        exclude_hidden_body_type(db.query(CarListing), CarListing.body_type)
-    )
+    query = exclude_hidden_body_type(db.query(CarListing), CarListing.body_type)
     is_admin = _is_admin_user(current_user)
     if not is_admin:
         query = query.filter(CarListing.status == ListingStatus.published)
@@ -2158,9 +2151,6 @@ def listings_page(
 def listing_item(request: Request, listing_id: int, db: Session = Depends(get_db)):
     current_user = _resolve_user_from_request(request, db)
     listing = db.query(CarListing).filter(CarListing.id == listing_id).first()
-    if listing and is_excluded_make_model(listing.brand, listing.model):
-        if current_user is None or current_user.role != UserRole.admin:
-            listing = None
     if listing and listing.status != ListingStatus.published:
         if current_user is None or current_user.role != UserRole.admin:
             listing = None
