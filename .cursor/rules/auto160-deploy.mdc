@@ -1,0 +1,42 @@
+---
+description: Deploy Auto160 only via git master + GitHub Actions pipeline
+globs: backend/**,.github/workflows/**,scripts/deploy-vm.sh,scripts/apply-nginx-vm.sh,scripts/smoke-vm.sh,scripts/nginx-auto160.conf
+alwaysApply: false
+---
+
+# Auto160: git-first deploy
+
+All production changes must flow through **git `master`** and the **GitHub Actions** deploy pipeline. Do **not** deploy by copying single files with `scp` or patching files directly on the VM.
+
+## Local workflow
+
+1. Before starting work: `git fetch origin master` and integrate (`git pull --no-rebase origin master` or rebase if the branch requires it).
+2. Implement, commit, push: `git push origin master` (or `git push origin HEAD` on `master`).
+3. Never commit secrets (`.env`, `.env.vm`, keys, `app.db`, credentials JSON, `*.b64`).
+
+Production backend, templates, and deploy scripts live in git — no VM overlay restore.
+
+## Deploy (89.169.178.29, `/home/admin1/auto160`)
+
+After push to `origin/master`, GitHub Actions runs [`.github/workflows/deploy-vm.yml`](.github/workflows/deploy-vm.yml):
+
+1. SSH as `VM_USER` (prod: `admin1`) → sync code into `VM_APP_DIR` (default `/home/$VM_USER/auto160`)
+2. Run `scripts/deploy-vm.sh` with `SKIP_GIT_PULL=1` (CI already synced the tree)
+3. `docker compose --env-file .env.vm -f docker-compose.vm.yml up --build -d`
+4. Smoke: `curl http://127.0.0.1:8000/health`
+
+Required Actions secrets: `VM_HOST`, `VM_USER`, `VM_SSH_KEY`. Optional: `VM_APP_DIR`.
+
+Manual re-deploy (same script):
+
+```bash
+ssh admin1@89.169.178.29 "cd ~/auto160 && bash scripts/deploy-vm.sh"
+```
+
+- Do **not** use `git reset --hard` on VM unless fixing deliberate drift.
+- Do **not** `scp` Python/templates for routine updates.
+- Canonical site URL is `https://auto160.ru` (`PUBLIC_SITE_URL` + nginx via `scripts/apply-nginx-vm.sh`).
+
+## If deploy / sync fails on VM
+
+Report dirty tree, wrong `APP_DIR`, or diverged history to the user; fix locally, push to `master`, re-run the workflow — do not overwrite VM with scp copies.
