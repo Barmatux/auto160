@@ -28,7 +28,7 @@ from app.fuel_type_labels import (
     normalize_fuel_type_label,
     resolved_catalog_fuel_type,
 )
-from app.drive_type_labels import normalize_drive_display_label
+from app.drive_type_labels import drive_type_sql_predicate, normalize_drive_display_label
 from app.listing_missing_byn import (
     count_listings_missing_byn_price,
     paginate_listings_missing_byn_price,
@@ -57,8 +57,10 @@ from app.transmission_labels import (
     TRANSMISSION_FILTER_GROUPS,
     TRANSMISSION_SLUG_AUTO,
     apply_catalog_transmission_filter,
+    classify_transmission_slug,
     multi_filter_selection_label,
     parse_transmission_filter_values,
+    transmission_db_values_for_slugs,
     transmission_filter_checked_slugs,
     transmission_filter_display_label,
 )
@@ -616,6 +618,27 @@ def _parse_optional_int(value: str | int | None) -> int | None:
     return parsed if parsed > 0 else None
 
 
+def _parse_optional_float(value: str | float | int | None) -> float | None:
+    if value is None:
+        return None
+    if isinstance(value, (int, float)):
+        parsed = float(value)
+        return parsed if parsed > 0 else None
+    raw = str(value).strip().replace(",", ".")
+    if raw == "":
+        return None
+    try:
+        parsed = float(raw)
+    except ValueError:
+        return None
+    return parsed if parsed > 0 else None
+
+
+def _format_volume_query_value(volume: float) -> str:
+    text = f"{volume:.2f}".rstrip("0").rstrip(".")
+    return text or str(volume)
+
+
 def _listing_ids_for_catalog_item(db: Session, item: CatalogItem, *, published_only: bool = True) -> list[int]:
     listings = fetch_listings_for_catalog_items(db, [item], limit_per_item=10000).get(item.id, [])
     if published_only:
@@ -966,10 +989,15 @@ def _build_listings_url(
     year_from: int | None = None,
     year_to: int | None = None,
     catalog_item_id: int | None = None,
+    hp: int | None = None,
+    volume: float | None = None,
+    engine_type: str | None = None,
+    transmission: str | None = None,
+    drive: str | None = None,
 ) -> str:
-    if catalog_item_id is not None:
-        return "/listings?" + urlencode({"catalog_item_id": catalog_item_id})
     params: dict[str, str | int] = {}
+    if catalog_item_id is not None:
+        params["catalog_item_id"] = catalog_item_id
     if brand:
         params["brand"] = brand
     if model:
@@ -980,9 +1008,49 @@ def _build_listings_url(
         params["year_from"] = year_from
     if year_to is not None:
         params["year_to"] = year_to
+    if hp is not None:
+        params["hp"] = hp
+    if volume is not None:
+        params["volume"] = _format_volume_query_value(float(volume))
+    if engine_type:
+        params["engine_type"] = engine_type
+    if transmission:
+        params["transmission"] = transmission
+    if drive:
+        params["drive"] = drive
     if not params:
         return "/listings"
     return "/listings?" + urlencode(params)
+
+
+def _modification_listings_url(item: CatalogItem) -> str:
+    """Listings feed URL matching this catalog modification's technical criteria."""
+    attrs = _modification_attrs(item)
+    make = (item.make or "").strip()
+    model = _canonical_model_name(item.model)
+    generation = (item.generation or "").strip() or None
+    fuel = attrs.get("fuel") or ""
+    if fuel in {"", "—"}:
+        fuel = ""
+    gearbox_raw = attrs.get("gearbox") or item.transmission or ""
+    transmission = classify_transmission_slug(gearbox_raw) if gearbox_raw and gearbox_raw != "—" else None
+    drive = attrs.get("drive") or ""
+    if drive in {"", "—"}:
+        drive = ""
+    volume = float(item.engine_volume_l) if item.engine_volume_l is not None else None
+    return _build_listings_url(
+        brand=make or None,
+        model=model or None,
+        generation=generation,
+        year_from=item.year_from,
+        year_to=item.year_to,
+        catalog_item_id=item.id,
+        hp=item.engine_power_hp,
+        volume=volume,
+        engine_type=fuel or None,
+        transmission=transmission,
+        drive=drive or None,
+    )
 
 
 def _generation_listings_url(db: Session, item: CatalogItem) -> str | None:
@@ -1102,6 +1170,73 @@ def _apply_listing_vehicle_rows_filter(query, rows: list[dict[str, str]]):
     if not conditions:
         return query
     return query.filter(or_(*conditions))
+
+
+def _listing_modification_spec_predicate(
+    db: Session,
+    *,
+    brand: str | None,
+    model: str | None,
+    generation: str | None,
+    year_from: int | None,
+    year_to: int | None,
+    hp: int | None,
+    volume: float | None,
+    fuel_types: list[str],
+    transmission_slugs: list[str],
+    drive: str | None,
+    published_only: bool = True,
+):
+    """AND of brand/model/years + modification tech criteria for listings."""
+    parts = []
+    if brand:
+        parts.append(CarListing.brand.ilike(brand))
+    if model:
+        parts.append(CarListing.model.ilike(model))
+    if generation:
+        parts.append(CarListing.generation == generation)
+    if year_from is not None:
+        parts.append(CarListing.year >= year_from)
+    if year_to is not None:
+        parts.append(CarListing.year <= year_to)
+    if hp is not None:
+        parts.append(CarListing.engine_power_hp == hp)
+    if volume is not None:
+        parts.append(
+            and_(
+                CarListing.engine_capacity_l.isnot(None),
+                func.abs(CarListing.engine_capacity_l - volume) <= 0.15,
+            )
+        )
+    if fuel_types:
+        raw_fuel = _distinct_listing_values(db, CarListing.engine_type, published_only=published_only)
+        fuel_preds = []
+        fuel_matches: list[str] = []
+        for fuel_type in fuel_types:
+            canonical = normalize_fuel_type_label(fuel_type) or fuel_type
+            if canonical == FUEL_GROUP_HYBRID:
+                fuel_preds.append(_listing_hybrid_predicate())
+            else:
+                fuel_matches.extend(fuel_type_db_values_for_filter(raw_fuel, canonical))
+        if fuel_matches:
+            fuel_preds.append(CarListing.engine_type.in_(list(dict.fromkeys(fuel_matches))))
+        if fuel_preds:
+            parts.append(or_(*fuel_preds))
+    if transmission_slugs:
+        raw_transmission = _distinct_listing_values(
+            db,
+            CarListing.transmission_type,
+            published_only=published_only,
+        )
+        matched_values = transmission_db_values_for_slugs(raw_transmission, transmission_slugs)
+        if matched_values:
+            parts.append(CarListing.transmission_type.in_(matched_values))
+    drive_pred = drive_type_sql_predicate(CarListing.drive_type, drive)
+    if drive_pred is not None:
+        parts.append(drive_pred)
+    if not parts:
+        return None
+    return and_(*parts)
 
 
 def _build_vehicle_hierarchy_payload(
@@ -1630,6 +1765,7 @@ def _modification_row(item: CatalogItem) -> dict:
         "body_type": normalize_body_type_label(item.body_type) or "—",
         "rating": float(item.rating) if item.rating is not None else None,
         "url": f"/catalog/item/{item.id}",
+        "listings_url": _modification_listings_url(item),
     }
 
 
@@ -1996,6 +2132,11 @@ def listings_page(
     transmission_slugs = parse_transmission_filter_values(
         request.query_params.getlist("transmission") or request.query_params.getlist("transmission_type")
     )
+    tech_hp = _parse_optional_int(request.query_params.get("hp") or request.query_params.get("engine_power_hp"))
+    tech_volume = _parse_optional_float(
+        request.query_params.get("volume") or request.query_params.get("engine_capacity_l")
+    )
+    tech_drive = (request.query_params.get("drive") or request.query_params.get("drive_type") or "").strip()
     location_regions, location_cities = parse_location_filter_values(
         request.query_params.getlist("region"),
         request.query_params.getlist("city"),
@@ -2008,8 +2149,69 @@ def listings_page(
 
     catalog_item_filter = db.get(CatalogItem, catalog_item_id) if catalog_item_id else None
     if catalog_item_filter:
-        listing_ids = _listing_ids_for_catalog_item(db, catalog_item_filter, published_only=not is_admin)
-        query = query.filter(CarListing.id.in_(listing_ids or [-1]))
+        # Enrich missing vehicle/tech query params from the selected modification.
+        if not any(row.get("make") or row.get("model") or row.get("generation") for row in vehicle_rows):
+            vehicle_rows = [
+                {
+                    "make": (catalog_item_filter.make or "").strip(),
+                    "model": _canonical_model_name(catalog_item_filter.model),
+                    "generation": (catalog_item_filter.generation or "").strip(),
+                }
+            ]
+        if parsed_year_from is None:
+            parsed_year_from = catalog_item_filter.year_from
+        if parsed_year_to is None:
+            parsed_year_to = catalog_item_filter.year_to
+        if tech_hp is None:
+            tech_hp = catalog_item_filter.engine_power_hp
+        if tech_volume is None and catalog_item_filter.engine_volume_l is not None:
+            tech_volume = float(catalog_item_filter.engine_volume_l)
+        if not fuel_types:
+            mod_fuel = _modification_attrs(catalog_item_filter).get("fuel") or ""
+            if mod_fuel and mod_fuel != "—":
+                fuel_types = _parse_multi_catalog_filter_values([mod_fuel], normalize_fuel_type_label)
+        if not transmission_slugs:
+            gearbox = _modification_attrs(catalog_item_filter).get("gearbox") or catalog_item_filter.transmission
+            slug = classify_transmission_slug(gearbox)
+            if slug:
+                transmission_slugs = [slug]
+        if not tech_drive:
+            drive_label = _modification_attrs(catalog_item_filter).get("drive") or ""
+            if drive_label and drive_label != "—":
+                tech_drive = drive_label
+
+    match_conditions = []
+    if catalog_item_filter:
+        linked_ids = _listing_ids_for_catalog_item(db, catalog_item_filter, published_only=not is_admin)
+        if linked_ids:
+            match_conditions.append(CarListing.id.in_(linked_ids))
+
+    active_vehicle = next(
+        (row for row in vehicle_rows if row.get("make") or row.get("model") or row.get("generation")),
+        None,
+    )
+    has_modification_tech = bool(tech_hp or tech_volume or fuel_types or transmission_slugs or tech_drive)
+    if catalog_item_filter or has_modification_tech:
+        # Years + tech criteria define the modification; generation labels often differ on listings.
+        spec_pred = _listing_modification_spec_predicate(
+            db,
+            brand=(active_vehicle or {}).get("make") or None,
+            model=(active_vehicle or {}).get("model") or None,
+            generation=None,
+            year_from=parsed_year_from,
+            year_to=parsed_year_to,
+            hp=tech_hp,
+            volume=tech_volume,
+            fuel_types=fuel_types,
+            transmission_slugs=transmission_slugs,
+            drive=tech_drive or None,
+            published_only=not is_admin,
+        )
+        if spec_pred is not None:
+            match_conditions.append(spec_pred)
+
+    if match_conditions:
+        query = query.filter(or_(*match_conditions))
     else:
         query = _apply_listing_vehicle_rows_filter(query, vehicle_rows)
     available_listing_cities = set(
@@ -2022,18 +2224,31 @@ def listings_page(
         city_names=location_cities,
         available_cities=available_listing_cities,
     )
-    query = _apply_listings_characteristic_filters(
-        query,
-        db,
-        body_types=body_types,
-        fuel_types=fuel_types,
-        transmission_slugs=transmission_slugs,
-        published_only=not is_admin,
-    )
-    if parsed_year_from is not None:
-        query = query.filter(CarListing.year >= parsed_year_from)
-    if parsed_year_to is not None:
-        query = query.filter(CarListing.year <= parsed_year_to)
+    # Characteristic sidebar filters still apply on top unless already used as modification tech.
+    # Body type / location / price stay as usual; fuel/transmission already in modification match.
+    if not (catalog_item_filter or has_modification_tech):
+        query = _apply_listings_characteristic_filters(
+            query,
+            db,
+            body_types=body_types,
+            fuel_types=fuel_types,
+            transmission_slugs=transmission_slugs,
+            published_only=not is_admin,
+        )
+    else:
+        query = _apply_listings_characteristic_filters(
+            query,
+            db,
+            body_types=body_types,
+            fuel_types=[],
+            transmission_slugs=[],
+            published_only=not is_admin,
+        )
+    if not (catalog_item_filter or has_modification_tech):
+        if parsed_year_from is not None:
+            query = query.filter(CarListing.year >= parsed_year_from)
+        if parsed_year_to is not None:
+            query = query.filter(CarListing.year <= parsed_year_to)
     query = apply_listings_price_range_filter(query, price_range)
     if passable:
         year_min, year_max = _passable_year_bounds()
@@ -2071,6 +2286,12 @@ def listings_page(
     query_params: list[tuple[str, str]] = []
     if catalog_item_id:
         query_params.append(("catalog_item_id", str(catalog_item_id)))
+    if tech_hp is not None:
+        query_params.append(("hp", str(tech_hp)))
+    if tech_volume is not None:
+        query_params.append(("volume", _format_volume_query_value(tech_volume)))
+    if tech_drive:
+        query_params.append(("drive", tech_drive))
     for val in location_regions:
         query_params.append(("region", val))
     for val in location_cities:
@@ -2185,7 +2406,7 @@ def listing_item(request: Request, listing_id: int, db: Session = Depends(get_db
         context["gallery_urls"] = resolve_listing_gallery_urls(listing)
         if catalog_item:
             context["generation_listings_url"] = _generation_listings_url(db, catalog_item)
-            context["modification_listings_url"] = _build_listings_url(catalog_item_id=catalog_item.id)
+            context["modification_listings_url"] = _modification_listings_url(catalog_item)
         else:
             brand = (listing.brand or "").strip()
             model = _canonical_model_name(listing.model) or (listing.model or "").strip()
@@ -2865,7 +3086,7 @@ def catalog_item_detail(request: Request, item_id: int, db: Session = Depends(ge
     spec_rows = _resolve_best_spec_rows(item, db)
     context["spec_rows"] = spec_rows
     context["spec_sections"] = _group_spec_rows(spec_rows)
-    context["listings_url"] = _build_listings_url(catalog_item_id=item.id)
+    context["listings_url"] = _modification_listings_url(item)
     context["generation_listings_url"] = _generation_listings_url(db, item)
     related_listings = fetch_listings_for_catalog_items(db, [item], limit_per_item=8).get(item.id, [])
     context["related_listings"] = related_listings

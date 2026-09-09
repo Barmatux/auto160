@@ -66,6 +66,9 @@
                     </td>
                     <th scope="row" class="modifications-table-name">
                       <a href="{{ row.url }}">{{ row.name }}</a>
+                      {% if row.listings_url %}
+                        <div class="hint"><a href="{{ row.listings_url }}">Объявления</a></div>
+                      {% endif %}
                       {% if is_admin %}
                         {% with rating=row.rating, compact=true %}
                           {% include "partials/catalog_admin_rating.html" %}

@@ -1,10 +1,13 @@
 from types import SimpleNamespace
 
 from app.routers.pages import (
+    _build_listings_url,
     _build_modification_table_groups,
     _catalog_items_year_range,
     _format_catalog_year_range,
+    _modification_listings_url,
     _modification_power_sort_key,
+    _modification_row,
 )
 
 
@@ -91,3 +94,25 @@ def test_catalog_items_year_range():
 def test_modification_power_sort_key():
     assert _modification_power_sort_key({"power": "150 л.с."}) == 150
     assert _modification_power_sort_key({"power": "—"}) == 0
+
+
+def test_modification_listings_url_includes_tech_criteria():
+    item = _item(id=42, engine_power_hp=150, engine_volume_l=1.5, transmission="dct", drivetrain="fwd")
+    url = _modification_listings_url(item)
+    assert "catalog_item_id=42" in url
+    assert "brand=Audi" in url
+    assert "hp=150" in url
+    assert "volume=1.5" in url
+    assert "engine_type=" in url
+    assert "transmission=robot" in url
+    assert "drive=" in url
+    row = _modification_row(item)
+    assert row["listings_url"] == url
+
+
+def test_build_listings_url_keeps_tech_without_catalog_id():
+    url = _build_listings_url(brand="BMW", model="X1", hp=136, volume=1.5, engine_type="дизель", drive="Передний")
+    assert url.startswith("/listings?")
+    assert "catalog_item_id" not in url
+    assert "hp=136" in url
+    assert "volume=1.5" in url
