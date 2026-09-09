@@ -42,6 +42,9 @@ def canonical_model_name(name: str | None) -> str:
     m = re.match(r"^(\d+)\s*(series|серия)\s*active\s*tourer$", normalized)
     if m:
         return f"{m.group(1)} серия Active Tourer"
+    m = re.match(r"^(\d+)\s*(series|серия)\s*gran\s*coupe$", normalized)
+    if m:
+        return f"{m.group(1)} серия Gran Coupe"
     m = re.match(r"^x\s*([0-9]+)$", normalized)
     if m:
         return f"X{m.group(1)}"

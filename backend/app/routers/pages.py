@@ -623,14 +623,20 @@ def _listing_ids_for_catalog_item(db: Session, item: CatalogItem, *, published_o
     return [row.id for row in listings]
 
 
+def _catalog_filter_option_items_query(db: Session):
+    """Same visibility + ≤160 hp scope as public catalog pages."""
+    query = db.query(CatalogItem).filter(CatalogItem.source_site == "av.by")
+    query = apply_visible_catalog_filter(query)
+    return _apply_max_hp_filter(query)
+
+
 def _make_model_map(db: Session) -> dict[str, list[str]]:
     rows = (
-        db.query(CatalogItem.make, CatalogItem.model)
+        _catalog_filter_option_items_query(db)
+        .with_entities(CatalogItem.make, CatalogItem.model)
         .filter(
             CatalogItem.make.isnot(None),
             CatalogItem.model.isnot(None),
-            CatalogItem.source_site == "av.by",
-            CatalogItem.hidden_from_catalog.is_(False),
         )
         .distinct()
         .order_by(CatalogItem.make.asc(), CatalogItem.model.asc())
@@ -648,13 +654,12 @@ def _make_model_map(db: Session) -> dict[str, list[str]]:
 
 def _make_model_generation_map(db: Session) -> dict[str, dict[str, list[str]]]:
     rows = (
-        db.query(CatalogItem.make, CatalogItem.model, CatalogItem.generation)
+        _catalog_filter_option_items_query(db)
+        .with_entities(CatalogItem.make, CatalogItem.model, CatalogItem.generation)
         .filter(
             CatalogItem.make.isnot(None),
             CatalogItem.model.isnot(None),
             CatalogItem.generation.isnot(None),
-            CatalogItem.source_site == "av.by",
-            CatalogItem.hidden_from_catalog.is_(False),
         )
         .distinct()
         .order_by(CatalogItem.make.asc(), CatalogItem.model.asc(), CatalogItem.generation.asc())
