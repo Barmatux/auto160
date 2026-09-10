@@ -651,6 +651,121 @@ body {
   font-weight: 600;
 }
 
+.header-vin-check-link {
+  color: #b45309;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.admin-vin-check-page .admin-vin-check-main {
+  width: 100%;
+  max-width: none;
+}
+
+.admin-vin-check-feed {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.listing-vin-check-card .listing-description-wrap {
+  position: relative;
+  margin: 6px 0;
+}
+
+.listing-description-popup {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 20;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid #c9dcff;
+  background: #fff;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.12);
+  max-height: 220px;
+  overflow: auto;
+}
+
+.listing-description-text {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+
+.listing-description-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 15;
+  background: transparent;
+}
+
+.listing-vin-check-block {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #e8eef8;
+}
+
+.listing-vin-check-vin {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.listing-vin-check-vin .listing-vin-code {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.listing-vin-check-date {
+  margin-top: 4px;
+  min-height: 1.2em;
+}
+
+.listing-vin-check-date-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: #166534;
+}
+
+.vin-check-error-btn,
+.vin-check-data-error-btn {
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-weight: 700;
+  color: #dc2626;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.vin-check-error-label,
+.vin-check-data-error-wrap {
+  position: relative;
+}
+
+.vin-check-error-popover,
+.vin-check-data-error-popover {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 6px);
+  z-index: 25;
+  min-width: 220px;
+  max-width: 320px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid #fecaca;
+  background: #fff;
+  color: #7f1d1d;
+  font-size: 12px;
+  line-height: 1.35;
+  box-shadow: 0 8px 20px rgba(127, 29, 29, 0.12);
+}
+
 .catalog-beta-page {
   width: 100%;
 }
@@ -1630,6 +1745,10 @@ body {
   }
 
   .catalog.listings-feed {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-vin-check-feed {
     grid-template-columns: 1fr;
   }
 }

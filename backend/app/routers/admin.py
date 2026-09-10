@@ -14,6 +14,7 @@ from app.avby_accounts import (
 )
 from app.avby_session import AvbySessionError, get_avby_session
 from app.avby_vin import AvbyVinError, get_or_fetch_listing_vin
+from app.listing_enrichment import perform_listing_vin_check
 from app.catalog_generation_years import apply_generation_years, sync_generation_years_from_sources
 from app.catalog_ratings import apply_generation_rating, format_production_years, generation_label
 from app.catalog_visibility import apply_generation_catalog_visibility
@@ -35,6 +36,7 @@ from app.schemas import (
     CatalogGenerationVisibilityUpdate,
     CatalogGenerationYearsResult,
     CatalogGenerationYearsUpdate,
+    ListingVinCheckResponse,
     ListingVinResponse,
     UserPublic,
     UserRoleUpdateRequest,
@@ -403,6 +405,26 @@ def sync_catalog_generation_years_from_avby(
         year_to=sample.year_to,
         production_years=production_years,
         updated_items=updated,
+    )
+
+
+@router.post("/listings/{listing_id}/vin-check", response_model=ListingVinCheckResponse)
+def fetch_listing_vin_check(
+    listing_id: int,
+    _: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    listing = db.query(CarListing).filter(CarListing.id == listing_id).first()
+    if not listing:
+        raise HTTPException(status_code=404, detail="Listing not found")
+    result = perform_listing_vin_check(db, listing)
+    return ListingVinCheckResponse(
+        listing_id=listing.id,
+        vin=result.vin,
+        vin_error=result.vin_error,
+        release_date=result.release_date,
+        customs_found=result.customs_found,
+        customs_error=result.customs_error,
     )
 
 

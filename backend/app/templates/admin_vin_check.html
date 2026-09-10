@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}VIN CHECK — Auto160{% endblock %}
+{% block content %}
+<div class="catalog-page admin-vin-check-page" data-admin-vin-check-page>
+  <section class="catalog-main admin-vin-check-main">
+    <div class="catalog-main-head">
+      <h1>VIN CHECK</h1>
+      <p class="hint">Новые объявления моделей с рейтингом 1 · от новых к старым</p>
+    </div>
+
+    {% if listings %}
+      <div class="catalog listings-feed admin-vin-check-feed">
+        {% for listing in listings %}
+          {% include "partials/listing_vin_check_card.html" %}
+        {% endfor %}
+      </div>
+    {% else %}
+      <p>Объявления для моделей с рейтингом 1 не найдены.</p>
+    {% endif %}
+
+    <div class="pager">
+      <div class="pager-nav pager-nav-prev">
+        {% if has_prev %}
+          <a class="page-link" href="{{ prev_url }}">← Назад</a>
+        {% else %}
+          <span class="page-link disabled">← Назад</span>
+        {% endif %}
+      </div>
+      <p class="pager-summary hint">Найдено объявлений: {{ total }} · Страница {{ page }} из {{ total_pages }}</p>
+      <div class="pager-nav pager-nav-next">
+        {% if has_next %}
+          <a class="page-link" href="{{ next_url }}">Вперед →</a>
+        {% else %}
+          <span class="page-link disabled">Вперед →</span>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+</div>
+<div class="listing-description-backdrop" data-description-backdrop hidden></div>
+{% include "partials/listing_vin_check_script.html" %}
+<script src="/static/listings_feed_gallery.js?v=20260730-01" defer></script>
+{% endblock %}

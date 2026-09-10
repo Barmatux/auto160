@@ -233,6 +233,15 @@ class ListingVinResponse(BaseModel):
     fetched_at: datetime | None = None
 
 
+class ListingVinCheckResponse(BaseModel):
+    listing_id: int
+    vin: str | None = None
+    vin_error: str | None = None
+    release_date: str | None = None
+    customs_found: bool | None = None
+    customs_error: str | None = None
+
+
 class AppLogTailResponse(BaseModel):
     service: str
     lines: int

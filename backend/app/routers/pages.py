@@ -80,7 +80,11 @@ from app.avby_accounts import list_active_vin_accounts, serialize_account_public
 from app.db import get_db
 from app.logging_setup import LOG_SERVICES, LOG_SERVICE_LABELS, format_log_time, log_dir, log_timezone, tail_log
 from app.metrics import yandex_metrika_context
-from app.listing_enrichment import build_listing_customs_map, get_listing_customs_summary
+from app.listing_enrichment import (
+    build_listing_customs_map,
+    get_listing_customs_summary,
+    paginate_rating_one_listings,
+)
 from app.listing_catalog_link import (
     canonical_model_name as _canonical_model_name,
     fetch_listings_for_catalog_items,
@@ -3490,6 +3494,47 @@ def admin_users_page(request: Request, db: Session = Depends(get_db)):
     context = _template_context(request, current_user)
     context["users"] = users
     return templates.TemplateResponse(request, "admin_users.html", context)
+
+
+@router.get("/admin/vin-check")
+def admin_vin_check_page(
+    request: Request,
+    page: int = Query(default=1, ge=1),
+    db: Session = Depends(get_db),
+):
+    current_user = _resolve_user_from_request(request, db)
+    redirect = _admin_page_redirect(current_user)
+    if redirect:
+        return redirect
+
+    page_size = LISTINGS_PAGE_SIZE
+    listings, total = paginate_rating_one_listings(db, page=page, page_size=page_size)
+    total_pages = max(1, (total + page_size - 1) // page_size)
+    if page > total_pages and total > 0:
+        page = total_pages
+        listings, total = paginate_rating_one_listings(db, page=page, page_size=page_size)
+
+    context = _template_context(
+        request,
+        current_user,
+        SeoMeta(
+            title="VIN CHECK — Auto160",
+            description="Проверка VIN и даты ввоза для объявлений моделей с рейтингом 1.",
+            path="/admin/vin-check",
+            noindex=True,
+        ),
+    )
+    context["listings"] = listings
+    context["listing_gallery_urls"] = resolve_listing_gallery_urls_map(listings, limit=5)
+    context["listing_customs_map"] = build_listing_customs_map(db, listings) if listings else {}
+    context["total"] = total
+    context["page"] = page
+    context["total_pages"] = total_pages
+    context["has_prev"] = page > 1
+    context["has_next"] = page < total_pages
+    context["prev_url"] = f"/admin/vin-check?page={page - 1}" if context["has_prev"] else None
+    context["next_url"] = f"/admin/vin-check?page={page + 1}" if context["has_next"] else None
+    return templates.TemplateResponse(request, "admin_vin_check.html", context)
 
 
 @router.get("/admin/ratings")

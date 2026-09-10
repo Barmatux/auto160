@@ -1,0 +1,218 @@
+{% include "partials/auth_script.html" %}
+<script>
+  async function adminFetch(url, options = {}) {
+    let token = getCookie("access_token");
+    if (!token) {
+      const refreshed = await refreshAccessTokenIfNeeded();
+      if (!refreshed) {
+        window.location.href = "/login";
+        return null;
+      }
+      token = getCookie("access_token");
+    }
+    return fetch(url, {
+      ...options,
+      headers: {
+        ...(options.headers || {}),
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  }
+
+  function closeAllDescriptionPopups() {
+    document.querySelectorAll("[data-description-popup]").forEach((popup) => {
+      popup.hidden = true;
+    });
+    const backdrop = document.querySelector("[data-description-backdrop]");
+    if (backdrop) backdrop.hidden = true;
+  }
+
+  function closeAllErrorPopovers() {
+    document.querySelectorAll(".vin-check-error-popover, .vin-check-data-error-popover").forEach((el) => {
+      el.hidden = true;
+    });
+  }
+
+  function showPopover(button, popover, message) {
+    if (!button || !popover) return;
+    popover.textContent = message || "";
+    popover.hidden = !message;
+    if (message) {
+      closeAllErrorPopovers();
+      popover.hidden = false;
+    }
+  }
+
+  function renderVinCheckBlock(block, data) {
+    const vinWrap = block.querySelector(".listing-vin-check-vin");
+    const dateWrap = block.querySelector(".listing-vin-check-date");
+    const vinBtn = block.querySelector(".vin-check-btn");
+    const vinCode = block.querySelector(".listing-vin-code");
+    const vinErrorWrap = block.querySelector(".vin-check-error-label");
+    const vinErrorBtn = block.querySelector(".vin-check-error-btn");
+    const vinErrorPopover = block.querySelector(".vin-check-error-popover");
+    const dataErrorWrap = block.querySelector(".vin-check-data-error-wrap");
+    const dataErrorBtn = block.querySelector(".vin-check-data-error-btn");
+    const dataErrorPopover = block.querySelector(".vin-check-data-error-popover");
+
+    if (data.vin) {
+      block.dataset.vin = data.vin;
+      if (vinBtn) vinBtn.remove();
+      if (!vinCode) {
+        const code = document.createElement("code");
+        code.className = "listing-vin-code";
+        vinWrap.prepend(code);
+      }
+      block.querySelector(".listing-vin-code").textContent = data.vin;
+      if (vinErrorWrap) vinErrorWrap.hidden = true;
+    } else if (data.vin_error) {
+      if (vinBtn) {
+        vinBtn.disabled = false;
+        vinBtn.textContent = "VIN CHECK";
+      }
+      if (vinCode) vinCode.remove();
+      if (vinErrorWrap) {
+        vinErrorWrap.hidden = false;
+        if (vinErrorBtn) vinErrorBtn.dataset.error = data.vin_error;
+        bindVinErrorControls(vinErrorWrap);
+      }
+    }
+
+    if (!dateWrap) return;
+
+    dateWrap.innerHTML = "";
+    if (data.vin && data.release_date) {
+      block.dataset.releaseDate = data.release_date;
+      const span = document.createElement("span");
+      span.className = "listing-vin-check-date-value";
+      span.textContent = data.release_date;
+      dateWrap.appendChild(span);
+      return;
+    }
+
+    if (data.vin && data.customs_error) {
+      block.dataset.customsError = data.customs_error;
+      const wrap = document.createElement("span");
+      wrap.className = "vin-check-data-error-wrap";
+      wrap.innerHTML =
+        '<button type="button" class="vin-check-data-error-btn">DATA ERROR</button>' +
+        '<span class="vin-check-data-error-popover" hidden></span>';
+      dateWrap.appendChild(wrap);
+      bindDataErrorControls(wrap);
+    }
+  }
+
+  function bindVinErrorControls(wrap) {
+    const btn = wrap.querySelector(".vin-check-error-btn");
+    const popover = wrap.querySelector(".vin-check-error-popover");
+    if (!btn || !popover) return;
+    const message = btn.dataset.error || wrap.closest(".listing-vin-check-block")?.dataset.vinError || "";
+    btn.addEventListener("mouseenter", () => showPopover(btn, popover, message));
+    btn.addEventListener("focus", () => showPopover(btn, popover, message));
+    btn.addEventListener("click", (event) => {
+      event.stopPropagation();
+      popover.hidden = !popover.hidden;
+      if (!popover.hidden) popover.textContent = message;
+    });
+  }
+
+  function bindDataErrorControls(wrap) {
+    const btn = wrap.querySelector(".vin-check-data-error-btn");
+    const popover = wrap.querySelector(".vin-check-data-error-popover");
+    if (!btn || !popover) return;
+    const block = wrap.closest(".listing-vin-check-block");
+    const message = block?.dataset.customsError || "Не удалось получить дату ввоза";
+    btn.addEventListener("mouseenter", () => showPopover(btn, popover, message));
+    btn.addEventListener("focus", () => showPopover(btn, popover, message));
+    btn.addEventListener("click", (event) => {
+      event.stopPropagation();
+      popover.hidden = !popover.hidden;
+      if (!popover.hidden) popover.textContent = message;
+    });
+  }
+
+  async function runVinCheck(block, { auto = false } = {}) {
+    if (block.dataset.loading === "1") return;
+    const listingId = block.dataset.listingId;
+    const vinBtn = block.querySelector(".vin-check-btn");
+    if (!listingId) return;
+    if (auto && block.dataset.vin && block.dataset.releaseDate) return;
+    if (auto && !block.dataset.vin) return;
+
+    block.dataset.loading = "1";
+    if (vinBtn) {
+      vinBtn.disabled = true;
+      vinBtn.textContent = "Проверка…";
+    }
+
+    const response = await adminFetch(`/api/v1/admin/listings/${listingId}/vin-check`, { method: "POST" });
+    block.dataset.loading = "0";
+    if (!response) return;
+
+    let data = {};
+    try {
+      data = await response.json();
+    } catch (_) {
+      data = {};
+    }
+
+    if (!response.ok) {
+      renderVinCheckBlock(block, { vin_error: data.detail || "Не удалось выполнить проверку" });
+      return;
+    }
+
+    renderVinCheckBlock(block, data);
+  }
+
+  document.querySelectorAll(".listing-description-btn").forEach((btn) => {
+    const wrap = btn.closest(".listing-description-wrap");
+    const popup = wrap?.querySelector("[data-description-popup]");
+    if (!popup) return;
+
+    const open = () => {
+      closeAllDescriptionPopups();
+      popup.hidden = false;
+      const backdrop = document.querySelector("[data-description-backdrop]");
+      if (backdrop) backdrop.hidden = false;
+    };
+
+    btn.addEventListener("mouseenter", open);
+    btn.addEventListener("focus", open);
+    btn.addEventListener("click", (event) => {
+      event.stopPropagation();
+      if (popup.hidden) open();
+      else closeAllDescriptionPopups();
+    });
+  });
+
+  document.querySelectorAll(".vin-check-error-label").forEach(bindVinErrorControls);
+
+  document.querySelectorAll(".vin-check-data-error-wrap").forEach((wrap) => {
+    bindDataErrorControls(wrap);
+    wrap.hidden = false;
+  });
+
+  document.querySelectorAll(".listing-vin-check-block .vin-check-btn").forEach((btn) => {
+    btn.addEventListener("click", () => runVinCheck(btn.closest(".listing-vin-check-block")));
+  });
+
+  document.querySelectorAll(".listing-vin-check-block").forEach((block) => {
+    if (block.dataset.vin && !block.dataset.releaseDate && !block.dataset.customsError) {
+      runVinCheck(block, { auto: true });
+    }
+  });
+
+  document.querySelector("[data-description-backdrop]")?.addEventListener("click", closeAllDescriptionPopups);
+
+  document.addEventListener("click", (event) => {
+    if (
+      event.target.closest(".listing-description-wrap") ||
+      event.target.closest(".vin-check-error-btn") ||
+      event.target.closest(".vin-check-data-error-btn")
+    ) {
+      return;
+    }
+    closeAllDescriptionPopups();
+    closeAllErrorPopovers();
+  });
+</script>

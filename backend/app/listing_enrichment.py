@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from app.avby_offer_metadata import fetch_and_apply_offer_vin_metadata
 from app.avby_vin import AvbyVinError, get_or_fetch_listing_vin
 from app.customs_vin import DATABASE_PERSONAL, CustomsVinError, has_fresh_customs_check, lookup_customs_vin
-from app.models import CarListing, CatalogItem, VinCustomsCheck
+from app.models import CarListing, CatalogItem, ListingStatus, VinCustomsCheck
 from app.sync_run_vin_log import PHASE_RATING1, record_sync_run_vin_check
 
 
@@ -323,6 +323,95 @@ def get_listing_customs_summary(db: Session, listing: CarListing) -> ListingCust
         checked_at=row.checked_at,
         cached=True,
     )
+
+
+@dataclass(frozen=True)
+class ListingVinCheckResult:
+    vin: str | None = None
+    vin_error: str | None = None
+    release_date: str | None = None
+    customs_found: bool | None = None
+    customs_error: str | None = None
+
+
+def _last_error_prefix(errors: list[str], prefix: str) -> str | None:
+    for err in reversed(errors):
+        if prefix in err:
+            return err.split(":", 1)[-1].strip()
+    return None
+
+
+def perform_listing_vin_check(db: Session, listing: CarListing) -> ListingVinCheckResult:
+    stats = enrich_listing_vin_and_customs(db, listing)
+    db.refresh(listing)
+
+    if listing_has_saved_vin(listing):
+        vin = (listing.vin or "").strip().upper()
+        summary = get_listing_customs_summary(db, listing)
+        if summary is not None:
+            if summary.found and summary.release_date:
+                return ListingVinCheckResult(
+                    vin=vin,
+                    release_date=summary.release_date,
+                    customs_found=True,
+                )
+            if summary.found:
+                return ListingVinCheckResult(
+                    vin=vin,
+                    customs_found=True,
+                    customs_error="Найдено в ГТК, дата не распознана",
+                )
+            return ListingVinCheckResult(
+                vin=vin,
+                customs_found=False,
+                customs_error="Не найдено в базе ГТК",
+            )
+
+        customs_error = _last_error_prefix(stats.errors, "customs ")
+        if customs_error:
+            return ListingVinCheckResult(vin=vin, customs_error=customs_error)
+        if stats.customs_checked or stats.customs_cached:
+            return ListingVinCheckResult(
+                vin=vin,
+                customs_error="Не удалось получить дату ввоза",
+            )
+        return ListingVinCheckResult(vin=vin, customs_error="Проверка таможни не выполнена")
+
+    vin_error = _last_error_prefix(stats.errors, "listing ")
+    if not vin_error:
+        vin_error = _last_error_prefix(stats.errors, "metadata ")
+    if not vin_error and stats.errors:
+        vin_error = stats.errors[-1].split(":", 1)[-1].strip()
+    if not vin_error:
+        vin_error = "Не удалось получить VIN"
+    return ListingVinCheckResult(vin_error=vin_error)
+
+
+def paginate_rating_one_listings(
+    db: Session,
+    *,
+    page: int = 1,
+    page_size: int = 21,
+) -> tuple[list[CarListing], int]:
+    targets = build_rating_one_targets(db)
+    if not targets:
+        return [], 0
+
+    offset = max(page - 1, 0) * page_size
+    matched: list[CarListing] = []
+    total = 0
+    query = (
+        db.query(CarListing)
+        .filter(CarListing.status == ListingStatus.published)
+        .order_by(CarListing.created_at.desc())
+    )
+    for listing in query.yield_per(200):
+        if not listing_matches_rating_one(listing, targets):
+            continue
+        if total >= offset and len(matched) < page_size:
+            matched.append(listing)
+        total += 1
+    return matched, total
 
 
 def build_listing_customs_map(db: Session, listings: list[CarListing]) -> dict[int, ListingCustomsSummary]:
