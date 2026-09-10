@@ -30,7 +30,7 @@
     {% if seo_json_ld_script %}
       <script type="application/ld+json">{{ seo_json_ld_script | safe }}</script>
     {% endif %}
-    <link rel="stylesheet" href="/static/styles.css?v=20260910-01" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260910-02" />
   </head>
   <body>
     <header class="header">
@@ -105,9 +105,10 @@
         <a href="/guides/vin">Гайд: VIN</a>
         <a href="/guides/do-160-hp">Гайд: до 160 л.с. — без утильсбора</a>
         <a href="/listings?city=%D0%9C%D0%B8%D0%BD%D1%81%D0%BA">Авто в Минске</a>
+        <a href="/privacy">Персональные данные</a>
       </div>
     </footer>
-    {% include "partials/yandex_metrika.html" %}
+    {% include "partials/cookie_consent.html" %}
     <script src="/static/header_nav.js?v=20260822-01" defer></script>
     <script src="/static/listing_price_tooltip.js?v=20260822-01" defer></script>
   </body>

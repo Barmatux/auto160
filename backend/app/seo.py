@@ -672,6 +672,7 @@ def build_sitemap_entries(db: Session, base_url: str) -> list[tuple[str, str]]:
         "/inspection",
         "/guides/vin",
         "/guides/do-160-hp",
+        "/privacy",
     ):
         entries.append((f"{base_url}{path}", today))
 

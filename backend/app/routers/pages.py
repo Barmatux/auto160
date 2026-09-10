@@ -3280,6 +3280,21 @@ def guide_do_160_page(request: Request, db: Session = Depends(get_db)):
     return templates.TemplateResponse(request, "guide_do_160.html", context)
 
 
+@router.get("/privacy")
+def privacy_page(request: Request, db: Session = Depends(get_db)):
+    current_user = _resolve_user_from_request(request, db)
+    context = _template_context(
+        request,
+        current_user,
+        SeoMeta(
+            title="Политика персональных данных — Auto160",
+            description="Как Auto160 обрабатывает персональные данные, cookie и аналитику Яндекс.Метрики.",
+            path="/privacy",
+        ),
+    )
+    return templates.TemplateResponse(request, "privacy.html", context)
+
+
 @router.get("/catalog/beta")
 def catalog_beta_makes(request: Request, db: Session = Depends(get_db)):
     current_user = _resolve_user_from_request(request, db)

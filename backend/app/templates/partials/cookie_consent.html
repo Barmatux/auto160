@@ -1,0 +1,26 @@
+<div
+  class="cookie-consent"
+  data-cookie-consent
+  {% if yandex_metrika_id %}data-metrika-id="{{ yandex_metrika_id }}"{% endif %}
+  hidden
+  role="dialog"
+  aria-live="polite"
+  aria-label="Согласие на использование cookie"
+>
+  <div class="cookie-consent-inner">
+    <p class="cookie-consent-text">
+      Мы используем необходимые cookie для входа в кабинет и работы сайта.
+      С вашего согласия также подключаем Яндекс.Метрику (аналитика и вебвизор) — можно отказаться.
+      Подробнее в <a class="cookie-consent-link" href="/privacy">политике персональных данных</a>.
+    </p>
+    <div class="cookie-consent-actions">
+      <button type="button" class="cookie-consent-btn cookie-consent-btn-secondary" data-cookie-necessary>
+        Только необходимые
+      </button>
+      <button type="button" class="cookie-consent-btn cookie-consent-btn-primary" data-cookie-accept>
+        Принять все
+      </button>
+    </div>
+  </div>
+</div>
+<script src="/static/cookie_consent.js?v=20260910-01" defer></script>
