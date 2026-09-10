@@ -167,17 +167,37 @@
   document.querySelectorAll(".listing-description-btn").forEach((btn) => {
     const wrap = btn.closest(".listing-description-wrap");
     const popup = wrap?.querySelector("[data-description-popup]");
-    if (!popup) return;
+    if (!wrap || !popup) return;
 
+    let hideTimer = null;
     const open = () => {
+      if (hideTimer) {
+        clearTimeout(hideTimer);
+        hideTimer = null;
+      }
       closeAllDescriptionPopups();
       popup.hidden = false;
       const backdrop = document.querySelector("[data-description-backdrop]");
       if (backdrop) backdrop.hidden = false;
     };
+    const scheduleClose = () => {
+      if (hideTimer) clearTimeout(hideTimer);
+      hideTimer = setTimeout(() => {
+        hideTimer = null;
+        closeAllDescriptionPopups();
+      }, 160);
+    };
 
     btn.addEventListener("mouseenter", open);
     btn.addEventListener("focus", open);
+    wrap.addEventListener("mouseenter", () => {
+      if (hideTimer) {
+        clearTimeout(hideTimer);
+        hideTimer = null;
+      }
+    });
+    wrap.addEventListener("mouseleave", scheduleClose);
+    btn.addEventListener("blur", scheduleClose);
     btn.addEventListener("click", (event) => {
       event.stopPropagation();
       if (popup.hidden) open();
