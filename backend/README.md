@@ -207,12 +207,37 @@ cat ~/.ssh/auto160_deploy.pub >> ~/.ssh/authorized_keys
   - `source_site`
   - `source_url`
   - `source_external_id`
+- Дедуп: upsert по `source_site='av.by'` + `source_external_id` (`mod-{id}`). Рейтинги и `hidden_from_catalog` при обновлении **не** перезаписываются.
 - Импортер: `tools/import_avby.py`
+- Discovery всего каталога (только файл URL, без записи в БД): `tools/discover_avby_catalog_urls.py`
 - Запуск:
   - `python tools/import_avby.py --urls-file .\\avby_urls.txt`
 - Формат `avby_urls.txt`: один URL AV.BY на строку.
 - Можно указывать как URL модели (`/catalog/bmw_x1`), так и URL поколения (`/catalog/bmw_x1_u11-2022-`).
 - Для URL модели скрипт сам раскроет поколения и импортирует их модификации.
+
+### Полная догрузка каталога (безопасно)
+
+1. Собрать URL моделей с av.by (без записи в БД):
+   - smoke: `python tools/discover_avby_catalog_urls.py --brand bmw -o data/avby_urls_smoke.txt`
+   - всё: `python tools/discover_avby_catalog_urls.py -o data/avby_urls_full.txt`
+2. Проверка без записи:  
+   `python tools/import_avby.py --urls-file data/avby_urls_smoke.txt --skip-existing --dry-run --limit-urls 3`
+3. Догрузка **только новых** mods (существующие строки не трогаем):  
+   `python tools/import_avby.py --urls-file data/avby_urls_full.txt --skip-existing --sleep 0.25`
+4. Опционально после: `python tools/sync_catalog_photos.py`, рейтинги через `import_catalog_ratings.py`.
+
+На VM (после деплоя), из `/home/admin1/auto160`:
+
+```bash
+docker compose --env-file .env.vm -f docker-compose.vm.yml exec -T api \
+  python tools/import_avby.py --urls-file data/avby_urls_full.txt --skip-existing --sleep 0.25
+```
+
+Файл `data/avby_urls_full.txt` (~2840 model URL) уже в репо; при необходимости обновить:  
+`python tools/discover_avby_catalog_urls.py -o data/avby_urls_full.txt`
+
+Флаги импорта: `--skip-existing`, `--dry-run`, `--max-hp 160`, `--limit-urls N`, `--sleep 0.25`.
 
 ### Пропуски каталога (#130)
 

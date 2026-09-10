@@ -285,32 +285,72 @@ def parse_model_page_generation_urls(state: dict[str, Any]) -> list[str]:
     return urls
 
 
-def upsert_catalog_item(payload: dict[str, Any]) -> None:
+# Never overwrite curated / identity fields on existing rows.
+_PROTECTED_UPDATE_FIELDS = frozenset(
+    {
+        "id",
+        "created_at",
+        "rating",
+        "hidden_from_catalog",
+        "source_site",
+        "photos",
+    }
+)
+
+
+def find_existing_catalog_item_id(db, payload: dict[str, Any]) -> int | None:
+    source_external_id = payload.get("source_external_id")
+    if source_external_id:
+        return (
+            db.query(CatalogItem.id)
+            .filter(CatalogItem.source_site == "av.by", CatalogItem.source_external_id == source_external_id)
+            .scalar()
+        )
+    source_url = payload.get("source_url")
+    if not source_url:
+        return None
+    return (
+        db.query(CatalogItem.id)
+        .filter(CatalogItem.source_site == "av.by", CatalogItem.source_url == source_url)
+        .scalar()
+    )
+
+
+def upsert_catalog_item(
+    payload: dict[str, Any],
+    *,
+    skip_existing: bool = False,
+    dry_run: bool = False,
+) -> str:
+    """Insert or update one modification. Returns created|updated|skipped|would_create|would_update."""
     db = SessionLocal()
     try:
-        source_external_id = payload.get("source_external_id")
-        if source_external_id:
-            existing = (
-                db.query(CatalogItem)
-                .filter(CatalogItem.source_site == "av.by", CatalogItem.source_external_id == source_external_id)
-                .first()
-            )
-        else:
-            existing = (
-                db.query(CatalogItem)
-                .filter(CatalogItem.source_site == "av.by", CatalogItem.source_url == payload["source_url"])
-                .first()
-            )
-        if existing:
+        existing_id = find_existing_catalog_item_id(db, payload)
+        if existing_id is not None:
+            if skip_existing:
+                return "skipped"
+            if dry_run:
+                return "would_update"
+            existing = db.get(CatalogItem, existing_id)
+            if existing is None:
+                return "skipped"
             for key, value in payload.items():
+                if key in _PROTECTED_UPDATE_FIELDS:
+                    continue
                 setattr(existing, key, value)
-        else:
-            item = CatalogItem(
-                **payload,
-                source_site="av.by",
-            )
-            db.add(item)
+            db.commit()
+            return "updated"
+
+        if dry_run:
+            return "would_create"
+
+        item = CatalogItem(
+            **{k: v for k, v in payload.items() if k not in _PROTECTED_UPDATE_FIELDS},
+            source_site="av.by",
+        )
+        db.add(item)
         db.commit()
+        return "created"
     finally:
         db.close()
 
@@ -407,6 +447,34 @@ def main() -> None:
         action="store_true",
         help="Recompute catalog fuel_type from engineType so hybrids are not stored as АИ-95",
     )
+    parser.add_argument(
+        "--skip-existing",
+        action="store_true",
+        help="Only insert new mods (mod-*). Do not update rows that already exist — safest for full catalog fill.",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Parse AV.BY but do not write to DB; print would_create/would_update/skipped counts",
+    )
+    parser.add_argument(
+        "--max-hp",
+        type=int,
+        default=None,
+        help="Skip modifications with engine_power_hp above this value (None = import all; site still filters ≤160)",
+    )
+    parser.add_argument(
+        "--sleep",
+        type=float,
+        default=0.2,
+        help="Pause between page fetches (seconds)",
+    )
+    parser.add_argument(
+        "--limit-urls",
+        type=int,
+        default=None,
+        help="Process at most N seed URLs from the file (after comments filtered)",
+    )
     args = parser.parse_args()
 
     if args.backfill_fuel_types:
@@ -423,9 +491,30 @@ def main() -> None:
     urls_file = _resolve_urls_file(args.urls_file)
     with open(urls_file, "r", encoding="utf-8") as fh:
         seed_urls = [line.strip() for line in fh.readlines() if line.strip() and not line.strip().startswith("#")]
+    if args.limit_urls is not None:
+        seed_urls = seed_urls[: max(0, args.limit_urls)]
 
     queue = list(seed_urls)
     visited: set[str] = set()
+    counts = {
+        "created": 0,
+        "updated": 0,
+        "skipped": 0,
+        "would_create": 0,
+        "would_update": 0,
+        "filtered_hp": 0,
+        "failed_urls": 0,
+    }
+    mode = []
+    if args.dry_run:
+        mode.append("dry-run")
+    if args.skip_existing:
+        mode.append("skip-existing")
+    print(
+        f"import-start: urls={len(seed_urls)} mode={','.join(mode) or 'upsert'} "
+        f"max_hp={args.max_hp} sleep={args.sleep}"
+    )
+
     while queue:
         url = queue.pop(0)
         if url in visited:
@@ -442,6 +531,8 @@ def main() -> None:
                     if generation_url not in visited:
                         queue.append(generation_url)
                 print(f"expand: {url} -> {len(discovered)} generations")
+                if args.sleep:
+                    time.sleep(args.sleep)
                 continue
 
             if landing_type == "generation":
@@ -450,14 +541,37 @@ def main() -> None:
                 for payload in payloads:
                     if not payload.get("make") or not payload.get("model"):
                         continue
-                    upsert_catalog_item(payload)
-                    saved += 1
+                    hp = payload.get("engine_power_hp")
+                    if args.max_hp is not None and hp is not None and hp > args.max_hp:
+                        counts["filtered_hp"] += 1
+                        continue
+                    result = upsert_catalog_item(
+                        payload,
+                        skip_existing=args.skip_existing,
+                        dry_run=args.dry_run,
+                    )
+                    counts[result] = counts.get(result, 0) + 1
+                    if result in ("created", "updated", "would_create"):
+                        saved += 1
                 print(f"ok: {url} -> {saved} modifications")
+                if args.sleep:
+                    time.sleep(args.sleep)
                 continue
 
             print(f"skip: unsupported landing type ({landing_type or 'unknown'}) {url}")
         except Exception as exc:
+            counts["failed_urls"] += 1
             print(f"fail: {url} -> {exc}")
+            if args.sleep:
+                time.sleep(args.sleep)
+
+    print(
+        "import-summary: "
+        f"created={counts['created']} updated={counts['updated']} skipped={counts['skipped']} "
+        f"would_create={counts['would_create']} would_update={counts['would_update']} "
+        f"filtered_hp={counts['filtered_hp']} failed_urls={counts['failed_urls']} "
+        f"visited={len(visited)}"
+    )
 
 
 if __name__ == "__main__":
