@@ -417,7 +417,7 @@ def fetch_listing_vin_check(
     listing = db.query(CarListing).filter(CarListing.id == listing_id).first()
     if not listing:
         raise HTTPException(status_code=404, detail="Listing not found")
-    result = perform_listing_vin_check(db, listing)
+    result = perform_listing_vin_check(db, listing, allow_inactive=True)
     return ListingVinCheckResponse(
         listing_id=listing.id,
         vin=result.vin,

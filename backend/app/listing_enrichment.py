@@ -115,6 +115,7 @@ def enrich_listing_vin_and_customs(
     listing: CarListing,
     *,
     sync_run_id: int | None = None,
+    allow_inactive: bool = False,
 ) -> ListingEnrichmentStats:
     stats = ListingEnrichmentStats(attempted=1)
     had_vin_before = listing_has_saved_vin(listing)
@@ -154,7 +155,7 @@ def enrich_listing_vin_and_customs(
             vin = (listing.vin or "").strip().upper()
         else:
             try:
-                vin_result = get_or_fetch_listing_vin(db, listing)
+                vin_result = get_or_fetch_listing_vin(db, listing, allow_inactive=allow_inactive)
             except AvbyVinError as exc:
                 error_message = str(exc)
                 stats.errors.append(f"listing {listing.id}: {error_message}")
@@ -341,8 +342,16 @@ def _last_error_prefix(errors: list[str], prefix: str) -> str | None:
     return None
 
 
-def perform_listing_vin_check(db: Session, listing: CarListing) -> ListingVinCheckResult:
-    stats = enrich_listing_vin_and_customs(db, listing)
+def perform_listing_vin_check(
+    db: Session,
+    listing: CarListing,
+    *,
+    allow_inactive: bool = True,
+) -> ListingVinCheckResult:
+    """Admin VIN CHECK: fetch VIN (+ customs). allow_inactive defaults True so
+    inactive vin_test accounts out of parser rotation still work for manual checks.
+    """
+    stats = enrich_listing_vin_and_customs(db, listing, allow_inactive=allow_inactive)
     db.refresh(listing)
 
     if listing_has_saved_vin(listing):
