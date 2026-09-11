@@ -2374,27 +2374,27 @@ body {
 
 .admin-vin-table.admin-ratings-table th:nth-child(1),
 .admin-vin-table.admin-ratings-table td:nth-child(1) {
-  width: 8%;
+  width: 7%;
 }
 
 .admin-vin-table.admin-ratings-table th:nth-child(2),
 .admin-vin-table.admin-ratings-table td:nth-child(2) {
-  width: 8%;
+  width: 7%;
 }
 
 .admin-vin-table.admin-ratings-table th:nth-child(3),
 .admin-vin-table.admin-ratings-table td:nth-child(3) {
-  width: 24%;
+  width: 20%;
 }
 
 .admin-vin-table.admin-ratings-table th:nth-child(4),
 .admin-vin-table.admin-ratings-table td:nth-child(4) {
-  width: 14%;
+  width: 12%;
 }
 
 .admin-vin-table.admin-ratings-table th:nth-child(5),
 .admin-vin-table.admin-ratings-table td:nth-child(5) {
-  width: 24%;
+  width: 10%;
 }
 
 .admin-vin-table.admin-ratings-table th:nth-child(6),
@@ -2402,7 +2402,13 @@ body {
   width: 22%;
 }
 
-.admin-vin-table.admin-ratings-table td:nth-child(4) {
+.admin-vin-table.admin-ratings-table th:nth-child(7),
+.admin-vin-table.admin-ratings-table td:nth-child(7) {
+  width: 22%;
+}
+
+.admin-vin-table.admin-ratings-table td:nth-child(4),
+.admin-vin-table.admin-ratings-table td:nth-child(5) {
   white-space: nowrap;
 }
 
