@@ -90,7 +90,7 @@
           <td>
             <a href="{{ row.mods_url }}">{{ row.generation }}</a>
             <div class="admin-vin-listing-meta">
-              {{ row.item_count }} компл.{% if row.mixed %} · рейтинги различаются{% endif %}{% if row.hidden %} · скрыто из каталога{% endif %}
+              {{ row.item_count }} компл.{% if row.mixed %} · рейтинги различаются{% endif %}<span class="admin-catalog-hidden-label"{% if not row.hidden %} hidden{% endif %}> · скрыто из каталога</span>
             </div>
             <button
               type="button"
@@ -318,6 +318,26 @@
     el.classList.toggle("is-error", Boolean(isError));
   }
 
+  function applyVisibilitySuccess(button, data) {
+    const nowHidden = Boolean(data.hidden);
+    const tr = button.closest("tr");
+    const cell = button.closest("td");
+    button.dataset.hidden = nowHidden ? "true" : "false";
+    button.textContent = nowHidden ? "Показать в каталоге" : "Скрыть из каталога";
+    if (tr) {
+      tr.classList.toggle("admin-ratings-row-hidden", nowHidden);
+    }
+    const hiddenLabel = cell ? cell.querySelector(".admin-catalog-hidden-label") : null;
+    if (hiddenLabel) {
+      hiddenLabel.hidden = !nowHidden;
+    }
+    let message = nowHidden ? "Скрыто из каталога" : "Показано в каталоге";
+    if (nowHidden && data.archived_listings) {
+      message += " · в архив: " + data.archived_listings;
+    }
+    setVisibilityStatus(button, message, false);
+  }
+
   document.querySelectorAll(".admin-catalog-visibility-btn").forEach(function (button) {
     button.addEventListener("click", async function () {
       const hidden = button.dataset.hidden === "true";
@@ -343,7 +363,7 @@
         setVisibilityStatus(button, message, true);
         return;
       }
-      window.location.reload();
+      applyVisibilitySuccess(button, data);
     });
   });
 
