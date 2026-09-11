@@ -34,6 +34,9 @@ class CatalogRatingRow:
     year_from: int | None
     year_to: int | None
     photo_item_id: int | None
+    engine_power_hp: str
+    hp_min: int | None
+    hp_max: int | None
 
 
 def format_production_years(year_from: int | None, year_to: int | None) -> str:
@@ -42,6 +45,17 @@ def format_production_years(year_from: int | None, year_to: int | None) -> str:
     start = str(year_from) if year_from is not None else "?"
     end = str(year_to) if year_to is not None else "?"
     return f"{start} – {end}"
+
+
+def format_engine_power_hp(hp_min: int | None, hp_max: int | None) -> str:
+    if hp_min is None and hp_max is None:
+        return "—"
+    if hp_min is not None and hp_max is not None and hp_min == hp_max:
+        return f"{hp_min} л.с."
+    if hp_min is not None and hp_max is not None:
+        return f"{hp_min}–{hp_max} л.с."
+    value = hp_min if hp_min is not None else hp_max
+    return f"{value} л.с."
 
 
 def generation_key(value: str | None) -> str:
@@ -161,6 +175,8 @@ def _grouped_query(
             func.max(CatalogItem.rating).label("rating_max"),
             func.min(CatalogItem.year_from).label("year_from_min"),
             func.max(CatalogItem.year_to).label("year_to_max"),
+            func.min(CatalogItem.engine_power_hp).label("hp_min"),
+            func.max(CatalogItem.engine_power_hp).label("hp_max"),
             func.min(CatalogItem.id).label("first_item_id"),
             func.sum(case((CatalogItem.hidden_from_catalog.is_(True), 1), else_=0)).label("hidden_count"),
         )
@@ -225,6 +241,8 @@ def _row_from_group(row) -> CatalogRatingRow:
     hidden_count = int(row.hidden_count or 0)
     year_from = int(row.year_from_min) if row.year_from_min is not None else None
     year_to = int(row.year_to_max) if row.year_to_max is not None else None
+    hp_min = int(row.hp_min) if getattr(row, "hp_min", None) is not None else None
+    hp_max = int(row.hp_max) if getattr(row, "hp_max", None) is not None else None
     photo_item_id = int(row.first_item_id) if row.first_item_id is not None else None
     return CatalogRatingRow(
         make=make,
@@ -241,6 +259,9 @@ def _row_from_group(row) -> CatalogRatingRow:
         year_from=year_from,
         year_to=year_to,
         photo_item_id=photo_item_id,
+        engine_power_hp=format_engine_power_hp(hp_min, hp_max),
+        hp_min=hp_min,
+        hp_max=hp_max,
     )
 
 

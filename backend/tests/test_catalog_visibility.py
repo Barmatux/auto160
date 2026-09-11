@@ -17,6 +17,8 @@ def test_row_from_group_marks_fully_hidden_generation():
         year_to_max=2014,
         first_item_id=42,
         hidden_count=3,
+        hp_min=100,
+        hp_max=150,
     )
     result = _row_from_group(row)
     assert result.hidden is True
@@ -24,6 +26,9 @@ def test_row_from_group_marks_fully_hidden_generation():
     assert result.year_from == 2011
     assert result.year_to == 2014
     assert result.photo_item_id == 42
+    assert result.engine_power_hp == "100–150 л.с."
+    assert result.hp_min == 100
+    assert result.hp_max == 150
 
 
 def test_row_from_group_not_hidden_when_partially_visible():

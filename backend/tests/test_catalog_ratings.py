@@ -2,6 +2,7 @@ from decimal import Decimal
 
 from app.catalog_ratings import (
     RATING_FILTER_UNRATED,
+    format_engine_power_hp,
     format_production_years,
     format_rating,
     generation_key,
@@ -16,6 +17,13 @@ def test_format_production_years():
     assert format_production_years(None, None) == "—"
     assert format_production_years(2019, 2024) == "2019 – 2024"
     assert format_production_years(2019, None) == "2019 – ?"
+
+
+def test_format_engine_power_hp():
+    assert format_engine_power_hp(None, None) == "—"
+    assert format_engine_power_hp(150, 150) == "150 л.с."
+    assert format_engine_power_hp(90, 160) == "90–160 л.с."
+    assert format_engine_power_hp(120, None) == "120 л.с."
 
 
 def test_generation_key_and_label():

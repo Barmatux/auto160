@@ -38,6 +38,7 @@
         <th>Модель</th>
         <th>Поколение</th>
         <th>Годы<br />производства</th>
+        <th>Мощность<br />двигателя</th>
         <th class="admin-ratings-rating-head">
           <div
             class="admin-ratings-rating-filter{% if rating_filters_active %} is-active{% endif %}"
@@ -133,6 +134,7 @@
             </form>
             <div class="admin-years-status" hidden></div>
           </td>
+          <td>{{ row.engine_power_hp }}</td>
           <td>
             <form class="admin-rating-form" data-make="{{ row.make }}" data-model="{{ row.model }}" data-generation="{{ row.generation_key }}">
               <select name="rating" aria-label="Рейтинг {{ row.make }} {{ row.model }}">
