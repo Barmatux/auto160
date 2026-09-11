@@ -2740,6 +2740,29 @@ body {
   margin-bottom: 12px;
 }
 
+.filters.admin-ratings-filters {
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 0.9fr) auto;
+  align-items: end;
+}
+
+.admin-ratings-filter-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.filters.admin-ratings-filters .admin-ratings-filter-actions .page-link {
+  white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+  .filters.admin-ratings-filters {
+    grid-template-columns: 1fr;
+  }
+}
+
 .admin-log-view {
   background: #0f172a;
   color: #e2e8f0;

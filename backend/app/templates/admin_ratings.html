@@ -12,7 +12,7 @@
   Найдено: {{ rating_total }}.
 </p>
 
-<form class="filters admin-log-toolbar" method="get" action="/admin/ratings">
+<form class="filters admin-log-toolbar admin-ratings-filters" method="get" action="/admin/ratings">
   <label>
     Поиск
     <input type="text" name="q" value="{{ rating_q }}" placeholder="Марка, модель, поколение" />
@@ -26,12 +26,17 @@
       {% endfor %}
     </select>
   </label>
-  <label class="inline-checkbox">
-    <input type="checkbox" name="max_hp" value="160" {% if rating_max_hp == 160 %}checked{% endif %} />
-    До 160 л.с.
+  <label>
+    Мощность
+    <select name="max_hp">
+      <option value="" {% if not rating_max_hp %}selected{% endif %}>Любая</option>
+      <option value="160" {% if rating_max_hp == 160 %}selected{% endif %}>До 160 л.с.</option>
+    </select>
   </label>
-  <button type="submit">Показать</button>
-  <a class="page-link" href="/admin/ratings">Сбросить</a>
+  <div class="admin-ratings-filter-actions">
+    <button type="submit">Показать</button>
+    <a class="page-link" href="/admin/ratings">Сбросить</a>
+  </div>
 </form>
 
 <section class="admin-vin-table-wrap">
