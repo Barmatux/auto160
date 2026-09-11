@@ -3557,6 +3557,7 @@ def admin_ratings_page(
     request: Request,
     q: str = Query(default=""),
     make: str = Query(default=""),
+    max_hp: int | None = Query(default=None, ge=1, le=2000),
     page: int = Query(default=1, ge=1),
     db: Session = Depends(get_db),
 ):
@@ -3570,6 +3571,8 @@ def admin_ratings_page(
     selected_rating_filters, include_unrated_rating = parse_rating_filter_values(
         request.query_params.getlist("filter_rating")
     )
+    # Checkbox sends max_hp=160; ignore other values for now.
+    hp_filter = 160 if max_hp == 160 else None
     per_page = DEFAULT_PAGE_SIZE
     rows, total = list_generation_ratings(
         db,
@@ -3578,6 +3581,7 @@ def admin_ratings_page(
         status=status_filter,
         rating_filters=selected_rating_filters,
         include_unrated_rating=include_unrated_rating,
+        max_hp=hp_filter,
         page=page,
         per_page=per_page,
     )
@@ -3591,6 +3595,7 @@ def admin_ratings_page(
             status=status_filter,
             rating_filters=selected_rating_filters,
             include_unrated_rating=include_unrated_rating,
+            max_hp=hp_filter,
             page=page,
             per_page=per_page,
         )
@@ -3604,6 +3609,7 @@ def admin_ratings_page(
         params = {
             "q": q.strip(),
             "make": make.strip(),
+            "max_hp": hp_filter,
             "page": page,
             "filter_rating": overrides.pop("filter_rating", active_rating_filter_tokens),
         }
@@ -3613,6 +3619,8 @@ def admin_ratings_page(
             pairs.append(("q", params["q"]))
         if params["make"]:
             pairs.append(("make", params["make"]))
+        if params.get("max_hp"):
+            pairs.append(("max_hp", str(params["max_hp"])))
         for token in params["filter_rating"] or []:
             pairs.append(("filter_rating", token))
         if int(params["page"] or 1) > 1:
@@ -3637,6 +3645,7 @@ def admin_ratings_page(
             "rating_next_url": _ratings_url(page=page + 1) if page < total_pages else None,
             "rating_q": q.strip(),
             "rating_make": make.strip(),
+            "rating_max_hp": hp_filter,
             "rating_makes": list_catalog_makes(db),
             "rating_choices": RATING_CHOICES,
             "format_rating": format_rating,

@@ -163,6 +163,7 @@ def _grouped_query(
     status: str = "all",
     rating_filters: frozenset[int] | None = None,
     include_unrated_rating: bool = False,
+    max_hp: int | None = None,
 ):
     query = (
         db.query(
@@ -212,6 +213,14 @@ def _grouped_query(
             )
         if parts:
             query = query.having(or_(*parts))
+    if max_hp is not None:
+        # Keep generations that have at least one mod ≤ max_hp (or unknown HP).
+        query = query.having(
+            or_(
+                func.min(CatalogItem.engine_power_hp).is_(None),
+                func.min(CatalogItem.engine_power_hp) <= max_hp,
+            )
+        )
     return query
 
 
@@ -273,6 +282,7 @@ def list_generation_ratings(
     status: str = "all",
     rating_filters: frozenset[int] | None = None,
     include_unrated_rating: bool = False,
+    max_hp: int | None = None,
     page: int = 1,
     per_page: int = DEFAULT_PAGE_SIZE,
 ) -> tuple[list[CatalogRatingRow], int]:
@@ -285,6 +295,7 @@ def list_generation_ratings(
         status=status,
         rating_filters=rating_filters,
         include_unrated_rating=include_unrated_rating,
+        max_hp=max_hp,
     )
     total = db.query(func.count()).select_from(grouped.subquery()).scalar() or 0
     rows = (
