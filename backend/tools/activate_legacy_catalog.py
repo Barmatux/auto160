@@ -23,12 +23,13 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+from sqlalchemy import and_, or_, text, tuple_
+from sqlalchemy.orm import Session
+
 ROOT_DIR = Path(__file__).resolve().parents[1]
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 os.chdir(ROOT_DIR)
-
-from sqlalchemy import or_  # noqa: E402
 
 from app.catalog_ratings import generation_key  # noqa: E402
 from app.db import SessionLocal  # noqa: E402
@@ -38,94 +39,55 @@ DEFAULT_CUTOFF = "2026-09-10T15:30:00"  # UTC, before full av.by catalog import
 
 
 def _parse_cutoff(raw: str) -> datetime:
-    text = raw.strip().replace("Z", "")
-    if "T" in text:
-        return datetime.fromisoformat(text)
-    return datetime.fromisoformat(f"{text}T00:00:00")
+    text_value = raw.strip().replace("Z", "")
+    if "T" in text_value:
+        return datetime.fromisoformat(text_value)
+    return datetime.fromisoformat(f"{text_value}T00:00:00")
 
 
-def _model_key(item: CatalogItem) -> tuple[str, str]:
-    return ((item.make or "").strip(), (item.model or "").strip())
-
-
-def _generation_tuple(item: CatalogItem) -> tuple[str, str, str]:
-    make, model = _model_key(item)
-    return (make, model, generation_key(item.generation))
-
-
-def collect_legacy_keys(db, *, cutoff: datetime, scope: str) -> set[tuple]:
+def _legacy_model_pairs(db: Session, cutoff: datetime) -> list[tuple[str, str]]:
+    """Exact DB make/model values that existed before cutoff (or have rating)."""
     rows = (
-        db.query(CatalogItem)
+        db.query(CatalogItem.make, CatalogItem.model)
         .filter(or_(CatalogItem.created_at < cutoff, CatalogItem.rating.isnot(None)))
+        .distinct()
         .all()
     )
-    keys: set[tuple] = set()
-    for item in rows:
-        make, model = _model_key(item)
-        if not make or not model:
+    pairs: list[tuple[str, str]] = []
+    seen: set[tuple[str, str]] = set()
+    for make, model in rows:
+        if not (make or "").strip() or not (model or "").strip():
             continue
-        if scope == "models":
-            keys.add((make, model))
-        else:
-            keys.add((make, model, generation_key(item.generation)))
+        key = (make, model)
+        if key in seen:
+            continue
+        seen.add(key)
+        pairs.append(key)
+    return pairs
+
+
+def _legacy_generation_keys(db: Session, cutoff: datetime) -> list[tuple[str, str, str | None]]:
+    rows = (
+        db.query(CatalogItem.make, CatalogItem.model, CatalogItem.generation)
+        .filter(or_(CatalogItem.created_at < cutoff, CatalogItem.rating.isnot(None)))
+        .distinct()
+        .all()
+    )
+    keys: list[tuple[str, str, str | None]] = []
+    seen: set[tuple[str, str, str]] = set()
+    for make, model, generation in rows:
+        if not (make or "").strip() or not (model or "").strip():
+            continue
+        gen = generation_key(generation) or None
+        seen_key = (make, model, gen or "")
+        if seen_key in seen:
+            continue
+        seen.add(seen_key)
+        keys.append((make, model, gen))
     return keys
 
 
-def apply_activation(
-    db,
-    *,
-    cutoff: datetime,
-    scope: str,
-    dry_run: bool,
-) -> dict[str, int]:
-    legacy = collect_legacy_keys(db, cutoff=cutoff, scope=scope)
-    activated = 0
-    deactivated = 0
-    unchanged = 0
-
-    for item in db.query(CatalogItem).order_by(CatalogItem.id.asc()).all():
-        make, model = _model_key(item)
-        if not make or not model:
-            unchanged += 1
-            continue
-        if scope == "models":
-            should_active = (make, model) in legacy
-        else:
-            should_active = (make, model, generation_key(item.generation)) in legacy
-
-        want_hidden = not should_active
-        if item.hidden_from_catalog is want_hidden:
-            unchanged += 1
-            continue
-        if want_hidden:
-            deactivated += 1
-        else:
-            activated += 1
-        if not dry_run:
-            item.hidden_from_catalog = want_hidden
-
-    if not dry_run:
-        db.commit()
-
-    return {
-        "legacy_keys": len(legacy),
-        "activated": activated,
-        "deactivated": deactivated,
-        "unchanged": unchanged,
-        "visible_after": db.query(CatalogItem)
-        .filter(CatalogItem.hidden_from_catalog.is_(False))
-        .count()
-        if not dry_run
-        else -1,
-        "hidden_after": db.query(CatalogItem)
-        .filter(CatalogItem.hidden_from_catalog.is_(True))
-        .count()
-        if not dry_run
-        else -1,
-    }
-
-
-def print_stats(db, cutoff: datetime) -> None:
+def print_stats(db: Session, cutoff: datetime) -> None:
     total = db.query(CatalogItem).count()
     visible = db.query(CatalogItem).filter(CatalogItem.hidden_from_catalog.is_(False)).count()
     hidden = db.query(CatalogItem).filter(CatalogItem.hidden_from_catalog.is_(True)).count()
@@ -136,6 +98,84 @@ def print_stats(db, cutoff: datetime) -> None:
         f"stats: total={total} visible={visible} hidden={hidden} rated={rated} "
         f"pre_cutoff={pre} post_cutoff={post} cutoff={cutoff.isoformat()}"
     )
+
+
+def apply_activation(
+    db: Session,
+    *,
+    cutoff: datetime,
+    scope: str,
+    dry_run: bool,
+) -> dict[str, int]:
+    if scope == "models":
+        legacy = _legacy_model_pairs(db, cutoff)
+        active_filter = tuple_(CatalogItem.make, CatalogItem.model).in_(legacy) if legacy else text("false")
+    else:
+        legacy = _legacy_generation_keys(db, cutoff)
+        # generation_key strips whitespace; match with trim in SQL via Python keys already stripped.
+        # Items store generation as-is; compare using coalesce(trim(generation), '').
+        if not legacy:
+            active_filter = text("false")
+        else:
+            clauses = []
+            for make, model, gen in legacy:
+                if gen:
+                    clauses.append(
+                        and_(
+                            CatalogItem.make == make,
+                            CatalogItem.model == model,
+                            CatalogItem.generation == gen,
+                        )
+                    )
+                else:
+                    clauses.append(
+                        and_(
+                            CatalogItem.make == make,
+                            CatalogItem.model == model,
+                            or_(CatalogItem.generation.is_(None), CatalogItem.generation == ""),
+                        )
+                    )
+            active_filter = or_(*clauses)
+
+    would_activate = (
+        db.query(CatalogItem)
+        .filter(active_filter, CatalogItem.hidden_from_catalog.is_(True))
+        .count()
+    )
+    would_deactivate = (
+        db.query(CatalogItem)
+        .filter(~active_filter, CatalogItem.hidden_from_catalog.is_(False))
+        .count()
+    )
+    active_count = db.query(CatalogItem).filter(active_filter).count()
+
+    if dry_run:
+        return {
+            "legacy_keys": len(legacy),
+            "active_items": active_count,
+            "activated": would_activate,
+            "deactivated": would_deactivate,
+            "visible_after": active_count,
+            "hidden_after": db.query(CatalogItem).count() - active_count,
+        }
+
+    # Bulk flip: hide everything, then unhide legacy set.
+    db.query(CatalogItem).update({CatalogItem.hidden_from_catalog: True}, synchronize_session=False)
+    if legacy:
+        db.query(CatalogItem).filter(active_filter).update(
+            {CatalogItem.hidden_from_catalog: False},
+            synchronize_session=False,
+        )
+    db.commit()
+
+    return {
+        "legacy_keys": len(legacy),
+        "active_items": active_count,
+        "activated": would_activate,
+        "deactivated": would_deactivate,
+        "visible_after": db.query(CatalogItem).filter(CatalogItem.hidden_from_catalog.is_(False)).count(),
+        "hidden_after": db.query(CatalogItem).filter(CatalogItem.hidden_from_catalog.is_(True)).count(),
+    }
 
 
 def main() -> None:
@@ -165,8 +205,8 @@ def main() -> None:
         mode = "dry-run" if args.dry_run else "applied"
         print(
             f"activation-{mode}: scope={args.scope} legacy_keys={result['legacy_keys']} "
-            f"activated={result['activated']} deactivated={result['deactivated']} "
-            f"unchanged={result['unchanged']} visible_after={result['visible_after']} "
+            f"active_items={result['active_items']} activated={result['activated']} "
+            f"deactivated={result['deactivated']} visible_after={result['visible_after']} "
             f"hidden_after={result['hidden_after']}"
         )
     finally:
