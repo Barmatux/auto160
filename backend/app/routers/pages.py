@@ -3557,7 +3557,7 @@ def admin_ratings_page(
     request: Request,
     q: str = Query(default=""),
     make: str = Query(default=""),
-    max_hp: int | None = Query(default=None, ge=1, le=2000),
+    max_hp: str | None = Query(default=None),
     page: int = Query(default=1, ge=1),
     db: Session = Depends(get_db),
 ):
@@ -3571,8 +3571,8 @@ def admin_ratings_page(
     selected_rating_filters, include_unrated_rating = parse_rating_filter_values(
         request.query_params.getlist("filter_rating")
     )
-    # Checkbox sends max_hp=160; ignore other values for now.
-    hp_filter = 160 if max_hp == 160 else None
+    # Select sends "" for "Любая" or "160" for the product filter.
+    hp_filter = 160 if (max_hp or "").strip() == "160" else None
     per_page = DEFAULT_PAGE_SIZE
     rows, total = list_generation_ratings(
         db,
