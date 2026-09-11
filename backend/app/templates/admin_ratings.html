@@ -33,6 +33,17 @@
       <option value="160" {% if rating_max_hp == 160 %}selected{% endif %}>До 160 л.с.</option>
     </select>
   </label>
+  <label>
+    Год от
+    <input
+      type="number"
+      name="year_from"
+      value="{{ rating_year_from if rating_year_from is not none else '' }}"
+      placeholder="напр. 2010"
+      min="1950"
+      max="2100"
+    />
+  </label>
   <div class="admin-ratings-filter-actions">
     <button type="submit">Показать</button>
     <a class="page-link" href="/admin/ratings">Сбросить</a>
@@ -56,6 +67,7 @@
             data-ratings-q="{{ rating_q }}"
             data-ratings-make="{{ rating_make }}"
             data-ratings-max-hp="{{ rating_max_hp or '' }}"
+            data-ratings-year-from="{{ rating_year_from or '' }}"
           >
             <button
               type="button"
@@ -540,9 +552,11 @@
     const q = (root.dataset.ratingsQ || "").trim();
     const make = (root.dataset.ratingsMake || "").trim();
     const maxHp = (root.dataset.ratingsMaxHp || "").trim();
+    const yearFrom = (root.dataset.ratingsYearFrom || "").trim();
     if (q) params.set("q", q);
     if (make) params.set("make", make);
     if (maxHp) params.set("max_hp", maxHp);
+    if (yearFrom) params.set("year_from", yearFrom);
     selectedTokens.forEach(function (token) {
       params.append("filter_rating", token);
     });

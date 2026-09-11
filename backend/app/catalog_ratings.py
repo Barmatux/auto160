@@ -164,6 +164,7 @@ def _grouped_query(
     rating_filters: frozenset[int] | None = None,
     include_unrated_rating: bool = False,
     max_hp: int | None = None,
+    year_min: int | None = None,
 ):
     query = (
         db.query(
@@ -219,6 +220,14 @@ def _grouped_query(
             or_(
                 func.min(CatalogItem.engine_power_hp).is_(None),
                 func.min(CatalogItem.engine_power_hp) <= max_hp,
+            )
+        )
+    if year_min is not None:
+        # Drop generations that ended before year_min; keep ongoing (year_to empty).
+        query = query.having(
+            or_(
+                func.max(CatalogItem.year_to).is_(None),
+                func.max(CatalogItem.year_to) >= year_min,
             )
         )
     return query
@@ -283,6 +292,7 @@ def list_generation_ratings(
     rating_filters: frozenset[int] | None = None,
     include_unrated_rating: bool = False,
     max_hp: int | None = None,
+    year_min: int | None = None,
     page: int = 1,
     per_page: int = DEFAULT_PAGE_SIZE,
 ) -> tuple[list[CatalogRatingRow], int]:
@@ -296,6 +306,7 @@ def list_generation_ratings(
         rating_filters=rating_filters,
         include_unrated_rating=include_unrated_rating,
         max_hp=max_hp,
+        year_min=year_min,
     )
     total = db.query(func.count()).select_from(grouped.subquery()).scalar() or 0
     rows = (

@@ -3558,6 +3558,7 @@ def admin_ratings_page(
     q: str = Query(default=""),
     make: str = Query(default=""),
     max_hp: str | None = Query(default=None),
+    year_from: str | None = Query(default=None),
     page: int = Query(default=1, ge=1),
     db: Session = Depends(get_db),
 ):
@@ -3573,6 +3574,15 @@ def admin_ratings_page(
     )
     # Select sends "" for "Любая" or "160" for the product filter.
     hp_filter = 160 if (max_hp or "").strip() == "160" else None
+    year_min = None
+    year_raw = (year_from or "").strip()
+    if year_raw:
+        try:
+            parsed_year = int(year_raw)
+        except ValueError:
+            parsed_year = None
+        if parsed_year is not None and 1950 <= parsed_year <= 2100:
+            year_min = parsed_year
     per_page = DEFAULT_PAGE_SIZE
     rows, total = list_generation_ratings(
         db,
@@ -3582,6 +3592,7 @@ def admin_ratings_page(
         rating_filters=selected_rating_filters,
         include_unrated_rating=include_unrated_rating,
         max_hp=hp_filter,
+        year_min=year_min,
         page=page,
         per_page=per_page,
     )
@@ -3596,6 +3607,7 @@ def admin_ratings_page(
             rating_filters=selected_rating_filters,
             include_unrated_rating=include_unrated_rating,
             max_hp=hp_filter,
+            year_min=year_min,
             page=page,
             per_page=per_page,
         )
@@ -3610,6 +3622,7 @@ def admin_ratings_page(
             "q": q.strip(),
             "make": make.strip(),
             "max_hp": hp_filter,
+            "year_from": year_min,
             "page": page,
             "filter_rating": overrides.pop("filter_rating", active_rating_filter_tokens),
         }
@@ -3621,6 +3634,8 @@ def admin_ratings_page(
             pairs.append(("make", params["make"]))
         if params.get("max_hp"):
             pairs.append(("max_hp", str(params["max_hp"])))
+        if params.get("year_from"):
+            pairs.append(("year_from", str(params["year_from"])))
         for token in params["filter_rating"] or []:
             pairs.append(("filter_rating", token))
         if int(params["page"] or 1) > 1:
@@ -3646,6 +3661,7 @@ def admin_ratings_page(
             "rating_q": q.strip(),
             "rating_make": make.strip(),
             "rating_max_hp": hp_filter,
+            "rating_year_from": year_min,
             "rating_makes": list_catalog_makes(db),
             "rating_choices": RATING_CHOICES,
             "format_rating": format_rating,
