@@ -35,7 +35,10 @@ def build_catalog_brand_model_index(db: Session) -> dict[str, set[str]]:
     brand_to_models: dict[str, set[str]] = {}
     rows = (
         db.query(CatalogItem.make, CatalogItem.model)
-        .filter(CatalogItem.source_site == "av.by")
+        .filter(
+            CatalogItem.source_site == "av.by",
+            CatalogItem.hidden_from_catalog.is_(False),
+        )
         .distinct()
         .all()
     )
@@ -56,7 +59,10 @@ def build_catalog_generation_index(db: Session) -> dict[tuple[str, str], tuple[f
     index: dict[tuple[str, str], tuple[set[str], bool]] = {}
     rows = (
         db.query(CatalogItem)
-        .filter(CatalogItem.source_site == "av.by")
+        .filter(
+            CatalogItem.source_site == "av.by",
+            CatalogItem.hidden_from_catalog.is_(False),
+        )
         .order_by(CatalogItem.id.asc())
         .all()
     )
@@ -110,6 +116,7 @@ def catalog_make_model_exists():
     return exists().where(
         and_(
             CatalogItem.source_site == "av.by",
+            CatalogItem.hidden_from_catalog.is_(False),
             func.lower(CatalogItem.make) == func.lower(CarListing.brand),
             func.lower(CatalogItem.model) == func.lower(CarListing.model),
         )

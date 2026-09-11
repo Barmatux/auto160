@@ -122,10 +122,12 @@ def _collect_target_models(
     model_filter: str | None,
     limit_models: int | None,
 ) -> list[tuple[str, str]]:
-    """Unique make/model pairs from catalog_items (all sources)."""
+    """Unique make/model pairs from active (visible) catalog_items only."""
+    from app.catalog_visibility import apply_visible_catalog_filter
+
     db = SessionLocal()
     try:
-        query = db.query(CatalogItem)
+        query = apply_visible_catalog_filter(db.query(CatalogItem))
         if make_filter:
             query = query.filter(CatalogItem.make.ilike(f"%{make_filter}%"))
         if model_filter:

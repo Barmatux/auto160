@@ -225,13 +225,19 @@ cat ~/.ssh/auto160_deploy.pub >> ~/.ssh/authorized_keys
    `python tools/import_avby.py --urls-file data/avby_urls_smoke.txt --skip-existing --dry-run --limit-urls 3`
 3. Догрузка **только новых** mods (существующие строки не трогаем):  
    `python tools/import_avby.py --urls-file data/avby_urls_full.txt --skip-existing --sleep 0.25`
-4. Опционально после: `python tools/sync_catalog_photos.py`, рейтинги через `import_catalog_ratings.py`.
+4. Активировать старые модели и скрыть dump-overflow:  
+   `python tools/activate_legacy_catalog.py --dry-run`  
+   `python tools/activate_legacy_catalog.py`  
+   Активные = `hidden_from_catalog=False`. Sync объявлений берёт **только активные**.
+5. Опционально: `python tools/sync_catalog_photos.py`, рейтинги через `import_catalog_ratings.py`.
+
+Новые строки из `import_avby.py` создаются скрытыми (`hidden_from_catalog=True`), пока их не покажут в админке.
 
 На VM (после деплоя), из `/home/admin1/auto160`:
 
 ```bash
 docker compose --env-file .env.vm -f docker-compose.vm.yml exec -T api \
-  python tools/import_avby.py --urls-file data/avby_urls_full.txt --skip-existing --sleep 0.25
+  python tools/activate_legacy_catalog.py
 ```
 
 Файл `data/avby_urls_full.txt` (~2840 model URL) уже в репо; при необходимости обновить:  
@@ -251,7 +257,7 @@ docker compose --env-file .env.vm -f docker-compose.vm.yml exec -T api \
 ### Импорт объявлений с AV.BY под наши модели
 
 - Скрипт: `tools/import_avby_listings.py`
-- Источник моделей: берутся из `catalog_items` (`source_site='av.by'`), далее скрипт ходит в `web-api.av.by` с пагинацией по страницам и отбирает объявления под наши модели.
+- Источник моделей: **активные** `catalog_items` (`hidden_from_catalog=False`), далее скрипт ходит в `web-api.av.by` с пагинацией по страницам и отбирает объявления под эти модели.
 - Ограничение по мощности: импортируются только объявления с `engine_power_hp <= 160` (по умолчанию).
 - Дедупликация: по `avby_id` (уникальный индекс в БД), fallback на `AVBY_ID` в `description` для старых записей.
 - Запуск:

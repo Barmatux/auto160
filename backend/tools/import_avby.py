@@ -347,6 +347,8 @@ def upsert_catalog_item(
         item = CatalogItem(
             **{k: v for k, v in payload.items() if k not in _PROTECTED_UPDATE_FIELDS},
             source_site="av.by",
+            # New dump rows stay inactive until explicitly shown (admin / activate_legacy_catalog).
+            hidden_from_catalog=True,
         )
         db.add(item)
         db.commit()
