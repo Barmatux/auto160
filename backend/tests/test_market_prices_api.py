@@ -51,6 +51,10 @@ def test_require_market_key_enforces_ip_allowlist(monkeypatch):
 
 
 def test_to_out_maps_fields():
+    from datetime import date
+
+    from app.exchange_rates import NbrbRates
+
     row = SimpleNamespace(
         brand="BMW",
         model="X1",
@@ -66,11 +70,37 @@ def test_to_out_maps_fields():
         window_end=datetime(2026, 9, 1),
         computed_at=datetime(2026, 9, 1, 12, 0, 0),
     )
-    out = _to_out(row)
+    rates = NbrbRates(rate_date=date(2026, 9, 12), usd_rate=3.25, usd_scale=1, rub_rate=3.5, rub_scale=100)
+    out = _to_out(row, rates)
     assert out.brand == "BMW"
     assert out.currency == "BYN"
     assert out.window_days == 90
     assert out.sample_count == 14
+    assert out.avg_price_usd == Decimal("5692.31")
+    assert out.min_price_usd == Decimal("3692.31")
+    assert out.max_price_usd == Decimal("7384.62")
+
+
+def test_to_out_usd_null_without_rates():
+    row = SimpleNamespace(
+        brand="BMW",
+        model="X1",
+        year=2015,
+        window_days=90,
+        avg_price_byn=Decimal("18500.00"),
+        min_price_byn=Decimal("12000.00"),
+        max_price_byn=Decimal("24000.00"),
+        sample_count=14,
+        sample_count_raw=16,
+        outliers_removed=2,
+        window_start=datetime(2026, 6, 1),
+        window_end=datetime(2026, 9, 1),
+        computed_at=datetime(2026, 9, 1, 12, 0, 0),
+    )
+    out = _to_out(row, None)
+    assert out.avg_price_usd is None
+    assert out.min_price_usd is None
+    assert out.max_price_usd is None
 
 
 class _FakeQuery:

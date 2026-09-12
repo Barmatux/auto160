@@ -52,6 +52,10 @@ curl -sS -H "X-Api-Key: $MARKET_PRICES_API_KEY" \
   "total": 1,
   "limit": 100,
   "offset": 0,
+  "usd_rate": 3.25,
+  "usd_scale": 1,
+  "usd_rate_date": "2026-09-12T00:00:00",
+  "usd_rate_source": "НБ РБ",
   "items": [
     {
       "brand": "BMW",
@@ -61,6 +65,9 @@ curl -sS -H "X-Api-Key: $MARKET_PRICES_API_KEY" \
       "avg_price_byn": "18500.00",
       "min_price_byn": "12000.00",
       "max_price_byn": "24000.00",
+      "avg_price_usd": "5692.31",
+      "min_price_usd": "3692.31",
+      "max_price_usd": "7384.62",
       "sample_count": 14,
       "sample_count_raw": 16,
       "outliers_removed": 2,
@@ -73,4 +80,4 @@ curl -sS -H "X-Api-Key: $MARKET_PRICES_API_KEY" \
 }
 ```
 
-Prices are BYN market averages from active av.by-synced listings (IQR outlier trim). Empty `items` means no row met `min_samples` for that key/window.
+Prices are stored/averaged in BYN from active av.by-synced listings (IQR outlier trim). USD fields are converted on each request via the official NBRB rate (`usd_rate` / `usd_scale`); if the rate is unavailable, USD fields are `null`. Empty `items` means no row met `min_samples` for that key/window.

@@ -481,6 +481,9 @@ class MarketAvgPriceOut(BaseModel):
     avg_price_byn: Decimal
     min_price_byn: Decimal | None = None
     max_price_byn: Decimal | None = None
+    avg_price_usd: Decimal | None = None
+    min_price_usd: Decimal | None = None
+    max_price_usd: Decimal | None = None
     sample_count: int
     sample_count_raw: int = 0
     outliers_removed: int = 0
@@ -498,3 +501,8 @@ class MarketAvgPriceListResponse(BaseModel):
     limit: int
     offset: int
     items: list[MarketAvgPriceOut]
+    # NBRB FX used for USD fields (null if rate fetch failed).
+    usd_rate: float | None = None
+    usd_scale: int | None = None
+    usd_rate_date: datetime | None = None
+    usd_rate_source: str | None = "НБ РБ"

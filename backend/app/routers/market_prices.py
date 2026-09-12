@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import ipaddress
+from datetime import datetime
+from decimal import Decimal, ROUND_HALF_UP
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, status
@@ -11,6 +13,7 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.db import get_db
+from app.exchange_rates import NbrbRates, fetch_nbrb_rates
 from app.listing_avg_prices import DEFAULT_MIN_SAMPLES, DEFAULT_WINDOWS
 from app.listing_catalog_link import canonical_model_name, normalize_match_text
 from app.models import ListingAvgPrice
@@ -19,6 +22,16 @@ from app.schemas import MarketAvgPriceListResponse, MarketAvgPriceOut
 router = APIRouter(prefix="/api/v1/market", tags=["market"])
 
 ALLOWED_WINDOWS = frozenset(DEFAULT_WINDOWS)
+
+
+def _money(value: float) -> Decimal:
+    return Decimal(str(value)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+
+def _byn_to_usd(amount_byn: Decimal | float | None, rates: NbrbRates | None) -> Decimal | None:
+    if amount_byn is None or rates is None:
+        return None
+    return _money(rates.convert_byn_to_usd(float(amount_byn)))
 
 
 def _parse_allowed_networks() -> list[ipaddress.IPv4Network | ipaddress.IPv6Network]:
@@ -74,7 +87,7 @@ def require_market_prices_access(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Client IP not allowed")
 
 
-def _to_out(row: ListingAvgPrice) -> MarketAvgPriceOut:
+def _to_out(row: ListingAvgPrice, rates: NbrbRates | None = None) -> MarketAvgPriceOut:
     return MarketAvgPriceOut(
         brand=row.brand,
         model=row.model,
@@ -83,6 +96,9 @@ def _to_out(row: ListingAvgPrice) -> MarketAvgPriceOut:
         avg_price_byn=row.avg_price_byn,
         min_price_byn=row.min_price_byn,
         max_price_byn=row.max_price_byn,
+        avg_price_usd=_byn_to_usd(row.avg_price_byn, rates),
+        min_price_usd=_byn_to_usd(row.min_price_byn, rates),
+        max_price_usd=_byn_to_usd(row.max_price_byn, rates),
         sample_count=row.sample_count,
         sample_count_raw=row.sample_count_raw,
         outliers_removed=row.outliers_removed,
@@ -91,6 +107,22 @@ def _to_out(row: ListingAvgPrice) -> MarketAvgPriceOut:
         window_end=row.window_end,
         computed_at=row.computed_at,
     )
+
+
+def _fx_meta(rates: NbrbRates | None) -> dict:
+    if rates is None:
+        return {
+            "usd_rate": None,
+            "usd_scale": None,
+            "usd_rate_date": None,
+            "usd_rate_source": None,
+        }
+    return {
+        "usd_rate": rates.usd_rate,
+        "usd_scale": rates.usd_scale,
+        "usd_rate_date": datetime.combine(rates.rate_date, datetime.min.time()),
+        "usd_rate_source": rates.source_label,
+    }
 
 
 def _filtered_query(
@@ -160,11 +192,13 @@ def list_avg_prices(
         .limit(limit)
         .all()
     )
+    rates = fetch_nbrb_rates()
     return MarketAvgPriceListResponse(
         total=total,
         limit=limit,
         offset=offset,
-        items=[_to_out(row) for row in rows],
+        items=[_to_out(row, rates) for row in rows],
+        **_fx_meta(rates),
     )
 
 
@@ -188,5 +222,12 @@ def lookup_avg_prices(
         min_samples=min_samples,
     )
     rows = query.order_by(ListingAvgPrice.window_days.asc()).all()
-    items = [_to_out(row) for row in rows]
-    return MarketAvgPriceListResponse(total=len(items), limit=len(items), offset=0, items=items)
+    rates = fetch_nbrb_rates()
+    items = [_to_out(row, rates) for row in rows]
+    return MarketAvgPriceListResponse(
+        total=len(items),
+        limit=len(items),
+        offset=0,
+        items=items,
+        **_fx_meta(rates),
+    )
