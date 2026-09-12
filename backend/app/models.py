@@ -104,7 +104,13 @@ class ListingAvgPrice(Base):
 
     __tablename__ = "listing_avg_prices"
     __table_args__ = (
-        UniqueConstraint("brand", "model", "year", name="uq_listing_avg_prices_brand_model_year"),
+        UniqueConstraint(
+            "brand",
+            "model",
+            "year",
+            "window_days",
+            name="uq_listing_avg_prices_brand_model_year_window",
+        ),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
@@ -115,7 +121,9 @@ class ListingAvgPrice(Base):
     min_price_byn: Mapped[float | None] = mapped_column(Numeric(12, 2), nullable=True)
     max_price_byn: Mapped[float | None] = mapped_column(Numeric(12, 2), nullable=True)
     sample_count: Mapped[int] = mapped_column(Integer, default=0)
-    window_days: Mapped[int] = mapped_column(Integer, default=90)
+    sample_count_raw: Mapped[int] = mapped_column(Integer, default=0)
+    outliers_removed: Mapped[int] = mapped_column(Integer, default=0)
+    window_days: Mapped[int] = mapped_column(Integer, default=90, index=True)
     window_start: Mapped[datetime] = mapped_column(DateTime)
     window_end: Mapped[datetime] = mapped_column(DateTime)
     computed_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)

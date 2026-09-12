@@ -56,18 +56,21 @@ def run_price_refresh(*, delay: float = 0.12) -> int:
     return result.returncode
 
 
-def run_avg_price_recompute(*, window_days: int = 90) -> int:
+def run_avg_price_recompute(*, window_days: int | None = None) -> int:
     db = SessionLocal()
     try:
-        stats = recompute_listing_avg_prices(db, window_days=window_days)
+        kwargs = {}
+        if window_days is not None:
+            kwargs["windows"] = (window_days,)
+        stats = recompute_listing_avg_prices(db, **kwargs)
     except Exception:
         logger.exception("avg-prices-recompute failed")
         return 1
     finally:
         db.close()
     logger.info(
-        "avg-prices: window_days=%s scanned=%s groups=%s written=%s",
-        stats.window_days,
+        "avg-prices: windows=%s scanned=%s groups=%s written=%s",
+        list(stats.window_days),
         stats.listings_scanned,
         stats.groups,
         stats.rows_written,
