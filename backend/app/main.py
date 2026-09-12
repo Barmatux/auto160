@@ -7,7 +7,7 @@ from app.avby_session import warm_vin_test_session
 from app.db import SessionLocal, engine
 from app.logging_setup import ensure_uvicorn_file_logging, setup_logging
 from app.middleware.analytics import AnalyticsMiddleware
-from app.routers import admin, auth, catalog_photos, internal_catalog, listings, media, pages
+from app.routers import admin, auth, catalog_photos, internal_catalog, listings, market_prices, media, pages
 from app.storage import ensure_bucket_exists
 
 setup_logging("api")
@@ -41,6 +41,7 @@ app.include_router(auth.router)
 app.include_router(listings.router)
 app.include_router(catalog_photos.router)
 app.include_router(internal_catalog.router)
+app.include_router(market_prices.router)
 app.include_router(media.router)
 app.include_router(pages.router)
 app.include_router(admin.router)

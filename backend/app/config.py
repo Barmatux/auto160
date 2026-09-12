@@ -24,6 +24,10 @@ class Settings(BaseSettings):
     internal_catalog_api_key: str = ""
     # Comma-separated IPs/CIDRs; empty = skip app-level IP check (rely on nginx + key).
     internal_catalog_allowed_ips: str = ""
+    # External Market Prices API (avg BYN by brand/model/year). Empty = deny all.
+    market_prices_api_key: str = ""
+    # Optional IP allowlist for market API; empty = any IP with valid key.
+    market_prices_allowed_ips: str = ""
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

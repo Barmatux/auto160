@@ -471,3 +471,30 @@ class CatalogGapOut(BaseModel):
 class CatalogGapBatchResponse(BaseModel):
     created: int
     gaps: list[CatalogGapOut]
+
+
+class MarketAvgPriceOut(BaseModel):
+    brand: str
+    model: str
+    year: int
+    window_days: int
+    avg_price_byn: Decimal
+    min_price_byn: Decimal | None = None
+    max_price_byn: Decimal | None = None
+    sample_count: int
+    sample_count_raw: int = 0
+    outliers_removed: int = 0
+    currency: str = "BYN"
+    window_start: datetime
+    window_end: datetime
+    computed_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class MarketAvgPriceListResponse(BaseModel):
+    total: int
+    limit: int
+    offset: int
+    items: list[MarketAvgPriceOut]
