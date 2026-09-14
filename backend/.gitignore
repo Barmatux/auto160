@@ -6,6 +6,9 @@ app.db
 logs/
 ../logs/
 .env
+.env.yandex
+.env.yandex.local
+.internal-catalog-api-key
 .venv/
 venv/
 .pytest_cache/

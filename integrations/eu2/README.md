@@ -9,6 +9,8 @@
 3. Apply nginx (`scripts/nginx-auto160.conf`) so `/api/v1/internal/` is only reachable from private nets.
 4. Restart API.
 
+Key on prod is stored in `backend/.env.vm` as `INTERNAL_CATALOG_API_KEY` (and a local copy at `backend/.internal-catalog-api-key` on the VM for ops). Give the same value to eu2 as `AUTO160_CATALOG_API_KEY`.
+
 ## eu2 side
 
 1. Copy `auto160_catalog_client.py` into the eu2 codebase.
