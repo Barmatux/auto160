@@ -6,6 +6,9 @@ import pytest
 from app.listing_enrichment import (
     ListingEnrichmentStats,
     RatingOneTarget,
+    VinCheckPageStats,
+    build_vin_check_page_stats,
+    format_vin_check_stats_summary,
     listing_matches_rating_one,
     normalize_catalog_name,
     perform_listing_vin_check,
@@ -72,6 +75,33 @@ def test_admin_vin_check_page_requires_login(client):
     response = client.get("/admin/vin-check", follow_redirects=False)
     assert response.status_code == 302
     assert response.headers["location"] == "/login"
+
+
+def test_format_vin_check_stats_summary():
+    stats = VinCheckPageStats(
+        checks_launched=5,
+        checks_success=5,
+        vin_by_model=(("Renault Koleos", 1), ("VW Tiguan", 2)),
+    )
+    text = format_vin_check_stats_summary(stats)
+    assert "По 5 vin запущена проверка." in text
+    assert "Успешно 5." in text
+    assert "Renault Koleos - 1" in text
+    assert "VW Tiguan - 2" in text
+
+
+def test_build_vin_check_page_stats_counts_success_by_model():
+    class Listing:
+        avby_id = 123
+        brand = "VW"
+        model = "Tiguan"
+        vin = "WVWZZZ1KZAW123456"
+        vin_fetched_at = object()
+
+    stats = build_vin_check_page_stats([Listing()])
+    assert stats.checks_launched == 1
+    assert stats.checks_success == 1
+    assert stats.vin_by_model == (("VW Tiguan", 1),)
 
 
 def test_admin_vin_check_api_requires_auth(client):

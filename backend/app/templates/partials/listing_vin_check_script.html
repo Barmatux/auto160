@@ -33,6 +33,55 @@
     });
   }
 
+  const statsBar = document.querySelector("[data-vin-check-stats]");
+  let statsState = { launched: 0, success: 0, byModel: {} };
+  if (statsBar) {
+    try {
+      statsState = JSON.parse(statsBar.dataset.vinCheckStatsState || "{}");
+    } catch (_) {
+      statsState = { launched: 0, success: 0, byModel: {} };
+    }
+    if (!statsState.byModel || Array.isArray(statsState.byModel)) {
+      statsState.byModel = statsState.byModel || {};
+    }
+  }
+
+  function formatVinCheckStatsSummary(state) {
+    const modelEntries = Object.entries(state.byModel || {}).sort((a, b) => {
+      if (b[1] !== a[1]) return b[1] - a[1];
+      return a[0].localeCompare(b[0], "ru");
+    });
+    const modelText = modelEntries.length
+      ? modelEntries.map(([label, count]) => `${label} - ${count}`).join(", ")
+      : "—";
+    return `По ${state.launched || 0} vin запущена проверка. Успешно ${state.success || 0}. Собрано VIN по : ${modelText}`;
+  }
+
+  function renderVinCheckStatsBar() {
+    if (!statsBar) return;
+    statsBar.textContent = formatVinCheckStatsSummary(statsState);
+    statsBar.dataset.vinCheckStatsState = JSON.stringify(statsState);
+  }
+
+  function markVinCheckLaunched(block) {
+    if (!block || block.dataset.vinLaunched === "1") return;
+    block.dataset.vinLaunched = "1";
+    statsState.launched = (statsState.launched || 0) + 1;
+    renderVinCheckStatsBar();
+  }
+
+  function recordVinCheckSuccess(block) {
+    if (!block || block.dataset.vinSuccess === "1") return;
+    block.dataset.vinSuccess = "1";
+    statsState.success = (statsState.success || 0) + 1;
+    const label = (block.dataset.modelLabel || "").trim();
+    if (label) {
+      statsState.byModel = statsState.byModel || {};
+      statsState.byModel[label] = (statsState.byModel[label] || 0) + 1;
+    }
+    renderVinCheckStatsBar();
+  }
+
   function showPopover(button, popover, message) {
     if (!button || !popover) return;
     popover.textContent = message || "";
@@ -56,6 +105,7 @@
     const dataErrorPopover = block.querySelector(".vin-check-data-error-popover");
 
     if (data.vin) {
+      recordVinCheckSuccess(block);
       block.dataset.vin = data.vin;
       if (vinBtn) vinBtn.remove();
       if (!vinCode) {
@@ -138,6 +188,11 @@
     if (!listingId) return;
     if (auto && block.dataset.vin && block.dataset.releaseDate) return;
     if (auto && !block.dataset.vin) return;
+
+    const isVinFetch = !block.dataset.vin;
+    if (isVinFetch) {
+      markVinCheckLaunched(block);
+    }
 
     block.dataset.loading = "1";
     if (vinBtn) {

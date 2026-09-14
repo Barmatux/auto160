@@ -26,6 +26,7 @@
     </div>
   {% endif %}
   <h3><a href="/listings/{{ listing.id }}">{{ listing.title | listing_display_title }}</a></h3>
+  <p class="hint listing-vin-check-added"><strong>Добавлено:</strong> {{ listing.created_at.strftime('%d.%m.%Y %H:%M') }}</p>
   <p><strong>{{ listing.brand }} {{ listing.model }}</strong> · {{ listing.year }}{% if listing.generation %} · {{ listing.generation }}{% endif %}</p>
   <p><strong>Пробег:</strong> {{ listing.mileage | format_mileage_km }} км</p>
   <p><strong>Город:</strong> {{ listing.city }}</p>
@@ -58,7 +59,9 @@
     <div
       class="listing-vin-check-block"
       data-listing-id="{{ listing.id }}"
-      {% if listing.vin %}data-vin="{{ listing.vin }}"{% endif %}
+      data-model-label="{{ listing.brand }} {{ listing.model }}"
+      {% if listing_vin_check_launched.get(listing.id) %}data-vin-launched="1"{% endif %}
+      {% if listing.vin %}data-vin="{{ listing.vin }}" data-vin-success="1"{% endif %}
       {% if customs and customs.found and customs.release_date %}data-release-date="{{ customs.release_date }}"{% endif %}
       {% if customs and customs.found and not customs.release_date %}data-customs-error="Найдено в ГТК, дата не распознана"{% endif %}
       {% if customs and not customs.found %}data-customs-error="Не найдено в базе ГТК"{% endif %}
