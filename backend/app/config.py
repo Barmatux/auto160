@@ -18,6 +18,12 @@ class Settings(BaseSettings):
     s3_bucket: str = "auto160-media"
     s3_region: str = "us-east-1"
     s3_presign_expires_seconds: int = 3600
+    # Optional separate Yandex bucket for Autoplius listing photos.
+    autoplius_s3_endpoint_url: str = ""
+    autoplius_s3_access_key: str = ""
+    autoplius_s3_secret_key: str = ""
+    autoplius_s3_bucket: str = "autoplius-media"
+    autoplius_s3_region: str = "ru-central1"
     public_site_url: str = ""
     yandex_metrika_id: str = ""
     # Internal Catalog API for colocated services (eu2.by). Empty = deny all.
