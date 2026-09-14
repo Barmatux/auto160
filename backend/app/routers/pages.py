@@ -82,7 +82,10 @@ from app.logging_setup import LOG_SERVICES, LOG_SERVICE_LABELS, format_log_time,
 from app.metrics import yandex_metrika_context
 from app.listing_enrichment import (
     build_listing_customs_map,
+    build_vin_check_page_stats,
+    format_vin_check_stats_summary,
     get_listing_customs_summary,
+    listing_vin_check_was_launched,
     paginate_rating_one_listings,
 )
 from app.listing_catalog_link import (
@@ -3539,9 +3542,15 @@ def admin_vin_check_page(
             noindex=True,
         ),
     )
+    vin_check_stats = build_vin_check_page_stats(listings)
     context["listings"] = listings
     context["listing_gallery_urls"] = resolve_listing_gallery_urls_map(listings, limit=5)
     context["listing_customs_map"] = build_listing_customs_map(db, listings) if listings else {}
+    context["vin_check_stats"] = vin_check_stats
+    context["vin_check_stats_summary"] = format_vin_check_stats_summary(vin_check_stats)
+    context["listing_vin_check_launched"] = {
+        listing.id: listing_vin_check_was_launched(listing) for listing in listings
+    }
     context["total"] = total
     context["page"] = page
     context["total_pages"] = total_pages

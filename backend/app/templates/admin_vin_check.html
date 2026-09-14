@@ -6,6 +6,11 @@
     <div class="catalog-main-head">
       <h1>VIN CHECK</h1>
       <p class="hint">Новые объявления моделей с рейтингом 1 · от новых к старым. Ручная проверка использует VIN-аккаунты даже вне авторотации.</p>
+      <p
+        class="admin-vin-check-stats"
+        data-vin-check-stats
+        data-vin-check-stats-state='{{ {"launched": vin_check_stats.checks_launched, "success": vin_check_stats.checks_success, "byModel": dict(vin_check_stats.vin_by_model)} | tojson }}'
+      >{{ vin_check_stats_summary }}</p>
     </div>
 
     {% if listings %}

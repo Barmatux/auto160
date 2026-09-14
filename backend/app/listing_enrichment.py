@@ -396,6 +396,60 @@ def perform_listing_vin_check(
     return ListingVinCheckResult(vin_error=vin_error)
 
 
+def format_vin_check_model_label(listing: CarListing) -> str:
+    brand = (listing.brand or "").strip()
+    model = (listing.model or "").strip()
+    return f"{brand} {model}".strip()
+
+
+def listing_vin_check_was_launched(listing: CarListing) -> bool:
+    if not listing.avby_id:
+        return False
+    return listing.vin_fetched_at is not None or listing_has_saved_vin(listing)
+
+
+@dataclass(frozen=True)
+class VinCheckPageStats:
+    checks_launched: int
+    checks_success: int
+    vin_by_model: tuple[tuple[str, int], ...]
+
+
+def build_vin_check_page_stats(listings: list[CarListing]) -> VinCheckPageStats:
+    launched = 0
+    success = 0
+    by_model: dict[str, int] = {}
+    for listing in listings:
+        if not listing.avby_id:
+            continue
+        if listing_vin_check_was_launched(listing):
+            launched += 1
+        if listing_has_saved_vin(listing):
+            success += 1
+            label = format_vin_check_model_label(listing)
+            if label:
+                by_model[label] = by_model.get(label, 0) + 1
+    sorted_models = sorted(by_model.items(), key=lambda item: (-item[1], item[0].casefold()))
+    return VinCheckPageStats(
+        checks_launched=launched,
+        checks_success=success,
+        vin_by_model=tuple(sorted_models),
+    )
+
+
+def format_vin_check_stats_summary(stats: VinCheckPageStats) -> str:
+    parts = [
+        f"По {stats.checks_launched} vin запущена проверка.",
+        f"Успешно {stats.checks_success}.",
+    ]
+    if stats.vin_by_model:
+        model_bits = ", ".join(f"{label} - {count}" for label, count in stats.vin_by_model)
+        parts.append(f"Собрано VIN по : {model_bits}")
+    else:
+        parts.append("Собрано VIN по : —")
+    return " ".join(parts)
+
+
 def paginate_rating_one_listings(
     db: Session,
     *,
