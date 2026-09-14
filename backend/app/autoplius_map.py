@@ -9,9 +9,14 @@ from datetime import date, datetime, timezone
 from decimal import Decimal, ROUND_HALF_UP
 from typing import Any
 from urllib.error import URLError
+from urllib.parse import parse_qs, unquote, urlparse
 from urllib.request import Request, urlopen
 
 NBRB_EUR_URL = "https://api.nbrb.by/exrates/rates/EUR?parammode=2"
+
+# Photos live in Yandex Object Storage (private bucket), not the scrape /media proxy.
+DEFAULT_MEDIA_BUCKET = "autoplius-media"
+DEFAULT_MEDIA_ENDPOINT = "https://storage.yandexcloud.net"
 
 # Titles look like: "BMW 520, 2.0 l., Универсал 2019-12 m.,  | A32155778"
 _TITLE_SPLIT_RE = re.compile(r"\s*,\s*")
@@ -62,6 +67,8 @@ class AutopliusMappedListing:
     engine_power_hp: int | None
     cover_photo_url: str | None
     photo_urls: list[str] = field(default_factory=list)
+    photo_storage_keys: list[str] = field(default_factory=list)
+    media_bucket: str = DEFAULT_MEDIA_BUCKET
     description: str | None = None
     phone: str | None = None
     vin_masked: str | None = None
@@ -164,25 +171,75 @@ def extract_engine_power_hp(row: dict[str, Any]) -> int | None:
     return None
 
 
-def absolute_media_url(path: str | None, *, media_base: str) -> str | None:
+def extract_storage_key(path: str | None) -> str | None:
+    """Normalize scrape media paths to an object key inside autoplius-media."""
     if not path:
         return None
     text = str(path).strip()
     if not text:
         return None
+    if text.startswith("s3://"):
+        # s3://autoplius-media/listings/...
+        without = text[5:]
+        if "/" not in without:
+            return None
+        _bucket, key = without.split("/", 1)
+        return unquote(key).lstrip("/") or None
+    if "media/object" in text or "key=" in text:
+        parsed = urlparse(text if "://" in text else f"http://local{text if text.startswith('/') else '/' + text}")
+        qs = parse_qs(parsed.query)
+        if qs.get("key"):
+            return unquote(qs["key"][0]).lstrip("/") or None
     if text.startswith("http://") or text.startswith("https://"):
-        return text
-    base = media_base.rstrip("/")
-    if not text.startswith("/"):
-        text = "/" + text
-    return base + text
+        parsed = urlparse(text)
+        # https://storage.yandexcloud.net/autoplius-media/listings/...
+        parts = [p for p in parsed.path.split("/") if p]
+        if len(parts) >= 2 and parts[0] in {DEFAULT_MEDIA_BUCKET, "autoplius-media"}:
+            return "/".join(parts[1:])
+        return parsed.path.lstrip("/") or None
+    return text.lstrip("/")
+
+
+def absolute_media_url(
+    path: str | None,
+    *,
+    media_base: str | None = None,
+    media_bucket: str = DEFAULT_MEDIA_BUCKET,
+    media_endpoint: str = DEFAULT_MEDIA_ENDPOINT,
+) -> str | None:
+    """Build a fetchable URL for a photo.
+
+    Prefer Yandex path-style URL for keys in ``autoplius-media``.
+    If ``media_base`` is set (legacy scrape proxy), keep that mode.
+    """
+    if media_base:
+        if not path:
+            return None
+        text = str(path).strip()
+        if not text:
+            return None
+        if text.startswith("http://") or text.startswith("https://"):
+            return text
+        base = media_base.rstrip("/")
+        if not text.startswith("/"):
+            text = "/" + text
+        return base + text
+
+    key = extract_storage_key(path)
+    if not key:
+        return None
+    endpoint = media_endpoint.rstrip("/")
+    bucket = (media_bucket or DEFAULT_MEDIA_BUCKET).strip()
+    return f"{endpoint}/{bucket}/{key}"
 
 
 def map_autoplius_row(
     row: dict[str, Any],
     *,
     eur_rate: EurRate | None,
-    media_base: str,
+    media_base: str | None = None,
+    media_bucket: str = DEFAULT_MEDIA_BUCKET,
+    media_endpoint: str = DEFAULT_MEDIA_ENDPOINT,
     max_hp: int | None = 160,
     require_detail: bool = True,
 ) -> AutopliusMappedListing:
@@ -200,8 +257,32 @@ def map_autoplius_row(
     photo_urls_raw = row.get("photo_urls") or []
     if not isinstance(photo_urls_raw, list):
         photo_urls_raw = []
-    photo_urls = [u for u in (absolute_media_url(p, media_base=media_base) for p in photo_urls_raw) if u]
-    cover = absolute_media_url(row.get("photo_url"), media_base=media_base) or (photo_urls[0] if photo_urls else None)
+    photo_keys = [k for k in (extract_storage_key(p) for p in photo_urls_raw) if k]
+    cover_key = extract_storage_key(row.get("photo_url"))
+    if cover_key and cover_key not in photo_keys:
+        photo_keys = [cover_key, *photo_keys]
+    photo_urls = [
+        u
+        for u in (
+            absolute_media_url(
+                key,
+                media_base=media_base,
+                media_bucket=media_bucket,
+                media_endpoint=media_endpoint,
+            )
+            for key in photo_keys
+        )
+        if u
+    ]
+    cover = (
+        absolute_media_url(
+            cover_key or (photo_keys[0] if photo_keys else None),
+            media_base=media_base,
+            media_bucket=media_bucket,
+            media_endpoint=media_endpoint,
+        )
+        or (photo_urls[0] if photo_urls else None)
+    )
 
     skip: str | None = None
     if not external_id:
@@ -239,6 +320,8 @@ def map_autoplius_row(
         engine_power_hp=hp,
         cover_photo_url=cover,
         photo_urls=photo_urls,
+        photo_storage_keys=photo_keys,
+        media_bucket=media_bucket,
         description=description,
         phone=(row.get("phone") or None),
         vin_masked=(row.get("vin_masked") or None),

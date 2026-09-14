@@ -24,10 +24,9 @@ if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 os.chdir(ROOT_DIR)
 
-from app.autoplius_map import fetch_eur_rate, map_autoplius_row
+from app.autoplius_map import DEFAULT_MEDIA_BUCKET, DEFAULT_MEDIA_ENDPOINT, fetch_eur_rate, map_autoplius_row
 
 DEFAULT_DSN = "postgresql://scrape:scrape@10.129.0.33:5433/scrape"
-DEFAULT_MEDIA_BASE = "http://10.129.0.33:8000"
 
 SELECT_SQL = """
 SELECT
@@ -63,7 +62,20 @@ ORDER BY id DESC
 def main() -> int:
     parser = argparse.ArgumentParser(description="Dry-run Autoplius → Auto160 mapping")
     parser.add_argument("--dsn", default=os.getenv("AUTOPLIUS_SCRAPE_DSN", DEFAULT_DSN))
-    parser.add_argument("--media-base", default=os.getenv("AUTOPLIUS_MEDIA_BASE", DEFAULT_MEDIA_BASE))
+    parser.add_argument(
+        "--media-bucket",
+        default=os.getenv("AUTOPLIUS_MEDIA_BUCKET", DEFAULT_MEDIA_BUCKET),
+        help="Yandex Object Storage bucket with listing photos",
+    )
+    parser.add_argument(
+        "--media-endpoint",
+        default=os.getenv("AUTOPLIUS_MEDIA_ENDPOINT", DEFAULT_MEDIA_ENDPOINT),
+    )
+    parser.add_argument(
+        "--media-base",
+        default=os.getenv("AUTOPLIUS_MEDIA_BASE", ""),
+        help="Optional legacy scrape /media proxy base; empty = use Yandex bucket URLs",
+    )
     parser.add_argument("--source", default="autoplius")
     parser.add_argument("--status", default="active")
     parser.add_argument("--limit", type=int, default=0, help="0 = all matching rows")
@@ -80,6 +92,11 @@ def main() -> int:
         print(f"nbrb_eur rate={eur.rate} scale={eur.scale} date={eur.rate_date.isoformat()}")
     else:
         print("nbrb_eur UNAVAILABLE (price_byn will be null)")
+    media_base = (args.media_base or "").strip() or None
+    print(
+        f"media bucket={args.media_bucket} endpoint={args.media_endpoint}"
+        + (f" proxy={media_base}" if media_base else " (yandex path-style URLs)")
+    )
 
     conn = psycopg2.connect(args.dsn)
     try:
@@ -106,7 +123,9 @@ def main() -> int:
             mapped = map_autoplius_row(
                 dict(row),
                 eur_rate=eur,
-                media_base=args.media_base,
+                media_base=media_base,
+                media_bucket=args.media_bucket,
+                media_endpoint=args.media_endpoint,
                 max_hp=max_hp,
                 require_detail=not args.include_undetailed,
             )
@@ -144,6 +163,8 @@ def main() -> int:
                     "price_byn": item["price_byn"],
                     "city": item["city"],
                     "photos": len(item["photo_urls"]),
+                    "cover": item["cover_photo_url"],
+                    "storage_key": (item.get("photo_storage_keys") or [None])[0],
                     "url": item["source_url"],
                 },
                 ensure_ascii=False,

@@ -47,12 +47,25 @@ def test_map_skips_overpowered():
         "transmission": "Автоматическая",
         "engine_liters": 2.0,
         "url": "https://example.test/1",
-        "photo_url": "/media/object?key=a.jpg",
-        "photo_urls": ["/media/object?key=a.jpg"],
+        "photo_url": "/media/object?key=listings%2F1%2F000_a.jpg",
+        "photo_urls": ["/media/object?key=listings%2F1%2F000_a.jpg"],
         "detail_scraped": True,
         "raw": {"parameters": {"Двигатель": "1995 см³, 190 Л.С."}},
         "parameters": {},
     }
-    mapped = map_autoplius_row(row, eur_rate=rate, media_base="http://media.test", max_hp=160)
+    mapped = map_autoplius_row(row, eur_rate=rate, max_hp=160)
     assert mapped.skip_reason == "hp_over_160"
     assert mapped.price_byn == Decimal("70000.00")
+    assert mapped.photo_storage_keys == ["listings/1/000_a.jpg"]
+    assert mapped.cover_photo_url == (
+        "https://storage.yandexcloud.net/autoplius-media/listings/1/000_a.jpg"
+    )
+
+
+def test_extract_storage_key_from_media_proxy():
+    from app.autoplius_map import extract_storage_key
+
+    assert (
+        extract_storage_key("/media/object?key=listings%2F29526558%2F000_x.jpg")
+        == "listings/29526558/000_x.jpg"
+    )
