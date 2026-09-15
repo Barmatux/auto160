@@ -7,6 +7,7 @@
         <th>Дата добавления</th>
         <th>VIN</th>
         <th>Дата ввоза в РБ</th>
+        <th>Аккаунт</th>
       </tr>
     </thead>
     <tbody data-vin-found-table-body>
@@ -34,7 +35,12 @@
             {% endif %}
           </td>
           <td class="admin-vin-found-added">{{ row.listing.created_at.strftime('%d.%m.%Y %H:%M') }}</td>
-          <td><code class="admin-vin-code">{{ row.listing.vin }}</code></td>
+          <td class="admin-vin-code-cell">
+            <button type="button" class="admin-vin-code-btn" data-vin="{{ row.listing.vin }}">{{ row.listing.vin }}</button>
+            <span class="admin-vin-copy-popover" hidden>
+              <button type="button" class="admin-vin-copy-action">Скопировать</button>
+            </span>
+          </td>
           <td class="admin-vin-import-date">
             {% if row.import_date %}
               <strong>{{ row.import_date }}</strong>
@@ -42,9 +48,16 @@
               —
             {% endif %}
           </td>
+          <td class="admin-vin-account-cell">
+            {% if row.account_label %}
+              {{ row.account_label }}
+            {% else %}
+              —
+            {% endif %}
+          </td>
         </tr>
       {% else %}
-        <tr><td colspan="5">Пока нет собранных VIN</td></tr>
+        <tr><td colspan="6">Пока нет собранных VIN</td></tr>
       {% endfor %}
     </tbody>
   </table>

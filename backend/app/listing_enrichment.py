@@ -450,6 +450,41 @@ def format_vin_check_stats_summary(stats: VinCheckPageStats) -> str:
     return " ".join(parts)
 
 
+def build_listing_vin_account_labels(db: Session, listing_ids: list[int]) -> dict[int, str]:
+    if not listing_ids:
+        return {}
+
+    from app.avby_accounts import account_display_login
+    from app.models import AvbyServiceAccount, AvbyVinFetch
+
+    fetches = (
+        db.query(AvbyVinFetch)
+        .filter(AvbyVinFetch.listing_id.in_(listing_ids))
+        .order_by(AvbyVinFetch.created_at.desc())
+        .all()
+    )
+    latest_account_id: dict[int, int] = {}
+    for fetch in fetches:
+        if fetch.listing_id is None or fetch.listing_id in latest_account_id:
+            continue
+        latest_account_id[fetch.listing_id] = fetch.account_id
+
+    if not latest_account_id:
+        return {}
+
+    accounts = {
+        row.id: row
+        for row in db.query(AvbyServiceAccount)
+        .filter(AvbyServiceAccount.id.in_(latest_account_id.values()))
+        .all()
+    }
+    return {
+        listing_id: account_display_login(accounts[account_id])
+        for listing_id, account_id in latest_account_id.items()
+        if account_id in accounts
+    }
+
+
 def build_vin_found_rows(
     db: Session,
     listings: list[CarListing],
@@ -461,6 +496,7 @@ def build_vin_found_rows(
         return []
     cover_urls = resolve_cover_urls(listings, db)
     customs_map = build_customs_map(db, listings)
+    account_labels = build_listing_vin_account_labels(db, [listing.id for listing in listings])
     rows: list[dict] = []
     for listing in listings:
         customs = customs_map.get(listing.id)
@@ -469,17 +505,18 @@ def build_vin_found_rows(
                 "listing": listing,
                 "photo_url": cover_urls.get(listing.id),
                 "import_date": customs.release_date if customs and customs.found and customs.release_date else None,
+                "account_label": account_labels.get(listing.id),
             }
         )
     return rows
 
 
-def list_rating_one_listings_with_vin(db: Session) -> list[CarListing]:
+def count_rating_one_listings_with_vin(db: Session) -> int:
     targets = build_rating_one_targets(db)
     if not targets:
-        return []
+        return 0
 
-    matched: list[CarListing] = []
+    total = 0
     query = (
         db.query(CarListing)
         .filter(CarListing.status == ListingStatus.published)
@@ -489,8 +526,42 @@ def list_rating_one_listings_with_vin(db: Session) -> list[CarListing]:
         if not listing_matches_rating_one(listing, targets):
             continue
         if listing_has_saved_vin(listing):
+            total += 1
+    return total
+
+
+def paginate_rating_one_listings_with_vin(
+    db: Session,
+    *,
+    page: int = 1,
+    page_size: int = 100,
+) -> tuple[list[CarListing], int]:
+    targets = build_rating_one_targets(db)
+    if not targets:
+        return [], 0
+
+    offset = max(page - 1, 0) * page_size
+    matched: list[CarListing] = []
+    total = 0
+    query = (
+        db.query(CarListing)
+        .filter(CarListing.status == ListingStatus.published)
+        .order_by(CarListing.created_at.desc())
+    )
+    for listing in query.yield_per(200):
+        if not listing_matches_rating_one(listing, targets):
+            continue
+        if not listing_has_saved_vin(listing):
+            continue
+        if total >= offset and len(matched) < page_size:
             matched.append(listing)
-    return matched
+        total += 1
+    return matched, total
+
+
+def list_rating_one_listings_with_vin(db: Session) -> list[CarListing]:
+    listings, _ = paginate_rating_one_listings_with_vin(db, page=1, page_size=10**9)
+    return listings
 
 
 def paginate_rating_one_listings(

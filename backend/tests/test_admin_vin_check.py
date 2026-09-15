@@ -10,7 +10,7 @@ from app.listing_enrichment import (
     build_vin_check_page_stats,
     format_vin_check_stats_summary,
     listing_matches_rating_one,
-    list_rating_one_listings_with_vin,
+    paginate_rating_one_listings_with_vin,
     normalize_catalog_name,
     perform_listing_vin_check,
 )
@@ -111,7 +111,7 @@ def test_build_vin_check_page_stats_counts_success_by_model():
     assert stats.vin_by_model == (("VW Tiguan", 1),)
 
 
-def test_list_rating_one_listings_with_vin_filters_by_rating_and_vin(monkeypatch):
+def test_paginate_rating_one_listings_with_vin_filters_and_pages(monkeypatch):
     listing_with_vin = SimpleNamespace(
         brand="VW",
         model="Tiguan",
@@ -145,8 +145,9 @@ def test_list_rating_one_listings_with_vin_filters_by_rating_and_vin(monkeypatch
 
     db = MagicMock()
     db.query.return_value = FakeQuery()
-    result = list_rating_one_listings_with_vin(db)
-    assert result == [listing_with_vin]
+    page_rows, total = paginate_rating_one_listings_with_vin(db, page=1, page_size=100)
+    assert page_rows == [listing_with_vin]
+    assert total == 1
 
 
 def test_admin_vin_check_api_requires_auth(client):

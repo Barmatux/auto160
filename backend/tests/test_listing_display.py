@@ -64,6 +64,11 @@ def test_format_vin_found_specs_line():
     assert format_vin_found_specs_line(listing) == "1.2 бензин робот 196.000км"
 
 
+def test_format_vin_found_specs_line_formats_whole_liters_with_decimal():
+    listing = _listing(engine_capacity_l=2, engine_type="Бензин", mileage=50000)
+    assert format_vin_found_specs_line(listing) == "2.0 бензин 50.000км"
+
+
 def test_format_mileage_km_uses_thousands_separator():
     assert format_mileage_km(123456) == "123 456"
     assert format_mileage_km(86000) == "86 000"

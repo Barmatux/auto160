@@ -821,6 +821,66 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+.admin-vin-code-cell {
+  position: relative;
+  white-space: nowrap;
+}
+
+.admin-vin-code-btn {
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.admin-vin-code-btn:hover,
+.admin-vin-code-btn:focus-visible {
+  color: #1d4ed8;
+}
+
+.admin-vin-copy-popover {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 6px);
+  z-index: 25;
+  padding: 4px;
+  border-radius: 10px;
+  border: 1px solid #c9dcff;
+  background: #fff;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12);
+}
+
+.admin-vin-copy-action {
+  border: 0;
+  background: #eef4ff;
+  color: #1e3a8a;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.admin-vin-copy-action:hover,
+.admin-vin-copy-action:focus-visible {
+  background: #dbeafe;
+}
+
+.admin-vin-account-cell {
+  font-size: 13px;
+  white-space: nowrap;
+}
+
 .admin-vin-check-stats {
   margin: 10px 0 0;
   padding: 10px 12px;

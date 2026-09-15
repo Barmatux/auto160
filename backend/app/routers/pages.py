@@ -87,7 +87,8 @@ from app.listing_enrichment import (
     build_vin_found_rows,
     format_vin_check_stats_summary,
     get_listing_customs_summary,
-    list_rating_one_listings_with_vin,
+    count_rating_one_listings_with_vin,
+    paginate_rating_one_listings_with_vin,
     listing_vin_check_was_launched,
     paginate_rating_one_listings,
 )
@@ -993,6 +994,7 @@ def _listings_filters_payload(request: Request, db: Session, *, published_only: 
 
 
 LISTINGS_PAGE_SIZE = 21
+VIN_FOUND_PAGE_SIZE = 100
 
 
 def _build_listings_url(
@@ -3557,13 +3559,30 @@ def admin_users_page(request: Request, db: Session = Depends(get_db)):
 
 
 @router.get("/admin/vin-check/found")
-def admin_vin_found_page(request: Request, db: Session = Depends(get_db)):
+def admin_vin_found_page(
+    request: Request,
+    page: int = Query(default=1, ge=1),
+    db: Session = Depends(get_db),
+):
     current_user = _resolve_user_from_request(request, db)
     redirect = _admin_page_redirect(current_user)
     if redirect:
         return redirect
 
-    vin_found_listings = list_rating_one_listings_with_vin(db)
+    vin_found_listings, vin_found_total = paginate_rating_one_listings_with_vin(
+        db,
+        page=page,
+        page_size=VIN_FOUND_PAGE_SIZE,
+    )
+    total_pages = max(1, (vin_found_total + VIN_FOUND_PAGE_SIZE - 1) // VIN_FOUND_PAGE_SIZE)
+    if page > total_pages and vin_found_total > 0:
+        page = total_pages
+        vin_found_listings, vin_found_total = paginate_rating_one_listings_with_vin(
+            db,
+            page=page,
+            page_size=VIN_FOUND_PAGE_SIZE,
+        )
+
     context = _template_context(
         request,
         current_user,
@@ -3580,7 +3599,13 @@ def admin_vin_found_page(request: Request, db: Session = Depends(get_db)):
         resolve_cover_urls=_resolve_listing_cover_urls,
         build_customs_map=build_listing_customs_map,
     )
-    context["vin_found_total"] = len(vin_found_listings)
+    context["vin_found_total"] = vin_found_total
+    context["page"] = page
+    context["total_pages"] = total_pages
+    context["has_prev"] = page > 1
+    context["has_next"] = page < total_pages
+    context["prev_url"] = f"/admin/vin-check/found?page={page - 1}" if context["has_prev"] else None
+    context["next_url"] = f"/admin/vin-check/found?page={page + 1}" if context["has_next"] else None
     return templates.TemplateResponse(request, "admin_vin_found.html", context)
 
 
@@ -3613,7 +3638,7 @@ def admin_vin_check_page(
         ),
     )
     vin_check_stats = build_vin_check_page_stats(listings)
-    context["vin_found_count"] = len(list_rating_one_listings_with_vin(db))
+    context["vin_found_count"] = count_rating_one_listings_with_vin(db)
     context["listings"] = listings
     context["listing_gallery_urls"] = resolve_listing_gallery_urls_map(listings, limit=5)
     context["listing_customs_map"] = build_listing_customs_map(db, listings) if listings else {}

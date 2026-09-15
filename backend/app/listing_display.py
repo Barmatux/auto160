@@ -172,8 +172,7 @@ def _format_engine_capacity(capacity_l: float) -> str:
 def format_vin_found_specs_line(listing: CarListing) -> str:
     parts: list[str] = []
     if listing.engine_capacity_l is not None:
-        capacity = float(listing.engine_capacity_l)
-        parts.append(f"{capacity:.1f}" if abs(capacity - round(capacity, 1)) >= 0.05 else f"{capacity:g}")
+        parts.append(f"{float(listing.engine_capacity_l):.1f}")
     if listing.engine_type:
         parts.append(listing.engine_type.strip().lower())
     if listing.transmission_type:
