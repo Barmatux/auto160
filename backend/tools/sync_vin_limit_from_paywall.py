@@ -1,4 +1,4 @@
-"""One-off: sync account counter when av.by paywall error is already stored."""
+"""One-off: attach paywall error note without faking the local VIN counter."""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ os.chdir(ROOT_DIR)
 
 from app.avby_accounts import (
     is_avby_vin_daily_limit_error_message,
-    mark_vin_daily_limit_exhausted,
+    note_vin_paywall_error,
     vin_checks_remaining,
 )
 from app.db import SessionLocal
@@ -31,8 +31,11 @@ def main() -> None:
         if not is_avby_vin_daily_limit_error_message(acc.error_message):
             print(f"skip: no paywall error on {email!r}")
             return
-        mark_vin_daily_limit_exhausted(db, acc, error_message=acc.error_message)
-        print(f"synced {email}: {acc.vin_checks_today}/{acc.daily_vin_limit}, remaining={vin_checks_remaining(acc)}")
+        note_vin_paywall_error(db, acc, error_message=acc.error_message)
+        print(
+            f"noted paywall on {email}: counter unchanged "
+            f"{acc.vin_checks_today}/{acc.daily_vin_limit}, remaining={vin_checks_remaining(acc)}"
+        )
     finally:
         db.close()
 

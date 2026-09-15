@@ -6,7 +6,6 @@ from app.avby_accounts import (
     can_consume_vin_check,
     is_avby_vin_daily_limit_error_message,
     is_avby_vin_daily_limit_response,
-    mark_vin_daily_limit_exhausted,
     reset_vin_checks_if_needed,
     vin_checks_remaining,
 )
@@ -30,7 +29,7 @@ def test_detects_paywall_error_message():
     assert not is_avby_vin_daily_limit_error_message("auth failed")
 
 
-def test_mark_vin_daily_limit_exhausted_syncs_counter():
+def test_note_vin_paywall_error_does_not_bump_counter():
     account = AvbyServiceAccount(
         email="vin-limit@test.local",
         status="confirmed",
@@ -38,19 +37,57 @@ def test_mark_vin_daily_limit_exhausted_syncs_counter():
         is_active=True,
         api_key="test-key",
         daily_vin_limit=VIN_TEST_DAILY_LIMIT,
-        vin_checks_today=0,
+        vin_checks_today=3,
         vin_checks_day=date.today(),
     )
     db = MagicMock()
 
-    mark_vin_daily_limit_exhausted(db, account, error_message="paywall")
+    from app.avby_accounts import note_vin_paywall_error
 
-    assert account.vin_checks_today == VIN_TEST_DAILY_LIMIT
-    assert vin_checks_remaining(account) == 0
-    assert not can_consume_vin_check(account)
+    note_vin_paywall_error(db, account, error_message="paywall")
+
+    assert account.vin_checks_today == 3
+    assert vin_checks_remaining(account) == VIN_TEST_DAILY_LIMIT - 3
     assert account.error_message == "paywall"
     db.commit.assert_called_once()
     db.refresh.assert_called_once_with(account)
+
+
+def test_list_skips_accounts_with_paywall_error():
+    from app.avby_accounts import list_vin_accounts_for_checks
+
+    clean = AvbyServiceAccount(
+        id=1,
+        email="clean@test.local",
+        status="phone_verified",
+        purpose="vin_test",
+        is_active=True,
+        api_key="key",
+        daily_vin_limit=30,
+        vin_checks_today=0,
+        vin_checks_day=date.today(),
+    )
+    blocked = AvbyServiceAccount(
+        id=2,
+        email="blocked@test.local",
+        status="phone_verified",
+        purpose="vin_test",
+        is_active=True,
+        api_key="key",
+        daily_vin_limit=30,
+        vin_checks_today=0,
+        vin_checks_day=date.today(),
+        error_message="HTTP 429 premium_account.paywall.vin",
+    )
+    db = MagicMock()
+    query = MagicMock()
+    db.query.return_value = query
+    query.filter.return_value = query
+    query.order_by.return_value = query
+    query.all.return_value = [clean, blocked]
+
+    rows = list_vin_accounts_for_checks(db, require_active=True)
+    assert [row.id for row in rows] == [1]
 
 
 def test_reset_vin_checks_clears_stale_paywall_error():

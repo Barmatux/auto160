@@ -10,7 +10,7 @@ from app.avby_accounts import (
     consume_vin_check,
     is_avby_vin_daily_limit_response,
     list_vin_accounts_for_checks,
-    mark_vin_daily_limit_exhausted,
+    note_vin_paywall_error,
     select_vin_account,
     vin_checks_remaining,
 )
@@ -139,7 +139,7 @@ def get_or_fetch_listing_vin(
         except AvbyVinError as exc:
             last_error = str(exc)
             if exc.status_code == 429:
-                mark_vin_daily_limit_exhausted(db, account, error_message=last_error)
+                note_vin_paywall_error(db, account, error_message=last_error)
             else:
                 account.error_message = last_error[:500]
                 db.commit()
@@ -154,7 +154,7 @@ def get_or_fetch_listing_vin(
         if listing.vin_indicated is None:
             listing.vin_indicated = True
         account.error_message = None
-        consume_vin_check(db, account)
+        consume_vin_check(db, account, listing_id=listing.id)
         db.commit()
         db.refresh(listing)
         db.refresh(account)

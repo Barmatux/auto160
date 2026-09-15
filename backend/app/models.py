@@ -170,6 +170,24 @@ class AvbySyncRunVinCheck(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
 
 
+class AvbyVinFetch(Base):
+    """Successful VIN reveal attributed to a service account (for daily admin stats)."""
+
+    __tablename__ = "avby_vin_fetches"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    account_id: Mapped[int] = mapped_column(
+        ForeignKey("avby_service_accounts.id", ondelete="CASCADE"),
+        index=True,
+    )
+    listing_id: Mapped[int | None] = mapped_column(
+        ForeignKey("car_listings.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+
+
 class AvbyServiceAccount(Base):
     __tablename__ = "avby_service_accounts"
 

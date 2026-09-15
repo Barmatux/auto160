@@ -34,6 +34,53 @@
   </article>
 </section>
 
+<section class="admin-vin-daily-section">
+  <h2>VIN по аккаунтам ({{ vin_daily.window_days }} дн.)</h2>
+  <p class="hint">
+    Успешные получения VIN с привязкой к аккаунту. Всего за период:
+    <strong>{{ vin_daily.grand_total }}</strong>.
+    История пишется с момента обновления; старые проверки без account_id сюда не входят.
+  </p>
+  {% if vin_daily.accounts %}
+    <div class="table-scroll">
+      <table class="users-table sync-table avby-vin-daily-table">
+        <thead>
+          <tr>
+            <th>Аккаунт</th>
+            {% for day in vin_daily.days %}
+              <th class="num">{{ day[8:10] }}.{{ day[5:7] }}</th>
+            {% endfor %}
+            <th class="num">Итого</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for account in vin_daily.accounts %}
+            <tr>
+              <td>
+                #{{ account.id }} {{ account.label }}
+              </td>
+              {% for day in vin_daily.days %}
+                {% set cell = vin_daily.matrix.get(account.id, {}).get(day, 0) %}
+                <td class="num{% if cell %} is-positive{% endif %}">{{ cell or "—" }}</td>
+              {% endfor %}
+              <td class="num"><strong>{{ vin_daily.totals_by_account.get(account.id, 0) }}</strong></td>
+            </tr>
+          {% endfor %}
+          <tr class="totals-row">
+            <td>Всего за день</td>
+            {% for day in vin_daily.days %}
+              <td class="num"><strong>{{ vin_daily.totals_by_day.get(day, 0) or "—" }}</strong></td>
+            {% endfor %}
+            <td class="num"><strong>{{ vin_daily.grand_total }}</strong></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="hint">Пока нет успешных VIN с записанным аккаунтом за выбранный период.</p>
+  {% endif %}
+</section>
+
 <section class="form admin-account-form">
   <h2>Добавить верифицированный аккаунт</h2>
   <p class="hint">Для входа на av.by через API используется <strong>email</strong>, если он указан; иначе телефон (9 цифр). Укажите тот же логин, что на сайте av.by.</p>

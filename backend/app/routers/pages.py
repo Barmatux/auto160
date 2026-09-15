@@ -77,6 +77,7 @@ from app.customs_vin import (
     vin_is_valid,
 )
 from app.avby_accounts import list_active_vin_accounts, serialize_account_public
+from app.vin_account_stats import build_vin_fetch_daily_stats
 from app.db import get_db
 from app.logging_setup import LOG_SERVICES, LOG_SERVICE_LABELS, format_log_time, log_dir, log_timezone, tail_log
 from app.metrics import yandex_metrika_context
@@ -4115,6 +4116,7 @@ def admin_avby_accounts_page(request: Request, db: Session = Depends(get_db)):
 
     confirmed = sum(1 for row in rows if row.status in {"confirmed", "phone_verified"})
     vin_pool = list_active_vin_accounts(db)
+    vin_daily = build_vin_fetch_daily_stats(db, days=14)
     context = _template_context(request, current_user)
     context.update(
         {
@@ -4122,6 +4124,7 @@ def admin_avby_accounts_page(request: Request, db: Session = Depends(get_db)):
             "json_path": settings.avby_accounts_json_path,
             "status_labels": AVBY_ACCOUNT_STATUS_LABELS,
             "purpose_labels": AVBY_ACCOUNT_PURPOSE_LABELS,
+            "vin_daily": vin_daily,
             "stats": {
                 "total": len(rows),
                 "confirmed": confirmed,

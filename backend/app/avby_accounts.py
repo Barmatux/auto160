@@ -213,22 +213,28 @@ def reset_vin_checks_if_needed(account: AvbyServiceAccount, *, today: date | Non
             account.error_message = None
 
 
+def note_vin_paywall_error(
+    db: Session,
+    account: AvbyServiceAccount,
+    *,
+    error_message: str | None = None,
+) -> None:
+    """Record av.by VIN paywall/limit error without faking the local usage counter."""
+    reset_vin_checks_if_needed(account)
+    account.error_message = (error_message or "Лимит VIN на av.by на сегодня")[:500]
+    account.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(account)
+
+
 def mark_vin_daily_limit_exhausted(
     db: Session,
     account: AvbyServiceAccount,
     *,
     error_message: str | None = None,
 ) -> None:
-    """Sync local counter with av.by when paywall says daily VIN quota is used up."""
-    reset_vin_checks_if_needed(account)
-    limit = account.daily_vin_limit or VIN_TEST_DAILY_LIMIT
-    account.daily_vin_limit = limit
-    account.vin_checks_today = limit
-    account.vin_checks_day = date.today()
-    account.error_message = (error_message or f"Лимит av.by: {limit}/{limit} просмотров VIN на сегодня")[:500]
-    account.updated_at = datetime.utcnow()
-    db.commit()
-    db.refresh(account)
+    """Deprecated alias — does not bump vin_checks_today anymore."""
+    note_vin_paywall_error(db, account, error_message=error_message)
 
 
 def vin_checks_remaining(account: AvbyServiceAccount) -> int | None:
@@ -245,15 +251,29 @@ def can_consume_vin_check(account: AvbyServiceAccount) -> bool:
     return remaining > 0
 
 
-def consume_vin_check(db: Session, account: AvbyServiceAccount) -> bool:
+def consume_vin_check(
+    db: Session,
+    account: AvbyServiceAccount,
+    *,
+    listing_id: int | None = None,
+) -> bool:
     if not can_consume_vin_check(account):
         return False
     if account.daily_vin_limit is not None:
         reset_vin_checks_if_needed(account)
         account.vin_checks_today += 1
         account.updated_at = datetime.utcnow()
-        db.commit()
-        db.refresh(account)
+    from app.models import AvbyVinFetch
+
+    db.add(
+        AvbyVinFetch(
+            account_id=account.id,
+            listing_id=listing_id,
+            created_at=datetime.utcnow(),
+        )
+    )
+    db.commit()
+    db.refresh(account)
     return True
 
 
@@ -293,13 +313,21 @@ def list_vin_accounts_for_checks(db: Session, *, require_active: bool = True) ->
 
     require_active=True — automatic parser/enrichment rotation.
     require_active=False — admin manual VIN reveal (inactive accounts still allowed).
+    Accounts with a stored paywall error are skipped until the next calendar day.
     """
     rows = (
         _vin_account_base_query(db, require_active=require_active)
         .order_by(AvbyServiceAccount.vin_checks_today.asc(), AvbyServiceAccount.id.asc())
         .all()
     )
-    return [account for account in rows if can_consume_vin_check(account)]
+    eligible: list[AvbyServiceAccount] = []
+    for account in rows:
+        reset_vin_checks_if_needed(account)
+        if is_avby_vin_daily_limit_error_message(account.error_message):
+            continue
+        if can_consume_vin_check(account):
+            eligible.append(account)
+    return eligible
 
 
 def list_active_vin_accounts(db: Session) -> list[AvbyServiceAccount]:
