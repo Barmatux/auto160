@@ -1,6 +1,7 @@
 from app.listing_display import (
     format_listing_spec_value,
     format_mileage_km,
+    format_vin_found_specs_line,
     format_price_rub,
     listing_display_description,
     listing_display_title,
@@ -51,6 +52,16 @@ def test_listing_display_description_strips_import_metadata():
         "AVBY_ID: 123"
     )
     assert listing_display_description(description) == "Живой автомобиль."
+
+
+def test_format_vin_found_specs_line():
+    listing = _listing(
+        engine_capacity_l=1.2,
+        engine_type="Бензин",
+        transmission_type="Робот",
+        mileage=196000,
+    )
+    assert format_vin_found_specs_line(listing) == "1.2 бензин робот 196.000км"
 
 
 def test_format_mileage_km_uses_thousands_separator():

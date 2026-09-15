@@ -776,13 +776,21 @@ body {
   margin-top: 10px;
 }
 
-.admin-vin-found-toggle {
-  cursor: pointer;
+.admin-vin-found-link {
+  display: inline-block;
   font-weight: 600;
+  text-decoration: none;
 }
 
-.admin-vin-found-panel {
-  margin: 14px 0 18px;
+.admin-vin-found-link:hover {
+  text-decoration: underline;
+}
+
+.admin-vin-found-specs {
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1.35;
+  color: #64748b;
 }
 
 .admin-vin-found-table-wrap {

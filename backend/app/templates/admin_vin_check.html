@@ -12,14 +12,10 @@
         data-vin-check-stats-state='{{ {"launched": vin_check_stats.checks_launched, "success": vin_check_stats.checks_success, "byModel": dict(vin_check_stats.vin_by_model)} | tojson }}'
       >{{ vin_check_stats_summary }}</p>
       <div class="admin-vin-check-actions">
-        <button type="button" class="page-link admin-vin-found-toggle" data-vin-found-toggle aria-expanded="false">
-          Найден VIN{% if vin_found_rows %} ({{ vin_found_rows|length }}){% endif %}
-        </button>
+        <a class="page-link admin-vin-found-link" href="/admin/vin-check/found">
+          Найден VIN{% if vin_found_count %} ({{ vin_found_count }}){% endif %}
+        </a>
       </div>
-    </div>
-
-    <div class="admin-vin-found-panel" data-vin-found-panel hidden>
-      {% include "partials/admin_vin_found_table.html" %}
     </div>
 
     {% if listings %}

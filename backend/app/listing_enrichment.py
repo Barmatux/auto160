@@ -450,6 +450,30 @@ def format_vin_check_stats_summary(stats: VinCheckPageStats) -> str:
     return " ".join(parts)
 
 
+def build_vin_found_rows(
+    db: Session,
+    listings: list[CarListing],
+    *,
+    resolve_cover_urls,
+    build_customs_map,
+) -> list[dict]:
+    if not listings:
+        return []
+    cover_urls = resolve_cover_urls(listings, db)
+    customs_map = build_customs_map(db, listings)
+    rows: list[dict] = []
+    for listing in listings:
+        customs = customs_map.get(listing.id)
+        rows.append(
+            {
+                "listing": listing,
+                "photo_url": cover_urls.get(listing.id),
+                "import_date": customs.release_date if customs and customs.found and customs.release_date else None,
+            }
+        )
+    return rows
+
+
 def list_rating_one_listings_with_vin(db: Session) -> list[CarListing]:
     targets = build_rating_one_targets(db)
     if not targets:

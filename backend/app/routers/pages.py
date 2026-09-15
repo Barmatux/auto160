@@ -84,6 +84,7 @@ from app.metrics import yandex_metrika_context
 from app.listing_enrichment import (
     build_listing_customs_map,
     build_vin_check_page_stats,
+    build_vin_found_rows,
     format_vin_check_stats_summary,
     get_listing_customs_summary,
     list_rating_one_listings_with_vin,
@@ -121,6 +122,7 @@ from app.seo import (
 )
 from app.listing_display import (
     format_mileage_km,
+    format_vin_found_specs_line,
     format_price_rub,
     format_listing_spec_value,
     listing_display_description,
@@ -169,6 +171,7 @@ templates.env.filters["format_listing_spec_value"] = format_listing_spec_value
 templates.env.filters["listing_price_display"] = listing_price_display
 templates.env.filters["listing_seller_label"] = listing_seller_label
 templates.env.filters["listing_engine_summary"] = listing_engine_summary
+templates.env.filters["format_vin_found_specs_line"] = format_vin_found_specs_line
 VERIFICATION_DIR = Path(__file__).resolve().parents[1] / "verification"
 
 
@@ -3553,6 +3556,34 @@ def admin_users_page(request: Request, db: Session = Depends(get_db)):
     return templates.TemplateResponse(request, "admin_users.html", context)
 
 
+@router.get("/admin/vin-check/found")
+def admin_vin_found_page(request: Request, db: Session = Depends(get_db)):
+    current_user = _resolve_user_from_request(request, db)
+    redirect = _admin_page_redirect(current_user)
+    if redirect:
+        return redirect
+
+    vin_found_listings = list_rating_one_listings_with_vin(db)
+    context = _template_context(
+        request,
+        current_user,
+        SeoMeta(
+            title="Найден VIN — Auto160",
+            description="Собранные VIN-коды объявлений моделей с рейтингом 1.",
+            path="/admin/vin-check/found",
+            noindex=True,
+        ),
+    )
+    context["vin_found_rows"] = build_vin_found_rows(
+        db,
+        vin_found_listings,
+        resolve_cover_urls=_resolve_listing_cover_urls,
+        build_customs_map=build_listing_customs_map,
+    )
+    context["vin_found_total"] = len(vin_found_listings)
+    return templates.TemplateResponse(request, "admin_vin_found.html", context)
+
+
 @router.get("/admin/vin-check")
 def admin_vin_check_page(
     request: Request,
@@ -3582,20 +3613,7 @@ def admin_vin_check_page(
         ),
     )
     vin_check_stats = build_vin_check_page_stats(listings)
-    vin_found_listings = list_rating_one_listings_with_vin(db)
-    vin_found_cover_urls = _resolve_listing_cover_urls(vin_found_listings, db)
-    vin_found_customs_map = build_listing_customs_map(db, vin_found_listings) if vin_found_listings else {}
-    vin_found_rows = []
-    for listing in vin_found_listings:
-        customs = vin_found_customs_map.get(listing.id)
-        vin_found_rows.append(
-            {
-                "listing": listing,
-                "photo_url": vin_found_cover_urls.get(listing.id),
-                "import_date": customs.release_date if customs and customs.found and customs.release_date else None,
-            }
-        )
-    context["vin_found_rows"] = vin_found_rows
+    context["vin_found_count"] = len(list_rating_one_listings_with_vin(db))
     context["listings"] = listings
     context["listing_gallery_urls"] = resolve_listing_gallery_urls_map(listings, limit=5)
     context["listing_customs_map"] = build_listing_customs_map(db, listings) if listings else {}

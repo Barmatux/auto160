@@ -78,6 +78,12 @@ def test_admin_vin_check_page_requires_login(client):
     assert response.headers["location"] == "/login"
 
 
+def test_admin_vin_found_page_requires_login(client):
+    response = client.get("/admin/vin-check/found", follow_redirects=False)
+    assert response.status_code == 302
+    assert response.headers["location"] == "/login"
+
+
 def test_format_vin_check_stats_summary():
     stats = VinCheckPageStats(
         checks_launched=5,

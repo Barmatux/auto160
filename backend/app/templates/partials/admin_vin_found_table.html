@@ -19,6 +19,7 @@
               target="_blank"
               rel="noopener"
             >{{ row.listing.brand }} {{ row.listing.model }}</a>
+            <div class="admin-vin-found-specs">{{ row.listing | format_vin_found_specs_line }}</div>
           </td>
           <td class="admin-vin-found-photo-cell">
             {% if row.photo_url %}
