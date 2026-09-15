@@ -86,6 +86,7 @@ from app.listing_enrichment import (
     build_vin_check_page_stats,
     format_vin_check_stats_summary,
     get_listing_customs_summary,
+    list_rating_one_listings_with_vin,
     listing_vin_check_was_launched,
     paginate_rating_one_listings,
 )
@@ -3581,6 +3582,20 @@ def admin_vin_check_page(
         ),
     )
     vin_check_stats = build_vin_check_page_stats(listings)
+    vin_found_listings = list_rating_one_listings_with_vin(db)
+    vin_found_cover_urls = _resolve_listing_cover_urls(vin_found_listings, db)
+    vin_found_customs_map = build_listing_customs_map(db, vin_found_listings) if vin_found_listings else {}
+    vin_found_rows = []
+    for listing in vin_found_listings:
+        customs = vin_found_customs_map.get(listing.id)
+        vin_found_rows.append(
+            {
+                "listing": listing,
+                "photo_url": vin_found_cover_urls.get(listing.id),
+                "import_date": customs.release_date if customs and customs.found and customs.release_date else None,
+            }
+        )
+    context["vin_found_rows"] = vin_found_rows
     context["listings"] = listings
     context["listing_gallery_urls"] = resolve_listing_gallery_urls_map(listings, limit=5)
     context["listing_customs_map"] = build_listing_customs_map(db, listings) if listings else {}

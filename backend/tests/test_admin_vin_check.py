@@ -10,6 +10,7 @@ from app.listing_enrichment import (
     build_vin_check_page_stats,
     format_vin_check_stats_summary,
     listing_matches_rating_one,
+    list_rating_one_listings_with_vin,
     normalize_catalog_name,
     perform_listing_vin_check,
 )
@@ -102,6 +103,44 @@ def test_build_vin_check_page_stats_counts_success_by_model():
     assert stats.checks_launched == 1
     assert stats.checks_success == 1
     assert stats.vin_by_model == (("VW Tiguan", 1),)
+
+
+def test_list_rating_one_listings_with_vin_filters_by_rating_and_vin(monkeypatch):
+    listing_with_vin = SimpleNamespace(
+        brand="VW",
+        model="Tiguan",
+        year=2020,
+        vin="WVWZZZ1KZAW123456",
+    )
+    listing_without_vin = SimpleNamespace(
+        brand="VW",
+        model="Tiguan",
+        year=2020,
+        vin=None,
+    )
+
+    monkeypatch.setattr("app.listing_enrichment.build_rating_one_targets", lambda db: [object()])
+
+    def fake_match(listing, targets):
+        return listing in {listing_with_vin, listing_without_vin}
+
+    monkeypatch.setattr("app.listing_enrichment.listing_matches_rating_one", fake_match)
+
+    class FakeQuery:
+        def filter(self, *args, **kwargs):
+            return self
+
+        def order_by(self, *args, **kwargs):
+            return self
+
+        def yield_per(self, size):
+            yield listing_with_vin
+            yield listing_without_vin
+
+    db = MagicMock()
+    db.query.return_value = FakeQuery()
+    result = list_rating_one_listings_with_vin(db)
+    assert result == [listing_with_vin]
 
 
 def test_admin_vin_check_api_requires_auth(client):

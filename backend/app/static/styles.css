@@ -772,6 +772,47 @@ body {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
+.admin-vin-check-actions {
+  margin-top: 10px;
+}
+
+.admin-vin-found-toggle {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.admin-vin-found-panel {
+  margin: 14px 0 18px;
+}
+
+.admin-vin-found-table-wrap {
+  max-height: min(70vh, 720px);
+  overflow: auto;
+}
+
+.admin-vin-found-photo-cell {
+  width: 92px;
+}
+
+.admin-vin-found-photo-thumb {
+  display: block;
+  width: 84px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: #f8fafc;
+}
+
+.admin-vin-found-photo-empty {
+  color: #94a3b8;
+}
+
+.admin-vin-found-added {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
 .admin-vin-check-stats {
   margin: 10px 0 0;
   padding: 10px 12px;

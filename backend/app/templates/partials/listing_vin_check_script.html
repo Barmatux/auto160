@@ -271,6 +271,16 @@
     btn.addEventListener("click", () => runVinCheck(btn.closest(".listing-vin-check-block")));
   });
 
+  const vinFoundToggle = document.querySelector("[data-vin-found-toggle]");
+  const vinFoundPanel = document.querySelector("[data-vin-found-panel]");
+  if (vinFoundToggle && vinFoundPanel) {
+    vinFoundToggle.addEventListener("click", () => {
+      const willOpen = vinFoundPanel.hidden;
+      vinFoundPanel.hidden = !willOpen;
+      vinFoundToggle.setAttribute("aria-expanded", willOpen ? "true" : "false");
+    });
+  }
+
   document.querySelectorAll(".listing-vin-check-block").forEach((block) => {
     if (block.dataset.vin && !block.dataset.releaseDate && !block.dataset.customsError) {
       runVinCheck(block, { auto: true });

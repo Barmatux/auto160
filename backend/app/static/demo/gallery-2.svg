@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="1200" viewBox="0 0 800 1200">
+  <rect width="800" height="1200" fill="#e0f2fe"/>
+  <rect x="80" y="360" width="640" height="480" rx="24" fill="#0284c7" opacity="0.18"/>
+  <text x="400" y="620" text-anchor="middle" font-family="Arial, sans-serif" font-size="42" fill="#0c4a6e">BMW X1 · D>B> 2</text>
+</svg>

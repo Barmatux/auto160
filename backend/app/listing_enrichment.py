@@ -450,6 +450,25 @@ def format_vin_check_stats_summary(stats: VinCheckPageStats) -> str:
     return " ".join(parts)
 
 
+def list_rating_one_listings_with_vin(db: Session) -> list[CarListing]:
+    targets = build_rating_one_targets(db)
+    if not targets:
+        return []
+
+    matched: list[CarListing] = []
+    query = (
+        db.query(CarListing)
+        .filter(CarListing.status == ListingStatus.published)
+        .order_by(CarListing.created_at.desc())
+    )
+    for listing in query.yield_per(200):
+        if not listing_matches_rating_one(listing, targets):
+            continue
+        if listing_has_saved_vin(listing):
+            matched.append(listing)
+    return matched
+
+
 def paginate_rating_one_listings(
     db: Session,
     *,
