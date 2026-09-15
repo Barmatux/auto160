@@ -406,6 +406,11 @@
       body: JSON.stringify(payload),
     });
     if (!response) return;
+    if (response.status === 504 || response.status === 502) {
+      resultEl.textContent =
+        "Шлюз оборвал долгий вход на av.by (таймаут). Обновите страницу — аккаунт часто уже создан; при необходимости нажмите «Войти».";
+      return;
+    }
     const data = await response.json().catch(() => ({}));
     if (response.ok) {
       if (data.login_error) {
@@ -416,7 +421,13 @@
       window.location.reload();
       return;
     }
-    resultEl.textContent = data.detail || "Ошибка добавления";
+    const detail = data.detail;
+    resultEl.textContent =
+      typeof detail === "string"
+        ? detail
+        : Array.isArray(detail)
+          ? detail.map((item) => item.msg || JSON.stringify(item)).join("; ")
+          : "Ошибка добавления";
   });
 
   document.getElementById("import-json-btn").addEventListener("click", async () => {
