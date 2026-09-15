@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     autoplius_s3_secret_key: str = ""
     autoplius_s3_bucket: str = "autoplius-media"
     autoplius_s3_region: str = "ru-central1"
+    autoplius_scrape_dsn: str = "postgresql://scrape:scrape@10.129.0.33:5433/scrape"
     public_site_url: str = ""
     yandex_metrika_id: str = ""
     # Internal Catalog API for colocated services (eu2.by). Empty = deny all.

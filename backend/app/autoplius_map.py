@@ -206,12 +206,16 @@ def absolute_media_url(
     media_base: str | None = None,
     media_bucket: str = DEFAULT_MEDIA_BUCKET,
     media_endpoint: str = DEFAULT_MEDIA_ENDPOINT,
+    use_app_proxy: bool = True,
 ) -> str | None:
     """Build a fetchable URL for a photo.
 
-    Prefer Yandex path-style URL for keys in ``autoplius-media``.
-    If ``media_base`` is set (legacy scrape proxy), keep that mode.
+    Default: app proxy ``/media/autoplius?key=...`` (private Yandex bucket).
+    If ``media_base`` is set, keep legacy scrape HTTP proxy mode.
+    If ``use_app_proxy`` is False, build a direct Yandex path-style URL.
     """
+    from urllib.parse import quote
+
     if media_base:
         if not path:
             return None
@@ -228,6 +232,8 @@ def absolute_media_url(
     key = extract_storage_key(path)
     if not key:
         return None
+    if use_app_proxy:
+        return f"/media/autoplius?key={quote(key, safe='')}"
     endpoint = media_endpoint.rstrip("/")
     bucket = (media_bucket or DEFAULT_MEDIA_BUCKET).strip()
     return f"{endpoint}/{bucket}/{key}"
@@ -240,6 +246,7 @@ def map_autoplius_row(
     media_base: str | None = None,
     media_bucket: str = DEFAULT_MEDIA_BUCKET,
     media_endpoint: str = DEFAULT_MEDIA_ENDPOINT,
+    use_app_proxy: bool = True,
     max_hp: int | None = 160,
     require_detail: bool = True,
 ) -> AutopliusMappedListing:
@@ -269,6 +276,7 @@ def map_autoplius_row(
                 media_base=media_base,
                 media_bucket=media_bucket,
                 media_endpoint=media_endpoint,
+                use_app_proxy=use_app_proxy,
             )
             for key in photo_keys
         )
@@ -280,6 +288,7 @@ def map_autoplius_row(
             media_base=media_base,
             media_bucket=media_bucket,
             media_endpoint=media_endpoint,
+            use_app_proxy=use_app_proxy,
         )
         or (photo_urls[0] if photo_urls else None)
     )

@@ -7,7 +7,7 @@ from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import StreamingResponse
 
 from app.config import settings
-from app.storage import get_s3_client, is_remote_catalog_image_url
+from app.storage import get_autoplius_s3_client, autoplius_bucket, get_s3_client, is_remote_catalog_image_url
 
 router = APIRouter(prefix="/media", tags=["media"])
 
@@ -19,6 +19,25 @@ def get_media_object(key: str = Query(..., min_length=1)):
         raise HTTPException(status_code=400, detail="Invalid object key")
     try:
         response = get_s3_client().get_object(Bucket=settings.s3_bucket, Key=key)
+    except (ClientError, BotoCoreError):
+        raise HTTPException(status_code=404, detail="Object not found")
+
+    body = response.get("Body")
+    if body is None:
+        raise HTTPException(status_code=404, detail="Object body missing")
+    content_type = response.get("ContentType") or "application/octet-stream"
+    return StreamingResponse(body, media_type=content_type)
+
+
+@router.get("/autoplius")
+def get_autoplius_media_object(key: str = Query(..., min_length=1)):
+    """Proxy listing photos from the private Yandex autoplius-media bucket."""
+    if ".." in key or key.startswith("/"):
+        raise HTTPException(status_code=400, detail="Invalid object key")
+    try:
+        response = get_autoplius_s3_client().get_object(Bucket=autoplius_bucket(), Key=key)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
     except (ClientError, BotoCoreError):
         raise HTTPException(status_code=404, detail="Object not found")
 

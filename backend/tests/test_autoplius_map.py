@@ -57,9 +57,7 @@ def test_map_skips_overpowered():
     assert mapped.skip_reason == "hp_over_160"
     assert mapped.price_byn == Decimal("70000.00")
     assert mapped.photo_storage_keys == ["listings/1/000_a.jpg"]
-    assert mapped.cover_photo_url == (
-        "https://storage.yandexcloud.net/autoplius-media/listings/1/000_a.jpg"
-    )
+    assert mapped.cover_photo_url == "/media/autoplius?key=listings%2F1%2F000_a.jpg"
 
 
 def test_extract_storage_key_from_media_proxy():

@@ -656,6 +656,31 @@ body {
   margin-bottom: 14px;
 }
 
+.listings-market-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin: 0 0 1rem;
+  flex-wrap: wrap;
+}
+
+.listings-market-tab {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.45rem 0.9rem;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 999px;
+  text-decoration: none;
+  color: inherit;
+  font-weight: 600;
+  background: #fff;
+}
+
+.listings-market-tab.is-active {
+  border-color: transparent;
+  background: #1f3b2c;
+  color: #fff;
+}
+
 .catalog-main-head h1,
 .catalog-main-head h2 {
   margin: 0 0 6px;

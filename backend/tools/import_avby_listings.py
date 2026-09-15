@@ -783,6 +783,8 @@ def run_import(
                             updated += 1
                             continue
                         existing.avby_id = avby_id
+                        existing.source = "av.by"
+                        existing.external_id = str(avby_id)
                         for field, value in payload.items():
                             if field in PRESERVE_ON_UPDATE_FIELDS:
                                 continue
@@ -810,6 +812,8 @@ def run_import(
                     listing = CarListing(
                         seller_id=seller.id,
                         avby_id=avby_id,
+                        source="av.by",
+                        external_id=str(avby_id),
                         status=ListingStatus.draft if price_byn_missing else ListingStatus.published,
                         price_byn_missing=price_byn_missing,
                         **payload,

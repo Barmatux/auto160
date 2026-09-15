@@ -2130,7 +2130,11 @@ def _listing_modification_names(db: Session, listings: list[CarListing]) -> dict
 def _home_latest_listings(db: Session, *, limit: int = 20) -> list[CarListing]:
     return (
         exclude_hidden_body_type(
-            db.query(CarListing).filter(CarListing.status == ListingStatus.published),
+            db.query(CarListing)
+            .filter(
+                CarListing.status == ListingStatus.published,
+                or_(CarListing.source.is_(None), CarListing.source != "autoplius"),
+            ),
             CarListing.body_type,
         )
         .order_by(desc(CarListing.created_at))
@@ -2188,6 +2192,7 @@ def sitemap_xml(request: Request, db: Session = Depends(get_db)):
 
 
 @router.get("/listings")
+@router.get("/listings/lt")
 def listings_page(
     request: Request,
     year_from: str | None = Query(default=None),
@@ -2199,6 +2204,8 @@ def listings_page(
     page: int = Query(default=1, ge=1),
     db: Session = Depends(get_db),
 ):
+    listings_market = "lt" if request.url.path.rstrip("/").endswith("/listings/lt") else "by"
+    listings_base_path = "/listings/lt" if listings_market == "lt" else "/listings"
     current_user = _resolve_user_from_request(request, db)
     vehicle_rows = _parse_vehicle_filter_rows(request.query_params, make_key="brand", model_key="model", generation_key="generation")
     parsed_year_from = _parse_optional_year(year_from)
@@ -2228,6 +2235,10 @@ def listings_page(
     is_admin = _is_admin_user(current_user)
     if not is_admin:
         query = query.filter(CarListing.status == ListingStatus.published)
+    if listings_market == "lt":
+        query = query.filter(CarListing.source == "autoplius")
+    else:
+        query = query.filter(or_(CarListing.source.is_(None), CarListing.source != "autoplius"))
 
     catalog_item_filter = db.get(CatalogItem, catalog_item_id) if catalog_item_id else None
     if catalog_item_filter:
@@ -2364,6 +2375,8 @@ def listings_page(
     context["has_next"] = offset + len(listings) < total
     context["listings_filters"] = _listings_filters_payload(request, db, published_only=not is_admin)
     context["catalog_item_filter"] = catalog_item_filter
+    context["listings_market"] = listings_market
+    context["listings_base_path"] = listings_base_path
 
     query_params: list[tuple[str, str]] = []
     if catalog_item_id:
@@ -2401,7 +2414,7 @@ def listings_page(
         pairs = _vehicle_rows_to_query_pairs(vehicle_rows, make_key="brand", model_key="model", generation_key="generation")
         pairs.extend(query_params)
         pairs.append(("page", str(page_num)))
-        return "/listings?" + urlencode(pairs)
+        return listings_base_path + "?" + urlencode(pairs)
 
     context["prev_url"] = build_page_url(page - 1) if context["has_prev"] else None
     context["next_url"] = build_page_url(page + 1) if context["has_next"] else None
@@ -2439,8 +2452,24 @@ def listings_page(
     if not location_regions and len(location_cities) == 1:
         seo_city = location_cities[0]
     seo_brand = None if brand == "__multi__" else brand
-    context.update(
-        build_seo_context(
+    if listings_market == "lt":
+        seo = build_seo_context(
+            request,
+            SeoMeta(
+                title="Авто из Литвы (Autoplius) до 160 л.с. — Auto160"
+                + (f", стр. {page}" if page > 1 else ""),
+                description=(
+                    "Объявления автомобилей из Литвы (autoplius.lt) до 160 л.с. "
+                    "Цены в BYN по курсу НБ РБ."
+                ),
+                path=listings_base_path,
+                h1="Литва — объявления Autoplius",
+                intro="Отдельная лента объявлений с autoplius.lt (до 160 л.с.).",
+                noindex=page > 1 or noisy_filters or (brand == "__multi__"),
+            ),
+        )
+    else:
+        seo = build_seo_context(
             request,
             listings_feed_seo_meta(
                 city=seo_city,
@@ -2451,7 +2480,7 @@ def listings_page(
                 noisy_filters=noisy_filters or (brand == "__multi__"),
             ),
         )
-    )
+    context.update(seo)
     return templates.TemplateResponse(request, "listings.html", context)
 
 

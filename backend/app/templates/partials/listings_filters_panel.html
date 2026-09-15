@@ -1,6 +1,6 @@
 <aside class="catalog-filters-panel catalog-sidebar">
   <h3>Фильтры</h3>
-  <form class="filters filters-sidebar" method="get" action="/listings" id="listings-filters-form">
+  <form class="filters filters-sidebar" method="get" action="{{ listings_base_path or '/listings' }}" id="listings-filters-form">
     {% if listings_filters.filters.catalog_item_id %}
       <input type="hidden" name="catalog_item_id" value="{{ listings_filters.filters.catalog_item_id }}" />
     {% endif %}
@@ -275,7 +275,7 @@
     </div>
 
     <button type="submit" class="catalog-filters-submit">Применить</button>
-    <a class="page-link" href="/listings">Сбросить</a>
+    <a class="page-link" href="{{ listings_base_path or '/listings' }}">Сбросить</a>
   </form>
 </aside>
 <script src="/static/catalog_multi_select.js?v=20260729-01" defer></script>

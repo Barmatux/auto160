@@ -35,6 +35,7 @@ class User(Base):
 
 class CarListing(Base):
     __tablename__ = "car_listings"
+    __table_args__ = (UniqueConstraint("source", "external_id", name="uq_car_listings_source_external_id"),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     seller_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
@@ -64,6 +65,9 @@ class CarListing(Base):
     description: Mapped[str] = mapped_column(Text)
     status: Mapped[ListingStatus] = mapped_column(Enum(ListingStatus), default=ListingStatus.draft, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+    # Multi-source identity: "av.by" | "autoplius" (+ external_id from that site).
+    source: Mapped[str | None] = mapped_column(String(40), nullable=True, index=True)
+    external_id: Mapped[str | None] = mapped_column(String(120), nullable=True, index=True)
 
     seller: Mapped[User] = relationship(back_populates="listings")
     catalog_item_id: Mapped[int | None] = mapped_column(ForeignKey("catalog_items.id"), nullable=True, index=True)

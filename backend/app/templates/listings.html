@@ -1,17 +1,31 @@
 {% extends "base.html" %}
-{% block title %}Лента объявлений - Auto160{% endblock %}
+{% block title %}{% if listings_market == 'lt' %}Литва (Autoplius) - Auto160{% else %}Лента объявлений - Auto160{% endif %}{% endblock %}
 {% block content %}
 <div class="catalog-page">
   {% set vehicle_hierarchy = listings_filters.vehicle_hierarchy %}
   {% set filters_form_id = "listings-filters-form" %}
-  {% set filters_reset_url = "/listings" %}
-  {% set vehicle_hierarchy_submit_action = "/listings" %}
+  {% set filters_reset_url = listings_base_path or "/listings" %}
+  {% set vehicle_hierarchy_submit_action = listings_base_path or "/listings" %}
+  <div class="listings-market-tabs" role="tablist" aria-label="Рынок объявлений">
+    <a
+      class="listings-market-tab{% if listings_market != 'lt' %} is-active{% endif %}"
+      href="/listings"
+      role="tab"
+      aria-selected="{{ 'true' if listings_market != 'lt' else 'false' }}"
+    >Беларусь</a>
+    <a
+      class="listings-market-tab{% if listings_market == 'lt' %} is-active{% endif %}"
+      href="/listings/lt"
+      role="tab"
+      aria-selected="{{ 'true' if listings_market == 'lt' else 'false' }}"
+    >Литва</a>
+  </div>
   {% include "partials/vehicle_filters_bar.html" %}
   <div class="catalog-layout">
     {% include "partials/listings_filters_panel.html" %}
     <section class="catalog-main">
       <div class="catalog-main-head">
-        <h1>{{ seo_h1 or "Лента объявлений" }}</h1>
+        <h1>{{ seo_h1 or ("Литва — объявления Autoplius" if listings_market == "lt" else "Лента объявлений") }}</h1>
         {% if seo_intro %}
           <p class="hint">{{ seo_intro }}</p>
         {% endif %}
