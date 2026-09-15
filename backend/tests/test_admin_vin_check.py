@@ -13,6 +13,7 @@ from app.listing_enrichment import (
     paginate_rating_one_listings_with_vin,
     normalize_catalog_name,
     perform_listing_vin_check,
+    recheck_listing_customs_import_date,
 )
 
 
@@ -150,6 +151,47 @@ def test_paginate_rating_one_listings_with_vin_filters_and_pages(monkeypatch):
     assert total == 1
 
 
+def test_build_listing_vin_account_labels_uses_metadata_fallback(monkeypatch):
+    listing = SimpleNamespace(id=11, vin="WVWZZZ1KZAW123456", vin_fetched_at=None)
+
+    class FakeQuery:
+        def filter(self, *args, **kwargs):
+            return self
+
+        def order_by(self, *args, **kwargs):
+            return self
+
+        def all(self):
+            return []
+
+    db = MagicMock()
+    db.query.return_value = FakeQuery()
+    from app.listing_enrichment import build_listing_vin_account_labels
+
+    monkeypatch.setattr("app.listing_enrichment.listing_has_saved_vin", lambda row: True)
+    labels = build_listing_vin_account_labels(db, [listing])
+    assert labels[11] == "Из объявления"
+
+
+def test_recheck_listing_customs_import_date(monkeypatch):
+    listing = SimpleNamespace(vin="WVWZZZ1KZAW123456")
+
+    monkeypatch.setattr("app.listing_enrichment.listing_has_saved_vin", lambda row: True)
+    def fake_lookup(db, vin, *, database=None, force_refresh=False):
+        return SimpleNamespace(found=True, release_date="15.03.2021")
+
+    monkeypatch.setattr("app.listing_enrichment.lookup_customs_vin", fake_lookup)
+
+    release_date, error = recheck_listing_customs_import_date(MagicMock(), listing)
+    assert release_date == "15.03.2021"
+    assert error is None
+
+
 def test_admin_vin_check_api_requires_auth(client):
     response = client.post("/api/v1/admin/listings/1/vin-check", follow_redirects=False)
+    assert response.status_code == 401
+
+
+def test_admin_customs_recheck_api_requires_auth(client):
+    response = client.post("/api/v1/admin/listings/1/customs-recheck", follow_redirects=False)
     assert response.status_code == 401

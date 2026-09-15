@@ -881,6 +881,28 @@ body {
   white-space: nowrap;
 }
 
+.admin-vin-import-missing {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.admin-vin-no-import {
+  color: #64748b;
+  font-weight: 600;
+}
+
+.admin-vin-customs-retry {
+  font-size: 12px;
+}
+
+.admin-vin-customs-retry-error {
+  display: block;
+  max-width: 220px;
+  line-height: 1.3;
+}
+
 .admin-vin-check-stats {
   margin: 10px 0 0;
   padding: 10px 12px;

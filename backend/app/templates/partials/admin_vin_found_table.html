@@ -19,7 +19,7 @@
               href="/listings/{{ row.listing.id }}"
               target="_blank"
               rel="noopener"
-            >{{ row.listing.brand }} {{ row.listing.model }}</a>
+            >{{ row.listing.brand }} {{ row.listing.model }} · {{ row.listing.year }}</a>
             <div class="admin-vin-found-specs">{{ row.listing | format_vin_found_specs_line }}</div>
           </td>
           <td class="admin-vin-found-photo-cell">
@@ -41,11 +41,17 @@
               <button type="button" class="admin-vin-copy-action">Скопировать</button>
             </span>
           </td>
-          <td class="admin-vin-import-date">
+          <td class="admin-vin-import-date" data-import-cell>
             {% if row.import_date %}
-              <strong>{{ row.import_date }}</strong>
+              <strong class="admin-vin-import-value">{{ row.import_date }}</strong>
             {% else %}
-              —
+              <div class="admin-vin-import-missing">
+                <span class="admin-vin-no-import">Нет данных</span>
+                <button type="button" class="btn-link-like admin-vin-customs-retry" data-listing-id="{{ row.listing.id }}">
+                  Повторить запрос
+                </button>
+                <span class="admin-vin-customs-retry-error hint" hidden></span>
+              </div>
             {% endif %}
           </td>
           <td class="admin-vin-account-cell">

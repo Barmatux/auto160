@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
+from datetime import timedelta
 
 from sqlalchemy.orm import Session
 
@@ -450,12 +451,38 @@ def format_vin_check_stats_summary(stats: VinCheckPageStats) -> str:
     return " ".join(parts)
 
 
-def build_listing_vin_account_labels(db: Session, listing_ids: list[int]) -> dict[int, str]:
-    if not listing_ids:
+def _match_orphan_vin_fetch(
+    listing: CarListing,
+    orphan_fetches: list,
+    *,
+    max_delta_seconds: int = 120,
+) -> int | None:
+    if not listing.vin_fetched_at or not orphan_fetches:
+        return None
+    best_account_id: int | None = None
+    best_delta: float | None = None
+    listing_ts = listing.vin_fetched_at
+    for fetch in orphan_fetches:
+        if fetch.created_at is None:
+            continue
+        delta = abs((fetch.created_at - listing_ts).total_seconds())
+        if delta > max_delta_seconds:
+            continue
+        if best_delta is None or delta < best_delta:
+            best_delta = delta
+            best_account_id = fetch.account_id
+    return best_account_id
+
+
+def build_listing_vin_account_labels(db: Session, listings: list[CarListing]) -> dict[int, str]:
+    if not listings:
         return {}
 
     from app.avby_accounts import account_display_login
     from app.models import AvbyServiceAccount, AvbyVinFetch
+
+    listing_ids = [listing.id for listing in listings]
+    account_ids: dict[int, int] = {}
 
     fetches = (
         db.query(AvbyVinFetch)
@@ -463,26 +490,66 @@ def build_listing_vin_account_labels(db: Session, listing_ids: list[int]) -> dic
         .order_by(AvbyVinFetch.created_at.desc())
         .all()
     )
-    latest_account_id: dict[int, int] = {}
     for fetch in fetches:
-        if fetch.listing_id is None or fetch.listing_id in latest_account_id:
+        if fetch.listing_id is None or fetch.listing_id in account_ids:
             continue
-        latest_account_id[fetch.listing_id] = fetch.account_id
+        account_ids[fetch.listing_id] = fetch.account_id
 
-    if not latest_account_id:
-        return {}
+    missing_with_fetch_time = [
+        listing for listing in listings if listing.id not in account_ids and listing.vin_fetched_at
+    ]
+    if missing_with_fetch_time:
+        min_ts = min(listing.vin_fetched_at for listing in missing_with_fetch_time) - timedelta(seconds=120)
+        max_ts = max(listing.vin_fetched_at for listing in missing_with_fetch_time) + timedelta(seconds=120)
+        orphan_fetches = (
+            db.query(AvbyVinFetch)
+            .filter(
+                AvbyVinFetch.listing_id.is_(None),
+                AvbyVinFetch.created_at >= min_ts,
+                AvbyVinFetch.created_at <= max_ts,
+            )
+            .order_by(AvbyVinFetch.created_at.desc())
+            .all()
+        )
+        for listing in missing_with_fetch_time:
+            matched_account_id = _match_orphan_vin_fetch(listing, orphan_fetches)
+            if matched_account_id is not None:
+                account_ids[listing.id] = matched_account_id
 
-    accounts = {
-        row.id: row
-        for row in db.query(AvbyServiceAccount)
-        .filter(AvbyServiceAccount.id.in_(latest_account_id.values()))
-        .all()
-    }
-    return {
-        listing_id: account_display_login(accounts[account_id])
-        for listing_id, account_id in latest_account_id.items()
-        if account_id in accounts
-    }
+    labels: dict[int, str] = {}
+    if account_ids:
+        accounts = {
+            row.id: row
+            for row in db.query(AvbyServiceAccount)
+            .filter(AvbyServiceAccount.id.in_(account_ids.values()))
+            .all()
+        }
+        for listing_id, account_id in account_ids.items():
+            account = accounts.get(account_id)
+            if account is not None:
+                labels[listing_id] = account_display_login(account)
+
+    for listing in listings:
+        if listing.id in labels:
+            continue
+        if listing_has_saved_vin(listing) and listing.vin_fetched_at is None:
+            labels[listing.id] = "Из объявления"
+    return labels
+
+
+def recheck_listing_customs_import_date(db: Session, listing: CarListing) -> tuple[str | None, str | None]:
+    if not listing_has_saved_vin(listing):
+        return None, "Нет VIN"
+    vin = (listing.vin or "").strip().upper()
+    try:
+        result = lookup_customs_vin(db, vin, database=DATABASE_PERSONAL, force_refresh=True)
+    except CustomsVinError as exc:
+        return None, str(exc)
+    if result.found and result.release_date:
+        return result.release_date, None
+    if result.found:
+        return None, "Найдено в ГТК, дата не распознана"
+    return None, "Не найдено в базе ГТК"
 
 
 def build_vin_found_rows(
@@ -496,7 +563,7 @@ def build_vin_found_rows(
         return []
     cover_urls = resolve_cover_urls(listings, db)
     customs_map = build_customs_map(db, listings)
-    account_labels = build_listing_vin_account_labels(db, [listing.id for listing in listings])
+    account_labels = build_listing_vin_account_labels(db, listings)
     rows: list[dict] = []
     for listing in listings:
         customs = customs_map.get(listing.id)

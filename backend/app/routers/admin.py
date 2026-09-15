@@ -14,7 +14,7 @@ from app.avby_accounts import (
 )
 from app.avby_session import AvbySessionError, get_avby_session
 from app.avby_vin import AvbyVinError, get_or_fetch_listing_vin
-from app.listing_enrichment import perform_listing_vin_check
+from app.listing_enrichment import perform_listing_vin_check, recheck_listing_customs_import_date
 from app.catalog_generation_years import apply_generation_years, sync_generation_years_from_sources
 from app.catalog_ratings import apply_generation_rating, format_production_years, generation_label
 from app.catalog_visibility import apply_generation_catalog_visibility
@@ -36,6 +36,7 @@ from app.schemas import (
     CatalogGenerationVisibilityUpdate,
     CatalogGenerationYearsResult,
     CatalogGenerationYearsUpdate,
+    ListingCustomsRecheckResponse,
     ListingVinCheckResponse,
     ListingVinResponse,
     UserPublic,
@@ -405,6 +406,24 @@ def sync_catalog_generation_years_from_avby(
         year_to=sample.year_to,
         production_years=production_years,
         updated_items=updated,
+    )
+
+
+@router.post("/listings/{listing_id}/customs-recheck", response_model=ListingCustomsRecheckResponse)
+def recheck_listing_customs(
+    listing_id: int,
+    _: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    listing = db.query(CarListing).filter(CarListing.id == listing_id).first()
+    if not listing:
+        raise HTTPException(status_code=404, detail="Listing not found")
+    release_date, customs_error = recheck_listing_customs_import_date(db, listing)
+    return ListingCustomsRecheckResponse(
+        listing_id=listing.id,
+        release_date=release_date,
+        customs_found=release_date is not None,
+        customs_error=customs_error,
     )
 
 
