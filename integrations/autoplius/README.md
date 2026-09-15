@@ -2,7 +2,7 @@
 
 ## What it does
 
-- Imports active Autoplius ads (≤160 hp) from scrape Postgres into `car_listings`
+- Imports active Autoplius ads (≤160 hp, age ≤5 years, engine ≤1.9 L) from scrape Postgres into `car_listings`
 - Photos served via `/media/autoplius?key=...` from Yandex bucket `autoplius-media`
 - UI tab: **Литва** → `/listings/lt` (Belarus feed stays `/listings`)
 

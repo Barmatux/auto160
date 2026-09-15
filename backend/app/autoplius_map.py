@@ -18,6 +18,16 @@ NBRB_EUR_URL = "https://api.nbrb.by/exrates/rates/EUR?parammode=2"
 DEFAULT_MEDIA_BUCKET = "autoplius-media"
 DEFAULT_MEDIA_ENDPOINT = "https://storage.yandexcloud.net"
 
+# Lithuania feed policy: young cars with modest engines (in addition to ≤160 hp).
+DEFAULT_MAX_AGE_YEARS = 5
+DEFAULT_MAX_ENGINE_L = 1.9
+
+
+def min_year_for_max_age(max_age_years: int, *, as_of: date | None = None) -> int:
+    """Oldest manufacture year allowed for age ≤ max_age_years (calendar year)."""
+    current = (as_of or datetime.now(timezone.utc).date()).year
+    return current - int(max_age_years)
+
 # Titles look like: "BMW 520, 2.0 l., Универсал 2019-12 m.,  | A32155778"
 _TITLE_SPLIT_RE = re.compile(r"\s*,\s*")
 _YEAR_RE = re.compile(r"(19|20)\d{2}")
@@ -248,6 +258,8 @@ def map_autoplius_row(
     media_endpoint: str = DEFAULT_MEDIA_ENDPOINT,
     use_app_proxy: bool = True,
     max_hp: int | None = 160,
+    max_age_years: int | None = DEFAULT_MAX_AGE_YEARS,
+    max_engine_l: float | None = DEFAULT_MAX_ENGINE_L,
     require_detail: bool = True,
 ) -> AutopliusMappedListing:
     external_id = str(row.get("external_id") or "").strip()
@@ -261,6 +273,10 @@ def map_autoplius_row(
         price_eur_i = None
     price_byn = eur_rate.eur_to_byn(price_eur_i) if eur_rate and price_eur_i is not None else None
     hp = extract_engine_power_hp(row)
+    try:
+        engine_l = float(row["engine_liters"]) if row.get("engine_liters") is not None else None
+    except (TypeError, ValueError):
+        engine_l = None
     photo_urls_raw = row.get("photo_urls") or []
     if not isinstance(photo_urls_raw, list):
         photo_urls_raw = []
@@ -308,6 +324,12 @@ def map_autoplius_row(
         skip = "hp_missing"
     elif max_hp is not None and hp is not None and hp > max_hp:
         skip = f"hp_over_{max_hp}"
+    elif max_age_years is not None and year < min_year_for_max_age(max_age_years):
+        skip = f"age_over_{max_age_years}"
+    elif max_engine_l is not None and engine_l is None:
+        skip = "engine_l_missing"
+    elif max_engine_l is not None and engine_l is not None and engine_l > max_engine_l:
+        skip = f"engine_l_over_{max_engine_l}"
 
     description = (row.get("description_ru") or row.get("description") or "").strip() or None
 
@@ -325,7 +347,7 @@ def map_autoplius_row(
         body_type=(row.get("body_type") or None),
         engine_type=(row.get("fuel") or None),
         transmission_type=(row.get("transmission") or None),
-        engine_capacity_l=float(row["engine_liters"]) if row.get("engine_liters") is not None else None,
+        engine_capacity_l=engine_l,
         engine_power_hp=hp,
         cover_photo_url=cover,
         photo_urls=photo_urls,

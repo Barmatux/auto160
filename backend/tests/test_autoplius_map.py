@@ -60,6 +60,36 @@ def test_map_skips_overpowered():
     assert mapped.cover_photo_url == "/media/autoplius?key=listings%2F1%2F000_a.jpg"
 
 
+def test_map_skips_age_and_engine_limits():
+    rate = EurRate(rate=3.5, scale=1, rate_date=__import__("datetime").date(2026, 9, 14))
+    base = {
+        "external_id": "2",
+        "title": "Toyota Corolla, 1.6 l., Седан 2022 m.",
+        "year": "2022",
+        "price_eur": 15000,
+        "mileage_km": 50000,
+        "city": "Вильнюс",
+        "body_type": "Седан",
+        "fuel": "Бензин",
+        "transmission": "Механическая",
+        "engine_liters": 1.6,
+        "url": "https://example.test/2",
+        "photo_url": "/media/object?key=listings%2F2%2F000_a.jpg",
+        "photo_urls": ["/media/object?key=listings%2F2%2F000_a.jpg"],
+        "detail_scraped": True,
+        "raw": {"parameters": {"Двигатель": "1598 см³, 132 Л.С."}},
+        "parameters": {},
+    }
+    ok = map_autoplius_row(base, eur_rate=rate, max_hp=160)
+    assert ok.skip_reason is None
+
+    old = {**base, "year": "2018"}
+    assert map_autoplius_row(old, eur_rate=rate).skip_reason == "age_over_5"
+
+    big_engine = {**base, "engine_liters": 2.0}
+    assert map_autoplius_row(big_engine, eur_rate=rate).skip_reason == "engine_l_over_1.9"
+
+
 def test_extract_storage_key_from_media_proxy():
     from app.autoplius_map import extract_storage_key
 

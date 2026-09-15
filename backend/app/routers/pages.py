@@ -2236,7 +2236,15 @@ def listings_page(
     if not is_admin:
         query = query.filter(CarListing.status == ListingStatus.published)
     if listings_market == "lt":
-        query = query.filter(CarListing.source == "autoplius")
+        from app.autoplius_map import DEFAULT_MAX_AGE_YEARS, DEFAULT_MAX_ENGINE_L, min_year_for_max_age
+
+        lt_year_min = min_year_for_max_age(DEFAULT_MAX_AGE_YEARS)
+        query = query.filter(
+            CarListing.source == "autoplius",
+            CarListing.year >= lt_year_min,
+            CarListing.engine_capacity_l.isnot(None),
+            CarListing.engine_capacity_l <= DEFAULT_MAX_ENGINE_L,
+        )
     else:
         query = query.filter(or_(CarListing.source.is_(None), CarListing.source != "autoplius"))
 
@@ -2456,15 +2464,15 @@ def listings_page(
         seo = build_seo_context(
             request,
             SeoMeta(
-                title="Авто из Литвы (Autoplius) до 160 л.с. — Auto160"
+                title="Авто из Литвы до 5 лет и 1.9 л — Auto160"
                 + (f", стр. {page}" if page > 1 else ""),
                 description=(
-                    "Объявления автомобилей из Литвы (autoplius.lt) до 160 л.с. "
-                    "Цены в BYN по курсу НБ РБ."
+                    "Объявления из Литвы (autoplius.lt): возраст до 5 лет, "
+                    "двигатель до 1.9 л, мощность до 160 л.с. Цены в BYN по курсу НБ РБ."
                 ),
                 path=listings_base_path,
-                h1="Литва — объявления Autoplius",
-                intro="Отдельная лента объявлений с autoplius.lt (до 160 л.с.).",
+                h1="Литва — до 5 лет и 1.9 л",
+                intro="Autoplius: авто не старше 5 лет, двигатель до 1.9 л, до 160 л.с.",
                 noindex=page > 1 or noisy_filters or (brand == "__multi__"),
             ),
         )

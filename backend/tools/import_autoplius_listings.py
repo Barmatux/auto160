@@ -23,7 +23,12 @@ if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 os.chdir(ROOT_DIR)
 
-from app.autoplius_map import fetch_eur_rate, map_autoplius_row
+from app.autoplius_map import (
+    DEFAULT_MAX_AGE_YEARS,
+    DEFAULT_MAX_ENGINE_L,
+    fetch_eur_rate,
+    map_autoplius_row,
+)
 from app.body_type_labels import is_hidden_body_type
 from app.config import settings
 from app.db import SessionLocal
@@ -128,6 +133,18 @@ def main() -> int:
     parser.add_argument("--dsn", default=os.getenv("AUTOPLIUS_SCRAPE_DSN") or settings.autoplius_scrape_dsn)
     parser.add_argument("--limit", type=int, default=0, help="0 = all active candidates")
     parser.add_argument("--max-hp", type=int, default=160)
+    parser.add_argument(
+        "--max-age-years",
+        type=int,
+        default=DEFAULT_MAX_AGE_YEARS,
+        help="Keep cars with age ≤ N years (manufacture year ≥ current-N)",
+    )
+    parser.add_argument(
+        "--max-engine-l",
+        type=float,
+        default=DEFAULT_MAX_ENGINE_L,
+        help="Keep cars with engine capacity ≤ N liters",
+    )
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--no-create", action="store_true", help="Do not create new rows")
     parser.add_argument("--no-update", action="store_true", help="Do not update existing rows")
@@ -170,6 +187,8 @@ def main() -> int:
                 dict(row),
                 eur_rate=eur,
                 max_hp=args.max_hp,
+                max_age_years=args.max_age_years,
+                max_engine_l=args.max_engine_l,
                 require_detail=True,
                 use_app_proxy=True,
             )
