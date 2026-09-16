@@ -7,6 +7,9 @@ from app.vin_account_stats import build_vin_fetch_stats_by_day
 
 def test_build_vin_fetch_stats_by_day_groups_newest_first():
     class FakeQuery:
+        def __init__(self):
+            self._mode = "fetches"
+
         def group_by(self, *args, **kwargs):
             return self
 
@@ -14,7 +17,7 @@ def test_build_vin_fetch_stats_by_day_groups_newest_first():
             return self
 
         def all(self):
-            if getattr(self, "_mode", "fetches") == "accounts":
+            if self._mode == "accounts":
                 return [
                     SimpleNamespace(id=1, email="a@test.com", phone=None, name="A"),
                     SimpleNamespace(id=2, email="b@test.com", phone=None, name="B"),
@@ -29,21 +32,24 @@ def test_build_vin_fetch_stats_by_day_groups_newest_first():
 
     def query(model):
         q = FakeQuery()
-        if getattr(model, "__name__", "") == "AvbyServiceAccount" or str(model).endswith("AvbyServiceAccount"):
+        name = getattr(model, "__name__", str(model))
+        if "AvbyServiceAccount" in name:
             q._mode = "accounts"
-        else:
-            q._mode = "fetches"
         return q
 
     db.query.side_effect = query
 
-    # Patch account_display_login to avoid full account serialization
     import app.vin_account_stats as stats_mod
 
     original_display = stats_mod.account_display_login
     stats_mod.account_display_login = lambda account: account.email or f"#{account.id}"
     try:
         groups = build_vin_fetch_stats_by_day(db)
+        filtered = build_vin_fetch_stats_by_day(
+            db,
+            date_from=date(2026, 9, 16),
+            date_to=date(2026, 9, 16),
+        )
     finally:
         stats_mod.account_display_login = original_display
 
@@ -55,3 +61,4 @@ def test_build_vin_fetch_stats_by_day_groups_newest_first():
         ("b@test.com", 1),
     ]
     assert groups[1]["total"] == 2
+    assert isinstance(filtered, list)

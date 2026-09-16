@@ -228,7 +228,10 @@
   }
 
   function buildVinFoundDateFilterUrl(fromDate, toDate) {
-    const params = new URLSearchParams();
+    const params = new URLSearchParams(window.location.search);
+    params.delete("page");
+    params.delete("checked_from");
+    params.delete("checked_to");
     if (fromDate) params.set("checked_from", formatIsoDate(fromDate));
     if (toDate) params.set("checked_to", formatIsoDate(toDate));
     const query = params.toString();
@@ -349,7 +352,12 @@
 
     applyBtn?.addEventListener("click", () => {
       if (!rangeStart && !rangeEnd) {
-        window.location.href = "/admin/vin-check/found";
+        const params = new URLSearchParams(window.location.search);
+        params.delete("page");
+        params.delete("checked_from");
+        params.delete("checked_to");
+        const query = params.toString();
+        window.location.href = query ? `/admin/vin-check/found?${query}` : "/admin/vin-check/found";
         return;
       }
       const fromDate = rangeStart || rangeEnd;
@@ -358,7 +366,12 @@
     });
 
     clearBtn?.addEventListener("click", () => {
-      window.location.href = "/admin/vin-check/found";
+      const params = new URLSearchParams(window.location.search);
+      params.delete("page");
+      params.delete("checked_from");
+      params.delete("checked_to");
+      const query = params.toString();
+      window.location.href = query ? `/admin/vin-check/found?${query}` : "/admin/vin-check/found";
     });
 
     document.addEventListener("click", (event) => {
@@ -372,33 +385,4 @@
   }
 
   initDateFilterPopover();
-
-  function initVinStatsModal() {
-    const openBtn = document.querySelector("[data-vin-stats-open]");
-    const modal = document.querySelector("[data-vin-stats-modal]");
-    const backdrop = document.querySelector("[data-vin-stats-backdrop]");
-    const closeBtn = document.querySelector("[data-vin-stats-close]");
-    if (!openBtn || !modal || !backdrop) return;
-
-    const open = () => {
-      modal.hidden = false;
-      backdrop.hidden = false;
-      document.body.style.overflow = "hidden";
-    };
-
-    const close = () => {
-      modal.hidden = true;
-      backdrop.hidden = true;
-      document.body.style.overflow = "";
-    };
-
-    openBtn.addEventListener("click", open);
-    closeBtn?.addEventListener("click", close);
-    backdrop.addEventListener("click", close);
-    document.addEventListener("keydown", (event) => {
-      if (event.key === "Escape" && !modal.hidden) close();
-    });
-  }
-
-  initVinStatsModal();
 })();

@@ -143,6 +143,56 @@ body.theme-admin .generation-card:hover {
   box-shadow: 0 16px 36px rgba(0, 168, 255, 0.12);
 }
 
+body.theme-admin .catalog-main-head {
+  color: #0f172a;
+}
+
+body.theme-admin .catalog-main-head .hint,
+body.theme-admin .catalog-main-head .muted,
+body.theme-admin .catalog-main-head label,
+body.theme-admin .catalog-main-head .inline-checkbox,
+body.theme-admin .catalog-main-head .admin-vin-stats-empty {
+  color: #334155;
+}
+
+body.theme-admin .catalog-main-head a {
+  color: #0369a1;
+}
+
+body.theme-admin .catalog-main-head a:hover {
+  color: #0e7490;
+}
+
+body.theme-admin .admin-vin-check-stats {
+  background: #ecfeff;
+  color: #155e75;
+  border-color: #67e8f9;
+}
+
+body.theme-admin .admin-vin-stats-panel {
+  background: rgba(255, 255, 255, 0.88);
+  border-color: #9ec5ef;
+}
+
+body.theme-admin .admin-vin-stats-range-field input[type="date"] {
+  background: #fff;
+  color: #0f172a;
+  border-color: #94a3b8;
+}
+
+body.theme-admin .admin-vin-stats-day h3,
+body.theme-admin .admin-vin-stats-accounts li,
+body.theme-admin .admin-vin-stats-count,
+body.theme-admin .admin-vin-stats-total,
+body.theme-admin .admin-vin-stats-grand-total,
+body.theme-admin .admin-vin-stats-panel-title {
+  color: #0f172a;
+}
+
+body.theme-admin .admin-vin-stats-day {
+  border-color: #cbd5e1;
+}
+
 body.theme-admin .hint,
 body.theme-admin .muted,
 body.theme-admin .pager-summary,
@@ -273,6 +323,12 @@ body.theme-admin .badge {
   border-color: rgba(0, 168, 255, 0.28);
 }
 
+body.theme-admin .catalog-main-head .admin-vin-check-stats {
+  background: #ecfeff;
+  color: #155e75;
+  border-color: #67e8f9;
+}
+
 body.theme-admin .listing-price,
 body.theme-admin .price,
 body.theme-admin .admin-vin-import-value,
@@ -326,18 +382,6 @@ body.theme-admin .guide-section {
   color: var(--text);
 }
 
-body.theme-admin .admin-vin-stats-modal {
-  background: #10141c;
-  border-color: var(--border);
-  color: var(--text);
-  box-shadow: var(--shadow);
-}
-
-body.theme-admin .admin-vin-stats-modal-head,
-body.theme-admin .admin-vin-stats-day {
-  border-color: var(--border);
-}
-
 body.theme-admin .catalog-page .vehicle-hierarchy-field select,
 body.theme-admin .catalog-page .vehicle-hierarchy-field select:disabled {
   background: #0c1017;
@@ -360,6 +404,11 @@ body.theme-admin .listings-feed .listing-photo-nav {
 body.theme-admin .inline-checkbox,
 body.theme-admin label {
   color: var(--text);
+}
+
+body.theme-admin .catalog-main-head .inline-checkbox,
+body.theme-admin .catalog-main-head label {
+  color: #1e293b;
 }
 
 @media (max-width: 900px) {

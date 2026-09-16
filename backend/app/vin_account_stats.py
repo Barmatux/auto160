@@ -12,7 +12,12 @@ from app.avby_accounts import account_display_login, format_avby_phone_display
 from app.models import AvbyServiceAccount, AvbyVinFetch
 
 
-def build_vin_fetch_stats_by_day(db: Session) -> list[dict]:
+def build_vin_fetch_stats_by_day(
+    db: Session,
+    *,
+    date_from: date | None = None,
+    date_to: date | None = None,
+) -> list[dict]:
     """VIN fetch counts grouped by calendar day, newest first.
 
     Each item:
@@ -23,15 +28,18 @@ def build_vin_fetch_stats_by_day(db: Session) -> list[dict]:
         "total": int,
       }
     """
-    rows = (
-        db.query(
-            AvbyVinFetch.account_id,
-            func.date(AvbyVinFetch.created_at).label("day"),
-            func.count(AvbyVinFetch.id).label("cnt"),
-        )
-        .group_by(AvbyVinFetch.account_id, func.date(AvbyVinFetch.created_at))
-        .all()
+    query = db.query(
+        AvbyVinFetch.account_id,
+        func.date(AvbyVinFetch.created_at).label("day"),
+        func.count(AvbyVinFetch.id).label("cnt"),
     )
+    if date_from is not None:
+        query = query.filter(AvbyVinFetch.created_at >= datetime.combine(date_from, datetime.min.time()))
+    if date_to is not None:
+        query = query.filter(
+            AvbyVinFetch.created_at < datetime.combine(date_to + timedelta(days=1), datetime.min.time())
+        )
+    rows = query.group_by(AvbyVinFetch.account_id, func.date(AvbyVinFetch.created_at)).all()
 
     by_day: dict[str, dict[int, int]] = defaultdict(dict)
     account_ids: set[int] = set()

@@ -788,68 +788,80 @@ body {
   margin: 0;
 }
 
-.admin-vin-found-head-row {
+.admin-vin-found-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 340px);
+  gap: 16px 20px;
+  align-items: start;
+}
+
+.admin-vin-found-head-main h1 {
+  margin: 0 0 6px;
+}
+
+.admin-vin-stats-panel {
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid #bfd6f7;
+  border-radius: 14px;
+  padding: 12px;
+}
+
+.admin-vin-stats-panel-title {
+  margin: 0 0 10px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.admin-vin-stats-range-form {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.admin-vin-stats-range-field {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 0.85rem;
+  color: #334155;
+}
+
+.admin-vin-stats-range-field input[type="date"] {
+  width: 100%;
+  min-height: 34px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 4px 8px;
+  background: #fff;
+  color: #0f172a;
+  font: inherit;
+}
+
+.admin-vin-stats-range-actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
 }
 
-.admin-vin-found-head-row h1 {
-  margin: 0;
-}
-
-.admin-vin-stats-open {
+.admin-vin-stats-apply {
   text-decoration: none;
   cursor: pointer;
+  border: 0;
 }
 
-.admin-vin-stats-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 80;
-  background: rgba(15, 23, 42, 0.55);
-}
-
-.admin-vin-stats-modal {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  z-index: 81;
-  width: min(480px, calc(100vw - 32px));
-  max-height: min(80vh, 720px);
-  transform: translate(-50%, -50%);
-  display: flex;
-  flex-direction: column;
-  border-radius: 14px;
-  border: 1px solid #d7e3f8;
-  background: #fff;
-  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.22);
-}
-
-.admin-vin-stats-modal-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 14px 16px;
-  border-bottom: 1px solid #e2e8f0;
-}
-
-.admin-vin-stats-modal-head h2 {
-  margin: 0;
-  font-size: 1.1rem;
-}
-
-.admin-vin-stats-modal-body {
+.admin-vin-stats-list {
+  max-height: 280px;
   overflow: auto;
-  padding: 12px 16px 16px;
+  padding-right: 2px;
 }
 
 .admin-vin-stats-day {
-  padding: 12px 0;
-  border-bottom: 1px solid #eef2f7;
+  padding: 10px 0;
+  border-bottom: 1px solid #e2e8f0;
 }
 
 .admin-vin-stats-day:last-child {
@@ -858,8 +870,9 @@ body {
 }
 
 .admin-vin-stats-day h3 {
-  margin: 0 0 8px;
-  font-size: 0.98rem;
+  margin: 0 0 6px;
+  font-size: 0.92rem;
+  color: #0f172a;
 }
 
 .admin-vin-stats-accounts {
@@ -867,15 +880,16 @@ body {
   margin: 0;
   padding: 0;
   display: grid;
-  gap: 6px;
+  gap: 4px;
 }
 
 .admin-vin-stats-accounts li {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 12px;
-  font-size: 0.92rem;
+  gap: 10px;
+  font-size: 0.88rem;
+  color: #1e293b;
 }
 
 .admin-vin-stats-account {
@@ -887,11 +901,24 @@ body {
   flex: 0 0 auto;
   font-variant-numeric: tabular-nums;
   font-weight: 700;
+  color: #0f172a;
 }
 
-.admin-vin-stats-total {
-  margin: 10px 0 0;
-  font-size: 0.92rem;
+.admin-vin-stats-total,
+.admin-vin-stats-grand-total {
+  margin: 8px 0 0;
+  font-size: 0.88rem;
+  color: #0f172a;
+}
+
+.admin-vin-stats-empty {
+  margin: 0;
+}
+
+@media (max-width: 900px) {
+  .admin-vin-found-head {
+    grid-template-columns: 1fr;
+  }
 }
 
 .admin-vin-found-link {

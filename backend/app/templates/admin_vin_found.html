@@ -3,18 +3,73 @@
 {% block content %}
 <div class="catalog-page admin-vin-check-page">
   <section class="catalog-main admin-vin-check-main">
-    <div class="catalog-main-head">
-      <div class="admin-vin-found-head-row">
+    <div class="catalog-main-head admin-vin-found-head">
+      <div class="admin-vin-found-head-main">
         <h1>Найден VIN</h1>
-        <button type="button" class="page-link admin-vin-stats-open" data-vin-stats-open>
-          Статистика
-        </button>
+        <p class="hint">
+          <a href="/admin/vin-check">← VIN CHECK</a>
+          · собранные VIN объявлений моделей с рейтингом 1
+        </p>
+        <p class="hint">Всего записей: {{ vin_found_total }} · страница {{ page }} из {{ total_pages }}{% if vin_found_date_filter.label() %} · фильтр: {{ vin_found_date_filter.label() }}{% endif %}</p>
       </div>
-      <p class="hint">
-        <a href="/admin/vin-check">← VIN CHECK</a>
-        · собранные VIN объявлений моделей с рейтингом 1
-      </p>
-      <p class="hint">Всего записей: {{ vin_found_total }} · страница {{ page }} из {{ total_pages }}{% if vin_found_date_filter.label() %} · фильтр: {{ vin_found_date_filter.label() }}{% endif %}</p>
+
+      <aside class="admin-vin-stats-panel">
+        <div class="admin-vin-stats-panel-title">Статистика сбора</div>
+        <form method="get" action="/admin/vin-check/found" class="admin-vin-stats-range-form">
+          {% if vin_found_date_filter.date_from %}
+            <input type="hidden" name="checked_from" value="{{ vin_found_date_filter.date_from.isoformat() }}" />
+          {% endif %}
+          {% if vin_found_date_filter.date_to %}
+            <input type="hidden" name="checked_to" value="{{ vin_found_date_filter.date_to.isoformat() }}" />
+          {% endif %}
+          <label class="admin-vin-stats-range-field">
+            <span>С</span>
+            <input
+              type="date"
+              name="stats_from"
+              value="{{ vin_stats_from.isoformat() if vin_stats_from else '' }}"
+            />
+          </label>
+          <label class="admin-vin-stats-range-field">
+            <span>По</span>
+            <input
+              type="date"
+              name="stats_to"
+              value="{{ vin_stats_to.isoformat() if vin_stats_to else '' }}"
+            />
+          </label>
+          <div class="admin-vin-stats-range-actions">
+            <button type="submit" class="page-link admin-vin-stats-apply">Показать</button>
+            {% if vin_stats_from or vin_stats_to %}
+              <a class="btn-link-like" href="{{ vin_stats_reset_url }}">Сбросить</a>
+            {% endif %}
+          </div>
+        </form>
+
+        <div class="admin-vin-stats-list">
+          {% if vin_found_day_stats %}
+            {% for day in vin_found_day_stats %}
+              <section class="admin-vin-stats-day">
+                <h3>{{ day.day_label }}</h3>
+                <ul class="admin-vin-stats-accounts">
+                  {% for account in day.accounts %}
+                    <li>
+                      <span class="admin-vin-stats-account">{{ account.label }}</span>
+                      <span class="admin-vin-stats-count">{{ account.count }}</span>
+                    </li>
+                  {% endfor %}
+                </ul>
+                <p class="admin-vin-stats-total"><strong>Всего:</strong> {{ day.total }}</p>
+              </section>
+            {% endfor %}
+            {% if vin_found_day_stats|length > 1 %}
+              <p class="admin-vin-stats-grand-total"><strong>Итого за период:</strong> {{ vin_stats_range_total }}</p>
+            {% endif %}
+          {% else %}
+            <p class="hint admin-vin-stats-empty">Нет данных за выбранный период.</p>
+          {% endif %}
+        </div>
+      </aside>
     </div>
 
     {% include "partials/admin_vin_found_table.html" %}
@@ -39,43 +94,6 @@
   </section>
 </div>
 
-<div class="admin-vin-stats-backdrop" data-vin-stats-backdrop hidden></div>
-<div
-  class="admin-vin-stats-modal"
-  data-vin-stats-modal
-  hidden
-  role="dialog"
-  aria-modal="true"
-  aria-labelledby="admin-vin-stats-title"
->
-  <div class="admin-vin-stats-modal-head">
-    <h2 id="admin-vin-stats-title">Статистика сбора VIN</h2>
-    <button type="button" class="btn-link-like admin-vin-stats-close" data-vin-stats-close aria-label="Закрыть">
-      Закрыть
-    </button>
-  </div>
-  <div class="admin-vin-stats-modal-body">
-    {% if vin_found_day_stats %}
-      {% for day in vin_found_day_stats %}
-        <section class="admin-vin-stats-day">
-          <h3>{{ day.day_label }}</h3>
-          <ul class="admin-vin-stats-accounts">
-            {% for account in day.accounts %}
-              <li>
-                <span class="admin-vin-stats-account">{{ account.label }}</span>
-                <span class="admin-vin-stats-count">{{ account.count }}</span>
-              </li>
-            {% endfor %}
-          </ul>
-          <p class="admin-vin-stats-total"><strong>Всего:</strong> {{ day.total }}</p>
-        </section>
-      {% endfor %}
-    {% else %}
-      <p class="hint">Пока нет данных о сборе VIN по аккаунтам.</p>
-    {% endif %}
-  </div>
-</div>
-
 {% include "partials/auth_script.html" %}
-<script src="/static/admin_vin_found.js?v=20260916-03" defer></script>
+<script src="/static/admin_vin_found.js?v=20260916-04" defer></script>
 {% endblock %}

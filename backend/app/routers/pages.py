@@ -1,5 +1,5 @@
 import re
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from urllib.parse import quote, urlencode
 
@@ -3573,6 +3573,8 @@ def _build_admin_vin_found_url(
     *,
     page: int = 1,
     date_filter: VinFoundDateFilter | None = None,
+    stats_from: date | None = None,
+    stats_to: date | None = None,
 ) -> str:
     params: dict[str, str | int] = {}
     if page > 1:
@@ -3582,6 +3584,10 @@ def _build_admin_vin_found_url(
             params["checked_from"] = date_filter.date_from.isoformat()
         if date_filter.date_to is not None:
             params["checked_to"] = date_filter.date_to.isoformat()
+    if stats_from is not None:
+        params["stats_from"] = stats_from.isoformat()
+    if stats_to is not None:
+        params["stats_to"] = stats_to.isoformat()
     if not params:
         return "/admin/vin-check/found"
     return f"/admin/vin-check/found?{urlencode(params)}"
@@ -3593,6 +3599,8 @@ def admin_vin_found_page(
     page: int = Query(default=1, ge=1),
     checked_from: str | None = Query(default=None),
     checked_to: str | None = Query(default=None),
+    stats_from: str | None = Query(default=None),
+    stats_to: str | None = Query(default=None),
     db: Session = Depends(get_db),
 ):
     current_user = _resolve_user_from_request(request, db)
@@ -3605,6 +3613,11 @@ def admin_vin_found_page(
     if date_from and date_to and date_from > date_to:
         date_from, date_to = date_to, date_from
     vin_found_date_filter = VinFoundDateFilter(date_from=date_from, date_to=date_to)
+
+    stats_date_from = parse_filter_date(stats_from)
+    stats_date_to = parse_filter_date(stats_to)
+    if stats_date_from and stats_date_to and stats_date_from > stats_date_to:
+        stats_date_from, stats_date_to = stats_date_to, stats_date_from
 
     vin_found_listings, vin_found_total = paginate_rating_one_listings_with_vin(
         db,
@@ -3640,18 +3653,39 @@ def admin_vin_found_page(
     )
     context["vin_found_total"] = vin_found_total
     context["vin_found_date_filter"] = vin_found_date_filter
-    context["vin_found_day_stats"] = build_vin_fetch_stats_by_day(db)
+    context["vin_found_day_stats"] = build_vin_fetch_stats_by_day(
+        db,
+        date_from=stats_date_from,
+        date_to=stats_date_to,
+    )
+    context["vin_stats_from"] = stats_date_from
+    context["vin_stats_to"] = stats_date_to
+    context["vin_stats_range_total"] = sum(day["total"] for day in context["vin_found_day_stats"])
+    context["vin_stats_reset_url"] = _build_admin_vin_found_url(
+        page=1,
+        date_filter=vin_found_date_filter,
+    )
     context["page"] = page
     context["total_pages"] = total_pages
     context["has_prev"] = page > 1
     context["has_next"] = page < total_pages
     context["prev_url"] = (
-        _build_admin_vin_found_url(page=page - 1, date_filter=vin_found_date_filter)
+        _build_admin_vin_found_url(
+            page=page - 1,
+            date_filter=vin_found_date_filter,
+            stats_from=stats_date_from,
+            stats_to=stats_date_to,
+        )
         if context["has_prev"]
         else None
     )
     context["next_url"] = (
-        _build_admin_vin_found_url(page=page + 1, date_filter=vin_found_date_filter)
+        _build_admin_vin_found_url(
+            page=page + 1,
+            date_filter=vin_found_date_filter,
+            stats_from=stats_date_from,
+            stats_to=stats_date_to,
+        )
         if context["has_next"]
         else None
     )
