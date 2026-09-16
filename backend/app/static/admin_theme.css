@@ -49,10 +49,10 @@ body.theme-admin .header .brand {
 
 body.theme-admin .header .brand-logo {
   display: block;
-  height: 64px;
-  width: 64px;
+  height: 128px;
+  width: 128px;
   object-fit: contain;
-  border-radius: 10px;
+  border-radius: 12px;
 }
 
 body.theme-admin .header-menu-toggle {
@@ -364,8 +364,8 @@ body.theme-admin label {
 
 @media (max-width: 900px) {
   body.theme-admin .header .brand-logo {
-    height: 52px;
-    width: 52px;
+    height: 104px;
+    width: 104px;
   }
 
   body.theme-admin .header-nav-wrap {
@@ -377,7 +377,7 @@ body.theme-admin label {
 
 @media (max-width: 860px) {
   body.theme-admin .header .brand-logo {
-    height: 48px;
-    width: 48px;
+    height: 96px;
+    width: 96px;
   }
 }
