@@ -11,7 +11,9 @@ from sqlalchemy.orm import Session
 from app.avby_offer_metadata import fetch_and_apply_offer_vin_metadata
 from app.avby_vin import AvbyVinError, get_or_fetch_listing_vin
 from app.customs_vin import DATABASE_PERSONAL, CustomsVinError, has_fresh_customs_check, lookup_customs_vin
+from app.fuel_type_labels import FUEL_GROUP_DIESEL, classify_fuel_type
 from app.models import CarListing, CatalogItem, ListingStatus, VinCustomsCheck
+from app.transmission_labels import TRANSMISSION_SLUG_MANUAL, classify_transmission_slug
 from app.sync_run_vin_log import PHASE_RATING1, record_sync_run_vin_check
 
 
@@ -43,6 +45,12 @@ class ListingEnrichmentStats:
     skipped_already_enriched: int = 0
     skipped_limit: int = 0
     errors: list[str] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
+class VinCheckListingFilters:
+    only_automatic: bool = False
+    only_diesel: bool = False
 
 
 @dataclass(frozen=True)
@@ -631,11 +639,27 @@ def list_rating_one_listings_with_vin(db: Session) -> list[CarListing]:
     return listings
 
 
+def listing_matches_vin_check_filters(
+    listing: CarListing,
+    filters: VinCheckListingFilters | None = None,
+) -> bool:
+    if filters is None:
+        return True
+    if filters.only_automatic:
+        if classify_transmission_slug(getattr(listing, "transmission_type", None)) == TRANSMISSION_SLUG_MANUAL:
+            return False
+    if filters.only_diesel:
+        if classify_fuel_type(getattr(listing, "engine_type", None)) != FUEL_GROUP_DIESEL:
+            return False
+    return True
+
+
 def paginate_rating_one_listings(
     db: Session,
     *,
     page: int = 1,
     page_size: int = 21,
+    filters: VinCheckListingFilters | None = None,
 ) -> tuple[list[CarListing], int]:
     targets = build_rating_one_targets(db)
     if not targets:
@@ -651,6 +675,8 @@ def paginate_rating_one_listings(
     )
     for listing in query.yield_per(200):
         if not listing_matches_rating_one(listing, targets):
+            continue
+        if not listing_matches_vin_check_filters(listing, filters):
             continue
         if total >= offset and len(matched) < page_size:
             matched.append(listing)

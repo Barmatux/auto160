@@ -12,6 +12,28 @@
         data-vin-check-stats-state='{{ {"launched": vin_check_stats.checks_launched, "success": vin_check_stats.checks_success, "byModel": dict(vin_check_stats.vin_by_model)} | tojson }}'
       >{{ vin_check_stats_summary }}</p>
       <div class="admin-vin-check-actions">
+        <form method="get" action="/admin/vin-check" class="admin-vin-check-filters">
+          <label class="inline-checkbox">
+            <input
+              type="checkbox"
+              name="auto"
+              value="1"
+              {% if vin_check_filters.only_automatic %}checked{% endif %}
+              onchange="this.form.submit()"
+            />
+            Только автомат
+          </label>
+          <label class="inline-checkbox">
+            <input
+              type="checkbox"
+              name="diesel"
+              value="1"
+              {% if vin_check_filters.only_diesel %}checked{% endif %}
+              onchange="this.form.submit()"
+            />
+            Только дизель
+          </label>
+        </form>
         <a class="page-link admin-vin-found-link" href="/admin/vin-check/found">
           Найден VIN{% if vin_found_count %} ({{ vin_found_count }}){% endif %}
         </a>

@@ -91,6 +91,7 @@ from app.listing_enrichment import (
     paginate_rating_one_listings_with_vin,
     listing_vin_check_was_launched,
     paginate_rating_one_listings,
+    VinCheckListingFilters,
 )
 from app.listing_catalog_link import (
     canonical_model_name as _canonical_model_name,
@@ -3609,10 +3610,36 @@ def admin_vin_found_page(
     return templates.TemplateResponse(request, "admin_vin_found.html", context)
 
 
+def _parse_vin_check_bool_param(value: str | None) -> bool:
+    if value is None:
+        return False
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _build_admin_vin_check_url(
+    *,
+    page: int = 1,
+    filters: VinCheckListingFilters | None = None,
+) -> str:
+    params: dict[str, str | int] = {}
+    if page > 1:
+        params["page"] = page
+    if filters is not None:
+        if filters.only_automatic:
+            params["auto"] = "1"
+        if filters.only_diesel:
+            params["diesel"] = "1"
+    if not params:
+        return "/admin/vin-check"
+    return f"/admin/vin-check?{urlencode(params)}"
+
+
 @router.get("/admin/vin-check")
 def admin_vin_check_page(
     request: Request,
     page: int = Query(default=1, ge=1),
+    auto: str | None = Query(default=None),
+    diesel: str | None = Query(default=None),
     db: Session = Depends(get_db),
 ):
     current_user = _resolve_user_from_request(request, db)
@@ -3620,12 +3647,26 @@ def admin_vin_check_page(
     if redirect:
         return redirect
 
+    vin_check_filters = VinCheckListingFilters(
+        only_automatic=_parse_vin_check_bool_param(auto),
+        only_diesel=_parse_vin_check_bool_param(diesel),
+    )
     page_size = LISTINGS_PAGE_SIZE
-    listings, total = paginate_rating_one_listings(db, page=page, page_size=page_size)
+    listings, total = paginate_rating_one_listings(
+        db,
+        page=page,
+        page_size=page_size,
+        filters=vin_check_filters,
+    )
     total_pages = max(1, (total + page_size - 1) // page_size)
     if page > total_pages and total > 0:
         page = total_pages
-        listings, total = paginate_rating_one_listings(db, page=page, page_size=page_size)
+        listings, total = paginate_rating_one_listings(
+            db,
+            page=page,
+            page_size=page_size,
+            filters=vin_check_filters,
+        )
 
     context = _template_context(
         request,
@@ -3652,8 +3693,13 @@ def admin_vin_check_page(
     context["total_pages"] = total_pages
     context["has_prev"] = page > 1
     context["has_next"] = page < total_pages
-    context["prev_url"] = f"/admin/vin-check?page={page - 1}" if context["has_prev"] else None
-    context["next_url"] = f"/admin/vin-check?page={page + 1}" if context["has_next"] else None
+    context["vin_check_filters"] = vin_check_filters
+    context["prev_url"] = (
+        _build_admin_vin_check_url(page=page - 1, filters=vin_check_filters) if context["has_prev"] else None
+    )
+    context["next_url"] = (
+        _build_admin_vin_check_url(page=page + 1, filters=vin_check_filters) if context["has_next"] else None
+    )
     return templates.TemplateResponse(request, "admin_vin_check.html", context)
 
 

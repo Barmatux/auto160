@@ -6,10 +6,12 @@ import pytest
 from app.listing_enrichment import (
     ListingEnrichmentStats,
     RatingOneTarget,
+    VinCheckListingFilters,
     VinCheckPageStats,
     build_vin_check_page_stats,
     format_vin_check_stats_summary,
     listing_matches_rating_one,
+    listing_matches_vin_check_filters,
     paginate_rating_one_listings_with_vin,
     normalize_catalog_name,
     perform_listing_vin_check,
@@ -110,6 +112,34 @@ def test_build_vin_check_page_stats_counts_success_by_model():
     assert stats.checks_launched == 1
     assert stats.checks_success == 1
     assert stats.vin_by_model == (("VW Tiguan", 1),)
+
+
+def test_listing_matches_vin_check_filters():
+    auto_diesel = SimpleNamespace(transmission_type="Автомат", engine_type="дизель")
+    manual_diesel = SimpleNamespace(transmission_type="Механика", engine_type="дизель")
+    auto_petrol = SimpleNamespace(transmission_type="Автомат", engine_type="бензин")
+
+    assert listing_matches_vin_check_filters(auto_diesel, VinCheckListingFilters()) is True
+    assert listing_matches_vin_check_filters(
+        manual_diesel,
+        VinCheckListingFilters(only_automatic=True),
+    ) is False
+    assert listing_matches_vin_check_filters(
+        auto_diesel,
+        VinCheckListingFilters(only_automatic=True),
+    ) is True
+    assert listing_matches_vin_check_filters(
+        auto_petrol,
+        VinCheckListingFilters(only_diesel=True),
+    ) is False
+    assert listing_matches_vin_check_filters(
+        manual_diesel,
+        VinCheckListingFilters(only_automatic=True, only_diesel=True),
+    ) is False
+    assert listing_matches_vin_check_filters(
+        auto_diesel,
+        VinCheckListingFilters(only_automatic=True, only_diesel=True),
+    ) is True
 
 
 def test_paginate_rating_one_listings_with_vin_filters_and_pages(monkeypatch):

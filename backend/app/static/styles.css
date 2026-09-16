@@ -773,7 +773,19 @@ body {
 }
 
 .admin-vin-check-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px 20px;
   margin-top: 10px;
+}
+
+.admin-vin-check-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
+  margin: 0;
 }
 
 .admin-vin-found-link {
