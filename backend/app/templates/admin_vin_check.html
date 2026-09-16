@@ -33,6 +33,16 @@
             />
             Только дизель
           </label>
+          <label class="inline-checkbox">
+            <input
+              type="checkbox"
+              name="from2020"
+              value="1"
+              {% if vin_check_filters.year_from_2020 %}checked{% endif %}
+              onchange="this.form.submit()"
+            />
+            От 2020г.
+          </label>
         </form>
         <a class="page-link admin-vin-found-link" href="/admin/vin-check/found">
           Найден VIN{% if vin_found_count %} ({{ vin_found_count }}){% endif %}

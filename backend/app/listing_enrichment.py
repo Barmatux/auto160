@@ -51,6 +51,7 @@ class ListingEnrichmentStats:
 class VinCheckListingFilters:
     only_automatic: bool = False
     only_diesel: bool = False
+    year_from_2020: bool = False
 
 
 @dataclass(frozen=True)
@@ -650,6 +651,10 @@ def listing_matches_vin_check_filters(
             return False
     if filters.only_diesel:
         if classify_fuel_type(getattr(listing, "engine_type", None)) != FUEL_GROUP_DIESEL:
+            return False
+    if filters.year_from_2020:
+        year = getattr(listing, "year", None)
+        if year is None or int(year) < 2020:
             return False
     return True
 

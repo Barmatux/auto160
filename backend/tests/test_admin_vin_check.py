@@ -115,9 +115,9 @@ def test_build_vin_check_page_stats_counts_success_by_model():
 
 
 def test_listing_matches_vin_check_filters():
-    auto_diesel = SimpleNamespace(transmission_type="Автомат", engine_type="дизель")
-    manual_diesel = SimpleNamespace(transmission_type="Механика", engine_type="дизель")
-    auto_petrol = SimpleNamespace(transmission_type="Автомат", engine_type="бензин")
+    auto_diesel = SimpleNamespace(transmission_type="Автомат", engine_type="дизель", year=2021)
+    manual_diesel = SimpleNamespace(transmission_type="Механика", engine_type="дизель", year=2019)
+    auto_petrol = SimpleNamespace(transmission_type="Автомат", engine_type="бензин", year=2020)
 
     assert listing_matches_vin_check_filters(auto_diesel, VinCheckListingFilters()) is True
     assert listing_matches_vin_check_filters(
@@ -139,6 +139,18 @@ def test_listing_matches_vin_check_filters():
     assert listing_matches_vin_check_filters(
         auto_diesel,
         VinCheckListingFilters(only_automatic=True, only_diesel=True),
+    ) is True
+    assert listing_matches_vin_check_filters(
+        manual_diesel,
+        VinCheckListingFilters(year_from_2020=True),
+    ) is False
+    assert listing_matches_vin_check_filters(
+        auto_petrol,
+        VinCheckListingFilters(year_from_2020=True),
+    ) is True
+    assert listing_matches_vin_check_filters(
+        auto_diesel,
+        VinCheckListingFilters(only_automatic=True, only_diesel=True, year_from_2020=True),
     ) is True
 
 

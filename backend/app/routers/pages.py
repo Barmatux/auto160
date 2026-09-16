@@ -3638,6 +3638,8 @@ def _build_admin_vin_check_url(
             params["auto"] = "1"
         if filters.only_diesel:
             params["diesel"] = "1"
+        if filters.year_from_2020:
+            params["from2020"] = "1"
     if not params:
         return "/admin/vin-check"
     return f"/admin/vin-check?{urlencode(params)}"
@@ -3649,6 +3651,7 @@ def admin_vin_check_page(
     page: int = Query(default=1, ge=1),
     auto: str | None = Query(default=None),
     diesel: str | None = Query(default=None),
+    from2020: str | None = Query(default=None),
     db: Session = Depends(get_db),
 ):
     current_user = _resolve_user_from_request(request, db)
@@ -3659,6 +3662,7 @@ def admin_vin_check_page(
     vin_check_filters = VinCheckListingFilters(
         only_automatic=_parse_vin_check_bool_param(auto),
         only_diesel=_parse_vin_check_bool_param(diesel),
+        year_from_2020=_parse_vin_check_bool_param(from2020),
     )
     page_size = LISTINGS_PAGE_SIZE
     listings, total = paginate_rating_one_listings(
