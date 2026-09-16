@@ -1,0 +1,371 @@
+/* Admin-only theme — matches logo palette: black + blue→green gradient. */
+
+body.theme-admin {
+  --bg: #07090d;
+  --surface: #12161e;
+  --surface-soft: #181d27;
+  --text: #f3f6fb;
+  --muted: #9aa6bc;
+  --border: #2a3345;
+  --primary: #00a8ff;
+  --primary-dark: #00d98a;
+  --accent: #00ff9a;
+  --danger: #ff5d6c;
+  --shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  --brand-blue: #00a8ff;
+  --brand-green: #00e28a;
+  --brand-gradient: linear-gradient(90deg, #00a8ff 0%, #00e28a 100%);
+  --brand-gradient-soft: linear-gradient(135deg, rgba(0, 168, 255, 0.18), rgba(0, 226, 138, 0.12));
+
+  font-family: "Outfit", "Segoe UI", sans-serif;
+  background:
+    radial-gradient(ellipse 70% 45% at 8% -10%, rgba(0, 168, 255, 0.22), transparent 55%),
+    radial-gradient(ellipse 55% 40% at 92% 0%, rgba(0, 226, 138, 0.16), transparent 50%),
+    var(--bg);
+  color: var(--text);
+}
+
+body.theme-admin a {
+  color: #8fd9ff;
+}
+
+body.theme-admin a:hover {
+  color: #b8ffe0;
+}
+
+body.theme-admin .header {
+  align-items: center;
+  background: linear-gradient(180deg, rgba(8, 10, 14, 0.98), rgba(10, 13, 18, 0.96));
+  border-bottom: 1px solid transparent;
+  border-image: linear-gradient(90deg, rgba(0, 168, 255, 0.55), rgba(0, 226, 138, 0.55)) 1;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+}
+
+body.theme-admin .header .brand {
+  display: inline-flex;
+  align-items: center;
+  color: #fff;
+}
+
+body.theme-admin .header .brand-logo {
+  display: block;
+  height: 64px;
+  width: 64px;
+  object-fit: contain;
+  border-radius: 10px;
+}
+
+body.theme-admin .header-menu-toggle {
+  background: #12161e;
+  border-color: #334155;
+}
+
+body.theme-admin .header-menu-line {
+  background: #e2e8f0;
+}
+
+body.theme-admin .header-nav a,
+body.theme-admin .header-nav-dropdown-toggle {
+  color: #d7dee9;
+  border-color: transparent;
+}
+
+body.theme-admin .header-nav a:hover,
+body.theme-admin .header-nav-dropdown-toggle:hover,
+body.theme-admin .header-nav-dropdown.is-open .header-nav-dropdown-toggle,
+body.theme-admin .header-nav-dropdown.is-active .header-nav-dropdown-toggle,
+body.theme-admin .header-nav a.is-active {
+  background: rgba(0, 168, 255, 0.12);
+  color: #fff;
+  border-color: rgba(0, 168, 255, 0.25);
+}
+
+body.theme-admin .header-nav-dropdown-menu {
+  background: #10141c;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+
+body.theme-admin .header-nav .user-badge {
+  background: rgba(0, 226, 138, 0.12);
+  color: #b8ffe0;
+  border: 1px solid rgba(0, 226, 138, 0.28);
+}
+
+body.theme-admin .header-vin-check-link {
+  color: #00e28a;
+}
+
+body.theme-admin .header-beta-link {
+  color: #00a8ff;
+}
+
+body.theme-admin .site-footer {
+  background: linear-gradient(180deg, rgba(10, 13, 18, 0.95), rgba(7, 9, 13, 0.98));
+  border-top: 1px solid var(--border);
+}
+
+body.theme-admin .site-footer-inner a {
+  color: #c5cedc;
+}
+
+body.theme-admin .site-footer-inner a:hover {
+  background: rgba(0, 168, 255, 0.12);
+  color: #fff;
+}
+
+body.theme-admin .card,
+body.theme-admin .listing-card,
+body.theme-admin .avby-listing-card,
+body.theme-admin .catalog-filters-panel,
+body.theme-admin .catalog-sidebar,
+body.theme-admin .filters,
+body.theme-admin .auth-card,
+body.theme-admin .panel,
+body.theme-admin .admin-panel,
+body.theme-admin .home-hero,
+body.theme-admin .home-section,
+body.theme-admin .guide-card,
+body.theme-admin .generation-card,
+body.theme-admin .modification-card,
+body.theme-admin .compare-card,
+body.theme-admin .cookie-consent {
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--text);
+  box-shadow: var(--shadow);
+}
+
+body.theme-admin .card:hover,
+body.theme-admin .listing-card:hover,
+body.theme-admin .generation-card:hover {
+  border-color: rgba(0, 168, 255, 0.45);
+  box-shadow: 0 16px 36px rgba(0, 168, 255, 0.12);
+}
+
+body.theme-admin .hint,
+body.theme-admin .muted,
+body.theme-admin .pager-summary,
+body.theme-admin .catalog-filter-field-label {
+  color: var(--muted);
+}
+
+body.theme-admin input,
+body.theme-admin select,
+body.theme-admin textarea,
+body.theme-admin .catalog-multi-select-trigger {
+  background: #0c1017;
+  color: var(--text);
+  border-color: var(--border);
+}
+
+body.theme-admin input:focus,
+body.theme-admin select:focus,
+body.theme-admin textarea:focus,
+body.theme-admin .catalog-multi-select-trigger:focus {
+  border-color: var(--brand-blue);
+  outline-color: rgba(0, 168, 255, 0.35);
+  box-shadow: 0 0 0 3px rgba(0, 168, 255, 0.18);
+}
+
+body.theme-admin .catalog-filters-panel .catalog-filter-field.is-active select,
+body.theme-admin .catalog-filters-panel .catalog-filter-field.is-active .catalog-multi-select-trigger,
+body.theme-admin .catalog-filters-panel .catalog-filter-field.is-active.inline-checkbox {
+  background: rgba(0, 168, 255, 0.12);
+  border-color: rgba(0, 168, 255, 0.35);
+}
+
+body.theme-admin .catalog-multi-select-menu {
+  background: #10141c;
+  border-color: var(--border);
+  box-shadow: var(--shadow);
+}
+
+body.theme-admin .catalog-multi-select-row.is-selected {
+  background: rgba(0, 168, 255, 0.16);
+}
+
+body.theme-admin .btn,
+body.theme-admin button.btn,
+body.theme-admin .page-link:not(.disabled),
+body.theme-admin .catalog-filters-submit,
+body.theme-admin .cookie-consent-btn-primary,
+body.theme-admin .vin-check-btn,
+body.theme-admin input[type="submit"] {
+  background: var(--brand-gradient);
+  border: 0;
+  color: #041018;
+  font-weight: 700;
+}
+
+body.theme-admin .btn:hover,
+body.theme-admin .page-link:not(.disabled):hover,
+body.theme-admin .catalog-filters-submit:hover,
+body.theme-admin .cookie-consent-btn-primary:hover {
+  filter: brightness(1.08);
+  color: #041018;
+}
+
+body.theme-admin .page-link.disabled,
+body.theme-admin .btn-secondary,
+body.theme-admin .cookie-consent-btn-secondary {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+
+body.theme-admin .btn-link-like {
+  color: #8fd9ff;
+}
+
+body.theme-admin .users-table,
+body.theme-admin .admin-vin-table,
+body.theme-admin table {
+  color: var(--text);
+}
+
+body.theme-admin .users-table th,
+body.theme-admin .admin-vin-table th,
+body.theme-admin thead th {
+  background: #0e131b;
+  color: #d7dee9;
+  border-color: var(--border);
+}
+
+body.theme-admin .users-table td,
+body.theme-admin .admin-vin-table td,
+body.theme-admin tbody td {
+  border-color: var(--border);
+  background: var(--surface);
+}
+
+body.theme-admin .users-table tr:nth-child(even) td,
+body.theme-admin .admin-vin-table tr:nth-child(even) td {
+  background: var(--surface-soft);
+}
+
+body.theme-admin .admin-vin-date-filter-popover,
+body.theme-admin .admin-vin-copy-popover,
+body.theme-admin .vin-check-error-popover,
+body.theme-admin .vin-check-data-error-popover,
+body.theme-admin .listing-description-popup {
+  background: #10141c;
+  border-color: var(--border);
+  color: var(--text);
+  box-shadow: var(--shadow);
+}
+
+body.theme-admin .admin-vin-date-cell.is-in-range {
+  background: rgba(0, 168, 255, 0.22);
+}
+
+body.theme-admin .admin-vin-date-cell.is-start,
+body.theme-admin .admin-vin-date-cell.is-end {
+  background: var(--brand-gradient);
+  color: #041018;
+}
+
+body.theme-admin .admin-vin-check-stats,
+body.theme-admin .status-pill,
+body.theme-admin .badge {
+  background: rgba(0, 168, 255, 0.12);
+  color: #b8e7ff;
+  border-color: rgba(0, 168, 255, 0.28);
+}
+
+body.theme-admin .listing-price,
+body.theme-admin .price,
+body.theme-admin .admin-vin-import-value,
+body.theme-admin .listing-vin-code {
+  color: #b8ffe0;
+}
+
+body.theme-admin h1,
+body.theme-admin h2,
+body.theme-admin h3,
+body.theme-admin .catalog-main-head h1 {
+  color: #fff;
+}
+
+body.theme-admin .catalog-main-head h1 {
+  background: var(--brand-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+body.theme-admin .pager .page-link {
+  text-decoration: none;
+}
+
+body.theme-admin .listing-description-backdrop {
+  background: rgba(0, 0, 0, 0.72);
+}
+
+body.theme-admin .catalog-make-card .make-logo-wrap,
+body.theme-admin .catalog-make-card,
+body.theme-admin .make-card,
+body.theme-admin .model-card,
+body.theme-admin .vehicle-hierarchy-row,
+body.theme-admin .listings-filters-panel,
+body.theme-admin .listing-detail,
+body.theme-admin .listing-detail-side,
+body.theme-admin .listing-gallery,
+body.theme-admin .admin-vin-table-wrap,
+body.theme-admin .admin-vin-found-table-wrap,
+body.theme-admin .analytics-card,
+body.theme-admin .log-panel,
+body.theme-admin .ratings-table-wrap,
+body.theme-admin .auth-box,
+body.theme-admin .form-card,
+body.theme-admin .home-latest,
+body.theme-admin .inspection-result,
+body.theme-admin .guide-section {
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+body.theme-admin .catalog-page .vehicle-hierarchy-field select,
+body.theme-admin .catalog-page .vehicle-hierarchy-field select:disabled {
+  background: #0c1017;
+  border-color: var(--border);
+  color: var(--text);
+}
+
+body.theme-admin .catalog-make-card .make-logo-wrap:hover,
+body.theme-admin .catalog-make-card .make-logo-wrap:focus-visible {
+  background: rgba(0, 168, 255, 0.12);
+  border-color: rgba(0, 168, 255, 0.4);
+}
+
+body.theme-admin .listing-feed-gallery-arrow,
+body.theme-admin .listings-feed .listing-photo-nav {
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+}
+
+body.theme-admin .inline-checkbox,
+body.theme-admin label {
+  color: var(--text);
+}
+
+@media (max-width: 900px) {
+  body.theme-admin .header .brand-logo {
+    height: 52px;
+    width: 52px;
+  }
+
+  body.theme-admin .header-nav-wrap {
+    background: #0b0e14;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+  }
+}
+
+@media (max-width: 860px) {
+  body.theme-admin .header .brand-logo {
+    height: 48px;
+    width: 48px;
+  }
+}

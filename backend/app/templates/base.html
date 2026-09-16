@@ -30,11 +30,29 @@
     {% if seo_json_ld_script %}
       <script type="application/ld+json">{{ seo_json_ld_script | safe }}</script>
     {% endif %}
-    <link rel="stylesheet" href="/static/styles.css?v=20260916-02" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260916-03" />
+    {% if is_admin %}
+      <link rel="preconnect" href="https://fonts.googleapis.com" />
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+      <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet" />
+      <link rel="stylesheet" href="/static/admin_theme.css?v=20260916-01" />
+    {% endif %}
   </head>
-  <body>
+  <body{% if is_admin %} class="theme-admin"{% endif %}>
     <header class="header">
-      <a class="brand" href="/">Авто160</a>
+      <a class="brand" href="/">
+        {% if is_admin %}
+          <img
+            class="brand-logo"
+            src="/static/brand/logo-admin-v6.jpg"
+            alt="auto160.ru — подбор авто до 160 л.с."
+            width="64"
+            height="64"
+          />
+        {% else %}
+          Авто160
+        {% endif %}
+      </a>
       <button
         class="header-menu-toggle"
         type="button"
