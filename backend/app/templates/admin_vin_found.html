@@ -47,23 +47,43 @@
         </form>
 
         <div class="admin-vin-stats-list">
+          {% if vin_stats_from or vin_stats_to %}
+            <p class="hint admin-vin-stats-period">
+              Период:
+              {% if vin_stats_from and vin_stats_to and vin_stats_from == vin_stats_to %}
+                {{ vin_stats_from.strftime('%d.%m.%Y') }}
+              {% elif vin_stats_from and vin_stats_to %}
+                {{ vin_stats_from.strftime('%d.%m.%Y') }} – {{ vin_stats_to.strftime('%d.%m.%Y') }}
+              {% elif vin_stats_from %}
+                с {{ vin_stats_from.strftime('%d.%m.%Y') }}
+              {% else %}
+                до {{ vin_stats_to.strftime('%d.%m.%Y') }}
+              {% endif %}
+            </p>
+          {% endif %}
           {% if vin_found_day_stats %}
             {% for day in vin_found_day_stats %}
-              <section class="admin-vin-stats-day">
-                <h3>{{ day.day_label }}</h3>
-                <ul class="admin-vin-stats-accounts">
-                  {% for account in day.accounts %}
-                    <li>
-                      <span class="admin-vin-stats-account">{{ account.label }}</span>
-                      <span class="admin-vin-stats-count">{{ account.count }}</span>
-                    </li>
-                  {% endfor %}
-                </ul>
-                <p class="admin-vin-stats-total"><strong>Всего:</strong> {{ day.total }}</p>
-              </section>
+              {% if day.total or vin_stats_from or vin_stats_to %}
+                <section class="admin-vin-stats-day">
+                  <h3>{{ day.day_label }}</h3>
+                  {% if day.accounts %}
+                    <ul class="admin-vin-stats-accounts">
+                      {% for account in day.accounts %}
+                        <li>
+                          <span class="admin-vin-stats-account">{{ account.label }}</span>
+                          <span class="admin-vin-stats-count">{{ account.count }}</span>
+                        </li>
+                      {% endfor %}
+                    </ul>
+                  {% else %}
+                    <p class="hint">Нет сборов</p>
+                  {% endif %}
+                  <p class="admin-vin-stats-total"><strong>Всего:</strong> {{ day.total }}</p>
+                </section>
+              {% endif %}
             {% endfor %}
-            {% if vin_found_day_stats|length > 1 %}
-              <p class="admin-vin-stats-grand-total"><strong>Итого за период:</strong> {{ vin_stats_range_total }}</p>
+            {% if vin_stats_range_total or vin_found_day_stats|length > 1 %}
+              <p class="admin-vin-stats-grand-total"><strong>Итого:</strong> {{ vin_stats_range_total }}</p>
             {% endif %}
           {% else %}
             <p class="hint admin-vin-stats-empty">Нет данных за выбранный период.</p>
@@ -95,5 +115,5 @@
 </div>
 
 {% include "partials/auth_script.html" %}
-<script src="/static/admin_vin_found.js?v=20260916-04" defer></script>
+<script src="/static/admin_vin_found.js?v=20260916-05" defer></script>
 {% endblock %}

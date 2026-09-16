@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
+from collections import defaultdict
 from datetime import date, datetime, timedelta
 
 from sqlalchemy.orm import Session
@@ -685,6 +686,75 @@ def paginate_rating_one_listings_with_vin(
 def list_rating_one_listings_with_vin(db: Session) -> list[CarListing]:
     listings, _ = paginate_rating_one_listings_with_vin(db, page=1, page_size=10**9)
     return listings
+
+
+def build_vin_found_collection_stats_by_day(
+    db: Session,
+    *,
+    date_from: date | None = None,
+    date_to: date | None = None,
+) -> list[dict]:
+    """Daily VIN collection stats for rating=1 found-VIN listings.
+
+    Uses listing check date (vin_fetched_at, else created_at) and account labels,
+    newest day first. When a date range is provided, every day in the range is
+    included even if the count is zero.
+    """
+    listings, _ = paginate_rating_one_listings_with_vin(
+        db,
+        page=1,
+        page_size=10**9,
+        date_filter=VinFoundDateFilter(date_from=date_from, date_to=date_to),
+    )
+    account_labels = build_listing_vin_account_labels(db, listings)
+
+    by_day: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
+    for listing in listings:
+        checked_at = listing_vin_check_at(listing)
+        if checked_at is None:
+            continue
+        checked_day = checked_at.date() if isinstance(checked_at, datetime) else checked_at
+        day_key = checked_day.isoformat()
+        label = account_labels.get(listing.id) or "Без аккаунта"
+        by_day[day_key][label] += 1
+
+    if date_from is not None or date_to is not None:
+        start = date_from or date_to
+        end = date_to or date_from
+        assert start is not None and end is not None
+        if (end - start).days > 89:
+            start = end - timedelta(days=89)
+        day_keys: list[str] = []
+        cursor = start
+        while cursor <= end:
+            day_keys.append(cursor.isoformat())
+            cursor += timedelta(days=1)
+        day_keys.reverse()
+    else:
+        day_keys = sorted(by_day.keys(), reverse=True)
+
+    groups: list[dict] = []
+    for day_key in day_keys:
+        account_counts = by_day.get(day_key, {})
+        accounts = [
+            {"id": None, "label": label, "count": count}
+            for label, count in account_counts.items()
+        ]
+        accounts.sort(key=lambda row: (-row["count"], row["label"].casefold()))
+        total = sum(row["count"] for row in accounts)
+        try:
+            day_label = date.fromisoformat(day_key).strftime("%d.%m.%Y")
+        except ValueError:
+            day_label = day_key
+        groups.append(
+            {
+                "day": day_key,
+                "day_label": day_label,
+                "accounts": accounts,
+                "total": total,
+            }
+        )
+    return groups
 
 
 def listing_matches_vin_check_filters(

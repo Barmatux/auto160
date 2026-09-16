@@ -77,13 +77,14 @@ from app.customs_vin import (
     vin_is_valid,
 )
 from app.avby_accounts import list_active_vin_accounts, serialize_account_public
-from app.vin_account_stats import build_vin_fetch_daily_stats, build_vin_fetch_stats_by_day
+from app.vin_account_stats import build_vin_fetch_daily_stats
 from app.db import get_db
 from app.logging_setup import LOG_SERVICES, LOG_SERVICE_LABELS, format_log_time, log_dir, log_timezone, tail_log
 from app.metrics import yandex_metrika_context
 from app.listing_enrichment import (
     build_listing_customs_map,
     build_vin_check_page_stats,
+    build_vin_found_collection_stats_by_day,
     build_vin_found_rows,
     format_vin_check_stats_summary,
     get_listing_customs_summary,
@@ -3653,7 +3654,7 @@ def admin_vin_found_page(
     )
     context["vin_found_total"] = vin_found_total
     context["vin_found_date_filter"] = vin_found_date_filter
-    context["vin_found_day_stats"] = build_vin_fetch_stats_by_day(
+    context["vin_found_day_stats"] = build_vin_found_collection_stats_by_day(
         db,
         date_from=stats_date_from,
         date_to=stats_date_to,
