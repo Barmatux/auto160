@@ -1,16 +1,21 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Auto160">
-  <rect width="64" height="64" rx="12" fill="#1d4ed8"/>
-  <g transform="translate(32 32) rotate(-34)">
-    <text
-      x="0"
-      y="0"
-      text-anchor="middle"
-      dominant-baseline="central"
-      font-family="Arial, Helvetica, sans-serif"
-      font-size="42"
-      font-weight="900"
-      letter-spacing="-2"
-      fill="#ffffff"
-    >160</text>
-  </g>
+  <rect width="64" height="64" fill="#000000"/>
+  <defs>
+    <linearGradient id="n160" x1="8" y1="32" x2="56" y2="32" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#3B82F6"/>
+      <stop offset="45%" stop-color="#22D3EE"/>
+      <stop offset="100%" stop-color="#86EFAC"/>
+    </linearGradient>
+  </defs>
+  <text
+    x="32"
+    y="34"
+    text-anchor="middle"
+    dominant-baseline="middle"
+    font-family="Arial Black, Arial, Helvetica, sans-serif"
+    font-size="38"
+    font-weight="900"
+    letter-spacing="-2.5"
+    fill="url(#n160)"
+  >160</text>
 </svg>
