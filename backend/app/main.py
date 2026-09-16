@@ -24,10 +24,11 @@ _FAVICON_ICO = _STATIC_DIR / "favicon.ico"
 
 @app.get("/favicon.ico", include_in_schema=False)
 def favicon():
+    # Browsers cache /favicon.ico aggressively; keep revalidation so icon updates ship.
     return FileResponse(
         _FAVICON_ICO,
         media_type="image/x-icon",
-        headers={"Cache-Control": "public, max-age=86400"},
+        headers={"Cache-Control": "public, max-age=0, must-revalidate"},
     )
 
 
