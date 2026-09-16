@@ -19,16 +19,18 @@ app.add_middleware(AnalyticsMiddleware)
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 _STATIC_DIR = Path(__file__).resolve().parent / "static"
-_FAVICON_ICO = _STATIC_DIR / "favicon.ico"
+_FAVICON_ICO = _STATIC_DIR / "icons" / "favicon.ico"
+if not _FAVICON_ICO.is_file():
+    _FAVICON_ICO = _STATIC_DIR / "favicon.ico"
 
 
 @app.get("/favicon.ico", include_in_schema=False)
 def favicon():
-    # Browsers cache /favicon.ico aggressively; keep revalidation so icon updates ship.
+    # Browsers cache /favicon.ico by URL alone; never long-cache so tab icons can update.
     return FileResponse(
         _FAVICON_ICO,
         media_type="image/x-icon",
-        headers={"Cache-Control": "public, max-age=0, must-revalidate"},
+        headers={"Cache-Control": "no-store"},
     )
 
 
