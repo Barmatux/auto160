@@ -126,7 +126,7 @@ def organization_json_ld(base: str) -> dict[str, Any]:
         "@type": "Organization",
         "name": SITE_NAME,
         "url": base,
-        "logo": f"{base}/static/favicon.svg",
+        "logo": f"{base}/static/brand/logo-admin-v8-horizontal.png",
         "description": DEFAULT_DESCRIPTION,
     }
 
