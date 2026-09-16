@@ -757,10 +757,43 @@ body {
   font-weight: 600;
 }
 
-.header-vin-check-link {
-  color: #b45309;
-  font-weight: 700;
-  letter-spacing: 0.02em;
+.header-theme-menu {
+  min-width: 240px;
+  padding: 6px;
+}
+
+.header-theme-option {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  padding: 8px 10px;
+  cursor: pointer;
+}
+
+.header-theme-option:hover,
+.header-theme-option:focus-visible {
+  background: #edf3ff;
+  color: #1d4ed8;
+}
+
+.header-theme-option.is-active {
+  background: #e0edff;
+  color: #1d4ed8;
+}
+
+body.theme-admin .header-theme-option:hover,
+body.theme-admin .header-theme-option:focus-visible,
+body.theme-admin .header-theme-option.is-active {
+  background: rgba(0, 168, 255, 0.14);
+  color: #fff;
 }
 
 .admin-vin-check-page .admin-vin-check-main {

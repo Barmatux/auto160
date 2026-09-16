@@ -30,18 +30,20 @@
     {% if seo_json_ld_script %}
       <script type="application/ld+json">{{ seo_json_ld_script | safe }}</script>
     {% endif %}
-    <link rel="stylesheet" href="/static/styles.css?v=20260916-06" />
-    {% if is_admin %}
+    <link rel="stylesheet" href="/static/styles.css?v=20260916-07" />
+    {% if is_admin and site_theme != "standard" %}
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
       <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet" />
-      <link rel="stylesheet" href="/static/admin_theme.css?v=20260916-06" />
+      <link rel="stylesheet" href="/static/admin_theme.css?v=20260916-07" />
     {% endif %}
   </head>
-  <body{% if is_admin %} class="theme-admin"{% endif %}>
+  <body
+    {% if is_admin and site_theme == "logo" %}class="theme-admin"{% elif is_admin and site_theme == "logo-light" %}class="theme-admin theme-admin-light"{% endif %}
+  >
     <header class="header">
       <a class="brand" href="/">
-        {% if is_admin %}
+        {% if site_theme_uses_logo %}
           <img
             class="brand-logo"
             src="/static/brand/logo-admin-v7-horizontal.png"
@@ -83,6 +85,24 @@
         </nav>
         {% if is_admin %}
           <nav class="header-nav header-nav-row header-nav-row-secondary">
+            <div class="header-nav-dropdown" data-header-dropdown data-site-theme-dropdown>
+              <button
+                type="button"
+                class="header-nav-dropdown-toggle"
+                data-header-dropdown-toggle
+                aria-expanded="false"
+                aria-haspopup="true"
+              >Сменить дизайн сайта</button>
+              <div class="header-nav-dropdown-menu header-theme-menu" data-header-dropdown-menu hidden>
+                {% for theme_key, theme_label in site_theme_labels.items() %}
+                  <button
+                    type="button"
+                    class="header-theme-option{% if site_theme == theme_key %} is-active{% endif %}"
+                    data-site-theme-option="{{ theme_key }}"
+                  >{{ theme_label }}</button>
+                {% endfor %}
+              </div>
+            </div>
             <div class="header-nav-dropdown" data-header-dropdown>
               <button
                 type="button"
@@ -129,7 +149,7 @@
       </div>
     </footer>
     {% include "partials/cookie_consent.html" %}
-    <script src="/static/header_nav.js?v=20260822-01" defer></script>
+    <script src="/static/header_nav.js?v=20260916-02" defer></script>
     <script src="/static/listing_price_tooltip.js?v=20260822-01" defer></script>
   </body>
 </html>

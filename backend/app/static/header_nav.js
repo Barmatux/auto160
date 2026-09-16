@@ -78,4 +78,21 @@
       }
     }
   });
+
+  var THEME_COOKIE = "auto160_site_theme";
+  var themeOptions = Array.prototype.slice.call(document.querySelectorAll("[data-site-theme-option]"));
+  themeOptions.forEach(function (button) {
+    button.addEventListener("click", function (event) {
+      event.preventDefault();
+      event.stopPropagation();
+      var theme = button.getAttribute("data-site-theme-option");
+      if (!theme) return;
+      document.cookie =
+        THEME_COOKIE +
+        "=" +
+        encodeURIComponent(theme) +
+        "; path=/; max-age=31536000; SameSite=Lax";
+      window.location.reload();
+    });
+  });
 })();

@@ -49,9 +49,9 @@ body.theme-admin .header .brand {
 
 body.theme-admin .header .brand-logo {
   display: block;
-  height: 72px;
+  height: 110px;
   width: auto;
-  max-width: min(300px, 42vw);
+  max-width: min(420px, 55vw);
   object-fit: contain;
   border-radius: 0;
 }
@@ -414,8 +414,8 @@ body.theme-admin .catalog-main-head label {
 
 @media (max-width: 900px) {
   body.theme-admin .header .brand-logo {
-    height: 56px;
-    max-width: min(240px, 55vw);
+    height: 72px;
+    max-width: min(280px, 62vw);
   }
 
   body.theme-admin .header-nav-wrap {
@@ -427,7 +427,166 @@ body.theme-admin .catalog-main-head label {
 
 @media (max-width: 860px) {
   body.theme-admin .header .brand-logo {
-    height: 48px;
-    max-width: min(200px, 58vw);
+    height: 60px;
+    max-width: min(240px, 68vw);
+  }
+}
+
+/* Light logo style — same brand accents on a pale plaque background. */
+body.theme-admin.theme-admin-light {
+  --bg: #e8eef8;
+  --surface: #ffffff;
+  --surface-soft: #f4f7fc;
+  --text: #0f172a;
+  --muted: #475569;
+  --border: #c5d4ea;
+  --shadow: 0 12px 28px rgba(37, 99, 235, 0.1);
+  background:
+    radial-gradient(ellipse 70% 45% at 8% -10%, rgba(0, 168, 255, 0.12), transparent 55%),
+    radial-gradient(ellipse 55% 40% at 92% 0%, rgba(0, 226, 138, 0.1), transparent 50%),
+    var(--bg);
+  color: var(--text);
+}
+
+body.theme-admin.theme-admin-light a {
+  color: #0369a1;
+}
+
+body.theme-admin.theme-admin-light a:hover {
+  color: #0e7490;
+}
+
+body.theme-admin.theme-admin-light .header {
+  background: linear-gradient(180deg, rgba(8, 10, 14, 0.98), rgba(10, 13, 18, 0.96));
+}
+
+body.theme-admin.theme-admin-light .header-nav a,
+body.theme-admin.theme-admin-light .header-nav-dropdown-toggle {
+  color: #d7dee9;
+}
+
+body.theme-admin.theme-admin-light .site-footer {
+  background: linear-gradient(180deg, rgba(232, 238, 248, 0.95), rgba(220, 230, 244, 0.98));
+  border-top: 1px solid var(--border);
+}
+
+body.theme-admin.theme-admin-light .site-footer-inner a {
+  color: #1e293b;
+}
+
+body.theme-admin.theme-admin-light .site-footer-inner a:hover {
+  background: rgba(0, 168, 255, 0.12);
+  color: #0f172a;
+}
+
+body.theme-admin.theme-admin-light .hint,
+body.theme-admin.theme-admin-light .muted,
+body.theme-admin.theme-admin-light .pager-summary,
+body.theme-admin.theme-admin-light .catalog-filter-field-label,
+body.theme-admin.theme-admin-light .inline-checkbox,
+body.theme-admin.theme-admin-light label {
+  color: var(--muted);
+}
+
+body.theme-admin.theme-admin-light input,
+body.theme-admin.theme-admin-light select,
+body.theme-admin.theme-admin-light textarea,
+body.theme-admin.theme-admin-light .catalog-multi-select-trigger,
+body.theme-admin.theme-admin-light .catalog-page .vehicle-hierarchy-field select,
+body.theme-admin.theme-admin-light .catalog-page .vehicle-hierarchy-field select:disabled {
+  background: #fff;
+  color: var(--text);
+  border-color: var(--border);
+}
+
+body.theme-admin.theme-admin-light .catalog-multi-select-menu,
+body.theme-admin.theme-admin-light .admin-vin-date-filter-popover,
+body.theme-admin.theme-admin-light .admin-vin-copy-popover,
+body.theme-admin.theme-admin-light .vin-check-error-popover,
+body.theme-admin.theme-admin-light .vin-check-data-error-popover,
+body.theme-admin.theme-admin-light .listing-description-popup {
+  background: #fff;
+  border-color: var(--border);
+  color: var(--text);
+}
+
+body.theme-admin.theme-admin-light .users-table th,
+body.theme-admin.theme-admin-light .admin-vin-table th,
+body.theme-admin.theme-admin-light thead th {
+  background: #dbe7f7;
+  color: #0f172a;
+  border-color: var(--border);
+}
+
+body.theme-admin.theme-admin-light .users-table td,
+body.theme-admin.theme-admin-light .admin-vin-table td,
+body.theme-admin.theme-admin-light tbody td {
+  background: #fff;
+  color: var(--text);
+  border-color: var(--border);
+}
+
+body.theme-admin.theme-admin-light .users-table tr:nth-child(even) td,
+body.theme-admin.theme-admin-light .admin-vin-table tr:nth-child(even) td {
+  background: #f3f7fc;
+}
+
+body.theme-admin.theme-admin-light h1,
+body.theme-admin.theme-admin-light h2,
+body.theme-admin.theme-admin-light h3 {
+  color: #0f172a;
+}
+
+body.theme-admin.theme-admin-light .catalog-main-head h1 {
+  background: var(--brand-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+body.theme-admin.theme-admin-light .catalog-main-head {
+  color: #0f172a;
+}
+
+body.theme-admin.theme-admin-light .catalog-main-head .hint,
+body.theme-admin.theme-admin-light .catalog-main-head .muted,
+body.theme-admin.theme-admin-light .catalog-main-head label,
+body.theme-admin.theme-admin-light .catalog-main-head .inline-checkbox,
+body.theme-admin.theme-admin-light .catalog-main-head .admin-vin-stats-empty {
+  color: #334155;
+}
+
+body.theme-admin.theme-admin-light .admin-vin-check-stats,
+body.theme-admin.theme-admin-light .catalog-main-head .admin-vin-check-stats {
+  background: #ecfeff;
+  color: #155e75;
+  border-color: #67e8f9;
+}
+
+body.theme-admin.theme-admin-light .listing-price,
+body.theme-admin.theme-admin-light .price,
+body.theme-admin.theme-admin-light .admin-vin-import-value,
+body.theme-admin.theme-admin-light .listing-vin-code {
+  color: #0f766e;
+}
+
+body.theme-admin.theme-admin-light .admin-vin-check-stats,
+body.theme-admin.theme-admin-light .status-pill,
+body.theme-admin.theme-admin-light .badge {
+  background: rgba(0, 168, 255, 0.12);
+  color: #0c4a6e;
+  border-color: rgba(0, 168, 255, 0.28);
+}
+
+body.theme-admin.theme-admin-light .page-link.disabled,
+body.theme-admin.theme-admin-light .btn-secondary,
+body.theme-admin.theme-admin-light .cookie-consent-btn-secondary {
+  color: var(--muted);
+  border-color: var(--border);
+}
+
+@media (max-width: 900px) {
+  body.theme-admin.theme-admin-light .header-nav-wrap {
+    background: #0b0e14;
   }
 }
