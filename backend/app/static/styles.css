@@ -788,6 +788,112 @@ body {
   margin: 0;
 }
 
+.admin-vin-found-head-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.admin-vin-found-head-row h1 {
+  margin: 0;
+}
+
+.admin-vin-stats-open {
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.admin-vin-stats-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background: rgba(15, 23, 42, 0.55);
+}
+
+.admin-vin-stats-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  z-index: 81;
+  width: min(480px, calc(100vw - 32px));
+  max-height: min(80vh, 720px);
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  border-radius: 14px;
+  border: 1px solid #d7e3f8;
+  background: #fff;
+  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.22);
+}
+
+.admin-vin-stats-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.admin-vin-stats-modal-head h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.admin-vin-stats-modal-body {
+  overflow: auto;
+  padding: 12px 16px 16px;
+}
+
+.admin-vin-stats-day {
+  padding: 12px 0;
+  border-bottom: 1px solid #eef2f7;
+}
+
+.admin-vin-stats-day:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.admin-vin-stats-day h3 {
+  margin: 0 0 8px;
+  font-size: 0.98rem;
+}
+
+.admin-vin-stats-accounts {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.admin-vin-stats-accounts li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.92rem;
+}
+
+.admin-vin-stats-account {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.admin-vin-stats-count {
+  flex: 0 0 auto;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.admin-vin-stats-total {
+  margin: 10px 0 0;
+  font-size: 0.92rem;
+}
+
 .admin-vin-found-link {
   display: inline-block;
   font-weight: 600;
@@ -945,8 +1051,7 @@ body {
 }
 
 .admin-vin-found-table-wrap {
-  max-height: min(70vh, 720px);
-  overflow: auto;
+  overflow: visible;
 }
 
 .admin-vin-found-photo-cell {

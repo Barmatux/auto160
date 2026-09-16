@@ -326,6 +326,18 @@ body.theme-admin .guide-section {
   color: var(--text);
 }
 
+body.theme-admin .admin-vin-stats-modal {
+  background: #10141c;
+  border-color: var(--border);
+  color: var(--text);
+  box-shadow: var(--shadow);
+}
+
+body.theme-admin .admin-vin-stats-modal-head,
+body.theme-admin .admin-vin-stats-day {
+  border-color: var(--border);
+}
+
 body.theme-admin .catalog-page .vehicle-hierarchy-field select,
 body.theme-admin .catalog-page .vehicle-hierarchy-field select:disabled {
   background: #0c1017;

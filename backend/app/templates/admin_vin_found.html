@@ -4,7 +4,12 @@
 <div class="catalog-page admin-vin-check-page">
   <section class="catalog-main admin-vin-check-main">
     <div class="catalog-main-head">
-      <h1>Найден VIN</h1>
+      <div class="admin-vin-found-head-row">
+        <h1>Найден VIN</h1>
+        <button type="button" class="page-link admin-vin-stats-open" data-vin-stats-open>
+          Статистика
+        </button>
+      </div>
       <p class="hint">
         <a href="/admin/vin-check">← VIN CHECK</a>
         · собранные VIN объявлений моделей с рейтингом 1
@@ -33,6 +38,44 @@
     </div>
   </section>
 </div>
+
+<div class="admin-vin-stats-backdrop" data-vin-stats-backdrop hidden></div>
+<div
+  class="admin-vin-stats-modal"
+  data-vin-stats-modal
+  hidden
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="admin-vin-stats-title"
+>
+  <div class="admin-vin-stats-modal-head">
+    <h2 id="admin-vin-stats-title">Статистика сбора VIN</h2>
+    <button type="button" class="btn-link-like admin-vin-stats-close" data-vin-stats-close aria-label="Закрыть">
+      Закрыть
+    </button>
+  </div>
+  <div class="admin-vin-stats-modal-body">
+    {% if vin_found_day_stats %}
+      {% for day in vin_found_day_stats %}
+        <section class="admin-vin-stats-day">
+          <h3>{{ day.day_label }}</h3>
+          <ul class="admin-vin-stats-accounts">
+            {% for account in day.accounts %}
+              <li>
+                <span class="admin-vin-stats-account">{{ account.label }}</span>
+                <span class="admin-vin-stats-count">{{ account.count }}</span>
+              </li>
+            {% endfor %}
+          </ul>
+          <p class="admin-vin-stats-total"><strong>Всего:</strong> {{ day.total }}</p>
+        </section>
+      {% endfor %}
+    {% else %}
+      <p class="hint">Пока нет данных о сборе VIN по аккаунтам.</p>
+    {% endif %}
+  </div>
+</div>
+
 {% include "partials/auth_script.html" %}
-<script src="/static/admin_vin_found.js?v=20260916-02" defer></script>
+<script src="/static/admin_vin_found.js?v=20260916-03" defer></script>
 {% endblock %}

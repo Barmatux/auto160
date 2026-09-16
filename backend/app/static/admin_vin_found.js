@@ -372,4 +372,33 @@
   }
 
   initDateFilterPopover();
+
+  function initVinStatsModal() {
+    const openBtn = document.querySelector("[data-vin-stats-open]");
+    const modal = document.querySelector("[data-vin-stats-modal]");
+    const backdrop = document.querySelector("[data-vin-stats-backdrop]");
+    const closeBtn = document.querySelector("[data-vin-stats-close]");
+    if (!openBtn || !modal || !backdrop) return;
+
+    const open = () => {
+      modal.hidden = false;
+      backdrop.hidden = false;
+      document.body.style.overflow = "hidden";
+    };
+
+    const close = () => {
+      modal.hidden = true;
+      backdrop.hidden = true;
+      document.body.style.overflow = "";
+    };
+
+    openBtn.addEventListener("click", open);
+    closeBtn?.addEventListener("click", close);
+    backdrop.addEventListener("click", close);
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && !modal.hidden) close();
+    });
+  }
+
+  initVinStatsModal();
 })();
