@@ -49,10 +49,11 @@ body.theme-admin .header .brand {
 
 body.theme-admin .header .brand-logo {
   display: block;
-  height: 128px;
-  width: 128px;
+  height: 72px;
+  width: auto;
+  max-width: min(300px, 42vw);
   object-fit: contain;
-  border-radius: 12px;
+  border-radius: 0;
 }
 
 body.theme-admin .header-menu-toggle {
@@ -413,8 +414,8 @@ body.theme-admin .catalog-main-head label {
 
 @media (max-width: 900px) {
   body.theme-admin .header .brand-logo {
-    height: 104px;
-    width: 104px;
+    height: 56px;
+    max-width: min(240px, 55vw);
   }
 
   body.theme-admin .header-nav-wrap {
@@ -426,7 +427,7 @@ body.theme-admin .catalog-main-head label {
 
 @media (max-width: 860px) {
   body.theme-admin .header .brand-logo {
-    height: 96px;
-    width: 96px;
+    height: 48px;
+    max-width: min(200px, 58vw);
   }
 }
