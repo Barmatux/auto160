@@ -65,6 +65,9 @@ class CarListing(Base):
     description: Mapped[str] = mapped_column(Text)
     status: Mapped[ListingStatus] = mapped_column(Enum(ListingStatus), default=ListingStatus.draft, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+    # av.by feed timestamps (renewedAt drives "новые объявления" sort on cars.av.by).
+    avby_published_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True, index=True)
+    avby_renewed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True, index=True)
     # Multi-source identity: "av.by" | "autoplius" (+ external_id from that site).
     source: Mapped[str | None] = mapped_column(String(40), nullable=True, index=True)
     external_id: Mapped[str | None] = mapped_column(String(120), nullable=True, index=True)

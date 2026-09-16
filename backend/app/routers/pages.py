@@ -1461,6 +1461,15 @@ def _catalog_items_base_query(db: Session, request: Request, current_user=None) 
     return query, exact_hp, with_listings
 
 
+def _listing_source_at_expr():
+    """Timestamp for feed order / freshness: prefer av.by renewed → published → local created."""
+    return func.coalesce(
+        CarListing.avby_renewed_at,
+        CarListing.avby_published_at,
+        CarListing.created_at,
+    )
+
+
 def _apply_freshness_filter(query, freshness: str | None):
     if not freshness or freshness == "all":
         return query
@@ -1473,7 +1482,7 @@ def _apply_freshness_filter(query, freshness: str | None):
         since = now - timedelta(days=30)
     else:
         return query
-    return query.filter(CarListing.created_at >= since)
+    return query.filter(_listing_source_at_expr() >= since)
 
 
 def _resolve_listing_cover_urls(listings: list[CarListing], db: Session) -> dict[int, str]:
@@ -2138,7 +2147,7 @@ def _home_latest_listings(db: Session, *, limit: int = 20) -> list[CarListing]:
             ),
             CarListing.body_type,
         )
-        .order_by(desc(CarListing.created_at))
+        .order_by(desc(_listing_source_at_expr()), desc(CarListing.id))
         .limit(limit)
         .all()
     )
@@ -2358,15 +2367,15 @@ def listings_page(
     query = _apply_freshness_filter(query, freshness)
 
     if sort == "price_asc":
-        query = query.order_by(CarListing.price.asc(), CarListing.created_at.desc())
+        query = query.order_by(CarListing.price.asc(), desc(_listing_source_at_expr()), desc(CarListing.id))
     elif sort == "price_desc":
-        query = query.order_by(CarListing.price.desc(), CarListing.created_at.desc())
+        query = query.order_by(CarListing.price.desc(), desc(_listing_source_at_expr()), desc(CarListing.id))
     elif sort == "year_desc":
-        query = query.order_by(CarListing.year.desc(), CarListing.created_at.desc())
+        query = query.order_by(CarListing.year.desc(), desc(_listing_source_at_expr()), desc(CarListing.id))
     elif sort == "year_asc":
-        query = query.order_by(CarListing.year.asc(), CarListing.created_at.desc())
+        query = query.order_by(CarListing.year.asc(), desc(_listing_source_at_expr()), desc(CarListing.id))
     else:
-        query = query.order_by(CarListing.created_at.desc())
+        query = query.order_by(desc(_listing_source_at_expr()), desc(CarListing.id))
 
     total = query.count()
     page_size = LISTINGS_PAGE_SIZE
@@ -3115,7 +3124,7 @@ def catalog_modifications(
                     listings_query = listings_query.filter(CarListing.year >= generation_year_from)
                 if generation_year_to is not None:
                     listings_query = listings_query.filter(CarListing.year <= generation_year_to)
-                ad_listings = listings_query.order_by(CarListing.created_at.desc()).limit(8).all()
+                ad_listings = listings_query.order_by(desc(_listing_source_at_expr()), desc(CarListing.id)).limit(8).all()
         for listing in ad_listings:
             if listing.id in ad_listing_mod_names:
                 continue

@@ -2,7 +2,7 @@ import argparse
 import os
 import re
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -44,6 +44,26 @@ DEFAULT_MAX_HP = 160
 DEFAULT_CREATION_DATE = 10
 DEFAULT_SORT = 4
 PRESERVE_ON_UPDATE_FIELDS = frozenset({"vin", "vin_fetched_at"})
+
+
+def _parse_avby_datetime(value: Any) -> datetime | None:
+    """Parse av.by publishedAt / renewedAt into naive UTC datetime."""
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        if value.tzinfo is not None:
+            return value.astimezone(timezone.utc).replace(tzinfo=None)
+        return value
+    text = str(value).strip()
+    if not text:
+        return None
+    try:
+        parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if parsed.tzinfo is not None:
+        return parsed.astimezone(timezone.utc).replace(tzinfo=None)
+    return parsed
 
 
 def _to_int(value: Any) -> int | None:
@@ -338,6 +358,8 @@ def _avby_payload_to_listing(advert: dict[str, Any], fallback_brand: str, fallba
         "cover_photo_url": cover_photo_url[:500] if cover_photo_url else None,
         "raw_photos": raw_photos or None,
         "description": description,
+        "avby_published_at": _parse_avby_datetime(advert.get("publishedAt")),
+        "avby_renewed_at": _parse_avby_datetime(advert.get("renewedAt")),
     }
 
 
