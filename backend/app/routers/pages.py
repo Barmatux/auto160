@@ -92,6 +92,7 @@ from app.listing_enrichment import (
     listing_vin_check_was_launched,
     paginate_rating_one_listings,
     VinCheckListingFilters,
+    VinFoundDateFilter,
 )
 from app.listing_catalog_link import (
     canonical_model_name as _canonical_model_name,
@@ -148,7 +149,7 @@ from app.listing_photos import (
 )
 from app.storage import build_app_download_url, normalize_display_image_url
 from app.sync_run_vin_log import PHASE_LABELS, summarize_sync_run_vin_checks
-from app.vin_analytics import SORT_COLUMNS, VinListingSort, build_vin_listings_report
+from app.vin_analytics import SORT_COLUMNS, VinListingSort, build_vin_listings_report, parse_filter_date
 from app.catalog_ratings import (
     DEFAULT_PAGE_SIZE,
     RATING_CHOICES,
@@ -3568,10 +3569,30 @@ def admin_users_page(request: Request, db: Session = Depends(get_db)):
     return templates.TemplateResponse(request, "admin_users.html", context)
 
 
+def _build_admin_vin_found_url(
+    *,
+    page: int = 1,
+    date_filter: VinFoundDateFilter | None = None,
+) -> str:
+    params: dict[str, str | int] = {}
+    if page > 1:
+        params["page"] = page
+    if date_filter is not None:
+        if date_filter.date_from is not None:
+            params["checked_from"] = date_filter.date_from.isoformat()
+        if date_filter.date_to is not None:
+            params["checked_to"] = date_filter.date_to.isoformat()
+    if not params:
+        return "/admin/vin-check/found"
+    return f"/admin/vin-check/found?{urlencode(params)}"
+
+
 @router.get("/admin/vin-check/found")
 def admin_vin_found_page(
     request: Request,
     page: int = Query(default=1, ge=1),
+    checked_from: str | None = Query(default=None),
+    checked_to: str | None = Query(default=None),
     db: Session = Depends(get_db),
 ):
     current_user = _resolve_user_from_request(request, db)
@@ -3579,10 +3600,17 @@ def admin_vin_found_page(
     if redirect:
         return redirect
 
+    date_from = parse_filter_date(checked_from)
+    date_to = parse_filter_date(checked_to)
+    if date_from and date_to and date_from > date_to:
+        date_from, date_to = date_to, date_from
+    vin_found_date_filter = VinFoundDateFilter(date_from=date_from, date_to=date_to)
+
     vin_found_listings, vin_found_total = paginate_rating_one_listings_with_vin(
         db,
         page=page,
         page_size=VIN_FOUND_PAGE_SIZE,
+        date_filter=vin_found_date_filter,
     )
     total_pages = max(1, (vin_found_total + VIN_FOUND_PAGE_SIZE - 1) // VIN_FOUND_PAGE_SIZE)
     if page > total_pages and vin_found_total > 0:
@@ -3591,6 +3619,7 @@ def admin_vin_found_page(
             db,
             page=page,
             page_size=VIN_FOUND_PAGE_SIZE,
+            date_filter=vin_found_date_filter,
         )
 
     context = _template_context(
@@ -3610,12 +3639,21 @@ def admin_vin_found_page(
         build_customs_map=build_listing_customs_map,
     )
     context["vin_found_total"] = vin_found_total
+    context["vin_found_date_filter"] = vin_found_date_filter
     context["page"] = page
     context["total_pages"] = total_pages
     context["has_prev"] = page > 1
     context["has_next"] = page < total_pages
-    context["prev_url"] = f"/admin/vin-check/found?page={page - 1}" if context["has_prev"] else None
-    context["next_url"] = f"/admin/vin-check/found?page={page + 1}" if context["has_next"] else None
+    context["prev_url"] = (
+        _build_admin_vin_found_url(page=page - 1, date_filter=vin_found_date_filter)
+        if context["has_prev"]
+        else None
+    )
+    context["next_url"] = (
+        _build_admin_vin_found_url(page=page + 1, date_filter=vin_found_date_filter)
+        if context["has_next"]
+        else None
+    )
     return templates.TemplateResponse(request, "admin_vin_found.html", context)
 
 

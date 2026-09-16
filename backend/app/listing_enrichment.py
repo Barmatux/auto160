@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
-from datetime import timedelta
+from datetime import date, datetime, timedelta
 
 from sqlalchemy.orm import Session
 
@@ -52,6 +52,48 @@ class VinCheckListingFilters:
     only_automatic: bool = False
     only_diesel: bool = False
     year_from_2020: bool = False
+
+
+@dataclass(frozen=True)
+class VinFoundDateFilter:
+    date_from: date | None = None
+    date_to: date | None = None
+
+    @property
+    def active(self) -> bool:
+        return self.date_from is not None or self.date_to is not None
+
+    def label(self) -> str | None:
+        if self.date_from and self.date_to:
+            if self.date_from == self.date_to:
+                return self.date_from.strftime("%d.%m.%Y")
+            return f"{self.date_from.strftime('%d.%m.%Y')} – {self.date_to.strftime('%d.%m.%Y')}"
+        if self.date_from:
+            return f"с {self.date_from.strftime('%d.%m.%Y')}"
+        if self.date_to:
+            return f"до {self.date_to.strftime('%d.%m.%Y')}"
+        return None
+
+
+def listing_vin_check_at(listing: CarListing) -> datetime | None:
+    return getattr(listing, "vin_fetched_at", None) or getattr(listing, "created_at", None)
+
+
+def listing_matches_vin_found_date_filter(
+    listing: CarListing,
+    date_filter: VinFoundDateFilter | None = None,
+) -> bool:
+    if date_filter is None or not date_filter.active:
+        return True
+    checked_at = listing_vin_check_at(listing)
+    if checked_at is None:
+        return False
+    checked_day = checked_at.date() if isinstance(checked_at, datetime) else checked_at
+    if date_filter.date_from and checked_day < date_filter.date_from:
+        return False
+    if date_filter.date_to and checked_day > date_filter.date_to:
+        return False
+    return True
 
 
 @dataclass(frozen=True)
@@ -576,12 +618,14 @@ def build_vin_found_rows(
     rows: list[dict] = []
     for listing in listings:
         customs = customs_map.get(listing.id)
+        checked_at = listing_vin_check_at(listing)
         rows.append(
             {
                 "listing": listing,
                 "photo_url": cover_urls.get(listing.id),
                 "import_date": customs.release_date if customs and customs.found and customs.release_date else None,
                 "account_label": account_labels.get(listing.id),
+                "checked_at": checked_at,
             }
         )
     return rows
@@ -611,6 +655,7 @@ def paginate_rating_one_listings_with_vin(
     *,
     page: int = 1,
     page_size: int = 100,
+    date_filter: VinFoundDateFilter | None = None,
 ) -> tuple[list[CarListing], int]:
     targets = build_rating_one_targets(db)
     if not targets:
@@ -622,12 +667,14 @@ def paginate_rating_one_listings_with_vin(
     query = (
         db.query(CarListing)
         .filter(CarListing.status == ListingStatus.published)
-        .order_by(CarListing.created_at.desc())
+        .order_by(CarListing.vin_fetched_at.desc().nullslast(), CarListing.created_at.desc())
     )
     for listing in query.yield_per(200):
         if not listing_matches_rating_one(listing, targets):
             continue
         if not listing_has_saved_vin(listing):
+            continue
+        if not listing_matches_vin_found_date_filter(listing, date_filter):
             continue
         if total >= offset and len(matched) < page_size:
             matched.append(listing)

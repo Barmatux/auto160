@@ -4,7 +4,44 @@
       <tr>
         <th>Марка / модель</th>
         <th>Фото</th>
-        <th>Дата добавления</th>
+        <th class="admin-vin-date-filter-th">
+          <button
+            type="button"
+            class="admin-vin-date-filter-trigger{% if vin_found_date_filter.active %} is-active{% endif %}"
+            data-date-filter-trigger
+            aria-haspopup="dialog"
+            aria-expanded="false"
+          >
+            Дата проверки
+            {% if vin_found_date_filter.label() %}
+              <span class="admin-vin-date-filter-value">{{ vin_found_date_filter.label() }}</span>
+            {% else %}
+              <span class="admin-vin-date-filter-hint">выбрать</span>
+            {% endif %}
+          </button>
+          <div
+            class="admin-vin-date-filter-popover"
+            data-date-filter-popover
+            hidden
+            data-checked-from="{{ vin_found_date_filter.date_from.isoformat() if vin_found_date_filter.date_from else '' }}"
+            data-checked-to="{{ vin_found_date_filter.date_to.isoformat() if vin_found_date_filter.date_to else '' }}"
+          >
+            <div class="admin-vin-date-filter-head">
+              <button type="button" class="admin-vin-date-nav" data-date-nav="-1" aria-label="Предыдущий месяц">‹</button>
+              <strong data-date-month-label></strong>
+              <button type="button" class="admin-vin-date-nav" data-date-nav="1" aria-label="Следующий месяц">›</button>
+            </div>
+            <div class="admin-vin-date-weekdays" aria-hidden="true">
+              <span>пн</span><span>вт</span><span>ср</span><span>чт</span><span>пт</span><span>сб</span><span>вс</span>
+            </div>
+            <div class="admin-vin-date-grid" data-date-grid></div>
+            <p class="hint admin-vin-date-filter-help">Выберите дату или диапазон: первое нажатие — начало, второе — конец.</p>
+            <div class="admin-vin-date-filter-actions">
+              <button type="button" class="btn-link-like" data-date-clear>Сбросить</button>
+              <button type="button" class="page-link" data-date-apply>Применить</button>
+            </div>
+          </div>
+        </th>
         <th>VIN</th>
         <th>Дата ввоза в РБ</th>
         <th>Аккаунт</th>
@@ -34,7 +71,13 @@
               <span class="admin-vin-found-photo-empty">—</span>
             {% endif %}
           </td>
-          <td class="admin-vin-found-added">{{ row.listing.created_at.strftime('%d.%m.%Y %H:%M') }}</td>
+          <td class="admin-vin-found-added">
+            {% if row.checked_at %}
+              {{ row.checked_at.strftime('%d.%m.%Y %H:%M') }}
+            {% else %}
+              —
+            {% endif %}
+          </td>
           <td class="admin-vin-code-cell">
             <button type="button" class="admin-vin-code-btn" data-vin="{{ row.listing.vin }}">{{ row.listing.vin }}</button>
             <span class="admin-vin-copy-popover" hidden>

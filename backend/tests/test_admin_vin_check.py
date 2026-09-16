@@ -1,3 +1,4 @@
+from datetime import date
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
@@ -8,10 +9,12 @@ from app.listing_enrichment import (
     RatingOneTarget,
     VinCheckListingFilters,
     VinCheckPageStats,
+    VinFoundDateFilter,
     build_vin_check_page_stats,
     format_vin_check_stats_summary,
     listing_matches_rating_one,
     listing_matches_vin_check_filters,
+    listing_matches_vin_found_date_filter,
     paginate_rating_one_listings_with_vin,
     normalize_catalog_name,
     perform_listing_vin_check,
@@ -152,6 +155,46 @@ def test_listing_matches_vin_check_filters():
         auto_diesel,
         VinCheckListingFilters(only_automatic=True, only_diesel=True, year_from_2020=True),
     ) is True
+
+
+def test_listing_matches_vin_found_date_filter():
+    from datetime import datetime
+
+    listing = SimpleNamespace(
+        vin_fetched_at=datetime(2026, 9, 15, 12, 0, 0),
+        created_at=datetime(2026, 9, 10, 8, 0, 0),
+    )
+    older = SimpleNamespace(
+        vin_fetched_at=None,
+        created_at=datetime(2026, 9, 1, 8, 0, 0),
+    )
+
+    assert listing_matches_vin_found_date_filter(listing, VinFoundDateFilter()) is True
+    assert (
+        listing_matches_vin_found_date_filter(
+            listing,
+            VinFoundDateFilter(date_from=date(2026, 9, 15), date_to=date(2026, 9, 15)),
+        )
+        is True
+    )
+    assert (
+        listing_matches_vin_found_date_filter(
+            listing,
+            VinFoundDateFilter(date_from=date(2026, 9, 16)),
+        )
+        is False
+    )
+    assert (
+        listing_matches_vin_found_date_filter(
+            older,
+            VinFoundDateFilter(date_from=date(2026, 9, 1), date_to=date(2026, 9, 1)),
+        )
+        is True
+    )
+    assert VinFoundDateFilter(date_from=date(2026, 9, 15), date_to=date(2026, 9, 16)).label() == (
+        "15.09.2026 – 16.09.2026"
+    )
+    assert VinFoundDateFilter(date_from=date(2026, 9, 15), date_to=date(2026, 9, 15)).label() == "15.09.2026"
 
 
 def test_paginate_rating_one_listings_with_vin_filters_and_pages(monkeypatch):

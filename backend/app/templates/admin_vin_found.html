@@ -9,7 +9,7 @@
         <a href="/admin/vin-check">← VIN CHECK</a>
         · собранные VIN объявлений моделей с рейтингом 1
       </p>
-      <p class="hint">Всего записей: {{ vin_found_total }} · страница {{ page }} из {{ total_pages }}</p>
+      <p class="hint">Всего записей: {{ vin_found_total }} · страница {{ page }} из {{ total_pages }}{% if vin_found_date_filter.label() %} · фильтр: {{ vin_found_date_filter.label() }}{% endif %}</p>
     </div>
 
     {% include "partials/admin_vin_found_table.html" %}
@@ -34,5 +34,5 @@
   </section>
 </div>
 {% include "partials/auth_script.html" %}
-<script src="/static/admin_vin_found.js?v=20260915-02" defer></script>
+<script src="/static/admin_vin_found.js?v=20260916-02" defer></script>
 {% endblock %}

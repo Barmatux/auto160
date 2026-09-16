@@ -798,11 +798,150 @@ body {
   text-decoration: underline;
 }
 
-.admin-vin-found-specs {
-  margin-top: 4px;
-  font-size: 12px;
-  line-height: 1.35;
+.admin-vin-found-added {
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.admin-vin-date-filter-th {
+  position: relative;
+  vertical-align: top;
+}
+
+.admin-vin-date-filter-trigger {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  text-align: left;
+}
+
+.admin-vin-date-filter-trigger:hover,
+.admin-vin-date-filter-trigger:focus-visible {
+  color: #1d4ed8;
+}
+
+.admin-vin-date-filter-trigger.is-active {
+  color: #1d4ed8;
+}
+
+.admin-vin-date-filter-value,
+.admin-vin-date-filter-hint {
+  font-size: 11px;
+  font-weight: 500;
   color: #64748b;
+}
+
+.admin-vin-date-filter-trigger.is-active .admin-vin-date-filter-value {
+  color: #1d4ed8;
+}
+
+.admin-vin-date-filter-popover {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 8px);
+  z-index: 40;
+  width: 280px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid #d7e3f8;
+  background: #fff;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.14);
+}
+
+.admin-vin-date-filter-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.admin-vin-date-nav {
+  width: 28px;
+  height: 28px;
+  border: 1px solid #dbe3f0;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #0f172a;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.admin-vin-date-nav:hover,
+.admin-vin-date-nav:focus-visible {
+  background: #eef4ff;
+  border-color: #bfdbfe;
+}
+
+.admin-vin-date-weekdays,
+.admin-vin-date-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 2px;
+}
+
+.admin-vin-date-weekdays {
+  margin-bottom: 4px;
+  color: #94a3b8;
+  font-size: 11px;
+  text-align: center;
+}
+
+.admin-vin-date-cell {
+  min-height: 32px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #0f172a;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.admin-vin-date-cell.is-empty {
+  pointer-events: none;
+}
+
+.admin-vin-date-cell:hover:not(.is-empty),
+.admin-vin-date-cell:focus-visible:not(.is-empty) {
+  background: #eef4ff;
+}
+
+.admin-vin-date-cell.is-today {
+  box-shadow: inset 0 0 0 1px #93c5fd;
+}
+
+.admin-vin-date-cell.is-in-range {
+  background: #dbeafe;
+}
+
+.admin-vin-date-cell.is-start,
+.admin-vin-date-cell.is-end {
+  background: #2563eb;
+  color: #fff;
+  font-weight: 600;
+}
+
+.admin-vin-date-filter-help {
+  margin: 10px 0 8px;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.admin-vin-date-filter-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .admin-vin-found-table-wrap {
