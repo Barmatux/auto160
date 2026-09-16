@@ -789,11 +789,15 @@ body {
   color: #1d4ed8;
 }
 
+body.theme-admin .header-theme-option {
+  color: #e8eef8;
+}
+
 body.theme-admin .header-theme-option:hover,
 body.theme-admin .header-theme-option:focus-visible,
 body.theme-admin .header-theme-option.is-active {
-  background: rgba(0, 168, 255, 0.14);
-  color: #fff;
+  background: rgba(0, 168, 255, 0.18);
+  color: #ffffff;
 }
 
 .admin-vin-check-page .admin-vin-check-main {
