@@ -1,0 +1,70 @@
+<section class="admin-vin-table-wrap admin-vin-found-table-wrap">
+  <table class="users-table admin-vin-table admin-vin-found-table">
+    <thead>
+      <tr>
+        <th>Марка / модель</th>
+        <th>Фото</th>
+        <th>Дата добавления</th>
+        <th>VIN</th>
+        <th>Дата ввоза в РБ</th>
+        <th>Аккаунт</th>
+      </tr>
+    </thead>
+    <tbody data-vin-found-table-body>
+      {% for row in vin_found_rows %}
+        <tr data-listing-id="{{ row.listing.id }}">
+          <td class="admin-vin-listing">
+            <a
+              class="admin-vin-listing-title"
+              href="/listings/{{ row.listing.id }}"
+              target="_blank"
+              rel="noopener"
+            >{{ row.listing.brand }} {{ row.listing.model }} · {{ row.listing.year }}</a>
+            <div class="admin-vin-found-specs">{{ row.listing | format_vin_found_specs_line }}</div>
+          </td>
+          <td class="admin-vin-found-photo-cell">
+            {% if row.photo_url %}
+              <img
+                class="admin-vin-found-photo-thumb"
+                src="{{ row.photo_url }}"
+                alt="{{ row.listing.brand }} {{ row.listing.model }}"
+                loading="lazy"
+              />
+            {% else %}
+              <span class="admin-vin-found-photo-empty">—</span>
+            {% endif %}
+          </td>
+          <td class="admin-vin-found-added">{{ row.listing.created_at.strftime('%d.%m.%Y %H:%M') }}</td>
+          <td class="admin-vin-code-cell">
+            <button type="button" class="admin-vin-code-btn" data-vin="{{ row.listing.vin }}">{{ row.listing.vin }}</button>
+            <span class="admin-vin-copy-popover" hidden>
+              <button type="button" class="admin-vin-copy-action">Скопировать</button>
+            </span>
+          </td>
+          <td class="admin-vin-import-date" data-import-cell>
+            {% if row.import_date %}
+              <strong class="admin-vin-import-value">{{ row.import_date }}</strong>
+            {% else %}
+              <div class="admin-vin-import-missing">
+                <span class="admin-vin-no-import">Нет данных</span>
+                <button type="button" class="btn-link-like admin-vin-customs-retry" data-listing-id="{{ row.listing.id }}">
+                  Повторить запрос
+                </button>
+                <span class="admin-vin-customs-retry-error hint" hidden></span>
+              </div>
+            {% endif %}
+          </td>
+          <td class="admin-vin-account-cell">
+            {% if row.account_label %}
+              {{ row.account_label }}
+            {% else %}
+              —
+            {% endif %}
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="6">Пока нет собранных VIN</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>

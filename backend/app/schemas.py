@@ -242,6 +242,13 @@ class ListingVinCheckResponse(BaseModel):
     customs_error: str | None = None
 
 
+class ListingCustomsRecheckResponse(BaseModel):
+    listing_id: int
+    release_date: str | None = None
+    customs_found: bool
+    customs_error: str | None = None
+
+
 class AppLogTailResponse(BaseModel):
     service: str
     lines: int

@@ -4,13 +4,16 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
+from datetime import timedelta
 
 from sqlalchemy.orm import Session
 
 from app.avby_offer_metadata import fetch_and_apply_offer_vin_metadata
 from app.avby_vin import AvbyVinError, get_or_fetch_listing_vin
 from app.customs_vin import DATABASE_PERSONAL, CustomsVinError, has_fresh_customs_check, lookup_customs_vin
+from app.fuel_type_labels import FUEL_GROUP_DIESEL, classify_fuel_type
 from app.models import CarListing, CatalogItem, ListingStatus, VinCustomsCheck
+from app.transmission_labels import TRANSMISSION_SLUG_MANUAL, classify_transmission_slug
 from app.sync_run_vin_log import PHASE_RATING1, record_sync_run_vin_check
 
 
@@ -42,6 +45,12 @@ class ListingEnrichmentStats:
     skipped_already_enriched: int = 0
     skipped_limit: int = 0
     errors: list[str] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
+class VinCheckListingFilters:
+    only_automatic: bool = False
+    only_diesel: bool = False
 
 
 @dataclass(frozen=True)
@@ -450,11 +459,157 @@ def format_vin_check_stats_summary(stats: VinCheckPageStats) -> str:
     return " ".join(parts)
 
 
-def paginate_rating_one_listings(
+def _match_orphan_vin_fetch(
+    listing: CarListing,
+    orphan_fetches: list,
+    *,
+    max_delta_seconds: int = 120,
+) -> int | None:
+    if not listing.vin_fetched_at or not orphan_fetches:
+        return None
+    best_account_id: int | None = None
+    best_delta: float | None = None
+    listing_ts = listing.vin_fetched_at
+    for fetch in orphan_fetches:
+        if fetch.created_at is None:
+            continue
+        delta = abs((fetch.created_at - listing_ts).total_seconds())
+        if delta > max_delta_seconds:
+            continue
+        if best_delta is None or delta < best_delta:
+            best_delta = delta
+            best_account_id = fetch.account_id
+    return best_account_id
+
+
+def build_listing_vin_account_labels(db: Session, listings: list[CarListing]) -> dict[int, str]:
+    if not listings:
+        return {}
+
+    from app.avby_accounts import account_display_login
+    from app.models import AvbyServiceAccount, AvbyVinFetch
+
+    listing_ids = [listing.id for listing in listings]
+    account_ids: dict[int, int] = {}
+
+    fetches = (
+        db.query(AvbyVinFetch)
+        .filter(AvbyVinFetch.listing_id.in_(listing_ids))
+        .order_by(AvbyVinFetch.created_at.desc())
+        .all()
+    )
+    for fetch in fetches:
+        if fetch.listing_id is None or fetch.listing_id in account_ids:
+            continue
+        account_ids[fetch.listing_id] = fetch.account_id
+
+    missing_with_fetch_time = [
+        listing for listing in listings if listing.id not in account_ids and listing.vin_fetched_at
+    ]
+    if missing_with_fetch_time:
+        min_ts = min(listing.vin_fetched_at for listing in missing_with_fetch_time) - timedelta(seconds=120)
+        max_ts = max(listing.vin_fetched_at for listing in missing_with_fetch_time) + timedelta(seconds=120)
+        orphan_fetches = (
+            db.query(AvbyVinFetch)
+            .filter(
+                AvbyVinFetch.listing_id.is_(None),
+                AvbyVinFetch.created_at >= min_ts,
+                AvbyVinFetch.created_at <= max_ts,
+            )
+            .order_by(AvbyVinFetch.created_at.desc())
+            .all()
+        )
+        for listing in missing_with_fetch_time:
+            matched_account_id = _match_orphan_vin_fetch(listing, orphan_fetches)
+            if matched_account_id is not None:
+                account_ids[listing.id] = matched_account_id
+
+    labels: dict[int, str] = {}
+    if account_ids:
+        accounts = {
+            row.id: row
+            for row in db.query(AvbyServiceAccount)
+            .filter(AvbyServiceAccount.id.in_(account_ids.values()))
+            .all()
+        }
+        for listing_id, account_id in account_ids.items():
+            account = accounts.get(account_id)
+            if account is not None:
+                labels[listing_id] = account_display_login(account)
+
+    for listing in listings:
+        if listing.id in labels:
+            continue
+        if listing_has_saved_vin(listing) and listing.vin_fetched_at is None:
+            labels[listing.id] = "Из объявления"
+    return labels
+
+
+def recheck_listing_customs_import_date(db: Session, listing: CarListing) -> tuple[str | None, str | None]:
+    if not listing_has_saved_vin(listing):
+        return None, "Нет VIN"
+    vin = (listing.vin or "").strip().upper()
+    try:
+        result = lookup_customs_vin(db, vin, database=DATABASE_PERSONAL, force_refresh=True)
+    except CustomsVinError as exc:
+        return None, str(exc)
+    if result.found and result.release_date:
+        return result.release_date, None
+    if result.found:
+        return None, "Найдено в ГТК, дата не распознана"
+    return None, "Не найдено в базе ГТК"
+
+
+def build_vin_found_rows(
+    db: Session,
+    listings: list[CarListing],
+    *,
+    resolve_cover_urls,
+    build_customs_map,
+) -> list[dict]:
+    if not listings:
+        return []
+    cover_urls = resolve_cover_urls(listings, db)
+    customs_map = build_customs_map(db, listings)
+    account_labels = build_listing_vin_account_labels(db, listings)
+    rows: list[dict] = []
+    for listing in listings:
+        customs = customs_map.get(listing.id)
+        rows.append(
+            {
+                "listing": listing,
+                "photo_url": cover_urls.get(listing.id),
+                "import_date": customs.release_date if customs and customs.found and customs.release_date else None,
+                "account_label": account_labels.get(listing.id),
+            }
+        )
+    return rows
+
+
+def count_rating_one_listings_with_vin(db: Session) -> int:
+    targets = build_rating_one_targets(db)
+    if not targets:
+        return 0
+
+    total = 0
+    query = (
+        db.query(CarListing)
+        .filter(CarListing.status == ListingStatus.published)
+        .order_by(CarListing.created_at.desc())
+    )
+    for listing in query.yield_per(200):
+        if not listing_matches_rating_one(listing, targets):
+            continue
+        if listing_has_saved_vin(listing):
+            total += 1
+    return total
+
+
+def paginate_rating_one_listings_with_vin(
     db: Session,
     *,
     page: int = 1,
-    page_size: int = 21,
+    page_size: int = 100,
 ) -> tuple[list[CarListing], int]:
     targets = build_rating_one_targets(db)
     if not targets:
@@ -470,6 +625,58 @@ def paginate_rating_one_listings(
     )
     for listing in query.yield_per(200):
         if not listing_matches_rating_one(listing, targets):
+            continue
+        if not listing_has_saved_vin(listing):
+            continue
+        if total >= offset and len(matched) < page_size:
+            matched.append(listing)
+        total += 1
+    return matched, total
+
+
+def list_rating_one_listings_with_vin(db: Session) -> list[CarListing]:
+    listings, _ = paginate_rating_one_listings_with_vin(db, page=1, page_size=10**9)
+    return listings
+
+
+def listing_matches_vin_check_filters(
+    listing: CarListing,
+    filters: VinCheckListingFilters | None = None,
+) -> bool:
+    if filters is None:
+        return True
+    if filters.only_automatic:
+        if classify_transmission_slug(getattr(listing, "transmission_type", None)) == TRANSMISSION_SLUG_MANUAL:
+            return False
+    if filters.only_diesel:
+        if classify_fuel_type(getattr(listing, "engine_type", None)) != FUEL_GROUP_DIESEL:
+            return False
+    return True
+
+
+def paginate_rating_one_listings(
+    db: Session,
+    *,
+    page: int = 1,
+    page_size: int = 21,
+    filters: VinCheckListingFilters | None = None,
+) -> tuple[list[CarListing], int]:
+    targets = build_rating_one_targets(db)
+    if not targets:
+        return [], 0
+
+    offset = max(page - 1, 0) * page_size
+    matched: list[CarListing] = []
+    total = 0
+    query = (
+        db.query(CarListing)
+        .filter(CarListing.status == ListingStatus.published)
+        .order_by(CarListing.created_at.desc())
+    )
+    for listing in query.yield_per(200):
+        if not listing_matches_rating_one(listing, targets):
+            continue
+        if not listing_matches_vin_check_filters(listing, filters):
             continue
         if total >= offset and len(matched) < page_size:
             matched.append(listing)

@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Найден VIN — Auto160{% endblock %}
+{% block content %}
+<div class="catalog-page admin-vin-check-page">
+  <section class="catalog-main admin-vin-check-main">
+    <div class="catalog-main-head">
+      <h1>Найден VIN</h1>
+      <p class="hint">
+        <a href="/admin/vin-check">← VIN CHECK</a>
+        · собранные VIN объявлений моделей с рейтингом 1
+      </p>
+      <p class="hint">Всего записей: {{ vin_found_total }} · страница {{ page }} из {{ total_pages }}</p>
+    </div>
+
+    {% include "partials/admin_vin_found_table.html" %}
+
+    <div class="pager">
+      <div class="pager-nav pager-nav-prev">
+        {% if has_prev %}
+          <a class="page-link" href="{{ prev_url }}">← Назад</a>
+        {% else %}
+          <span class="page-link disabled">← Назад</span>
+        {% endif %}
+      </div>
+      <p class="pager-summary hint">По {{ vin_found_rows|length }} записей на странице</p>
+      <div class="pager-nav pager-nav-next">
+        {% if has_next %}
+          <a class="page-link" href="{{ next_url }}">Вперед →</a>
+        {% else %}
+          <span class="page-link disabled">Вперед →</span>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+</div>
+{% include "partials/auth_script.html" %}
+<script src="/static/admin_vin_found.js?v=20260915-02" defer></script>
+{% endblock %}

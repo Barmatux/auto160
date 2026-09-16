@@ -6,12 +6,16 @@ import pytest
 from app.listing_enrichment import (
     ListingEnrichmentStats,
     RatingOneTarget,
+    VinCheckListingFilters,
     VinCheckPageStats,
     build_vin_check_page_stats,
     format_vin_check_stats_summary,
     listing_matches_rating_one,
+    listing_matches_vin_check_filters,
+    paginate_rating_one_listings_with_vin,
     normalize_catalog_name,
     perform_listing_vin_check,
+    recheck_listing_customs_import_date,
 )
 
 
@@ -77,6 +81,12 @@ def test_admin_vin_check_page_requires_login(client):
     assert response.headers["location"] == "/login"
 
 
+def test_admin_vin_found_page_requires_login(client):
+    response = client.get("/admin/vin-check/found", follow_redirects=False)
+    assert response.status_code == 302
+    assert response.headers["location"] == "/login"
+
+
 def test_format_vin_check_stats_summary():
     stats = VinCheckPageStats(
         checks_launched=5,
@@ -104,6 +114,114 @@ def test_build_vin_check_page_stats_counts_success_by_model():
     assert stats.vin_by_model == (("VW Tiguan", 1),)
 
 
+def test_listing_matches_vin_check_filters():
+    auto_diesel = SimpleNamespace(transmission_type="Автомат", engine_type="дизель")
+    manual_diesel = SimpleNamespace(transmission_type="Механика", engine_type="дизель")
+    auto_petrol = SimpleNamespace(transmission_type="Автомат", engine_type="бензин")
+
+    assert listing_matches_vin_check_filters(auto_diesel, VinCheckListingFilters()) is True
+    assert listing_matches_vin_check_filters(
+        manual_diesel,
+        VinCheckListingFilters(only_automatic=True),
+    ) is False
+    assert listing_matches_vin_check_filters(
+        auto_diesel,
+        VinCheckListingFilters(only_automatic=True),
+    ) is True
+    assert listing_matches_vin_check_filters(
+        auto_petrol,
+        VinCheckListingFilters(only_diesel=True),
+    ) is False
+    assert listing_matches_vin_check_filters(
+        manual_diesel,
+        VinCheckListingFilters(only_automatic=True, only_diesel=True),
+    ) is False
+    assert listing_matches_vin_check_filters(
+        auto_diesel,
+        VinCheckListingFilters(only_automatic=True, only_diesel=True),
+    ) is True
+
+
+def test_paginate_rating_one_listings_with_vin_filters_and_pages(monkeypatch):
+    listing_with_vin = SimpleNamespace(
+        brand="VW",
+        model="Tiguan",
+        year=2020,
+        vin="WVWZZZ1KZAW123456",
+    )
+    listing_without_vin = SimpleNamespace(
+        brand="VW",
+        model="Tiguan",
+        year=2020,
+        vin=None,
+    )
+
+    monkeypatch.setattr("app.listing_enrichment.build_rating_one_targets", lambda db: [object()])
+
+    def fake_match(listing, targets):
+        return listing in {listing_with_vin, listing_without_vin}
+
+    monkeypatch.setattr("app.listing_enrichment.listing_matches_rating_one", fake_match)
+
+    class FakeQuery:
+        def filter(self, *args, **kwargs):
+            return self
+
+        def order_by(self, *args, **kwargs):
+            return self
+
+        def yield_per(self, size):
+            yield listing_with_vin
+            yield listing_without_vin
+
+    db = MagicMock()
+    db.query.return_value = FakeQuery()
+    page_rows, total = paginate_rating_one_listings_with_vin(db, page=1, page_size=100)
+    assert page_rows == [listing_with_vin]
+    assert total == 1
+
+
+def test_build_listing_vin_account_labels_uses_metadata_fallback(monkeypatch):
+    listing = SimpleNamespace(id=11, vin="WVWZZZ1KZAW123456", vin_fetched_at=None)
+
+    class FakeQuery:
+        def filter(self, *args, **kwargs):
+            return self
+
+        def order_by(self, *args, **kwargs):
+            return self
+
+        def all(self):
+            return []
+
+    db = MagicMock()
+    db.query.return_value = FakeQuery()
+    from app.listing_enrichment import build_listing_vin_account_labels
+
+    monkeypatch.setattr("app.listing_enrichment.listing_has_saved_vin", lambda row: True)
+    labels = build_listing_vin_account_labels(db, [listing])
+    assert labels[11] == "Из объявления"
+
+
+def test_recheck_listing_customs_import_date(monkeypatch):
+    listing = SimpleNamespace(vin="WVWZZZ1KZAW123456")
+
+    monkeypatch.setattr("app.listing_enrichment.listing_has_saved_vin", lambda row: True)
+    def fake_lookup(db, vin, *, database=None, force_refresh=False):
+        return SimpleNamespace(found=True, release_date="15.03.2021")
+
+    monkeypatch.setattr("app.listing_enrichment.lookup_customs_vin", fake_lookup)
+
+    release_date, error = recheck_listing_customs_import_date(MagicMock(), listing)
+    assert release_date == "15.03.2021"
+    assert error is None
+
+
 def test_admin_vin_check_api_requires_auth(client):
     response = client.post("/api/v1/admin/listings/1/vin-check", follow_redirects=False)
+    assert response.status_code == 401
+
+
+def test_admin_customs_recheck_api_requires_auth(client):
+    response = client.post("/api/v1/admin/listings/1/customs-recheck", follow_redirects=False)
     assert response.status_code == 401

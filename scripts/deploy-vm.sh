@@ -6,7 +6,7 @@ BACKEND_DIR="$APP_DIR/backend"
 COMPOSE_FILE="$BACKEND_DIR/docker-compose.vm.yml"
 ENV_FILE="$BACKEND_DIR/.env.vm"
 
-if [[ ! -d "$APP_DIR/.git" ]]; then
+if [[ "${SKIP_GIT_PULL:-}" != "1" && ! -d "$APP_DIR/.git" ]]; then
   echo "Git repository not found at $APP_DIR"
   exit 1
 fi
@@ -61,16 +61,19 @@ echo "==> Container status"
 docker compose --env-file .env.vm -f docker-compose.vm.yml ps
 
 echo "==> Health check"
-for attempt in 1 2 3 4 5; do
+HEALTH_ATTEMPTS=12
+HEALTH_SLEEP_SECONDS=5
+for attempt in $(seq 1 "$HEALTH_ATTEMPTS"); do
   if curl -fsS http://127.0.0.1:8000/health >/dev/null; then
     echo "API is healthy"
     break
   fi
-  echo "Waiting for API... ($attempt/5)"
-  sleep 3
-  if [[ "$attempt" -eq 5 ]]; then
+  echo "Waiting for API... ($attempt/$HEALTH_ATTEMPTS)"
+  sleep "$HEALTH_SLEEP_SECONDS"
+  if [[ "$attempt" -eq "$HEALTH_ATTEMPTS" ]]; then
     echo "Health check failed"
-    docker compose --env-file .env.vm -f docker-compose.vm.yml logs --tail=80 api
+    docker compose --env-file .env.vm -f docker-compose.vm.yml ps
+    docker compose --env-file .env.vm -f docker-compose.vm.yml logs --tail=120 api
     exit 1
   fi
 done

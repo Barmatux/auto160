@@ -169,6 +169,20 @@ def _format_engine_capacity(capacity_l: float) -> str:
     return f"{rounded:g} л"
 
 
+def format_vin_found_specs_line(listing: CarListing) -> str:
+    parts: list[str] = []
+    if listing.engine_capacity_l is not None:
+        parts.append(f"{float(listing.engine_capacity_l):.1f}")
+    if listing.engine_type:
+        parts.append(listing.engine_type.strip().lower())
+    if listing.transmission_type:
+        parts.append(listing.transmission_type.strip().lower())
+    if listing.mileage is not None:
+        mileage_label = f"{listing.mileage:,}".replace(",", ".")
+        parts.append(f"{mileage_label}км")
+    return " ".join(parts) if parts else "—"
+
+
 def listing_engine_summary(listing: CarListing) -> str | None:
     parts: list[str] = []
     if listing.engine_capacity_l is not None:
