@@ -14,6 +14,7 @@ if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 os.chdir(ROOT_DIR)
 
+from app.avby_photo_store import is_avby_s3_media_url, store_avby_listing_photos
 from app.listing_missing_byn import apply_import_byn_price_state
 from app.avby_price import extract_price_byn_from_advert
 from app.listing_archive_scope import (
@@ -804,6 +805,19 @@ def run_import(
                         if dry_run:
                             updated += 1
                             continue
+                        if is_avby_s3_media_url(existing.cover_photo_url) and isinstance(
+                            existing.raw_photos, list
+                        ) and existing.raw_photos:
+                            payload["cover_photo_url"] = existing.cover_photo_url
+                            payload["raw_photos"] = existing.raw_photos
+                        else:
+                            cover, raw_photos = store_avby_listing_photos(
+                                avby_id,
+                                payload.get("cover_photo_url"),
+                                payload.get("raw_photos"),
+                            )
+                            payload["cover_photo_url"] = cover
+                            payload["raw_photos"] = raw_photos
                         existing.avby_id = avby_id
                         existing.source = "av.by"
                         existing.external_id = str(avby_id)
@@ -831,6 +845,13 @@ def run_import(
                         imported_per_model[target_key] = imported_per_model.get(target_key, 0) + 1
                         continue
 
+                    cover, raw_photos = store_avby_listing_photos(
+                        avby_id,
+                        payload.get("cover_photo_url"),
+                        payload.get("raw_photos"),
+                    )
+                    payload["cover_photo_url"] = cover
+                    payload["raw_photos"] = raw_photos
                     listing = CarListing(
                         seller_id=seller.id,
                         avby_id=avby_id,

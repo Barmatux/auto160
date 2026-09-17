@@ -111,6 +111,24 @@ def autoplius_bucket() -> str:
     return (settings.autoplius_s3_bucket or "autoplius-media").strip()
 
 
+def autoplius_object_exists(storage_key: str) -> bool:
+    client = get_autoplius_s3_client()
+    try:
+        client.head_object(Bucket=autoplius_bucket(), Key=storage_key)
+        return True
+    except (ClientError, BotoCoreError):
+        return False
+
+
+def put_autoplius_object(storage_key: str, body: bytes, content_type: str) -> None:
+    get_autoplius_s3_client().put_object(
+        Bucket=autoplius_bucket(),
+        Key=storage_key,
+        Body=body,
+        ContentType=content_type or "application/octet-stream",
+    )
+
+
 _REMOTE_IMAGE_HOSTS = {"avcdn.av.by"}
 
 
