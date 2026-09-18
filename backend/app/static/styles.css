@@ -3762,10 +3762,11 @@ body.theme-admin.theme-admin-light .header-theme-toggle:focus-visible {
 }
 
 .listing-detail-header-price .listing-price-has-conversions .listing-price-tooltip {
+  /* Placement is handled in JS (fixed + flip) to avoid sticky-header clipping. */
   top: auto;
-  bottom: calc(100% + 8px);
+  bottom: auto;
   left: auto;
-  right: 0;
+  right: auto;
 }
 
 .listing-detail-header-price .listing-price:not(.listing-price-has-conversions) .listing-price-primary {
@@ -3920,10 +3921,10 @@ body.theme-admin.theme-admin-light .header-theme-toggle:focus-visible {
   position: absolute;
   left: 0;
   top: calc(100% + 8px);
-  z-index: 120;
+  z-index: 400;
   box-sizing: border-box;
   width: min(360px, calc(100vw - 32px));
-  max-width: 100%;
+  max-width: min(360px, calc(100vw - 32px));
   min-width: 0;
   padding: 14px 16px;
   border: 1px solid #cbd5e1;
@@ -3935,15 +3936,11 @@ body.theme-admin.theme-admin-light .header-theme-toggle:focus-visible {
   overflow-wrap: break-word;
 }
 
-.listing-price-has-conversions.is-price-tooltip-open .listing-price-tooltip,
-.listing-price-has-conversions:hover .listing-price-tooltip,
-.listing-price-has-conversions:focus-within .listing-price-tooltip {
+.listing-price-has-conversions.is-price-tooltip-open .listing-price-tooltip {
   display: block;
 }
 
-.listing-detail-header:has(.listing-price-has-conversions.is-price-tooltip-open),
-.listing-detail-header:has(.listing-price-has-conversions:hover),
-.listing-detail-header:has(.listing-price-has-conversions:focus-within) {
+.listing-detail-header:has(.listing-price-has-conversions.is-price-tooltip-open) {
   position: relative;
   z-index: 30;
 }
@@ -4040,12 +4037,13 @@ body.theme-admin.theme-admin-light .header-theme-toggle:focus-visible {
 }
 
 .listings-feed .listings-feed-price .listing-price-has-conversions .listing-price-tooltip {
+  /* Placement is handled in JS (fixed + flip) to avoid card/header clipping. */
   top: auto;
-  bottom: calc(100% + 8px);
-  left: 0;
-  right: 0;
-  width: 100%;
-  max-width: 100%;
+  bottom: auto;
+  left: auto;
+  right: auto;
+  width: min(360px, calc(100vw - 32px));
+  max-width: min(360px, calc(100vw - 32px));
   min-width: 0;
 }
 
@@ -4055,9 +4053,7 @@ body.theme-admin.theme-admin-light .header-theme-toggle:focus-visible {
   min-width: 0;
 }
 
-.listings-feed .listing-card:has(.listing-price-has-conversions.is-price-tooltip-open),
-.listings-feed .listing-card:has(.listing-price-has-conversions:hover),
-.listings-feed .listing-card:has(.listing-price-has-conversions:focus-within) {
+.listings-feed .listing-card:has(.listing-price-has-conversions.is-price-tooltip-open) {
   position: relative;
   z-index: 25;
 }
@@ -4936,7 +4932,7 @@ body.listing-lightbox-open {
   }
 
   .listing-detail-header-price .listing-price-has-conversions .listing-price-tooltip {
-    left: 0;
+    left: auto;
     right: auto;
   }
 
