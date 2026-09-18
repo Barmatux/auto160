@@ -400,6 +400,17 @@ body.theme-admin .catalog-make-card .make-logo-wrap:focus-visible {
   border-color: rgba(0, 168, 255, 0.4);
 }
 
+/* Dark brand marks are near-invisible on dark cards — render them light. */
+body.theme-admin:not(.theme-admin-light) .make-logo {
+  filter: brightness(0) invert(1);
+  opacity: 0.92;
+}
+
+body.theme-admin:not(.theme-admin-light) .home-make-fallback {
+  background: rgba(0, 168, 255, 0.18);
+  color: #b8e7ff;
+}
+
 body.theme-admin .listing-feed-gallery-arrow,
 body.theme-admin .listings-feed .listing-photo-nav {
   background: rgba(0, 0, 0, 0.55);
