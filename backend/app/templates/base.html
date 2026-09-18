@@ -123,7 +123,7 @@
         </nav>
       </div>
       <div class="header-actions">
-        {% if site_theme_uses_logo %}
+        {% if site_theme_uses_logo and not is_admin %}
           <button
             type="button"
             class="header-theme-toggle"
