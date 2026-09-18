@@ -29,6 +29,7 @@ from app.fuel_type_labels import (
     resolved_catalog_fuel_type,
 )
 from app.drive_type_labels import drive_type_sql_predicate, normalize_drive_display_label
+from app.site_theme import SITE_THEME_COOKIE, SITE_THEME_LABELS, resolve_site_theme, site_theme_uses_logo
 from app.listing_missing_byn import (
     count_listings_missing_byn_price,
     paginate_listings_missing_byn_price,
@@ -365,18 +366,9 @@ def _resolve_user_from_request(request: Request, db: Session) -> User | None:
     return db.query(User).filter(User.email == email).first()
 
 
-SITE_THEME_COOKIE = "auto160_site_theme"
-SITE_THEME_STANDARD = "standard"
-SITE_THEME_LOGO = "logo"
-SITE_THEME_LOGO_LIGHT = "logo-light"
-SITE_THEMES = {SITE_THEME_STANDARD, SITE_THEME_LOGO, SITE_THEME_LOGO_LIGHT}
-
-
 def _resolve_site_theme(request: Request, current_user: User | None) -> str:
-    if current_user is None or current_user.role != UserRole.admin:
-        return SITE_THEME_STANDARD
-    raw = (request.cookies.get(SITE_THEME_COOKIE) or SITE_THEME_LOGO).strip().lower()
-    return raw if raw in SITE_THEMES else SITE_THEME_LOGO
+    is_admin = current_user is not None and current_user.role == UserRole.admin
+    return resolve_site_theme(request.cookies.get(SITE_THEME_COOKIE), is_admin=is_admin)
 
 
 def _template_context(request: Request, current_user: User | None, seo: SeoMeta | None = None) -> dict:
@@ -388,12 +380,8 @@ def _template_context(request: Request, current_user: User | None, seo: SeoMeta 
         "is_authenticated": current_user is not None,
         "is_admin": is_admin,
         "site_theme": site_theme,
-        "site_theme_uses_logo": is_admin and site_theme in {SITE_THEME_LOGO, SITE_THEME_LOGO_LIGHT},
-        "site_theme_labels": {
-            SITE_THEME_STANDARD: "Стандарт",
-            SITE_THEME_LOGO: "Стиль логотипа",
-            SITE_THEME_LOGO_LIGHT: "Стиль логотипа (светлый)",
-        },
+        "site_theme_uses_logo": site_theme_uses_logo(site_theme),
+        "site_theme_labels": SITE_THEME_LABELS,
     }
     context.update(build_seo_context(request, seo))
     context.update(yandex_metrika_context(request))

@@ -1,4 +1,4 @@
-/* Admin-only theme — matches logo palette: black + blue→green gradient. */
+/* Logo-style site theme — black + blue→green gradient (dark) and light variant. */
 
 body.theme-admin {
   --bg: #07090d;

@@ -48,6 +48,38 @@ body {
   flex: 0 0 auto;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.header-theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 8px 12px;
+  border: 1px solid #cfe0ff;
+  border-radius: 10px;
+  background: #f8fbff;
+  color: #1e3a8a;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.header-theme-toggle:hover,
+.header-theme-toggle:focus-visible {
+  background: #edf3ff;
+  border-color: #93c5fd;
+  color: #1d4ed8;
+}
+
 .header-menu-toggle {
   display: none;
   flex: 0 0 auto;
@@ -798,6 +830,32 @@ body.theme-admin .header-theme-option:focus-visible,
 body.theme-admin .header-theme-option.is-active {
   background: rgba(0, 168, 255, 0.18);
   color: #ffffff;
+}
+
+body.theme-admin .header-theme-toggle {
+  background: #12161e;
+  border-color: #334155;
+  color: #e2e8f0;
+}
+
+body.theme-admin .header-theme-toggle:hover,
+body.theme-admin .header-theme-toggle:focus-visible {
+  background: rgba(0, 168, 255, 0.16);
+  border-color: rgba(0, 168, 255, 0.45);
+  color: #ffffff;
+}
+
+body.theme-admin.theme-admin-light .header-theme-toggle {
+  background: #ffffff;
+  border-color: #cfe0ff;
+  color: #1e3a8a;
+}
+
+body.theme-admin.theme-admin-light .header-theme-toggle:hover,
+body.theme-admin.theme-admin-light .header-theme-toggle:focus-visible {
+  background: #edf3ff;
+  border-color: #93c5fd;
+  color: #1d4ed8;
 }
 
 .admin-vin-check-page .admin-vin-check-main {
@@ -4672,7 +4730,15 @@ body.listing-lightbox-open {
 
   .header-menu-toggle {
     display: inline-flex;
+  }
+
+  .header-actions {
     margin-left: auto;
+  }
+
+  .header-theme-toggle {
+    padding: 8px 10px;
+    font-size: 12px;
   }
 
   .header-nav-wrap {

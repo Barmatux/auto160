@@ -30,16 +30,16 @@
     {% if seo_json_ld_script %}
       <script type="application/ld+json">{{ seo_json_ld_script | safe }}</script>
     {% endif %}
-    <link rel="stylesheet" href="/static/styles.css?v=20260916-09" />
-    {% if is_admin and site_theme != "standard" %}
+    <link rel="stylesheet" href="/static/styles.css?v=20260918-01" />
+    {% if site_theme_uses_logo %}
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
       <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet" />
-      <link rel="stylesheet" href="/static/admin_theme.css?v=20260916-08" />
+      <link rel="stylesheet" href="/static/admin_theme.css?v=20260918-01" />
     {% endif %}
   </head>
   <body
-    {% if is_admin and site_theme == "logo" %}class="theme-admin"{% elif is_admin and site_theme == "logo-light" %}class="theme-admin theme-admin-light"{% endif %}
+    {% if site_theme == "logo" %}class="theme-admin"{% elif site_theme == "logo-light" %}class="theme-admin theme-admin-light"{% endif %}
   >
     <header class="header">
       <a class="brand" href="/">
@@ -56,18 +56,6 @@
           Авто160
         {% endif %}
       </a>
-      <button
-        class="header-menu-toggle"
-        type="button"
-        data-header-menu-toggle
-        aria-expanded="false"
-        aria-controls="site-nav"
-        aria-label="Открыть меню"
-      >
-        <span class="header-menu-line" aria-hidden="true"></span>
-        <span class="header-menu-line" aria-hidden="true"></span>
-        <span class="header-menu-line" aria-hidden="true"></span>
-      </button>
       <div id="site-nav" class="header-nav-wrap" data-header-nav aria-label="Основное меню">
         <nav class="header-nav header-nav-row">
           <a href="/">Главная</a>
@@ -134,6 +122,28 @@
           {% endif %}
         </nav>
       </div>
+      <div class="header-actions">
+        {% if site_theme_uses_logo %}
+          <button
+            type="button"
+            class="header-theme-toggle"
+            data-site-theme-toggle
+            data-site-theme="{{ site_theme }}"
+          >{% if site_theme == "logo-light" %}Темная тема{% else %}Светлая тема{% endif %}</button>
+        {% endif %}
+        <button
+          class="header-menu-toggle"
+          type="button"
+          data-header-menu-toggle
+          aria-expanded="false"
+          aria-controls="site-nav"
+          aria-label="Открыть меню"
+        >
+          <span class="header-menu-line" aria-hidden="true"></span>
+          <span class="header-menu-line" aria-hidden="true"></span>
+          <span class="header-menu-line" aria-hidden="true"></span>
+        </button>
+      </div>
     </header>
     <main class="page">{% block content %}{% endblock %}</main>
     <footer class="site-footer">
@@ -150,7 +160,7 @@
       </div>
     </footer>
     {% include "partials/cookie_consent.html" %}
-    <script src="/static/header_nav.js?v=20260916-02" defer></script>
+    <script src="/static/header_nav.js?v=20260918-01" defer></script>
     <script src="/static/listing_price_tooltip.js?v=20260822-01" defer></script>
   </body>
 </html>
