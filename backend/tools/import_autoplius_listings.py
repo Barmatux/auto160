@@ -66,6 +66,7 @@ SELECT
   status
 FROM listings
 WHERE source = %s
+  AND status = 'active'
 ORDER BY id DESC
 """
 

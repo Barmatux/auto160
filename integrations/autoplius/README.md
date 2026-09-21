@@ -34,4 +34,16 @@ docker compose --env-file .env.vm -f docker-compose.vm.yml exec -T api \
   python tools/import_autoplius_listings.py
 ```
 
+## Scheduled sync (VM)
+
+`docker-compose.vm.yml` runs `autoplius-sync` every 45 minutes:
+
+- reads scrape-platform Postgres (`AUTOPLIUS_SCRAPE_DSN` / default `10.129.0.33:5433`)
+- upserts into `car_listings` with filters ≤160 hp / ≤5y / ≤1.9 L
+- Autoplius scrape itself runs only on scrape-platform (`/opt/scrape-platform`)
+
+```bash
+docker compose --env-file .env.vm -f docker-compose.vm.yml logs -f autoplius-sync
+```
+
 Identity: `source=autoplius` + `external_id`. Belarus av.by rows use `source=av.by`.

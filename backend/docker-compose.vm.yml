@@ -110,5 +110,29 @@ services:
       --interval-minutes 15
       --refresh-if-within-minutes 15
 
+  autoplius-sync:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: auto160-autoplius-sync
+    restart: unless-stopped
+    env_file:
+      - .env.vm
+    environment:
+      LOG_DIR: /app/logs
+      LOG_SERVICE: autoplius-sync
+      LOG_TIMEZONE: Europe/Minsk
+    volumes:
+      - ../logs:/app/logs
+    depends_on:
+      db:
+        condition: service_healthy
+    command: >
+      python tools/schedule_autoplius_listings_sync.py
+      --interval-minutes 45
+      --max-hp 160
+      --max-age-years 5
+      --max-engine-l 1.9
+
 volumes:
   pgdata:
