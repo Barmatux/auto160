@@ -12,4 +12,5 @@ COPY . /app
 
 EXPOSE 8000
 
-CMD ["sh", "-c", "python -m alembic upgrade head && python -m uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+# Multiple workers so sync /media proxies do not starve admin HTML behind one process.
+CMD ["sh", "-c", "python -m alembic upgrade head && python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers ${UVICORN_WORKERS:-2}"]

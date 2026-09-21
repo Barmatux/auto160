@@ -41,6 +41,7 @@ def _db_with_listings_and_avgs(listings, avgs=None):
     def query_side_effect(model):
         q = MagicMock()
         if model is CarListing:
+            q.options.return_value = q
             q.filter.return_value = q
             q.order_by.return_value = q
             q.all.return_value = listings

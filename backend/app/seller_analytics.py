@@ -8,12 +8,50 @@ from datetime import datetime
 from urllib.parse import quote, urlencode
 
 from sqlalchemy import or_
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, load_only
 
 from app.listing_avg_prices import DEFAULT_WINDOW_DAYS
 from app.listing_catalog_link import canonical_model_name, normalize_match_text
 from app.listing_display import format_money_amount, is_legal_entity_seller
 from app.models import CarListing, ListingAvgPrice, ListingStatus
+
+# Coarse SQL prefilter for legal-entity sellers (exact check still uses is_legal_entity_seller).
+_LEGAL_SQL_MARKERS = (
+    "ООО",
+    "OOO",
+    "ЗАО",
+    "ОАО",
+    "OAO",
+    "ЧУП",
+    "ЧТУП",
+    "ПЧУП",
+    "ТОО",
+    "ИП",
+    "LLC",
+    "LTD",
+    "Inc",
+    "Corp",
+)
+
+_BUSINESS_LISTING_COLUMNS = (
+    CarListing.id,
+    CarListing.seller_name,
+    CarListing.organization_id,
+    CarListing.status,
+    CarListing.source,
+    CarListing.price,
+    CarListing.price_byn_missing,
+    CarListing.city,
+    CarListing.brand,
+    CarListing.model,
+    CarListing.year,
+    CarListing.vin,
+    CarListing.cover_photo_url,
+    CarListing.raw_photos,
+    CarListing.created_at,
+    CarListing.avby_published_at,
+    CarListing.avby_renewed_at,
+)
 
 SORT_COLUMNS = (
     "name",
@@ -50,6 +88,30 @@ AvgPriceMap = dict[tuple[str, str, int], float]
 
 def normalize_seller_key(seller_name: str) -> str:
     return _WS_RE.sub(" ", seller_name.strip()).casefold()
+
+
+def _business_seller_sql_filter():
+    """SQL prefilter: known orgs or seller_name that looks like a legal entity."""
+    marker_filters = [CarListing.seller_name.ilike(f"%{marker}%") for marker in _LEGAL_SQL_MARKERS]
+    marker_filters.append(CarListing.seller_name.contains("«"))
+    marker_filters.append(CarListing.seller_name.contains('"'))
+    return or_(
+        CarListing.organization_id.isnot(None),
+        *marker_filters,
+    )
+
+
+def _business_listings_query(db: Session):
+    return (
+        db.query(CarListing)
+        .options(load_only(*_BUSINESS_LISTING_COLUMNS))
+        .filter(
+            CarListing.seller_name.isnot(None),
+            CarListing.seller_name != "",
+            or_(CarListing.source.is_(None), CarListing.source == "av.by"),
+            _business_seller_sql_filter(),
+        )
+    )
 
 
 def _listing_opened_at(listing: CarListing) -> datetime | None:
@@ -457,15 +519,7 @@ def build_business_seller_report(
     window_days: int = DEFAULT_WINDOW_DAYS,
 ) -> tuple[BusinessSellerSummary, list[BusinessSellerStats]]:
     """Group av.by listings by legal-entity seller_name and compute inventory / archive stats."""
-    listings = (
-        db.query(CarListing)
-        .filter(
-            CarListing.seller_name.isnot(None),
-            CarListing.seller_name != "",
-            or_(CarListing.source.is_(None), CarListing.source == "av.by"),
-        )
-        .all()
-    )
+    listings = _business_listings_query(db).all()
     avg_map = load_avg_price_map(db, window_days=window_days)
 
     buckets: dict[str, list[CarListing]] = {}
@@ -514,16 +568,11 @@ def build_business_seller_listings(
     if not key:
         return None, []
 
-    listings = (
-        db.query(CarListing)
-        .filter(
-            CarListing.seller_name.isnot(None),
-            CarListing.seller_name != "",
-            or_(CarListing.source.is_(None), CarListing.source == "av.by"),
-        )
-        .order_by(CarListing.id.desc())
-        .all()
-    )
+    tokens = [token for token in key.split() if len(token) >= 2][:4]
+    query = _business_listings_query(db)
+    if tokens:
+        query = query.filter(or_(*[CarListing.seller_name.ilike(f"%{token}%") for token in tokens]))
+    listings = query.order_by(CarListing.id.desc()).all()
     matched = [
         listing
         for listing in listings
