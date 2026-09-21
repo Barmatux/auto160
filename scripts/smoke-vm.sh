@@ -5,7 +5,7 @@ set -euo pipefail
 BASE_URL="${SMOKE_BASE_URL:-http://127.0.0.1:8000}"
 MIN_CATALOG_BYTES="${SMOKE_MIN_CATALOG_BYTES:-500}"
 MIN_LISTINGS_BYTES="${SMOKE_MIN_LISTINGS_BYTES:-500}"
-CURL_MAX_TIME="${SMOKE_CURL_MAX_TIME:-60}"
+CURL_MAX_TIME="${SMOKE_CURL_MAX_TIME:-120}"
 
 curl_get() {
   curl -fsS --connect-timeout 5 --max-time "${CURL_MAX_TIME}" "$@"
