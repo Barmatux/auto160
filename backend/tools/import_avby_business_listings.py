@@ -18,7 +18,10 @@ Examples:
 from __future__ import annotations
 
 import argparse
+import importlib.util
+import logging
 import os
+import re
 import sys
 import time
 from datetime import datetime
@@ -26,15 +29,14 @@ from pathlib import Path
 from typing import Any
 
 from curl_cffi import requests
+from sqlalchemy import or_
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 os.chdir(ROOT_DIR)
 
-from sqlalchemy import or_
-
-from app.avby_photo_store import is_avby_s3_media_url, store_avby_listing_photos
+from app.avby_photo_store import is_avby_s3_media_url
 from app.db import SessionLocal
 from app.listing_display import is_legal_entity_seller
 from app.listing_missing_byn import apply_import_byn_price_state
@@ -43,8 +45,6 @@ from app.models import CarListing, ListingStatus, User
 from app.seller_analytics import normalize_seller_key
 
 # Load sibling importer module (tools/ is not a package).
-import importlib.util
-
 _spec = importlib.util.spec_from_file_location(
     "import_avby_listings",
     ROOT_DIR / "tools" / "import_avby_listings.py",
@@ -63,14 +63,20 @@ _load_existing_avby_map = _avby._load_existing_avby_map
 _parse_avby_datetime = _avby._parse_avby_datetime
 _to_int = _avby._to_int
 
-import logging
-
 logger = logging.getLogger(__name__)
 
 DEFAULT_SINCE = "2026-01-01"
 DEFAULT_MAX_HP_PUBLIC = 160
 DEFAULT_SORT = 4  # newest first (same as main sync)
 REQUEST_PAUSE_SEC = 0.35
+_QUOTE_RE = re.compile(r"[\"'«»„“”]")
+_SKIP_SELLER_KEYS = frozenset({"ооо", "ип", "зао", "оао", "одо", "чтуп", "уп"})
+
+
+def _match_key(name: str) -> str:
+    key = normalize_seller_key(name)
+    key = _QUOTE_RE.sub("", key)
+    return re.sub(r"\s+", " ", key).strip()
 
 
 def _parse_since(value: str) -> datetime:
@@ -156,7 +162,9 @@ def load_known_business_sellers(db) -> dict[str, str]:
         name = (raw or "").strip()
         if not is_legal_entity_seller(name):
             continue
-        key = normalize_seller_key(name)
+        key = _match_key(name)
+        if not key or key in _SKIP_SELLER_KEYS or len(key) < 4:
+            continue
         prev = result.get(key)
         if prev is None or len(name) > len(prev):
             result[key] = name
@@ -181,7 +189,7 @@ def load_org_ids_from_listings(db) -> dict[str, int]:
         name = (seller_name or "").strip()
         if not name:
             continue
-        mapped[normalize_seller_key(name)] = int(org_id)
+        mapped[_match_key(name)] = int(org_id)
     return mapped
 
 
@@ -193,7 +201,7 @@ def match_organizations(
     """Return (matched: org_id, org_label, seller_display), unmatched seller display names."""
     option_by_key: dict[str, tuple[int, str]] = {}
     for org_id, label in org_options:
-        option_by_key[normalize_seller_key(label)] = (org_id, label)
+        option_by_key[_match_key(label)] = (org_id, label)
 
     matched: list[tuple[int, str, str]] = []
     unmatched: list[str] = []
@@ -297,23 +305,18 @@ def upsert_advert(
         return "updated" if existing else "created"
 
     if existing:
-        if is_avby_s3_media_url(existing.cover_photo_url) and isinstance(existing.raw_photos, list) and existing.raw_photos:
-            payload["cover_photo_url"] = existing.cover_photo_url
-            payload["raw_photos"] = existing.raw_photos
-        else:
-            cover, raw_photos = store_avby_listing_photos(
-                avby_id,
-                payload.get("cover_photo_url"),
-                payload.get("raw_photos"),
-            )
-            payload["cover_photo_url"] = cover
-            payload["raw_photos"] = raw_photos
-
         existing.avby_id = avby_id
         existing.source = "av.by"
         existing.external_id = str(avby_id)
+        # Keep already-mirrored S3 photos if present; otherwise accept av.by CDN URLs
+        # (full photo mirror stays with the regular ≤160 sync).
+        keep_photos = is_avby_s3_media_url(existing.cover_photo_url) and isinstance(
+            existing.raw_photos, list
+        ) and existing.raw_photos
         for field, value in payload.items():
             if field in PRESERVE_ON_UPDATE_FIELDS:
+                continue
+            if keep_photos and field in ("cover_photo_url", "raw_photos"):
                 continue
             setattr(existing, field, value)
         apply_import_byn_price_state(
@@ -326,13 +329,6 @@ def upsert_advert(
         existing_map[avby_id] = existing
         return "updated"
 
-    cover, raw_photos = store_avby_listing_photos(
-        avby_id,
-        payload.get("cover_photo_url"),
-        payload.get("raw_photos"),
-    )
-    payload["cover_photo_url"] = cover
-    payload["raw_photos"] = raw_photos
     listing = CarListing(
         seller_id=seller.id,
         avby_id=avby_id,
