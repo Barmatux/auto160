@@ -5,11 +5,12 @@ Published `car_listings` are embedded into Postgres (`listing_embeddings`) for s
 ## Env (VM `.env.vm`)
 
 ```bash
-OPENAI_API_KEY=sk-...
-# optional proxy / compatible endpoint
-# OPENAI_BASE_URL=https://api.openai.com/v1
-# EMBEDDING_MODEL=text-embedding-3-small
-# EMBEDDING_PROVIDER=openai
+OPENAI_API_KEY=sk-or-v1-...
+OPENAI_BASE_URL=https://openrouter.ai/api/v1
+# Required from Yandex Cloud VMs (OpenRouter blocks those IPs without a proxy):
+OPENAI_HTTP_PROXY=http://user:pass@host:port
+EMBEDDING_MODEL=openai/text-embedding-3-small
+EMBEDDING_PROVIDER=openai
 ```
 
 Without `OPENAI_API_KEY` the service uses deterministic **local hash vectors** so deploy/smoke works; set a real key and re-run `--force` for production quality.

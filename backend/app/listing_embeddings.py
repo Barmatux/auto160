@@ -75,6 +75,11 @@ def _embedding_client() -> OpenAI:
     base = (settings.openai_base_url or "").strip()
     if base:
         kwargs["base_url"] = base
+    proxy = (settings.openai_http_proxy or "").strip()
+    if proxy:
+        import httpx
+
+        kwargs["http_client"] = httpx.Client(proxy=proxy, timeout=60.0)
     return OpenAI(**kwargs)
 
 

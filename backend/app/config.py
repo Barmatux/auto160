@@ -38,6 +38,8 @@ class Settings(BaseSettings):
     # OpenAI-compatible embeddings (listing semantic search / future chat).
     openai_api_key: str = ""
     openai_base_url: str = ""
+    # Optional HTTP(S) proxy for OpenAI/OpenRouter egress, e.g. http://user:pass@host:port
+    openai_http_proxy: str = ""
     embedding_model: str = "text-embedding-3-small"
     # openai | local — local = deterministic hash vectors (no API key; for smoke/dev).
     embedding_provider: str = "openai"
