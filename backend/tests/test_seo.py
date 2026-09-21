@@ -77,6 +77,29 @@ def test_render_sitemap_xml_shape():
     assert "<lastmod>2026-07-30</lastmod>" in xml
 
 
+def test_build_sitemap_entries_resolves_models():
+    """Regression: sitemap used CarListing/CatalogItem without importing them."""
+    from unittest.mock import MagicMock
+
+    from app.seo import build_sitemap_entries
+
+    db = MagicMock()
+    query = MagicMock()
+    query.filter.return_value = query
+    query.distinct.return_value = query
+    query.order_by.return_value = query
+    query.all.return_value = []
+    query.scalar.return_value = 0
+    db.query.return_value = query
+
+    entries = build_sitemap_entries(db, "https://auto160.ru")
+    locs = {loc for loc, _lastmod in entries}
+    assert "https://auto160.ru/" in locs
+    assert "https://auto160.ru/listings" in locs
+    assert "https://auto160.ru/catalog" in locs
+
+
+
 def test_listing_seo_json_ld_offer():
     listing = CarListing(
         id=42,

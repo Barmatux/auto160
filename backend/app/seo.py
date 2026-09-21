@@ -12,9 +12,10 @@ from fastapi import Request
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
-from app.config import settings
 from app.body_type_labels import exclude_hidden_body_type
+from app.config import settings
 from app.listing_display import build_listing_price_display
+from app.models import CarListing, CatalogItem, ListingStatus
 
 SITE_NAME = "Auto160"
 DEFAULT_DESCRIPTION = (
