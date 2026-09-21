@@ -25,3 +25,13 @@ def test_build_listing_embed_text_includes_core_fields():
     assert "150 hp" in text
     assert "Короткое описание" in text
     assert len(content_hash(text)) == 64
+
+
+def test_local_embed_is_unit_length():
+    from app.listing_embeddings import _local_embed_text
+    import math
+
+    vec = _local_embed_text("BMW X1 автомат Минск")
+    assert len(vec) == 1536
+    norm = math.sqrt(sum(v * v for v in vec))
+    assert abs(norm - 1.0) < 1e-6

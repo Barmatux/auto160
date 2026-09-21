@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import hashlib
 import logging
+import math
+import re
 from datetime import datetime
 from typing import Sequence
 
@@ -18,6 +20,7 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_EMBEDDING_DIM = 1536
 DESCRIPTION_MAX_CHARS = 1200
+_TOKEN_RE = re.compile(r"[0-9A-Za-zА-Яа-яЁё]+", re.UNICODE)
 
 
 def build_listing_embed_text(listing: CarListing) -> str:
@@ -49,6 +52,21 @@ def content_hash(text_value: str) -> str:
     return hashlib.sha256(text_value.encode("utf-8")).hexdigest()
 
 
+def resolved_embedding_provider() -> str:
+    configured = (settings.embedding_provider or "openai").strip().lower()
+    if configured == "local":
+        return "local"
+    if (settings.openai_api_key or "").strip():
+        return "openai"
+    return "local"
+
+
+def resolved_embedding_model() -> str:
+    if resolved_embedding_provider() == "local":
+        return "local-hash-v1"
+    return (settings.embedding_model or "text-embedding-3-small").strip()
+
+
 def _embedding_client() -> OpenAI:
     api_key = (settings.openai_api_key or "").strip()
     if not api_key:
@@ -60,13 +78,31 @@ def _embedding_client() -> OpenAI:
     return OpenAI(**kwargs)
 
 
+def _local_embed_text(text_value: str, dim: int = DEFAULT_EMBEDDING_DIM) -> list[float]:
+    """Deterministic bag-of-tokens hash embedding (unit L2). Plumbing/smoke until OpenAI key is set."""
+    vec = [0.0] * dim
+    tokens = _TOKEN_RE.findall((text_value or "").lower())
+    if not tokens:
+        tokens = ["empty"]
+    for token in tokens:
+        digest = hashlib.sha256(token.encode("utf-8")).digest()
+        for offset in range(0, 32, 4):
+            idx = int.from_bytes(digest[offset : offset + 4], "little") % dim
+            sign = 1.0 if digest[(offset + 3) % 32] % 2 == 0 else -1.0
+            vec[idx] += sign
+    norm = math.sqrt(sum(v * v for v in vec)) or 1.0
+    return [v / norm for v in vec]
+
+
 def embed_texts(texts: Sequence[str]) -> list[list[float]]:
     if not texts:
         return []
+    if resolved_embedding_provider() == "local":
+        return [_local_embed_text(value) for value in texts]
+
     client = _embedding_client()
-    model = (settings.embedding_model or "text-embedding-3-small").strip()
+    model = resolved_embedding_model()
     response = client.embeddings.create(model=model, input=list(texts))
-    # API may not preserve order by index in all proxies — sort by index.
     ordered = sorted(response.data, key=lambda row: row.index)
     return [list(row.embedding) for row in ordered]
 
@@ -81,6 +117,13 @@ def reindex_listings(
     only_published: bool = True,
 ) -> dict[str, int]:
     """Upsert embeddings for published listings. Skips unchanged content_hash unless force."""
+    provider = resolved_embedding_provider()
+    model_name = resolved_embedding_model()
+    if provider == "local":
+        logger.warning(
+            "embedding provider=local (hash vectors); set OPENAI_API_KEY for production quality"
+        )
+
     query = db.query(CarListing)
     if only_published:
         query = query.filter(CarListing.status == ListingStatus.published)
@@ -91,7 +134,6 @@ def reindex_listings(
         query = query.limit(limit)
 
     listings = query.all()
-    model_name = (settings.embedding_model or "text-embedding-3-small").strip()
     existing = {
         row.listing_id: row
         for row in db.query(ListingEmbedding)
@@ -116,7 +158,7 @@ def reindex_listings(
         pending.append((listing, text_value, digest))
 
     embedded = 0
-    for start in range(0, len(pending), batch_size):
+    for start in range(0, len(pending), max(1, batch_size)):
         chunk = pending[start : start + batch_size]
         vectors = embed_texts([item[1] for item in chunk])
         now = datetime.utcnow()
@@ -134,7 +176,6 @@ def reindex_listings(
         db.commit()
         logger.info("listing-embeddings batch embedded=%s total_done=%s", len(chunk), embedded)
 
-    # Drop embeddings for listings that are no longer published (when doing a full pass).
     deleted = 0
     if only_published and not listing_ids and not (limit and limit > 0):
         stale = (
@@ -169,7 +210,6 @@ def search_similar(
     if not q:
         return []
     vector = embed_texts([q])[0]
-    # cosine distance via pgvector <=> operator
     distance = ListingEmbedding.embedding.cosine_distance(vector)
     rows = db.execute(
         select(CarListing, distance.label("distance"))
