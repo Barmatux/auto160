@@ -300,6 +300,7 @@ body.theme-admin .admin-vin-table tr:nth-child(even) td {
 }
 
 body.theme-admin .admin-vin-date-filter-popover,
+body.theme-admin .admin-vin-import-filter-menu,
 body.theme-admin .admin-vin-copy-popover,
 body.theme-admin .vin-check-error-popover,
 body.theme-admin .vin-check-data-error-popover,
@@ -308,6 +309,30 @@ body.theme-admin .listing-description-popup {
   border-color: var(--border);
   color: var(--text);
   box-shadow: var(--shadow);
+}
+
+body.theme-admin .admin-vin-import-filter-option {
+  color: var(--text);
+}
+
+body.theme-admin .admin-vin-import-filter-option:hover,
+body.theme-admin .admin-vin-import-filter-option:focus-visible {
+  background: rgba(0, 168, 255, 0.12);
+}
+
+body.theme-admin .admin-vin-import-filter-option.is-selected {
+  background: rgba(0, 168, 255, 0.22);
+  color: #b8e7ff;
+}
+
+body.theme-admin .admin-vin-stats-panel-toggle,
+body.theme-admin .admin-vin-import-filter-trigger {
+  color: inherit;
+}
+
+body.theme-admin .admin-vin-stats-panel-caret,
+body.theme-admin .admin-vin-import-filter-caret {
+  color: var(--muted);
 }
 
 body.theme-admin .admin-vin-date-cell.is-in-range {
@@ -516,6 +541,7 @@ body.theme-admin.theme-admin-light .catalog-page .vehicle-hierarchy-field select
 
 body.theme-admin.theme-admin-light .catalog-multi-select-menu,
 body.theme-admin.theme-admin-light .admin-vin-date-filter-popover,
+body.theme-admin.theme-admin-light .admin-vin-import-filter-menu,
 body.theme-admin.theme-admin-light .admin-vin-copy-popover,
 body.theme-admin.theme-admin-light .vin-check-error-popover,
 body.theme-admin.theme-admin-light .vin-check-data-error-popover,

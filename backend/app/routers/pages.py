@@ -96,6 +96,8 @@ from app.listing_enrichment import (
     paginate_rating_one_listings,
     VinCheckListingFilters,
     VinFoundDateFilter,
+    VinFoundImportFilter,
+    VIN_FOUND_IMPORT_FILTER_LABELS,
 )
 from app.listing_catalog_link import (
     canonical_model_name as _canonical_model_name,
@@ -3605,6 +3607,7 @@ def _build_admin_vin_found_url(
     *,
     page: int = 1,
     date_filter: VinFoundDateFilter | None = None,
+    import_filter: VinFoundImportFilter | None = None,
     stats_from: date | None = None,
     stats_to: date | None = None,
 ) -> str:
@@ -3616,6 +3619,9 @@ def _build_admin_vin_found_url(
             params["checked_from"] = date_filter.date_from.isoformat()
         if date_filter.date_to is not None:
             params["checked_to"] = date_filter.date_to.isoformat()
+    current_import = (import_filter or VinFoundImportFilter()).normalized()
+    if current_import.active:
+        params["import_age"] = current_import.value
     if stats_from is not None:
         params["stats_from"] = stats_from.isoformat()
     if stats_to is not None:
@@ -3631,6 +3637,7 @@ def admin_vin_found_page(
     page: int = Query(default=1, ge=1),
     checked_from: str | None = Query(default=None),
     checked_to: str | None = Query(default=None),
+    import_age: str | None = Query(default=None),
     stats_from: str | None = Query(default=None),
     stats_to: str | None = Query(default=None),
     db: Session = Depends(get_db),
@@ -3645,6 +3652,7 @@ def admin_vin_found_page(
     if date_from and date_to and date_from > date_to:
         date_from, date_to = date_to, date_from
     vin_found_date_filter = VinFoundDateFilter(date_from=date_from, date_to=date_to)
+    vin_found_import_filter = VinFoundImportFilter(value=(import_age or "").strip() or "all").normalized()
 
     stats_date_from = parse_filter_date(stats_from)
     stats_date_to = parse_filter_date(stats_to)
@@ -3656,6 +3664,7 @@ def admin_vin_found_page(
         page=page,
         page_size=VIN_FOUND_PAGE_SIZE,
         date_filter=vin_found_date_filter,
+        import_filter=vin_found_import_filter,
     )
     total_pages = max(1, (vin_found_total + VIN_FOUND_PAGE_SIZE - 1) // VIN_FOUND_PAGE_SIZE)
     if page > total_pages and vin_found_total > 0:
@@ -3665,6 +3674,7 @@ def admin_vin_found_page(
             page=page,
             page_size=VIN_FOUND_PAGE_SIZE,
             date_filter=vin_found_date_filter,
+            import_filter=vin_found_import_filter,
         )
 
     context = _template_context(
@@ -3685,6 +3695,11 @@ def admin_vin_found_page(
     )
     context["vin_found_total"] = vin_found_total
     context["vin_found_date_filter"] = vin_found_date_filter
+    context["vin_found_import_filter"] = vin_found_import_filter
+    context["vin_found_import_filter_options"] = [
+        {"value": value, "label": label}
+        for value, label in VIN_FOUND_IMPORT_FILTER_LABELS.items()
+    ]
     context["vin_found_day_stats"] = build_vin_found_collection_stats_by_day(
         db,
         date_from=stats_date_from,
@@ -3696,6 +3711,7 @@ def admin_vin_found_page(
     context["vin_stats_reset_url"] = _build_admin_vin_found_url(
         page=1,
         date_filter=vin_found_date_filter,
+        import_filter=vin_found_import_filter,
     )
     context["page"] = page
     context["total_pages"] = total_pages
@@ -3705,6 +3721,7 @@ def admin_vin_found_page(
         _build_admin_vin_found_url(
             page=page - 1,
             date_filter=vin_found_date_filter,
+            import_filter=vin_found_import_filter,
             stats_from=stats_date_from,
             stats_to=stats_date_to,
         )
@@ -3715,6 +3732,7 @@ def admin_vin_found_page(
         _build_admin_vin_found_url(
             page=page + 1,
             date_filter=vin_found_date_filter,
+            import_filter=vin_found_import_filter,
             stats_from=stats_date_from,
             stats_to=stats_date_to,
         )

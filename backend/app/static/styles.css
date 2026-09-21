@@ -943,11 +943,49 @@ body.theme-admin.theme-admin-light .header-theme-toggle:focus-visible {
   padding: 12px;
 }
 
+.admin-vin-stats-panel-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
 .admin-vin-stats-panel-title {
-  margin: 0 0 10px;
+  margin: 0;
   font-size: 0.95rem;
   font-weight: 700;
   color: #0f172a;
+}
+
+.admin-vin-stats-panel-caret {
+  flex: 0 0 auto;
+  font-size: 0.95rem;
+  line-height: 1;
+  color: #64748b;
+  transform: rotate(-90deg);
+  transition: transform 0.15s ease;
+}
+
+.admin-vin-stats-panel.is-open .admin-vin-stats-panel-caret {
+  transform: rotate(0deg);
+}
+
+.admin-vin-stats-panel-toggle[aria-expanded="true"] + .admin-vin-stats-panel-body,
+.admin-vin-stats-panel-body:not([hidden]) {
+  margin-top: 10px;
+}
+
+.admin-vin-stats-panel-body[hidden] {
+  display: none !important;
 }
 
 .admin-vin-stats-range-form {
@@ -1202,6 +1240,98 @@ body.theme-admin.theme-admin-light .header-theme-toggle:focus-visible {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+}
+
+.admin-vin-import-filter-th {
+  position: relative;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.admin-vin-import-filter-label {
+  margin-right: 4px;
+}
+
+.admin-vin-import-filter-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #64748b;
+  font: inherit;
+  line-height: 1;
+  cursor: pointer;
+  vertical-align: middle;
+}
+
+.admin-vin-import-filter-trigger:hover,
+.admin-vin-import-filter-trigger:focus-visible {
+  background: #e8f0ff;
+  color: #1e3a8a;
+}
+
+.admin-vin-import-filter-trigger.is-active {
+  color: #1d4ed8;
+}
+
+.admin-vin-import-filter-caret {
+  display: inline-block;
+  font-size: 0.85em;
+  transform: rotate(0deg);
+  transition: transform 0.15s ease;
+}
+
+.admin-vin-import-filter-trigger[aria-expanded="true"] .admin-vin-import-filter-caret {
+  transform: rotate(180deg);
+}
+
+.admin-vin-import-filter-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 40;
+  min-width: 200px;
+  padding: 6px;
+  border: 1px solid #dbe6fb;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
+}
+
+.admin-vin-import-filter-menu[hidden] {
+  display: none !important;
+}
+
+.admin-vin-import-filter-option {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #0f172a;
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.admin-vin-import-filter-option:hover,
+.admin-vin-import-filter-option:focus-visible {
+  background: #eff6ff;
+}
+
+.admin-vin-import-filter-option.is-selected {
+  background: #dbeafe;
+  color: #1e3a8a;
+  font-weight: 600;
 }
 
 .admin-vin-found-table-wrap {

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import calendar
 import re
 from dataclasses import dataclass, field
 from collections import defaultdict
@@ -109,6 +110,83 @@ class VinFoundDateFilter:
         if self.date_to:
             return f"до {self.date_to.strftime('%d.%m.%Y')}"
         return None
+
+
+VIN_FOUND_IMPORT_FILTER_ALL = "all"
+VIN_FOUND_IMPORT_FILTER_GT10 = "gt10"
+VIN_FOUND_IMPORT_FILTER_GT12 = "gt12"
+VIN_FOUND_IMPORT_FILTER_UNSET = "unset"
+VIN_FOUND_IMPORT_FILTER_VALUES = frozenset(
+    {
+        VIN_FOUND_IMPORT_FILTER_ALL,
+        VIN_FOUND_IMPORT_FILTER_GT10,
+        VIN_FOUND_IMPORT_FILTER_GT12,
+        VIN_FOUND_IMPORT_FILTER_UNSET,
+    }
+)
+VIN_FOUND_IMPORT_FILTER_LABELS = {
+    VIN_FOUND_IMPORT_FILTER_ALL: "Все даты",
+    VIN_FOUND_IMPORT_FILTER_GT10: ">10 месяцев",
+    VIN_FOUND_IMPORT_FILTER_GT12: ">12 месяцев",
+    VIN_FOUND_IMPORT_FILTER_UNSET: "Дата не установлена",
+}
+
+
+@dataclass(frozen=True)
+class VinFoundImportFilter:
+    value: str = VIN_FOUND_IMPORT_FILTER_ALL
+
+    def normalized(self) -> "VinFoundImportFilter":
+        value = self.value if self.value in VIN_FOUND_IMPORT_FILTER_VALUES else VIN_FOUND_IMPORT_FILTER_ALL
+        return VinFoundImportFilter(value=value)
+
+    @property
+    def active(self) -> bool:
+        return self.normalized().value != VIN_FOUND_IMPORT_FILTER_ALL
+
+    def label(self) -> str | None:
+        current = self.normalized()
+        if current.value == VIN_FOUND_IMPORT_FILTER_ALL:
+            return None
+        return VIN_FOUND_IMPORT_FILTER_LABELS.get(current.value)
+
+
+def months_before(today: date, months: int) -> date:
+    """Return the calendar date `months` months before `today`."""
+    year = today.year
+    month = today.month - months
+    while month <= 0:
+        month += 12
+        year -= 1
+    day = min(today.day, calendar.monthrange(year, month)[1])
+    return date(year, month, day)
+
+
+def listing_matches_vin_found_import_filter(
+    release_date: str | None,
+    import_filter: VinFoundImportFilter | None = None,
+    *,
+    today: date | None = None,
+) -> bool:
+    current = (import_filter or VinFoundImportFilter()).normalized()
+    if not current.active:
+        return True
+
+    from app.vin_analytics import parse_filter_date
+
+    parsed = parse_filter_date(release_date)
+    if current.value == VIN_FOUND_IMPORT_FILTER_UNSET:
+        return parsed is None
+
+    if parsed is None:
+        return False
+
+    ref = today or date.today()
+    if current.value == VIN_FOUND_IMPORT_FILTER_GT10:
+        return parsed < months_before(ref, 10)
+    if current.value == VIN_FOUND_IMPORT_FILTER_GT12:
+        return parsed < months_before(ref, 12)
+    return True
 
 
 def listing_vin_check_at(listing: CarListing) -> datetime | None:
@@ -733,19 +811,36 @@ def paginate_rating_one_listings_with_vin(
     page: int = 1,
     page_size: int = 100,
     date_filter: VinFoundDateFilter | None = None,
+    import_filter: VinFoundImportFilter | None = None,
 ) -> tuple[list[CarListing], int]:
     targets = build_rating_one_targets(db)
     if not targets:
         return [], 0
 
     offset = max(page - 1, 0) * page_size
-    matched: list[CarListing] = []
-    total = 0
+    active_import_filter = (import_filter or VinFoundImportFilter()).normalized()
     query = (
         db.query(CarListing)
         .filter(CarListing.status == ListingStatus.published)
         .order_by(CarListing.vin_fetched_at.desc().nullslast(), CarListing.created_at.desc())
     )
+
+    if not active_import_filter.active:
+        matched: list[CarListing] = []
+        total = 0
+        for listing in query.yield_per(200):
+            if not listing_matches_rating_one(listing, targets):
+                continue
+            if not listing_has_saved_vin(listing):
+                continue
+            if not listing_matches_vin_found_date_filter(listing, date_filter):
+                continue
+            if total >= offset and len(matched) < page_size:
+                matched.append(listing)
+            total += 1
+        return matched, total
+
+    candidates: list[CarListing] = []
     for listing in query.yield_per(200):
         if not listing_matches_rating_one(listing, targets):
             continue
@@ -753,10 +848,20 @@ def paginate_rating_one_listings_with_vin(
             continue
         if not listing_matches_vin_found_date_filter(listing, date_filter):
             continue
-        if total >= offset and len(matched) < page_size:
-            matched.append(listing)
-        total += 1
-    return matched, total
+        candidates.append(listing)
+
+    customs_map = build_listing_customs_map(db, candidates)
+    filtered: list[CarListing] = []
+    for listing in candidates:
+        customs = customs_map.get(listing.id)
+        release_date = (
+            customs.release_date if customs and customs.found and customs.release_date else None
+        )
+        if listing_matches_vin_found_import_filter(release_date, active_import_filter):
+            filtered.append(listing)
+
+    total = len(filtered)
+    return filtered[offset : offset + page_size], total
 
 
 def list_rating_one_listings_with_vin(db: Session) -> list[CarListing]:

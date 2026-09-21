@@ -384,5 +384,88 @@
     });
   }
 
+  function initStatsPanelToggle() {
+    const panel = document.querySelector("[data-vin-stats-panel]");
+    const toggle = document.querySelector("[data-vin-stats-toggle]");
+    const body = document.querySelector("[data-vin-stats-body]");
+    if (!panel || !toggle || !body) return;
+
+    const storageKey = "auto160.vinFoundStatsOpen";
+    let open = false;
+    try {
+      open = window.localStorage.getItem(storageKey) === "1";
+    } catch (_) {
+      open = false;
+    }
+
+    function setOpen(nextOpen) {
+      open = Boolean(nextOpen);
+      body.hidden = !open;
+      toggle.setAttribute("aria-expanded", open ? "true" : "false");
+      panel.classList.toggle("is-open", open);
+      try {
+        window.localStorage.setItem(storageKey, open ? "1" : "0");
+      } catch (_) {
+        /* ignore */
+      }
+    }
+
+    setOpen(open);
+    toggle.addEventListener("click", () => setOpen(!open));
+  }
+
+  function buildVinFoundImportFilterUrl(importAge) {
+    const params = new URLSearchParams(window.location.search);
+    params.delete("page");
+    params.delete("import_age");
+    if (importAge && importAge !== "all") {
+      params.set("import_age", importAge);
+    }
+    const query = params.toString();
+    return query ? `/admin/vin-check/found?${query}` : "/admin/vin-check/found";
+  }
+
+  function initImportFilterMenu() {
+    const trigger = document.querySelector("[data-import-filter-trigger]");
+    const menu = document.querySelector("[data-import-filter-menu]");
+    if (!trigger || !menu) return;
+
+    function closeMenu() {
+      menu.hidden = true;
+      trigger.setAttribute("aria-expanded", "false");
+    }
+
+    function openMenu() {
+      menu.hidden = false;
+      trigger.setAttribute("aria-expanded", "true");
+    }
+
+    trigger.addEventListener("click", (event) => {
+      event.stopPropagation();
+      if (menu.hidden) openMenu();
+      else closeMenu();
+    });
+
+    menu.addEventListener("click", (event) => event.stopPropagation());
+
+    menu.querySelectorAll("[data-import-age]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const value = button.dataset.importAge || "all";
+        window.location.href = buildVinFoundImportFilterUrl(value);
+      });
+    });
+
+    document.addEventListener("click", (event) => {
+      if (event.target.closest(".admin-vin-import-filter-th")) return;
+      closeMenu();
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") closeMenu();
+    });
+  }
+
   initDateFilterPopover();
+  initStatsPanelToggle();
+  initImportFilterMenu();
 })();

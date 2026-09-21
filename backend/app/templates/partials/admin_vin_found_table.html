@@ -43,7 +43,30 @@
           </div>
         </th>
         <th>VIN</th>
-        <th>Дата ввоза в РБ</th>
+        <th class="admin-vin-import-filter-th">
+          <span class="admin-vin-import-filter-label">Дата ввоза в РБ</span>
+          <button
+            type="button"
+            class="admin-vin-import-filter-trigger{% if vin_found_import_filter.active %} is-active{% endif %}"
+            data-import-filter-trigger
+            aria-haspopup="menu"
+            aria-expanded="false"
+            aria-label="Фильтр по дате ввоза"
+          >
+            <span class="admin-vin-import-filter-caret" aria-hidden="true">▾</span>
+          </button>
+          <div class="admin-vin-import-filter-menu" data-import-filter-menu hidden role="menu">
+            {% for option in vin_found_import_filter_options %}
+              <button
+                type="button"
+                class="admin-vin-import-filter-option{% if vin_found_import_filter.value == option.value %} is-selected{% endif %}"
+                data-import-age="{{ option.value }}"
+                role="menuitemradio"
+                aria-checked="{{ 'true' if vin_found_import_filter.value == option.value else 'false' }}"
+              >{{ option.label }}</button>
+            {% endfor %}
+          </div>
+        </th>
         <th>Аккаунт</th>
       </tr>
     </thead>

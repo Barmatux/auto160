@@ -209,6 +209,76 @@ def test_listing_matches_vin_found_date_filter():
     assert VinFoundDateFilter(date_from=date(2026, 9, 15), date_to=date(2026, 9, 15)).label() == "15.09.2026"
 
 
+def test_listing_matches_vin_found_import_filter():
+    from app.listing_enrichment import (
+        VinFoundImportFilter,
+        listing_matches_vin_found_import_filter,
+        months_before,
+    )
+
+    today = date(2026, 9, 21)
+    assert months_before(today, 10) == date(2025, 11, 21)
+    assert months_before(today, 12) == date(2025, 9, 21)
+
+    assert listing_matches_vin_found_import_filter("01.01.2024", VinFoundImportFilter(), today=today) is True
+    assert (
+        listing_matches_vin_found_import_filter(
+            "01.01.2024",
+            VinFoundImportFilter(value="gt10"),
+            today=today,
+        )
+        is True
+    )
+    assert (
+        listing_matches_vin_found_import_filter(
+            "01.12.2025",
+            VinFoundImportFilter(value="gt10"),
+            today=today,
+        )
+        is False
+    )
+    assert (
+        listing_matches_vin_found_import_filter(
+            "01.10.2025",
+            VinFoundImportFilter(value="gt12"),
+            today=today,
+        )
+        is False
+    )
+    assert (
+        listing_matches_vin_found_import_filter(
+            "01.08.2025",
+            VinFoundImportFilter(value="gt12"),
+            today=today,
+        )
+        is True
+    )
+    assert (
+        listing_matches_vin_found_import_filter(
+            None,
+            VinFoundImportFilter(value="unset"),
+            today=today,
+        )
+        is True
+    )
+    assert (
+        listing_matches_vin_found_import_filter(
+            "01.01.2024",
+            VinFoundImportFilter(value="unset"),
+            today=today,
+        )
+        is False
+    )
+    assert (
+        listing_matches_vin_found_import_filter(
+            None,
+            VinFoundImportFilter(value="gt10"),
+            today=today,
+        )
+        is False
+    )
+
+
 def test_paginate_rating_one_listings_with_vin_filters_and_pages(monkeypatch):
     listing_with_vin = SimpleNamespace(
         brand="VW",
