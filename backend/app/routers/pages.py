@@ -2158,19 +2158,32 @@ def _listing_modification_names(db: Session, listings: list[CarListing]) -> dict
 
 
 def _home_latest_listings(db: Session, *, limit: int = 20) -> list[CarListing]:
-    return (
+    """Newest published BY listings that have at least one displayable photo."""
+    fetch_limit = max(limit * 5, 50)
+    candidates = (
         exclude_hidden_body_type(
             db.query(CarListing)
             .filter(
                 CarListing.status == ListingStatus.published,
                 or_(CarListing.source.is_(None), CarListing.source != "autoplius"),
+                or_(
+                    and_(CarListing.cover_photo_url.isnot(None), CarListing.cover_photo_url != ""),
+                    CarListing.raw_photos.isnot(None),
+                ),
             ),
             CarListing.body_type,
         )
         .order_by(desc(_listing_source_at_expr()), desc(CarListing.id))
-        .limit(limit)
+        .limit(fetch_limit)
         .all()
     )
+    with_photos: list[CarListing] = []
+    for listing in candidates:
+        if resolve_listing_gallery_urls(listing, verify_remote=False):
+            with_photos.append(listing)
+            if len(with_photos) >= limit:
+                break
+    return with_photos
 
 
 @router.get("/")
