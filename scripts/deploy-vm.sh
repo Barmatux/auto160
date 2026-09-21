@@ -52,7 +52,10 @@ else
 fi
 
 echo "==> Remove stale compose containers (name conflicts after partial deploys)"
-docker ps -a --format '{{.Names}}' | grep '_auto160-' | xargs -r docker rm -f || true
+# Compose sometimes leaves hash-prefixed leftovers (e.g. e7d9fec72ba3_auto160-api)
+# after interrupted recreates; concurrent manual+CI deploys make this worse.
+docker compose --env-file .env.vm -f docker-compose.vm.yml down --remove-orphans || true
+docker ps -a --format '{{.Names}}' | grep -E '(^|_)auto160-' | xargs -r docker rm -f || true
 
 echo "==> Rebuild and restart containers"
 docker compose --env-file .env.vm -f docker-compose.vm.yml up --build -d --remove-orphans
