@@ -38,19 +38,40 @@ def _listing(**kwargs) -> CarListing:
 def _db_with_listings_and_avgs(listings, avgs=None):
     db = MagicMock()
 
-    def query_side_effect(model):
+    def _report_tuples():
+        for item in listings:
+            yield (
+                item.seller_name,
+                item.status,
+                item.price,
+                getattr(item, "price_byn_missing", False),
+                item.city,
+                item.brand,
+                item.model,
+                item.year,
+                getattr(item, "vin", None),
+                getattr(item, "cover_photo_url", None),
+                item.created_at,
+                getattr(item, "avby_published_at", None),
+                getattr(item, "avby_renewed_at", None),
+            )
+
+    def query_side_effect(*args):
         q = MagicMock()
-        if model is CarListing:
-            q.options.return_value = q
-            q.filter.return_value = q
-            q.order_by.return_value = q
+        q.options.return_value = q
+        q.filter.return_value = q
+        q.order_by.return_value = q
+        q.execution_options.return_value = q
+        first = args[0] if args else None
+        if first is CarListing:
             q.all.return_value = listings
-        elif model is ListingAvgPrice:
-            q.filter.return_value = q
+            q.yield_per.return_value = listings
+        elif first is ListingAvgPrice:
             q.all.return_value = avgs or []
         else:
-            q.filter.return_value = q
-            q.all.return_value = []
+            # db.query(Col, Col, ...) used by the streaming report
+            q.yield_per.return_value = list(_report_tuples())
+            q.all.return_value = list(_report_tuples())
         return q
 
     db.query.side_effect = query_side_effect

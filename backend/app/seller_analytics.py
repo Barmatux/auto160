@@ -47,7 +47,24 @@ _BUSINESS_LISTING_COLUMNS = (
     CarListing.year,
     CarListing.vin,
     CarListing.cover_photo_url,
-    CarListing.raw_photos,
+    # Intentionally omit raw_photos — JSON galleries blow RAM on the full report.
+    CarListing.created_at,
+    CarListing.avby_published_at,
+    CarListing.avby_renewed_at,
+)
+
+# Columns for the summary report (no ORM identity map / no JSON blobs).
+_REPORT_ROW_COLUMNS = (
+    CarListing.seller_name,
+    CarListing.status,
+    CarListing.price,
+    CarListing.price_byn_missing,
+    CarListing.city,
+    CarListing.brand,
+    CarListing.model,
+    CarListing.year,
+    CarListing.vin,
+    CarListing.cover_photo_url,
     CarListing.created_at,
     CarListing.avby_published_at,
     CarListing.avby_renewed_at,
@@ -111,6 +128,59 @@ def _business_listings_query(db: Session):
             or_(CarListing.source.is_(None), CarListing.source == "av.by"),
             _business_seller_sql_filter(),
         )
+    )
+
+
+def _business_report_rows(db: Session):
+    """Stream lightweight tuples for the sellers summary (avoids ORM + photo JSON)."""
+    return (
+        db.query(*_REPORT_ROW_COLUMNS)
+        .filter(
+            CarListing.seller_name.isnot(None),
+            CarListing.seller_name != "",
+            or_(CarListing.source.is_(None), CarListing.source == "av.by"),
+            _business_seller_sql_filter(),
+        )
+        .execution_options(stream_results=True)
+        .yield_per(1000)
+    )
+
+
+@dataclass(frozen=True)
+class _LiteListing:
+    """Duck-typed listing fields used by report aggregation helpers."""
+
+    seller_name: str | None
+    status: ListingStatus
+    price: object | None
+    price_byn_missing: bool
+    city: str | None
+    brand: str | None
+    model: str | None
+    year: int | None
+    vin: str | None
+    cover_photo_url: str | None
+    created_at: datetime | None
+    avby_published_at: datetime | None
+    avby_renewed_at: datetime | None
+    raw_photos: object | None = None
+
+
+def _lite_from_row(row) -> _LiteListing:
+    return _LiteListing(
+        seller_name=row[0],
+        status=row[1],
+        price=row[2],
+        price_byn_missing=bool(row[3]),
+        city=row[4],
+        brand=row[5],
+        model=row[6],
+        year=row[7],
+        vin=row[8],
+        cover_photo_url=row[9],
+        created_at=row[10],
+        avby_published_at=row[11],
+        avby_renewed_at=row[12],
     )
 
 
@@ -396,7 +466,7 @@ def _status_label(status: ListingStatus) -> str:
 
 def _aggregate_seller(
     name: str,
-    listings: list[CarListing],
+    listings: list,
     avg_map: AvgPriceMap | None = None,
     *,
     now: datetime | None = None,
@@ -427,7 +497,7 @@ def _aggregate_seller(
             last_activity = activity
         if listing.vin:
             with_vin += 1
-        if (listing.cover_photo_url or "").strip() or listing.raw_photos:
+        if (listing.cover_photo_url or "").strip() or getattr(listing, "raw_photos", None):
             with_photo += 1
 
         price = _price_byn(listing)
@@ -519,12 +589,12 @@ def build_business_seller_report(
     window_days: int = DEFAULT_WINDOW_DAYS,
 ) -> tuple[BusinessSellerSummary, list[BusinessSellerStats]]:
     """Group av.by listings by legal-entity seller_name and compute inventory / archive stats."""
-    listings = _business_listings_query(db).all()
     avg_map = load_avg_price_map(db, window_days=window_days)
 
-    buckets: dict[str, list[CarListing]] = {}
+    buckets: dict[str, list[_LiteListing]] = {}
     display_names: dict[str, str] = {}
-    for listing in listings:
+    for row in _business_report_rows(db):
+        listing = _lite_from_row(row)
         raw = (listing.seller_name or "").strip()
         if not is_legal_entity_seller(raw):
             continue
