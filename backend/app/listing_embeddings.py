@@ -163,17 +163,40 @@ def reindex_listings(
         vectors = embed_texts([item[1] for item in chunk])
         now = datetime.utcnow()
         for (listing, _text, digest), vector in zip(chunk, vectors, strict=True):
-            row = existing.get(listing.id)
+            row = (
+                db.query(ListingEmbedding)
+                .filter(ListingEmbedding.listing_id == listing.id)
+                .one_or_none()
+            )
             if row is None:
                 row = ListingEmbedding(listing_id=listing.id)
                 db.add(row)
-                existing[listing.id] = row
             row.embedding = vector
             row.content_hash = digest
             row.model = model_name
             row.updated_at = now
+            existing[listing.id] = row
             embedded += 1
-        db.commit()
+        try:
+            db.commit()
+        except Exception:
+            db.rollback()
+            # Retry one-by-one to survive concurrent reindex from sync containers.
+            for (listing, text_value, digest), vector in zip(chunk, vectors, strict=True):
+                row = (
+                    db.query(ListingEmbedding)
+                    .filter(ListingEmbedding.listing_id == listing.id)
+                    .one_or_none()
+                )
+                if row is None:
+                    row = ListingEmbedding(listing_id=listing.id)
+                    db.add(row)
+                row.embedding = vector
+                row.content_hash = digest
+                row.model = model_name
+                row.updated_at = now
+                db.commit()
+            logger.warning("listing-embeddings batch retried one-by-one after conflict")
         logger.info("listing-embeddings batch embedded=%s total_done=%s", len(chunk), embedded)
 
     deleted = 0
