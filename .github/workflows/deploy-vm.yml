@@ -42,6 +42,7 @@ jobs:
           set -euo pipefail
           SYNC_DIR="/tmp/auto160-sync-$$"
           APP_DIR="${VM_APP_DIR:-/home/${VM_USER}/auto160}"
+          SSH_OPTS="-o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=30 -o ServerAliveInterval=15 -o ServerAliveCountMax=4"
           echo "Syncing to ${VM_USER}@${VM_HOST}:${APP_DIR}"
           tar czf - \
             --exclude='.git' \
@@ -50,7 +51,7 @@ jobs:
             --exclude='logs' \
             --exclude='autoplius-parser/.browser-profile' \
             -C . . \
-            | ssh -o BatchMode=yes -o StrictHostKeyChecking=yes \
+            | ssh $SSH_OPTS \
               "${VM_USER}@${VM_HOST}" \
               "rm -rf '${SYNC_DIR}' && mkdir -p '${SYNC_DIR}' && tar xzf - -C '${SYNC_DIR}' && sudo rsync -a --exclude='.git' --exclude='backend/.env.vm' --exclude='logs' --exclude='backend/docker-compose.override.yml' '${SYNC_DIR}/' '${APP_DIR}/' && sudo chown -R '${VM_USER}:${VM_USER}' '${APP_DIR}' && rm -rf '${SYNC_DIR}'"
 
@@ -61,7 +62,8 @@ jobs:
           VM_APP_DIR: ${{ secrets.VM_APP_DIR }}
         run: |
           APP_DIR="${VM_APP_DIR:-/home/${VM_USER}/auto160}"
-          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes \
+          SSH_OPTS="-o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=30 -o ServerAliveInterval=15 -o ServerAliveCountMax=4"
+          ssh $SSH_OPTS \
             "${VM_USER}@${VM_HOST}" \
             "set -euo pipefail; APP_DIR='${APP_DIR}'; if [ ! -d \"\$APP_DIR/backend\" ]; then echo \"ERROR: app dir not found at \$APP_DIR\" >&2; exit 1; fi; cd \"\$APP_DIR\"; env APP_DIR=\"\$APP_DIR\" SKIP_GIT_PULL=1 bash \"\$APP_DIR/scripts/deploy-vm.sh\""
 
@@ -70,5 +72,6 @@ jobs:
           VM_HOST: ${{ secrets.VM_HOST }}
           VM_USER: ${{ secrets.VM_USER }}
         run: |
-          ssh -o BatchMode=yes "${VM_USER}@${VM_HOST}" \
-            "set -euo pipefail; curl -fsS http://127.0.0.1:8000/health"
+          SSH_OPTS="-o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=30"
+          ssh $SSH_OPTS "${VM_USER}@${VM_HOST}" \
+            "set -euo pipefail; curl -fsS --connect-timeout 3 --max-time 15 http://127.0.0.1:8000/health"

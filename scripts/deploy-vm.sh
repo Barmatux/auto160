@@ -5,6 +5,18 @@ APP_DIR="${APP_DIR:-$HOME/auto160}"
 BACKEND_DIR="$APP_DIR/backend"
 COMPOSE_FILE="$BACKEND_DIR/docker-compose.vm.yml"
 ENV_FILE="$BACKEND_DIR/.env.vm"
+LOCK_FILE="${DEPLOY_LOCK_FILE:-/tmp/auto160-deploy.lock}"
+
+# Serialize CI + manual deploys so concurrent compose down/up cannot race.
+exec 9>"$LOCK_FILE"
+if ! flock -n 9; then
+  echo "==> Another deploy holds $LOCK_FILE; waiting up to 20 minutes"
+  if ! flock -w 1200 9; then
+    echo "ERROR: timed out waiting for deploy lock $LOCK_FILE"
+    exit 1
+  fi
+fi
+echo "==> Acquired deploy lock $LOCK_FILE"
 
 if [[ "${SKIP_GIT_PULL:-}" != "1" && ! -d "$APP_DIR/.git" ]]; then
   echo "Git repository not found at $APP_DIR"
@@ -64,10 +76,11 @@ echo "==> Container status"
 docker compose --env-file .env.vm -f docker-compose.vm.yml ps
 
 echo "==> Health check"
-HEALTH_ATTEMPTS=12
-HEALTH_SLEEP_SECONDS=5
+# Alembic + multi-worker uvicorn often needs >60s before /health accepts.
+HEALTH_ATTEMPTS="${HEALTH_ATTEMPTS:-36}"
+HEALTH_SLEEP_SECONDS="${HEALTH_SLEEP_SECONDS:-5}"
 for attempt in $(seq 1 "$HEALTH_ATTEMPTS"); do
-  if curl -fsS http://127.0.0.1:8000/health >/dev/null; then
+  if curl -fsS --connect-timeout 3 --max-time 10 http://127.0.0.1:8000/health >/dev/null; then
     echo "API is healthy"
     break
   fi
