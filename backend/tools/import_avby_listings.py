@@ -189,6 +189,11 @@ def _is_in_catalog(brand_n: str, model_n: str, brand_to_models: dict[str, set[st
     return brand_n in brand_to_models and model_n in brand_to_models[brand_n]
 
 
+def _is_business_org_listing(listing: CarListing) -> bool:
+    """Business-import rows (known dealer org) must not be pruned by catalog sync."""
+    return listing.organization_id is not None
+
+
 def _archive_wrong_generation_listings(
     catalog_generation_index: dict[tuple[str, str], tuple[frozenset[str], bool]],
     *,
@@ -202,6 +207,7 @@ def _archive_wrong_generation_listings(
             .filter(
                 CarListing.avby_id.isnot(None),
                 CarListing.status == ListingStatus.published,
+                CarListing.organization_id.is_(None),
             )
             .all()
         )
@@ -243,6 +249,7 @@ def _archive_non_catalog_avby_listings(
             .filter(
                 CarListing.avby_id.isnot(None),
                 CarListing.status == ListingStatus.published,
+                CarListing.organization_id.is_(None),
             )
             .all()
         )
@@ -760,6 +767,7 @@ def run_import(
                         if (
                             existing
                             and existing.status == ListingStatus.published
+                            and not _is_business_org_listing(existing)
                             and not dry_run
                         ):
                             existing.status = ListingStatus.archived
@@ -783,6 +791,7 @@ def run_import(
                                 archive_overpowered
                                 and existing
                                 and existing.status == ListingStatus.published
+                                and not _is_business_org_listing(existing)
                                 and not dry_run
                             ):
                                 existing.status = ListingStatus.archived
@@ -802,7 +811,12 @@ def run_import(
                     existing = existing_map.get(avby_id)
 
                     if is_hidden_body_type(payload.get("body_type")):
-                        if existing and existing.status == ListingStatus.published and not dry_run:
+                        if (
+                            existing
+                            and existing.status == ListingStatus.published
+                            and not _is_business_org_listing(existing)
+                            and not dry_run
+                        ):
                             existing.status = ListingStatus.archived
                             existing.body_type = payload.get("body_type")
                         skipped += 1
