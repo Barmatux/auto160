@@ -354,7 +354,8 @@ def _avby_payload_to_listing(advert: dict[str, Any], fallback_brand: str, fallba
         "engine_capacity_l": _to_float(props.get("engine_capacity")),
         "engine_power_hp": _to_int(props.get("engine_power")),
         "vin_indicated": _to_bool(props.get("vin_indicated")),
-        "seller_name": (advert.get("sellerName") or "").strip()[:120] or None,
+        "seller_name": (advert.get("sellerName") or advert.get("organizationTitle") or "").strip()[:120] or None,
+        "organization_id": _to_int(advert.get("organizationId")),
         "source_url": public_url[:500] or None,
         "cover_photo_url": cover_photo_url[:500] if cover_photo_url else None,
         "raw_photos": raw_photos or None,
@@ -756,7 +757,11 @@ def run_import(
                     ):
                         skipped += 1
                         skipped_by_generation += 1
-                        if existing and not dry_run:
+                        if (
+                            existing
+                            and existing.status == ListingStatus.published
+                            and not dry_run
+                        ):
                             existing.status = ListingStatus.archived
                         continue
 
@@ -774,7 +779,12 @@ def run_import(
                         power_hp = _to_int(_extract_properties_map(advert).get("engine_power"))
                         if power_hp is None or power_hp > max_hp:
                             skipped_by_hp += 1
-                            if archive_overpowered and existing and not dry_run:
+                            if (
+                                archive_overpowered
+                                and existing
+                                and existing.status == ListingStatus.published
+                                and not dry_run
+                            ):
                                 existing.status = ListingStatus.archived
                         continue
 
@@ -792,7 +802,7 @@ def run_import(
                     existing = existing_map.get(avby_id)
 
                     if is_hidden_body_type(payload.get("body_type")):
-                        if existing and not dry_run:
+                        if existing and existing.status == ListingStatus.published and not dry_run:
                             existing.status = ListingStatus.archived
                             existing.body_type = payload.get("body_type")
                         skipped += 1

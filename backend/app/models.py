@@ -64,6 +64,7 @@ class CarListing(Base):
     vin: Mapped[str | None] = mapped_column(String(17), nullable=True, index=True)
     vin_fetched_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     seller_name: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    organization_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     source_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     cover_photo_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     raw_photos: Mapped[list | None] = mapped_column(JSON, nullable=True)

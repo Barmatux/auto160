@@ -96,10 +96,11 @@
                 </a>
                 <div class="admin-vin-listing-meta">
                   #{{ row.listing.id }} · {{ row.listing.year }} · {{ row.listing.city }}
+                  {% if row.listing.engine_power_hp %} · {{ row.listing.engine_power_hp }} л.с.{% endif %}
                   {% if row.listing.vin %} · VIN{% endif %}
                 </div>
               </td>
-              <td>{{ row.status_label }}</td>
+              <td>{{ row.status_label }}{% if row.listing.status.value == 'draft' %} <span class="hint">(только админ)</span>{% endif %}</td>
               <td>{{ row.price_label }}</td>
               <td>{{ row.market_avg_label }}</td>
               <td>{{ row.vs_market_label }}</td>
