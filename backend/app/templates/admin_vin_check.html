@@ -12,7 +12,31 @@
         data-vin-check-stats-state='{{ {"launched": vin_check_stats.checks_launched, "success": vin_check_stats.checks_success, "byModel": dict(vin_check_stats.vin_by_model)} | tojson }}'
       >{{ vin_check_stats_summary }}</p>
       <div class="admin-vin-check-actions">
-        <form method="get" action="/admin/vin-check" class="admin-vin-check-filters">
+        <form method="get" action="/admin/vin-check" class="admin-vin-check-filters" data-vin-check-filters>
+          <label class="admin-vin-check-select-field">
+            <span class="visually-hidden">Марка</span>
+            <select name="brand" data-vin-check-brand>
+              <option value="">Марка</option>
+              {% for brand_name in vin_check_brand_model_map.keys() %}
+                <option value="{{ brand_name }}" {% if vin_check_filters.brand == brand_name %}selected{% endif %}>{{ brand_name }}</option>
+              {% endfor %}
+            </select>
+          </label>
+          <label class="admin-vin-check-select-field">
+            <span class="visually-hidden">Модель</span>
+            <select
+              name="model"
+              data-vin-check-model
+              {% if not vin_check_filters.brand %}disabled{% endif %}
+            >
+              <option value="">Модель</option>
+              {% if vin_check_filters.brand %}
+                {% for model_name in vin_check_brand_model_map.get(vin_check_filters.brand, []) %}
+                  <option value="{{ model_name }}" {% if vin_check_filters.model == model_name %}selected{% endif %}>{{ model_name }}</option>
+                {% endfor %}
+              {% endif %}
+            </select>
+          </label>
           <label class="inline-checkbox">
             <input
               type="checkbox"
@@ -81,5 +105,38 @@
 </div>
 <div class="listing-description-backdrop" data-description-backdrop hidden></div>
 {% include "partials/listing_vin_check_script.html" %}
+<script>
+(function () {
+  const form = document.querySelector("[data-vin-check-filters]");
+  if (!form) return;
+  const brandSelect = form.querySelector("[data-vin-check-brand]");
+  const modelSelect = form.querySelector("[data-vin-check-model]");
+  const brandModelMap = {{ vin_check_brand_model_map | tojson }};
+
+  function fillModels(brand, selectedModel) {
+    if (!modelSelect) return;
+    modelSelect.innerHTML = "";
+    const placeholder = document.createElement("option");
+    placeholder.value = "";
+    placeholder.textContent = "Модель";
+    modelSelect.appendChild(placeholder);
+    const models = brand ? (brandModelMap[brand] || []) : [];
+    models.forEach((name) => {
+      const option = document.createElement("option");
+      option.value = name;
+      option.textContent = name;
+      if (selectedModel && selectedModel === name) option.selected = true;
+      modelSelect.appendChild(option);
+    });
+    modelSelect.disabled = !brand;
+  }
+
+  brandSelect?.addEventListener("change", () => {
+    fillModels(brandSelect.value, "");
+    form.submit();
+  });
+  modelSelect?.addEventListener("change", () => form.submit());
+})();
+</script>
 <script src="/static/listings_feed_gallery.js?v=20260730-01" defer></script>
 {% endblock %}

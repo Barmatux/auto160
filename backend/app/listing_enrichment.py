@@ -60,6 +60,34 @@ class VinCheckListingFilters:
     only_automatic: bool = False
     only_diesel: bool = False
     year_from_2020: bool = False
+    brand: str | None = None
+    model: str | None = None
+
+
+def build_vin_check_brand_model_map(db: Session) -> dict[str, list[str]]:
+    """Unique make → models for catalog items with rating 1 (av.by)."""
+    rows = (
+        db.query(CatalogItem.make, CatalogItem.model)
+        .filter(
+            CatalogItem.rating == 1,
+            CatalogItem.source_site == "av.by",
+            CatalogItem.make.isnot(None),
+            CatalogItem.model.isnot(None),
+        )
+        .all()
+    )
+    mapping: dict[str, list[str]] = {}
+    for make, model in rows:
+        brand = (make or "").strip()
+        model_name = (model or "").strip()
+        if not brand or not model_name:
+            continue
+        models = mapping.setdefault(brand, [])
+        if model_name not in models:
+            models.append(model_name)
+    for brand, models in mapping.items():
+        mapping[brand] = sorted(models, key=lambda value: value.casefold())
+    return dict(sorted(mapping.items(), key=lambda item: item[0].casefold()))
 
 
 @dataclass(frozen=True)
@@ -811,6 +839,12 @@ def listing_matches_vin_check_filters(
 ) -> bool:
     if filters is None:
         return True
+    brand_filter = normalize_catalog_name(filters.brand)
+    if brand_filter and normalize_catalog_name(getattr(listing, "brand", None)) != brand_filter:
+        return False
+    model_filter = normalize_catalog_name(filters.model)
+    if model_filter and normalize_catalog_name(getattr(listing, "model", None)) != model_filter:
+        return False
     if filters.only_automatic:
         if classify_transmission_slug(getattr(listing, "transmission_type", None)) == TRANSMISSION_SLUG_MANUAL:
             return False

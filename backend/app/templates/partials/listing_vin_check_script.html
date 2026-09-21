@@ -45,6 +45,9 @@
     document.querySelectorAll("[data-description-popup]").forEach((popup) => {
       popup.hidden = true;
     });
+    document.querySelectorAll(".listing-description-wrap.is-open").forEach((wrap) => {
+      wrap.classList.remove("is-open");
+    });
     const backdrop = document.querySelector("[data-description-backdrop]");
     if (backdrop) backdrop.hidden = true;
   }
@@ -355,6 +358,7 @@
         hideTimer = null;
       }
       closeAllDescriptionPopups();
+      wrap.classList.add("is-open");
       popup.hidden = false;
       const backdrop = document.querySelector("[data-description-backdrop]");
       if (backdrop) backdrop.hidden = false;

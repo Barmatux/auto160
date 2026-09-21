@@ -84,6 +84,7 @@ from app.logging_setup import LOG_SERVICES, LOG_SERVICE_LABELS, format_log_time,
 from app.metrics import yandex_metrika_context
 from app.listing_enrichment import (
     build_listing_customs_map,
+    build_vin_check_brand_model_map,
     build_vin_check_page_stats,
     build_vin_found_collection_stats_by_day,
     build_vin_found_rows,
@@ -3738,6 +3739,10 @@ def _build_admin_vin_check_url(
     if page > 1:
         params["page"] = page
     if filters is not None:
+        if filters.brand:
+            params["brand"] = filters.brand
+        if filters.model:
+            params["model"] = filters.model
         if filters.only_automatic:
             params["auto"] = "1"
         if filters.only_diesel:
@@ -3753,6 +3758,8 @@ def _build_admin_vin_check_url(
 def admin_vin_check_page(
     request: Request,
     page: int = Query(default=1, ge=1),
+    brand: str | None = Query(default=None),
+    model: str | None = Query(default=None),
     auto: str | None = Query(default=None),
     diesel: str | None = Query(default=None),
     from2020: str | None = Query(default=None),
@@ -3763,10 +3770,21 @@ def admin_vin_check_page(
     if redirect:
         return redirect
 
+    brand_model_map = build_vin_check_brand_model_map(db)
+    brand_value = (brand or "").strip() or None
+    model_value = (model or "").strip() or None
+    if brand_value and brand_value not in brand_model_map:
+        brand_value = None
+        model_value = None
+    if brand_value and model_value and model_value not in brand_model_map.get(brand_value, []):
+        model_value = None
+
     vin_check_filters = VinCheckListingFilters(
         only_automatic=_parse_vin_check_bool_param(auto),
         only_diesel=_parse_vin_check_bool_param(diesel),
         year_from_2020=_parse_vin_check_bool_param(from2020),
+        brand=brand_value,
+        model=model_value,
     )
     page_size = LISTINGS_PAGE_SIZE
     listings, total = paginate_rating_one_listings(
@@ -3811,6 +3829,7 @@ def admin_vin_check_page(
     context["has_prev"] = page > 1
     context["has_next"] = page < total_pages
     context["vin_check_filters"] = vin_check_filters
+    context["vin_check_brand_model_map"] = brand_model_map
     context["prev_url"] = (
         _build_admin_vin_check_url(page=page - 1, filters=vin_check_filters) if context["has_prev"] else None
     )
