@@ -17,6 +17,7 @@ if str(ROOT_DIR) not in sys.path:
 from app.logging_setup import setup_logging
 
 IMPORTER_PATH = ROOT_DIR / "tools" / "import_autoplius_listings.py"
+REINDEX_PATH = ROOT_DIR / "tools" / "reindex_listing_embeddings.py"
 logger = logging.getLogger(__name__)
 
 
@@ -40,7 +41,26 @@ def run_once(*, max_hp: int, max_age_years: int, max_engine_l: float) -> int:
         for line in result.stderr.splitlines()[-20:]:
             logger.warning("autoplius-import ! %s", line)
     logger.info("autoplius-import-finish: exit_code=%s", result.returncode)
-    return result.returncode
+    if result.returncode != 0:
+        return result.returncode
+    return run_embedding_reindex()
+
+
+def run_embedding_reindex() -> int:
+    cmd = [sys.executable, str(REINDEX_PATH)]
+    logger.info("autoplius-embeddings-start: %s", " ".join(cmd))
+    result = subprocess.run(cmd, cwd=str(ROOT_DIR), capture_output=True, text=True)
+    if result.stdout:
+        for line in result.stdout.splitlines()[-20:]:
+            logger.info("autoplius-embeddings | %s", line)
+    if result.stderr:
+        for line in result.stderr.splitlines()[-10:]:
+            logger.warning("autoplius-embeddings ! %s", line)
+    if result.returncode != 0:
+        logger.warning("autoplius-embeddings failed exit_code=%s; continuing", result.returncode)
+        return 0
+    logger.info("autoplius-embeddings-finish: exit_code=%s", result.returncode)
+    return 0
 
 
 def main() -> int:

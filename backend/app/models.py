@@ -6,6 +6,11 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db import Base
 
+try:
+    from pgvector.sqlalchemy import Vector
+except ImportError:  # pragma: no cover - local sqlite without pgvector
+    Vector = None  # type: ignore[misc, assignment]
+
 
 class UserRole(str, enum.Enum):
     guest = "guest"
@@ -75,6 +80,29 @@ class CarListing(Base):
     seller: Mapped[User] = relationship(back_populates="listings")
     catalog_item_id: Mapped[int | None] = mapped_column(ForeignKey("catalog_items.id"), nullable=True, index=True)
     catalog_item: Mapped["CatalogItem | None"] = relationship(foreign_keys=[catalog_item_id])
+    embedding: Mapped["ListingEmbedding | None"] = relationship(
+        back_populates="listing",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
+
+
+class ListingEmbedding(Base):
+    """OpenAI-compatible embedding for a published car listing (pgvector)."""
+
+    __tablename__ = "listing_embeddings"
+
+    listing_id: Mapped[int] = mapped_column(
+        ForeignKey("car_listings.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    # 1536 dims = text-embedding-3-small
+    embedding: Mapped[list] = mapped_column(Vector(1536) if Vector is not None else JSON, nullable=False)
+    content_hash: Mapped[str] = mapped_column(String(64), index=True)
+    model: Mapped[str] = mapped_column(String(80), index=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    listing: Mapped["CarListing"] = relationship(back_populates="embedding")
 
 
 class CatalogItem(Base):

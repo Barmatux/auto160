@@ -17,6 +17,7 @@ from app.models import AvbySyncRun
 
 IMPORTER_PATH = ROOT_DIR / "tools" / "import_avby_listings.py"
 REFRESH_PRICES_PATH = ROOT_DIR / "tools" / "refresh_listing_prices_from_avby.py"
+REINDEX_PATH = ROOT_DIR / "tools" / "reindex_listing_embeddings.py"
 logger = logging.getLogger(__name__)
 
 
@@ -78,6 +79,24 @@ def run_avg_price_recompute(*, window_days: int | None = None) -> int:
     return 0
 
 
+def run_embedding_reindex() -> int:
+    cmd = [sys.executable, str(REINDEX_PATH)]
+    logger.info("embeddings-start: %s", " ".join(cmd))
+    result = subprocess.run(cmd, cwd=str(ROOT_DIR), capture_output=True, text=True)
+    if result.stdout:
+        for line in result.stdout.splitlines()[-20:]:
+            logger.info("embeddings | %s", line)
+    if result.stderr:
+        for line in result.stderr.splitlines()[-10:]:
+            logger.warning("embeddings ! %s", line)
+    if result.returncode != 0:
+        # Missing API key must not break the av.by sync loop.
+        logger.warning("embeddings failed exit_code=%s; continuing", result.returncode)
+        return 0
+    logger.info("embeddings-finish: exit_code=%s", result.returncode)
+    return 0
+
+
 def run_once(
     max_hp: int,
     max_pages: int,
@@ -92,6 +111,7 @@ def run_once(
     refresh_prices: bool = True,
     price_refresh_delay: float = 0.12,
     recompute_avg_prices: bool = True,
+    reindex_embeddings: bool = True,
 ) -> int:
     cmd = [
         sys.executable,
@@ -137,6 +157,8 @@ def run_once(
         avg_code = run_avg_price_recompute()
         if avg_code != 0:
             logger.warning("avg-prices recompute failed; continuing")
+    if reindex_embeddings:
+        run_embedding_reindex()
     return 0
 
 

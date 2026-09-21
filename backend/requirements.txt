@@ -12,3 +12,5 @@ alembic
 boto3
 beautifulsoup4
 curl-cffi
+pgvector
+openai

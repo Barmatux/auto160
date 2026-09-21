@@ -35,6 +35,10 @@ class Settings(BaseSettings):
     market_prices_api_key: str = ""
     # Optional IP allowlist for market API; empty = any IP with valid key.
     market_prices_allowed_ips: str = ""
+    # OpenAI-compatible embeddings (listing semantic search / future chat).
+    openai_api_key: str = ""
+    openai_base_url: str = ""
+    embedding_model: str = "text-embedding-3-small"
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
