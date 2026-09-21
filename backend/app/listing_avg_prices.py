@@ -12,8 +12,9 @@ from sqlalchemy.orm import Session
 from app.listing_catalog_link import canonical_model_name, normalize_match_text
 from app.models import CarListing, ListingAvgPrice, ListingStatus
 
-DEFAULT_WINDOW_DAYS = 90
-DEFAULT_WINDOWS = (30, 60, 90)
+# ~4 calendar months; used by business-sellers vs-market and as primary window.
+DEFAULT_WINDOW_DAYS = 120
+DEFAULT_WINDOWS = (30, 60, 90, 120)
 # Show / store only groups with more than 10 listings after outlier trim.
 DEFAULT_MIN_SAMPLES = 11
 IQR_K = 1.5

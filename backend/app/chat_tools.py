@@ -62,7 +62,7 @@ TOOL_DEFINITIONS: list[dict[str, Any]] = [
         "function": {
             "name": "market_avg",
             "description": (
-                "Средняя рыночная цена (BYN) по марке/модели/году за окна 30/60/90 дней "
+                "Средняя рыночная цена (BYN) по марке/модели/году за окна 30/60/90/120 дней "
                 "по данным Auto160. Нужны brand, model и year."
             ),
             "parameters": {
@@ -73,7 +73,7 @@ TOOL_DEFINITIONS: list[dict[str, Any]] = [
                     "year": {"type": "integer"},
                     "window_days": {
                         "type": "integer",
-                        "enum": [30, 60, 90],
+                        "enum": [30, 60, 90, 120],
                         "description": "Если не указано — вернуть все окна",
                     },
                 },

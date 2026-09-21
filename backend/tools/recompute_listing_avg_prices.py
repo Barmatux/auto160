@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Recompute listing_avg_prices (brand/model/year) for 30/60/90-day windows.
+"""Recompute listing_avg_prices (brand/model/year) for 30/60/90/120-day windows.
 
 Usage:
   python tools/recompute_listing_avg_prices.py
-  python tools/recompute_listing_avg_prices.py --windows 30,60,90 --min-samples 11
+  python tools/recompute_listing_avg_prices.py --windows 30,60,90,120 --min-samples 11
 """
 
 from __future__ import annotations
@@ -36,7 +36,7 @@ def main() -> int:
     parser.add_argument(
         "--windows",
         default=",".join(str(d) for d in DEFAULT_WINDOWS),
-        help="Comma-separated rolling windows in days (default: 30,60,90)",
+        help="Comma-separated rolling windows in days (default: 30,60,90,120)",
     )
     parser.add_argument(
         "--window-days",

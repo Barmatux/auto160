@@ -33,7 +33,7 @@ Example:
 
 ```bash
 curl -sS -H "X-Api-Key: $MARKET_PRICES_API_KEY" \
-  "https://auto160.ru/api/v1/market/avg-prices?brand=BMW&model=X1&window_days=90&limit=50"
+  "https://auto160.ru/api/v1/market/avg-prices?brand=BMW&model=X1&window_days=120&limit=50"
 ```
 
 ### `GET /avg-prices/lookup`
@@ -42,7 +42,7 @@ One brand/model/year (required). Returns matching windows (or one if `window_day
 
 ```bash
 curl -sS -H "X-Api-Key: $MARKET_PRICES_API_KEY" \
-  "https://auto160.ru/api/v1/market/avg-prices/lookup?brand=BMW&model=X1&year=2015&window_days=90"
+  "https://auto160.ru/api/v1/market/avg-prices/lookup?brand=BMW&model=X1&year=2015&window_days=120"
 ```
 
 ## Response shape

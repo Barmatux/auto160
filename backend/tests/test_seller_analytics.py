@@ -149,7 +149,7 @@ def test_build_business_seller_report_vs_market():
             sample_count=20,
             sample_count_raw=20,
             outliers_removed=0,
-            window_days=90,
+            window_days=120,
             window_start=datetime(2025, 12, 1),
             window_end=datetime(2026, 3, 1),
         )
@@ -244,7 +244,7 @@ def test_build_business_seller_listings_detail():
             sample_count=20,
             sample_count_raw=20,
             outliers_removed=0,
-            window_days=90,
+            window_days=120,
             window_start=datetime(2025, 12, 1),
             window_end=datetime(2026, 3, 1),
         )

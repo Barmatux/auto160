@@ -162,7 +162,7 @@ def list_avg_prices(
     brand: str | None = Query(default=None, max_length=80),
     model: str | None = Query(default=None, max_length=120),
     year: int | None = Query(default=None, ge=1950, le=2100),
-    window_days: int | None = Query(default=None, description="30, 60 or 90; omit for all windows"),
+    window_days: int | None = Query(default=None, description="30, 60, 90 or 120; omit for all windows"),
     min_samples: int = Query(
         default=DEFAULT_MIN_SAMPLES,
         ge=1,
@@ -209,10 +209,10 @@ def lookup_avg_prices(
     brand: str = Query(min_length=1, max_length=80),
     model: str = Query(min_length=1, max_length=120),
     year: int = Query(ge=1950, le=2100),
-    window_days: int | None = Query(default=None, description="30, 60 or 90; omit to return all windows"),
+    window_days: int | None = Query(default=None, description="30, 60, 90 or 120; omit to return all windows"),
     min_samples: int = Query(default=DEFAULT_MIN_SAMPLES, ge=1, le=1000),
 ):
-    """Lookup averages for one brand/model/year (one window or all of 30/60/90)."""
+    """Lookup averages for one brand/model/year (one window or all of 30/60/90/120)."""
     query = _filtered_query(
         db,
         brand=brand,
