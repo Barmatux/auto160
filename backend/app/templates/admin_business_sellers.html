@@ -8,6 +8,7 @@
 <p class="hint">
   Юрлица и ИП из поля продавца av.by (ООО, ЗАО, ИП и т.п.).
   «В архиве» — объявления, снятые с продажи (прокси продаж). Суммы в BYN по цене из объявления.
+  Сравнение с рынком — средняя цена brand/model/year за {{ summary.vs_market_window_days }} дней (если есть достаточно наблюдений).
 </p>
 
 <section class="admin-stats-grid">
@@ -61,6 +62,10 @@
       · активные {{ selected_seller.published_sum_label }} BYN (ср. {{ selected_seller.published_avg_label }})
       · архив {{ selected_seller.archived_sum_label }} BYN
     </p>
+    <p class="hint">
+      vs рынок: <strong>{{ selected_seller.vs_market_label }}</strong>
+      · {{ selected_seller.vs_market_detail }}
+    </p>
     <p><a class="page-link" href="/admin/business-sellers{% if seller_q %}?q={{ seller_q | urlencode }}{% endif %}">← Ко всем юрлицам</a></p>
 
     <section class="admin-vin-table-wrap">
@@ -70,6 +75,8 @@
             <th>Объявление</th>
             <th>Статус</th>
             <th>Цена BYN</th>
+            <th>Средняя рынка</th>
+            <th>vs рынок</th>
             <th>Открыто</th>
             <th>Активность</th>
           </tr>
@@ -88,11 +95,13 @@
               </td>
               <td>{{ row.status_label }}</td>
               <td>{{ row.price_label }}</td>
+              <td>{{ row.market_avg_label }}</td>
+              <td>{{ row.vs_market_label }}</td>
               <td>{{ row.opened_at.strftime('%d.%m.%Y') if row.opened_at else '—' }}</td>
               <td>{{ row.activity_at.strftime('%d.%m.%Y') if row.activity_at else '—' }}</td>
             </tr>
           {% else %}
-            <tr><td colspan="5">Нет объявлений</td></tr>
+            <tr><td colspan="7">Нет объявлений</td></tr>
           {% endfor %}
         </tbody>
       </table>
@@ -143,6 +152,11 @@
               Сумма архива <span class="admin-vin-sort-arrow">{{ seller_sort.arrow('archived_sum') }}</span>
             </a>
           </th>
+          <th>
+            <a class="admin-vin-sort{% if seller_sort.sort == 'vs_market' %} is-active{% endif %}" href="/admin/business-sellers?{{ seller_sort_urls.vs_market }}">
+              vs рынок <span class="admin-vin-sort-arrow">{{ seller_sort.arrow('vs_market') }}</span>
+            </a>
+          </th>
         </tr>
       </thead>
       <tbody>
@@ -169,9 +183,13 @@
               {% endif %}
             </td>
             <td>{{ row.archived_sum_label }}</td>
+            <td>
+              {{ row.vs_market_label }}
+              <div class="admin-vin-listing-meta">{{ row.vs_market_detail }}</div>
+            </td>
           </tr>
         {% else %}
-          <tr><td colspan="8">Юрлица не найдены</td></tr>
+          <tr><td colspan="9">Юрлица не найдены</td></tr>
         {% endfor %}
       </tbody>
     </table>

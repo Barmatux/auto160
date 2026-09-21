@@ -2,11 +2,13 @@ from datetime import datetime
 from unittest.mock import MagicMock
 
 from app.listing_display import is_legal_entity_seller, listing_seller_label
-from app.models import CarListing, ListingStatus
+from app.models import CarListing, ListingAvgPrice, ListingStatus
 from app.seller_analytics import (
     BusinessSellerSort,
     build_business_seller_listings,
     build_business_seller_report,
+    format_vs_market_label,
+    listing_vs_market_pct,
     normalize_seller_key,
 )
 
@@ -33,6 +35,27 @@ def _listing(**kwargs) -> CarListing:
     return CarListing(**defaults)
 
 
+def _db_with_listings_and_avgs(listings, avgs=None):
+    db = MagicMock()
+
+    def query_side_effect(model):
+        q = MagicMock()
+        if model is CarListing:
+            q.filter.return_value = q
+            q.order_by.return_value = q
+            q.all.return_value = listings
+        elif model is ListingAvgPrice:
+            q.filter.return_value = q
+            q.all.return_value = avgs or []
+        else:
+            q.filter.return_value = q
+            q.all.return_value = []
+        return q
+
+    db.query.side_effect = query_side_effect
+    return db
+
+
 def test_is_legal_entity_seller():
     assert is_legal_entity_seller('ООО "Автомир"')
     assert is_legal_entity_seller("ИП Иванов И.И.")
@@ -44,6 +67,21 @@ def test_is_legal_entity_seller():
 
 def test_normalize_seller_key_collapses_case_and_spaces():
     assert normalize_seller_key("  ООО  Авто  ") == normalize_seller_key("ооо авто")
+
+
+def test_format_vs_market_label():
+    assert format_vs_market_label(None) == "—"
+    assert format_vs_market_label(12.5, compared=3) == "выше рынка на 12.5%"
+    assert format_vs_market_label(-8.0, compared=2) == "ниже рынка на 8.0%"
+    assert "рынок" in format_vs_market_label(1.2, compared=1)
+
+
+def test_listing_vs_market_pct():
+    listing = _listing(brand="BMW", model="X1", year=2019, price=22000)
+    avg_map = {("bmw", "x1", 2019): 20000.0}
+    assert listing_vs_market_pct(listing, avg_map) == 10.0
+    assert listing_vs_market_pct(_listing(price=18000), avg_map) == -10.0
+    assert listing_vs_market_pct(_listing(brand="Audi"), avg_map) is None
 
 
 def test_build_business_seller_report_groups_and_sums():
@@ -73,8 +111,7 @@ def test_build_business_seller_report_groups_and_sums():
             city="Гродно",
         ),
     ]
-    db = MagicMock()
-    db.query.return_value.filter.return_value.all.return_value = listings
+    db = _db_with_listings_and_avgs(listings)
 
     summary, rows = build_business_seller_report(db, sort=BusinessSellerSort(sort="total", direction="desc"))
     assert summary.sellers_count == 2
@@ -96,17 +133,65 @@ def test_build_business_seller_report_groups_and_sums():
     assert top.last_activity_at == datetime(2026, 3, 1)
 
 
+def test_build_business_seller_report_vs_market():
+    listings = [
+        _listing(id=1, seller_name="ООО Тест", brand="BMW", model="X1", year=2019, price=22000),
+        _listing(id=2, seller_name="ООО Тест", brand="BMW", model="X1", year=2019, price=18000),
+        _listing(id=3, seller_name="ООО Тест", brand="Audi", model="A4", year=2018, price=15000),
+    ]
+    avgs = [
+        ListingAvgPrice(
+            brand="BMW",
+            model="X1",
+            year=2019,
+            avg_price_byn=20000,
+            sample_count=20,
+            sample_count_raw=20,
+            outliers_removed=0,
+            window_days=90,
+            window_start=datetime(2025, 12, 1),
+            window_end=datetime(2026, 3, 1),
+        )
+    ]
+    db = _db_with_listings_and_avgs(listings, avgs)
+    _summary, rows = build_business_seller_report(db)
+    assert len(rows) == 1
+    row = rows[0]
+    assert row.vs_market_compared == 2
+    assert row.vs_market_above == 1
+    assert row.vs_market_below == 1
+    assert row.vs_market_avg_pct == 0.0
+    assert "рынок" in row.vs_market_label
+
+
 def test_build_business_seller_listings_detail():
     listings = [
-        _listing(id=10, seller_name="ООО Тест", status=ListingStatus.published, price=3000),
+        _listing(id=10, seller_name="ООО Тест", brand="BMW", model="X1", year=2019, price=23000),
         _listing(id=11, seller_name="ООО Тест", status=ListingStatus.archived, price=4000),
         _listing(id=12, seller_name="Другой", status=ListingStatus.published, price=1000),
     ]
-    db = MagicMock()
-    db.query.return_value.filter.return_value.order_by.return_value.all.return_value = listings
+    avgs = [
+        ListingAvgPrice(
+            brand="BMW",
+            model="X1",
+            year=2019,
+            avg_price_byn=20000,
+            sample_count=20,
+            sample_count_raw=20,
+            outliers_removed=0,
+            window_days=90,
+            window_start=datetime(2025, 12, 1),
+            window_end=datetime(2026, 3, 1),
+        )
+    ]
+    db = _db_with_listings_and_avgs(listings, avgs)
 
     stats, rows = build_business_seller_listings(db, "ООО Тест")
     assert stats is not None
     assert stats.total == 2
     assert stats.archived_sum_byn == 4000
     assert len(rows) == 2
+    priced = next(r for r in rows if r.listing.id == 10)
+    assert priced.vs_market_pct == 15.0
+    assert "выше" in priced.vs_market_label
+    assert priced.market_avg_label == "20 000"

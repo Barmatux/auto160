@@ -10,8 +10,10 @@ from urllib.parse import quote, urlencode
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
+from app.listing_avg_prices import DEFAULT_WINDOW_DAYS
+from app.listing_catalog_link import canonical_model_name, normalize_match_text
 from app.listing_display import format_money_amount, is_legal_entity_seller
-from app.models import CarListing, ListingStatus
+from app.models import CarListing, ListingAvgPrice, ListingStatus
 
 SORT_COLUMNS = (
     "name",
@@ -22,6 +24,7 @@ SORT_COLUMNS = (
     "activity",
     "published_sum",
     "archived_sum",
+    "vs_market",
 )
 DEFAULT_SORT = "archived_sum"
 DEFAULT_DIR = "desc"
@@ -33,9 +36,14 @@ DESC_DEFAULT_COLUMNS = {
     "activity",
     "published_sum",
     "archived_sum",
+    "vs_market",
 }
+# Treat |delta| under this % as "about market average".
+NEAR_MARKET_PCT = 3.0
 
 _WS_RE = re.compile(r"\s+")
+
+AvgPriceMap = dict[tuple[str, str, int], float]
 
 
 def normalize_seller_key(seller_name: str) -> str:
@@ -60,6 +68,57 @@ def _price_byn(listing: CarListing) -> float | None:
     if value <= 0:
         return None
     return value
+
+
+def _listing_avg_key(listing: CarListing) -> tuple[str, str, int] | None:
+    brand_key = normalize_match_text(listing.brand or "")
+    model_key = normalize_match_text(canonical_model_name(listing.model))
+    if not brand_key or not model_key or listing.year is None:
+        return None
+    return brand_key, model_key, int(listing.year)
+
+
+def load_avg_price_map(db: Session, *, window_days: int = DEFAULT_WINDOW_DAYS) -> AvgPriceMap:
+    """brand/model/year -> avg BYN for the given rolling window."""
+    rows = db.query(ListingAvgPrice).filter(ListingAvgPrice.window_days == int(window_days)).all()
+    result: AvgPriceMap = {}
+    for row in rows:
+        brand_key = normalize_match_text(row.brand)
+        model_key = normalize_match_text(canonical_model_name(row.model))
+        if not brand_key or not model_key:
+            continue
+        try:
+            avg = float(row.avg_price_byn)
+        except (TypeError, ValueError):
+            continue
+        if avg <= 0:
+            continue
+        result[(brand_key, model_key, int(row.year))] = avg
+    return result
+
+
+def listing_vs_market_pct(listing: CarListing, avg_map: AvgPriceMap) -> float | None:
+    """Positive = above market average, negative = below. None if no price or no avg."""
+    price = _price_byn(listing)
+    if price is None:
+        return None
+    key = _listing_avg_key(listing)
+    if key is None:
+        return None
+    avg = avg_map.get(key)
+    if avg is None or avg <= 0:
+        return None
+    return round((price - avg) / avg * 100.0, 1)
+
+
+def format_vs_market_label(avg_pct: float | None, *, compared: int = 0) -> str:
+    if avg_pct is None or compared <= 0:
+        return "—"
+    if abs(avg_pct) < NEAR_MARKET_PCT:
+        return f"≈ рынок ({avg_pct:+.1f}%)"
+    if avg_pct > 0:
+        return f"выше рынка на {avg_pct:.1f}%"
+    return f"ниже рынка на {abs(avg_pct):.1f}%"
 
 
 @dataclass(frozen=True)
@@ -133,6 +192,11 @@ class BusinessSellerStats:
     archived_sum_byn: float = 0.0
     published_avg_byn: float | None = None
     city_names: tuple[str, ...] = ()
+    vs_market_compared: int = 0
+    vs_market_above: int = 0
+    vs_market_below: int = 0
+    vs_market_near: int = 0
+    vs_market_avg_pct: float | None = None
 
     @property
     def detail_url(self) -> str:
@@ -150,6 +214,19 @@ class BusinessSellerStats:
     def published_avg_label(self) -> str:
         return format_money_amount(self.published_avg_byn) if self.published_avg_byn is not None else "—"
 
+    @property
+    def vs_market_label(self) -> str:
+        return format_vs_market_label(self.vs_market_avg_pct, compared=self.vs_market_compared)
+
+    @property
+    def vs_market_detail(self) -> str:
+        if self.vs_market_compared <= 0:
+            return "нет данных по рынку"
+        return (
+            f"сравнено {self.vs_market_compared}: "
+            f"выше {self.vs_market_above} · ниже {self.vs_market_below} · ≈ {self.vs_market_near}"
+        )
+
 
 @dataclass(frozen=True)
 class BusinessSellerSummary:
@@ -159,6 +236,7 @@ class BusinessSellerSummary:
     archived_total: int
     published_sum_byn: float
     archived_sum_byn: float
+    vs_market_window_days: int = DEFAULT_WINDOW_DAYS
 
     @property
     def published_sum_label(self) -> str:
@@ -176,6 +254,9 @@ class BusinessSellerListingRow:
     activity_at: datetime | None
     price_label: str
     status_label: str
+    market_avg_label: str = "—"
+    vs_market_pct: float | None = None
+    vs_market_label: str = "—"
 
 
 def _status_label(status: ListingStatus) -> str:
@@ -186,13 +267,20 @@ def _status_label(status: ListingStatus) -> str:
     return "Черновик"
 
 
-def _aggregate_seller(name: str, listings: list[CarListing]) -> BusinessSellerStats:
+def _aggregate_seller(
+    name: str,
+    listings: list[CarListing],
+    avg_map: AvgPriceMap | None = None,
+) -> BusinessSellerStats:
     cities: set[str] = set()
     opened_at: datetime | None = None
     last_activity: datetime | None = None
     published = draft = archived = with_vin = with_photo = 0
     published_sum = archived_sum = 0.0
     published_priced = 0
+    pcts: list[float] = []
+    above = below = near = 0
+    price_map = avg_map or {}
 
     for listing in listings:
         city = (listing.city or "").strip()
@@ -222,6 +310,18 @@ def _aggregate_seller(name: str, listings: list[CarListing]) -> BusinessSellerSt
         else:
             draft += 1
 
+        if listing.status in (ListingStatus.published, ListingStatus.archived):
+            pct = listing_vs_market_pct(listing, price_map)
+            if pct is None:
+                continue
+            pcts.append(pct)
+            if abs(pct) < NEAR_MARKET_PCT:
+                near += 1
+            elif pct > 0:
+                above += 1
+            else:
+                below += 1
+
     return BusinessSellerStats(
         seller_name=name,
         total=len(listings),
@@ -237,10 +337,16 @@ def _aggregate_seller(name: str, listings: list[CarListing]) -> BusinessSellerSt
         archived_sum_byn=round(archived_sum, 2),
         published_avg_byn=round(published_sum / published_priced, 2) if published_priced else None,
         city_names=tuple(sorted(cities)),
+        vs_market_compared=len(pcts),
+        vs_market_above=above,
+        vs_market_below=below,
+        vs_market_near=near,
+        vs_market_avg_pct=round(sum(pcts) / len(pcts), 1) if pcts else None,
     )
 
 
 def _sort_key(row: BusinessSellerStats, sort: str):
+    vs_key = row.vs_market_avg_pct if row.vs_market_avg_pct is not None else float("-inf")
     mapping = {
         "name": (row.seller_name.casefold(),),
         "total": (row.total, row.seller_name.casefold()),
@@ -250,6 +356,7 @@ def _sort_key(row: BusinessSellerStats, sort: str):
         "activity": (row.last_activity_at or datetime.min, row.seller_name.casefold()),
         "published_sum": (row.published_sum_byn, row.seller_name.casefold()),
         "archived_sum": (row.archived_sum_byn, row.seller_name.casefold()),
+        "vs_market": (vs_key, row.vs_market_compared, row.seller_name.casefold()),
     }
     return mapping.get(sort, mapping[DEFAULT_SORT])
 
@@ -259,6 +366,7 @@ def build_business_seller_report(
     *,
     q: str | None = None,
     sort: BusinessSellerSort | None = None,
+    window_days: int = DEFAULT_WINDOW_DAYS,
 ) -> tuple[BusinessSellerSummary, list[BusinessSellerStats]]:
     """Group av.by listings by legal-entity seller_name and compute inventory / archive stats."""
     listings = (
@@ -270,6 +378,7 @@ def build_business_seller_report(
         )
         .all()
     )
+    avg_map = load_avg_price_map(db, window_days=window_days)
 
     buckets: dict[str, list[CarListing]] = {}
     display_names: dict[str, str] = {}
@@ -279,14 +388,13 @@ def build_business_seller_report(
             continue
         key = normalize_seller_key(raw)
         buckets.setdefault(key, []).append(listing)
-        # Prefer longer / more complete display label when casing differs.
         prev = display_names.get(key)
         if prev is None or len(raw) > len(prev):
             display_names[key] = raw
 
     query = (q or "").strip().casefold()
     rows = [
-        _aggregate_seller(display_names[key], group)
+        _aggregate_seller(display_names[key], group, avg_map)
         for key, group in buckets.items()
         if not query or query in display_names[key].casefold()
     ]
@@ -302,6 +410,7 @@ def build_business_seller_report(
         archived_total=sum(r.archived for r in rows),
         published_sum_byn=round(sum(r.published_sum_byn for r in rows), 2),
         archived_sum_byn=round(sum(r.archived_sum_byn for r in rows), 2),
+        vs_market_window_days=window_days,
     )
     return summary, rows
 
@@ -311,6 +420,7 @@ def build_business_seller_listings(
     seller_name: str,
     *,
     limit: int = 200,
+    window_days: int = DEFAULT_WINDOW_DAYS,
 ) -> tuple[BusinessSellerStats | None, list[BusinessSellerListingRow]]:
     key = normalize_seller_key(seller_name)
     if not key:
@@ -334,20 +444,29 @@ def build_business_seller_listings(
     if not matched:
         return None, []
 
+    avg_map = load_avg_price_map(db, window_days=window_days)
     display = max((listing.seller_name or "").strip() for listing in matched)
-    stats = _aggregate_seller(display, matched)
+    stats = _aggregate_seller(display, matched, avg_map)
     matched.sort(
         key=lambda listing: _listing_activity_at(listing) or datetime.min,
         reverse=True,
     )
-    rows = [
-        BusinessSellerListingRow(
-            listing=listing,
-            opened_at=_listing_opened_at(listing),
-            activity_at=_listing_activity_at(listing),
-            price_label=format_money_amount(_price_byn(listing)) if _price_byn(listing) is not None else "—",
-            status_label=_status_label(listing.status),
+    rows: list[BusinessSellerListingRow] = []
+    for listing in matched[:limit]:
+        price = _price_byn(listing)
+        avg_key = _listing_avg_key(listing)
+        market_avg = avg_map.get(avg_key) if avg_key else None
+        pct = listing_vs_market_pct(listing, avg_map)
+        rows.append(
+            BusinessSellerListingRow(
+                listing=listing,
+                opened_at=_listing_opened_at(listing),
+                activity_at=_listing_activity_at(listing),
+                price_label=format_money_amount(price) if price is not None else "—",
+                status_label=_status_label(listing.status),
+                market_avg_label=format_money_amount(market_avg) if market_avg is not None else "—",
+                vs_market_pct=pct,
+                vs_market_label=format_vs_market_label(pct, compared=1 if pct is not None else 0),
+            )
         )
-        for listing in matched[:limit]
-    ]
     return stats, rows
