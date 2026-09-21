@@ -5,13 +5,20 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 from collections import defaultdict
-from datetime import date, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 
 from sqlalchemy.orm import Session
 
 from app.avby_offer_metadata import fetch_and_apply_offer_vin_metadata
 from app.avby_vin import AvbyVinError, get_or_fetch_listing_vin
-from app.customs_vin import DATABASE_PERSONAL, CustomsVinError, has_fresh_customs_check, lookup_customs_vin
+from app.customs_vin import (
+    DATABASE_PERSONAL,
+    CustomsVinError,
+    has_fresh_customs_check,
+    lookup_customs_vin,
+    normalize_vin,
+    vin_is_valid,
+)
 from app.fuel_type_labels import FUEL_GROUP_DIESEL, classify_fuel_type
 from app.models import CarListing, CatalogItem, ListingStatus, VinCustomsCheck
 from app.transmission_labels import TRANSMISSION_SLUG_MANUAL, classify_transmission_slug
@@ -447,6 +454,47 @@ def perform_listing_vin_check(
     if not vin_error:
         vin_error = "Не удалось получить VIN"
     return ListingVinCheckResult(vin_error=vin_error)
+
+
+def apply_manual_listing_vin(db: Session, listing: CarListing, raw_vin: str) -> ListingVinCheckResult:
+    """Persist an admin-entered VIN and refresh customs import date."""
+    normalized = normalize_vin(raw_vin)
+    if not vin_is_valid(normalized):
+        return ListingVinCheckResult(
+            vin_error="Некорректный VIN: нужны 17 символов без букв I, O, Q",
+        )
+
+    listing.vin = normalized
+    listing.vin_fetched_at = datetime.now(UTC)
+    if listing.vin_indicated is None:
+        listing.vin_indicated = True
+    db.add(listing)
+    db.commit()
+    db.refresh(listing)
+
+    release_date, customs_error = recheck_listing_customs_import_date(db, listing)
+    if release_date:
+        return ListingVinCheckResult(
+            vin=normalized,
+            release_date=release_date,
+            customs_found=True,
+        )
+    if customs_error == "Найдено в ГТК, дата не распознана":
+        return ListingVinCheckResult(
+            vin=normalized,
+            customs_found=True,
+            customs_error=customs_error,
+        )
+    if customs_error == "Не найдено в базе ГТК":
+        return ListingVinCheckResult(
+            vin=normalized,
+            customs_found=False,
+            customs_error=customs_error,
+        )
+    return ListingVinCheckResult(
+        vin=normalized,
+        customs_error=customs_error or "Не удалось получить дату ввоза",
+    )
 
 
 def format_vin_check_model_label(listing: CarListing) -> str:

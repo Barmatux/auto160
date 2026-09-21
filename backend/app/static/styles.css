@@ -1344,6 +1344,115 @@ body.theme-admin.theme-admin-light .header-theme-toggle:focus-visible {
   gap: 8px;
 }
 
+.listing-vin-check-vin .vin-check-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 6px 12px;
+  border-radius: 10px;
+  border: 1px solid #bfdbfe;
+  background: #eff6ff;
+  color: #1e3a8a;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.listing-vin-check-vin .vin-check-btn:hover,
+.listing-vin-check-vin .vin-check-btn:focus-visible {
+  background: #dbeafe;
+  border-color: #93c5fd;
+}
+
+.listing-vin-check-vin .vin-check-btn:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+.listing-vin-check-block-inline {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.vin-enter-modal[hidden] {
+  display: none !important;
+}
+
+.vin-enter-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+}
+
+.vin-enter-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+}
+
+.vin-enter-modal-dialog {
+  position: relative;
+  z-index: 1;
+  width: min(420px, calc(100vw - 32px));
+  padding: 18px 18px 16px;
+  border-radius: 14px;
+  border: 1px solid #dbe6fb;
+  background: #fff;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.22);
+}
+
+.vin-enter-modal-dialog h3 {
+  margin: 0 0 6px;
+  font-size: 18px;
+  color: #1e3a8a;
+}
+
+.vin-enter-modal-hint {
+  margin: 0 0 12px;
+}
+
+.vin-enter-modal-label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.vin-enter-modal-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  font: inherit;
+  font-size: 16px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.vin-enter-modal-error {
+  margin: 8px 0 0;
+}
+
+.vin-enter-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+body.vin-enter-modal-open {
+  overflow: hidden;
+}
+
 .listing-vin-check-vin .listing-vin-code {
   font-size: 13px;
   font-weight: 700;
@@ -3716,14 +3825,26 @@ body.theme-admin.theme-admin-light .header-theme-toggle:focus-visible {
   align-self: center;
 }
 
-.listing-detail-header-price {
+.listing-detail-header-vin {
   grid-column: 2;
+  grid-row: 1;
+  justify-self: start;
+  align-self: center;
+  min-width: 0;
+}
+
+.listing-detail-header-price {
+  grid-column: 3;
   grid-row: 1;
   justify-self: end;
   align-self: center;
   max-width: 100%;
   text-align: right;
   padding-left: 12px;
+}
+
+.listing-detail-header:not(:has(.listing-detail-header-vin)) .listing-detail-header-price {
+  grid-column: 2 / -1;
 }
 
 .listing-detail-header-price .listing-price {
@@ -4916,6 +5037,7 @@ body.listing-lightbox-open {
   }
 
   .listing-detail-heading,
+  .listing-detail-header-vin,
   .listing-detail-header-price {
     grid-column: 1;
     grid-row: auto;
@@ -4925,6 +5047,10 @@ body.listing-lightbox-open {
     max-width: none;
     padding-left: 0;
     text-align: left;
+  }
+
+  .listing-detail-header:not(:has(.listing-detail-header-vin)) .listing-detail-header-price {
+    grid-column: 1;
   }
 
   .listing-detail-header-price .listing-price-values {

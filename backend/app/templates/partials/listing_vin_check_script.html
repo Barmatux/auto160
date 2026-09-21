@@ -1,4 +1,26 @@
 {% include "partials/auth_script.html" %}
+<div class="vin-enter-modal" data-vin-enter-modal hidden>
+  <div class="vin-enter-modal-backdrop" data-vin-enter-dismiss></div>
+  <div class="vin-enter-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="vin-enter-modal-title">
+    <h3 id="vin-enter-modal-title">Enter VIN</h3>
+    <p class="hint vin-enter-modal-hint">17 символов, без букв I, O, Q</p>
+    <label class="vin-enter-modal-label" for="vin-enter-input">VIN для объявления</label>
+    <input
+      id="vin-enter-input"
+      class="vin-enter-modal-input"
+      type="text"
+      maxlength="17"
+      autocomplete="off"
+      spellcheck="false"
+      data-vin-enter-input
+    />
+    <p class="vin-enter-modal-error sync-error" data-vin-enter-error hidden></p>
+    <div class="vin-enter-modal-actions">
+      <button type="button" class="btn-secondary" data-vin-enter-dismiss>Отмена</button>
+      <button type="button" class="btn vin-enter-modal-submit" data-vin-enter-submit>Сохранить</button>
+    </div>
+  </div>
+</div>
 <script>
   async function adminFetch(url, options = {}) {
     let token = getCookie("access_token");
@@ -31,6 +53,17 @@
     document.querySelectorAll(".vin-check-error-popover, .vin-check-data-error-popover").forEach((el) => {
       el.hidden = true;
     });
+  }
+
+  function normalizeVinInput(value) {
+    return String(value || "").replace(/[^A-Za-z0-9]/g, "").toUpperCase();
+  }
+
+  function isValidVin(value) {
+    const vin = normalizeVinInput(value);
+    if (vin.length !== 17) return false;
+    if (/[IOQ]/.test(vin)) return false;
+    return /^[A-HJ-NPR-Z0-9]{17}$/.test(vin);
   }
 
   const statsBar = document.querySelector("[data-vin-check-stats]");
@@ -95,32 +128,39 @@
   function renderVinCheckBlock(block, data) {
     const vinWrap = block.querySelector(".listing-vin-check-vin");
     const dateWrap = block.querySelector(".listing-vin-check-date");
-    const vinBtn = block.querySelector(".vin-check-btn");
+    const vinBtn = block.querySelector(".vin-check-btn:not(.vin-enter-btn)");
     const vinCode = block.querySelector(".listing-vin-code");
     const vinErrorWrap = block.querySelector(".vin-check-error-label");
     const vinErrorBtn = block.querySelector(".vin-check-error-btn");
-    const vinErrorPopover = block.querySelector(".vin-check-error-popover");
-    const dataErrorWrap = block.querySelector(".vin-check-data-error-wrap");
-    const dataErrorBtn = block.querySelector(".vin-check-data-error-btn");
-    const dataErrorPopover = block.querySelector(".vin-check-data-error-popover");
+    const keepVinCheck = block.dataset.keepVinCheck === "1";
 
     if (data.vin) {
       recordVinCheckSuccess(block);
       block.dataset.vin = data.vin;
-      if (vinBtn) vinBtn.remove();
-      if (!vinCode) {
+      if (vinBtn) {
+        if (keepVinCheck) {
+          vinBtn.disabled = false;
+          vinBtn.textContent = "VIN CHECK";
+        } else {
+          vinBtn.remove();
+        }
+      }
+      if (!vinCode && vinWrap) {
         const code = document.createElement("code");
         code.className = "listing-vin-code";
-        vinWrap.prepend(code);
+        const enterBtn = vinWrap.querySelector(".vin-enter-btn");
+        if (enterBtn) vinWrap.insertBefore(code, enterBtn);
+        else vinWrap.prepend(code);
       }
-      block.querySelector(".listing-vin-code").textContent = data.vin;
+      const codeEl = block.querySelector(".listing-vin-code");
+      if (codeEl) codeEl.textContent = data.vin;
       if (vinErrorWrap) vinErrorWrap.hidden = true;
     } else if (data.vin_error) {
       if (vinBtn) {
         vinBtn.disabled = false;
         vinBtn.textContent = "VIN CHECK";
       }
-      if (vinCode) vinCode.remove();
+      if (vinCode && !keepVinCheck) vinCode.remove();
       if (vinErrorWrap) {
         vinErrorWrap.hidden = false;
         if (vinErrorBtn) vinErrorBtn.dataset.error = data.vin_error;
@@ -133,6 +173,7 @@
     dateWrap.innerHTML = "";
     if (data.vin && data.release_date) {
       block.dataset.releaseDate = data.release_date;
+      delete block.dataset.customsError;
       const span = document.createElement("span");
       span.className = "listing-vin-check-date-value";
       span.textContent = data.release_date;
@@ -184,7 +225,7 @@
   async function runVinCheck(block, { auto = false } = {}) {
     if (block.dataset.loading === "1") return;
     const listingId = block.dataset.listingId;
-    const vinBtn = block.querySelector(".vin-check-btn");
+    const vinBtn = block.querySelector(".vin-check-btn:not(.vin-enter-btn)");
     if (!listingId) return;
     if (auto && block.dataset.vin && block.dataset.releaseDate) return;
     if (auto && !block.dataset.vin) return;
@@ -217,6 +258,89 @@
     }
 
     renderVinCheckBlock(block, data);
+  }
+
+  const vinEnterModal = document.querySelector("[data-vin-enter-modal]");
+  const vinEnterInput = document.querySelector("[data-vin-enter-input]");
+  const vinEnterError = document.querySelector("[data-vin-enter-error]");
+  const vinEnterSubmit = document.querySelector("[data-vin-enter-submit]");
+  let vinEnterTargetBlock = null;
+
+  function openVinEnterModal(block) {
+    if (!vinEnterModal || !vinEnterInput || !block) return;
+    vinEnterTargetBlock = block;
+    vinEnterInput.value = normalizeVinInput(block.dataset.vin || "");
+    if (vinEnterError) {
+      vinEnterError.hidden = true;
+      vinEnterError.textContent = "";
+    }
+    vinEnterModal.hidden = false;
+    document.body.classList.add("vin-enter-modal-open");
+    setTimeout(() => vinEnterInput.focus(), 0);
+  }
+
+  function closeVinEnterModal() {
+    if (!vinEnterModal) return;
+    vinEnterModal.hidden = true;
+    document.body.classList.remove("vin-enter-modal-open");
+    vinEnterTargetBlock = null;
+    if (vinEnterSubmit) {
+      vinEnterSubmit.disabled = false;
+      vinEnterSubmit.textContent = "Сохранить";
+    }
+  }
+
+  async function submitManualVin() {
+    if (!vinEnterTargetBlock || !vinEnterInput) return;
+    const listingId = vinEnterTargetBlock.dataset.listingId;
+    const vin = normalizeVinInput(vinEnterInput.value);
+    vinEnterInput.value = vin;
+
+    if (!isValidVin(vin)) {
+      if (vinEnterError) {
+        vinEnterError.textContent = "Некорректный VIN: 17 символов без букв I, O, Q";
+        vinEnterError.hidden = false;
+      }
+      vinEnterInput.focus();
+      return;
+    }
+
+    if (vinEnterError) vinEnterError.hidden = true;
+    if (vinEnterSubmit) {
+      vinEnterSubmit.disabled = true;
+      vinEnterSubmit.textContent = "Сохранение…";
+    }
+
+    markVinCheckLaunched(vinEnterTargetBlock);
+    const response = await adminFetch(`/api/v1/admin/listings/${listingId}/vin-manual`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ vin }),
+    });
+
+    if (vinEnterSubmit) {
+      vinEnterSubmit.disabled = false;
+      vinEnterSubmit.textContent = "Сохранить";
+    }
+    if (!response) return;
+
+    let data = {};
+    try {
+      data = await response.json();
+    } catch (_) {
+      data = {};
+    }
+
+    if (!response.ok) {
+      if (vinEnterError) {
+        vinEnterError.textContent = data.detail || "Не удалось сохранить VIN";
+        vinEnterError.hidden = false;
+      }
+      return;
+    }
+
+    renderVinCheckBlock(vinEnterTargetBlock, data);
+    closeVinEnterModal();
   }
 
   document.querySelectorAll(".listing-description-btn").forEach((btn) => {
@@ -267,8 +391,39 @@
     wrap.hidden = false;
   });
 
-  document.querySelectorAll(".listing-vin-check-block .vin-check-btn").forEach((btn) => {
+  document.querySelectorAll(".listing-vin-check-block .vin-check-btn:not(.vin-enter-btn)").forEach((btn) => {
     btn.addEventListener("click", () => runVinCheck(btn.closest(".listing-vin-check-block")));
+  });
+
+  document.querySelectorAll(".listing-vin-check-block .vin-enter-btn").forEach((btn) => {
+    btn.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      openVinEnterModal(btn.closest(".listing-vin-check-block"));
+    });
+  });
+
+  document.querySelectorAll("[data-vin-enter-dismiss]").forEach((el) => {
+    el.addEventListener("click", closeVinEnterModal);
+  });
+  vinEnterSubmit?.addEventListener("click", submitManualVin);
+  vinEnterInput?.addEventListener("input", () => {
+    const start = vinEnterInput.selectionStart;
+    const end = vinEnterInput.selectionEnd;
+    vinEnterInput.value = normalizeVinInput(vinEnterInput.value).slice(0, 17);
+    if (typeof start === "number" && typeof end === "number") {
+      vinEnterInput.setSelectionRange(Math.min(start, 17), Math.min(end, 17));
+    }
+    if (vinEnterError) vinEnterError.hidden = true;
+  });
+  vinEnterInput?.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      submitManualVin();
+    } else if (event.key === "Escape") {
+      event.preventDefault();
+      closeVinEnterModal();
+    }
   });
 
   document.querySelectorAll(".listing-vin-check-block").forEach((block) => {
@@ -283,11 +438,18 @@
     if (
       event.target.closest(".listing-description-wrap") ||
       event.target.closest(".vin-check-error-btn") ||
-      event.target.closest(".vin-check-data-error-btn")
+      event.target.closest(".vin-check-data-error-btn") ||
+      event.target.closest("[data-vin-enter-modal]")
     ) {
       return;
     }
     closeAllDescriptionPopups();
     closeAllErrorPopovers();
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && vinEnterModal && !vinEnterModal.hidden) {
+      closeVinEnterModal();
+    }
   });
 </script>

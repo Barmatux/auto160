@@ -14,7 +14,11 @@ from app.avby_accounts import (
 )
 from app.avby_session import AvbySessionError, get_avby_session
 from app.avby_vin import AvbyVinError, get_or_fetch_listing_vin
-from app.listing_enrichment import perform_listing_vin_check, recheck_listing_customs_import_date
+from app.listing_enrichment import (
+    apply_manual_listing_vin,
+    perform_listing_vin_check,
+    recheck_listing_customs_import_date,
+)
 from app.catalog_generation_years import apply_generation_years, sync_generation_years_from_sources
 from app.catalog_ratings import apply_generation_rating, format_production_years, generation_label
 from app.catalog_visibility import apply_generation_catalog_visibility
@@ -37,6 +41,7 @@ from app.schemas import (
     CatalogGenerationYearsResult,
     CatalogGenerationYearsUpdate,
     ListingCustomsRecheckResponse,
+    ListingManualVinRequest,
     ListingVinCheckResponse,
     ListingVinResponse,
     UserPublic,
@@ -437,6 +442,29 @@ def fetch_listing_vin_check(
     if not listing:
         raise HTTPException(status_code=404, detail="Listing not found")
     result = perform_listing_vin_check(db, listing, allow_inactive=True)
+    return ListingVinCheckResponse(
+        listing_id=listing.id,
+        vin=result.vin,
+        vin_error=result.vin_error,
+        release_date=result.release_date,
+        customs_found=result.customs_found,
+        customs_error=result.customs_error,
+    )
+
+
+@router.post("/listings/{listing_id}/vin-manual", response_model=ListingVinCheckResponse)
+def save_manual_listing_vin(
+    listing_id: int,
+    payload: ListingManualVinRequest,
+    _: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    listing = db.query(CarListing).filter(CarListing.id == listing_id).first()
+    if not listing:
+        raise HTTPException(status_code=404, detail="Listing not found")
+    result = apply_manual_listing_vin(db, listing, payload.vin)
+    if result.vin_error and not result.vin:
+        raise HTTPException(status_code=400, detail=result.vin_error)
     return ListingVinCheckResponse(
         listing_id=listing.id,
         vin=result.vin,

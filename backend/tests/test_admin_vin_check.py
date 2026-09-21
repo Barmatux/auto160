@@ -272,8 +272,51 @@ def test_recheck_listing_customs_import_date(monkeypatch):
     assert error is None
 
 
+def test_apply_manual_listing_vin_rejects_invalid(monkeypatch):
+    from app.listing_enrichment import apply_manual_listing_vin
+
+    listing = SimpleNamespace(vin=None, vin_fetched_at=None, vin_indicated=None)
+    db = MagicMock()
+    result = apply_manual_listing_vin(db, listing, "BADVIN")
+    assert result.vin is None
+    assert "17" in (result.vin_error or "")
+    db.commit.assert_not_called()
+
+
+def test_apply_manual_listing_vin_saves_and_rechecks(monkeypatch):
+    from datetime import datetime
+
+    from app.listing_enrichment import apply_manual_listing_vin
+
+    listing = SimpleNamespace(vin=None, vin_fetched_at=None, vin_indicated=None)
+    db = MagicMock()
+
+    monkeypatch.setattr(
+        "app.listing_enrichment.recheck_listing_customs_import_date",
+        lambda db, row: ("01.02.2020", None),
+    )
+
+    result = apply_manual_listing_vin(db, listing, " vf3mrhnsuls192570 ")
+    assert result.vin == "VF3MRHNSULS192570"
+    assert result.release_date == "01.02.2020"
+    assert result.customs_found is True
+    assert listing.vin == "VF3MRHNSULS192570"
+    assert listing.vin_indicated is True
+    assert isinstance(listing.vin_fetched_at, datetime)
+    db.commit.assert_called_once()
+
+
 def test_admin_vin_check_api_requires_auth(client):
     response = client.post("/api/v1/admin/listings/1/vin-check", follow_redirects=False)
+    assert response.status_code == 401
+
+
+def test_admin_vin_manual_api_requires_auth(client):
+    response = client.post(
+        "/api/v1/admin/listings/1/vin-manual",
+        json={"vin": "VF3MRHNSULS192570"},
+        follow_redirects=False,
+    )
     assert response.status_code == 401
 
 

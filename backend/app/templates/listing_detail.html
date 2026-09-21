@@ -17,6 +17,42 @@
           </p>
         {% endif %}
       </div>
+      {% if is_admin and listing.avby_id %}
+        <div class="listing-detail-header-vin">
+          <div
+            class="listing-vin-check-block listing-vin-check-block-inline"
+            data-listing-id="{{ listing.id }}"
+            data-model-label="{{ listing.brand }} {{ listing.model }}"
+            data-keep-vin-check="1"
+            {% if listing.vin %}data-vin="{{ listing.vin }}" data-vin-success="1" data-vin-launched="1"{% endif %}
+            {% if listing_customs and listing_customs.found and listing_customs.release_date %}data-release-date="{{ listing_customs.release_date }}"{% endif %}
+            {% if listing_customs and listing_customs.found and not listing_customs.release_date %}data-customs-error="Найдено в ГТК, дата не распознана"{% endif %}
+            {% if listing_customs and not listing_customs.found %}data-customs-error="Не найдено в базе ГТК"{% endif %}
+          >
+            <div class="listing-vin-check-vin">
+              <button type="button" class="btn-link-like vin-check-btn">VIN CHECK</button>
+              <button type="button" class="btn-link-like vin-check-btn vin-enter-btn">Enter VIN</button>
+              {% if listing.vin %}
+                <code class="listing-vin-code">{{ listing.vin }}</code>
+              {% endif %}
+              <span class="vin-check-error-label" hidden>
+                <button type="button" class="vin-check-error-btn">ERROR VIN</button>
+                <span class="vin-check-error-popover" hidden></span>
+              </span>
+            </div>
+            <div class="listing-vin-check-date">
+              {% if listing.vin and listing_customs and listing_customs.found and listing_customs.release_date %}
+                <span class="listing-vin-check-date-value">{{ listing_customs.release_date }}</span>
+              {% elif listing.vin and listing_customs %}
+                <span class="vin-check-data-error-wrap">
+                  <button type="button" class="vin-check-data-error-btn">DATA ERROR</button>
+                  <span class="vin-check-data-error-popover" hidden></span>
+                </span>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      {% endif %}
       <div class="listing-detail-header-price">
         {% include "partials/listing_price_display.html" %}
       </div>
@@ -166,6 +202,7 @@
       <a class="btn-link" href="/profile/edit-listing/{{ listing.id }}">Редактировать</a>
     </div>
     {% include "partials/listing_vin_admin_script.html" %}
+    {% include "partials/listing_vin_check_script.html" %}
   {% endif %}
 
   {% if gallery_urls %}

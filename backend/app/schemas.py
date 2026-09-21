@@ -242,6 +242,10 @@ class ListingVinCheckResponse(BaseModel):
     customs_error: str | None = None
 
 
+class ListingManualVinRequest(BaseModel):
+    vin: str
+
+
 class ListingCustomsRecheckResponse(BaseModel):
     listing_id: int
     release_date: str | None = None
