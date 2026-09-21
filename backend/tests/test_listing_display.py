@@ -14,7 +14,7 @@ from app.models import CarListing
 
 
 def _listing(**kwargs) -> CarListing:
-    return CarListing(
+    defaults = dict(
         title="Test",
         brand="BMW",
         model="X1",
@@ -24,8 +24,9 @@ def _listing(**kwargs) -> CarListing:
         city="Minsk",
         description="x",
         seller_id=1,
-        **kwargs,
     )
+    defaults.update(kwargs)
+    return CarListing(**defaults)
 
 
 def test_listing_display_title_strips_avby_suffix():

@@ -152,6 +152,12 @@ from app.listing_photos import (
 from app.storage import build_app_download_url, normalize_display_image_url
 from app.sync_run_vin_log import PHASE_LABELS, summarize_sync_run_vin_checks
 from app.vin_analytics import SORT_COLUMNS, VinListingSort, build_vin_listings_report, parse_filter_date
+from app.seller_analytics import (
+    BusinessSellerSort,
+    SORT_COLUMNS as BUSINESS_SELLER_SORT_COLUMNS,
+    build_business_seller_listings,
+    build_business_seller_report,
+)
 from app.catalog_ratings import (
     DEFAULT_PAGE_SIZE,
     RATING_CHOICES,
@@ -4351,6 +4357,49 @@ def admin_avby_accounts_page(request: Request, db: Session = Depends(get_db)):
         }
     )
     return templates.TemplateResponse(request, "admin_avby_accounts.html", context)
+
+
+@router.get("/admin/business-sellers")
+def admin_business_sellers_page(
+    request: Request,
+    q: str | None = Query(default=None),
+    seller: str | None = Query(default=None),
+    sort: str = Query(default="archived_sum"),
+    dir: str = Query(default="desc"),
+    db: Session = Depends(get_db),
+):
+    current_user = _resolve_user_from_request(request, db)
+    if not current_user:
+        return RedirectResponse(url="/login", status_code=302)
+    if current_user.role != UserRole.admin:
+        return RedirectResponse(url="/", status_code=302)
+
+    seller_q = (q or "").strip()
+    selected_name = (seller or "").strip()
+    seller_sort = BusinessSellerSort(sort=sort, direction=dir).normalized()
+    summary, seller_rows = build_business_seller_report(db, q=seller_q or None, sort=seller_sort)
+
+    selected_seller = None
+    seller_listing_rows: list = []
+    if selected_name:
+        selected_seller, seller_listing_rows = build_business_seller_listings(db, selected_name)
+
+    context = _template_context(request, current_user)
+    context.update(
+        {
+            "summary": summary,
+            "seller_rows": seller_rows,
+            "seller_q": seller_q,
+            "seller_sort": seller_sort,
+            "seller_sort_urls": {
+                column: seller_sort.toggle_url(column, q=seller_q or None)
+                for column in BUSINESS_SELLER_SORT_COLUMNS
+            },
+            "selected_seller": selected_seller,
+            "seller_listing_rows": seller_listing_rows,
+        }
+    )
+    return templates.TemplateResponse(request, "admin_business_sellers.html", context)
 
 
 @router.get("/admin/analytics")

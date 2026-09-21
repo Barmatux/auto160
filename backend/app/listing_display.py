@@ -150,9 +150,17 @@ def listing_price_display(price_byn: float | int | None) -> ListingPriceDisplay:
 
 def listing_seller_label(seller_name: str | None) -> str:
     name = (seller_name or "").strip()
-    if name and _LEGAL_ENTITY_MARKER.search(name):
+    if name and is_legal_entity_seller(name):
         return name
     return "Частное лицо"
+
+
+def is_legal_entity_seller(seller_name: str | None) -> bool:
+    """True when seller_name looks like a company / sole proprietor, not a private person."""
+    name = (seller_name or "").strip()
+    if not name:
+        return False
+    return bool(_LEGAL_ENTITY_MARKER.search(name))
 
 
 def format_listing_spec_value(value: str | None) -> str:

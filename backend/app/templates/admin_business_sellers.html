@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+{% block title %}Админка — Бизнес-аккаунты{% endblock %}
+{% block content %}
+{% set admin_section = "business-sellers" %}
+{% include "partials/admin_nav.html" %}
+
+<h1>Аналитика бизнес-аккаунтов</h1>
+<p class="hint">
+  Юрлица и ИП из поля продавца av.by (ООО, ЗАО, ИП и т.п.).
+  «В архиве» — объявления, снятые с продажи (прокси продаж). Суммы в BYN по цене из объявления.
+</p>
+
+<section class="admin-stats-grid">
+  <article class="admin-stat-card">
+    <div class="label">Юрлиц</div>
+    <div class="value">{{ summary.sellers_count }}</div>
+  </article>
+  <article class="admin-stat-card">
+    <div class="label">Объявлений всего</div>
+    <div class="value">{{ summary.listings_total }}</div>
+    <div class="sub">активных {{ summary.published_total }} · архив {{ summary.archived_total }}</div>
+  </article>
+  <article class="admin-stat-card">
+    <div class="label">Сумма активных</div>
+    <div class="value">{{ summary.published_sum_label }}</div>
+    <div class="sub">BYN на витрине</div>
+  </article>
+  <article class="admin-stat-card">
+    <div class="label">Сумма архива</div>
+    <div class="value">{{ summary.archived_sum_label }}</div>
+    <div class="sub">BYN снятых объявлений</div>
+  </article>
+</section>
+
+<form class="filters filters-inline admin-log-toolbar" method="get" action="/admin/business-sellers">
+  <label>
+    Поиск юрлица
+    <input type="search" name="q" value="{{ seller_q }}" placeholder="ООО Авто…" />
+  </label>
+  {% if seller_sort.sort != 'archived_sum' %}
+    <input type="hidden" name="sort" value="{{ seller_sort.sort }}" />
+  {% endif %}
+  {% if seller_sort.direction != 'desc' or seller_sort.sort != 'archived_sum' %}
+    <input type="hidden" name="dir" value="{{ seller_sort.direction }}" />
+  {% endif %}
+  <button type="submit">Найти</button>
+  <a class="page-link" href="/admin/business-sellers">Сбросить</a>
+</form>
+
+{% if selected_seller %}
+  <section class="admin-business-seller-detail">
+    <h2>{{ selected_seller.seller_name }}</h2>
+    <p class="hint">
+      Всего {{ selected_seller.total }} · активно {{ selected_seller.published }} · архив {{ selected_seller.archived }}
+      · черновики {{ selected_seller.draft }} · с VIN {{ selected_seller.with_vin }} · с фото {{ selected_seller.with_photo }}
+      · города: {{ selected_seller.city_names | join(', ') if selected_seller.city_names else '—' }}
+    </p>
+    <p class="hint">
+      Открыт с {{ selected_seller.opened_at.strftime('%d.%m.%Y') if selected_seller.opened_at else '—' }}
+      · последняя активность {{ selected_seller.last_activity_at.strftime('%d.%m.%Y') if selected_seller.last_activity_at else '—' }}
+      · активные {{ selected_seller.published_sum_label }} BYN (ср. {{ selected_seller.published_avg_label }})
+      · архив {{ selected_seller.archived_sum_label }} BYN
+    </p>
+    <p><a class="page-link" href="/admin/business-sellers{% if seller_q %}?q={{ seller_q | urlencode }}{% endif %}">← Ко всем юрлицам</a></p>
+
+    <section class="admin-vin-table-wrap">
+      <table class="users-table admin-vin-table">
+        <thead>
+          <tr>
+            <th>Объявление</th>
+            <th>Статус</th>
+            <th>Цена BYN</th>
+            <th>Открыто</th>
+            <th>Активность</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in seller_listing_rows %}
+            <tr>
+              <td class="admin-vin-listing">
+                <a class="admin-vin-listing-title" href="/listings/{{ row.listing.id }}">
+                  {{ row.listing.brand }} {{ row.listing.model }}
+                </a>
+                <div class="admin-vin-listing-meta">
+                  #{{ row.listing.id }} · {{ row.listing.year }} · {{ row.listing.city }}
+                  {% if row.listing.vin %} · VIN{% endif %}
+                </div>
+              </td>
+              <td>{{ row.status_label }}</td>
+              <td>{{ row.price_label }}</td>
+              <td>{{ row.opened_at.strftime('%d.%m.%Y') if row.opened_at else '—' }}</td>
+              <td>{{ row.activity_at.strftime('%d.%m.%Y') if row.activity_at else '—' }}</td>
+            </tr>
+          {% else %}
+            <tr><td colspan="5">Нет объявлений</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+  </section>
+{% else %}
+  <section class="admin-vin-table-wrap">
+    <table class="users-table admin-vin-table admin-business-sellers-table">
+      <thead>
+        <tr>
+          <th>
+            <a class="admin-vin-sort{% if seller_sort.sort == 'name' %} is-active{% endif %}" href="/admin/business-sellers?{{ seller_sort_urls.name }}">
+              Юрлицо <span class="admin-vin-sort-arrow">{{ seller_sort.arrow('name') }}</span>
+            </a>
+          </th>
+          <th>
+            <a class="admin-vin-sort{% if seller_sort.sort == 'total' %} is-active{% endif %}" href="/admin/business-sellers?{{ seller_sort_urls.total }}">
+              Всего <span class="admin-vin-sort-arrow">{{ seller_sort.arrow('total') }}</span>
+            </a>
+          </th>
+          <th>
+            <a class="admin-vin-sort{% if seller_sort.sort == 'published' %} is-active{% endif %}" href="/admin/business-sellers?{{ seller_sort_urls.published }}">
+              Активно <span class="admin-vin-sort-arrow">{{ seller_sort.arrow('published') }}</span>
+            </a>
+          </th>
+          <th>
+            <a class="admin-vin-sort{% if seller_sort.sort == 'archived' %} is-active{% endif %}" href="/admin/business-sellers?{{ seller_sort_urls.archived }}">
+              Архив <span class="admin-vin-sort-arrow">{{ seller_sort.arrow('archived') }}</span>
+            </a>
+          </th>
+          <th>
+            <a class="admin-vin-sort{% if seller_sort.sort == 'opened' %} is-active{% endif %}" href="/admin/business-sellers?{{ seller_sort_urls.opened }}">
+              Открыт с <span class="admin-vin-sort-arrow">{{ seller_sort.arrow('opened') }}</span>
+            </a>
+          </th>
+          <th>
+            <a class="admin-vin-sort{% if seller_sort.sort == 'activity' %} is-active{% endif %}" href="/admin/business-sellers?{{ seller_sort_urls.activity }}">
+              Активность <span class="admin-vin-sort-arrow">{{ seller_sort.arrow('activity') }}</span>
+            </a>
+          </th>
+          <th>
+            <a class="admin-vin-sort{% if seller_sort.sort == 'published_sum' %} is-active{% endif %}" href="/admin/business-sellers?{{ seller_sort_urls.published_sum }}">
+              Сумма активных <span class="admin-vin-sort-arrow">{{ seller_sort.arrow('published_sum') }}</span>
+            </a>
+          </th>
+          <th>
+            <a class="admin-vin-sort{% if seller_sort.sort == 'archived_sum' %} is-active{% endif %}" href="/admin/business-sellers?{{ seller_sort_urls.archived_sum }}">
+              Сумма архива <span class="admin-vin-sort-arrow">{{ seller_sort.arrow('archived_sum') }}</span>
+            </a>
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in seller_rows %}
+          <tr>
+            <td>
+              <a class="admin-vin-listing-title" href="{{ row.detail_url }}{% if seller_q %}&amp;q={{ seller_q | urlencode }}{% endif %}">
+                {{ row.seller_name }}
+              </a>
+              <div class="admin-vin-listing-meta">
+                городов {{ row.cities }} · VIN {{ row.with_vin }} · фото {{ row.with_photo }}
+                {% if row.draft %} · черновики {{ row.draft }}{% endif %}
+              </div>
+            </td>
+            <td>{{ row.total }}</td>
+            <td>{{ row.published }}</td>
+            <td>{{ row.archived }}</td>
+            <td>{{ row.opened_at.strftime('%d.%m.%Y') if row.opened_at else '—' }}</td>
+            <td>{{ row.last_activity_at.strftime('%d.%m.%Y') if row.last_activity_at else '—' }}</td>
+            <td>
+              {{ row.published_sum_label }}
+              {% if row.published_avg_byn is not none %}
+                <div class="admin-vin-listing-meta">ср. {{ row.published_avg_label }}</div>
+              {% endif %}
+            </td>
+            <td>{{ row.archived_sum_label }}</td>
+          </tr>
+        {% else %}
+          <tr><td colspan="8">Юрлица не найдены</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+{% endif %}
+{% endblock %}
