@@ -120,16 +120,22 @@
   var enabled = true;
 
   function setOpen(open) {
-    panel.hidden = !open;
+    if (open) {
+      panel.removeAttribute("hidden");
+    } else {
+      panel.setAttribute("hidden", "");
+    }
     toggle.setAttribute("aria-expanded", open ? "true" : "false");
     root.classList.toggle("is-open", open);
     if (open) input.focus();
   }
 
   toggle.addEventListener("click", function () {
-    setOpen(panel.hidden);
+    setOpen(panel.hasAttribute("hidden"));
   });
-  closeBtn.addEventListener("click", function () {
+  closeBtn.addEventListener("click", function (ev) {
+    ev.preventDefault();
+    ev.stopPropagation();
     setOpen(false);
   });
 
