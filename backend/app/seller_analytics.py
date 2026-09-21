@@ -22,6 +22,7 @@ SORT_COLUMNS = (
     "archived",
     "opened",
     "activity",
+    "lifetime",
     "published_sum",
     "archived_sum",
     "vs_market",
@@ -34,6 +35,7 @@ DESC_DEFAULT_COLUMNS = {
     "archived",
     "opened",
     "activity",
+    "lifetime",
     "published_sum",
     "archived_sum",
     "vs_market",
@@ -56,6 +58,49 @@ def _listing_opened_at(listing: CarListing) -> datetime | None:
 
 def _listing_activity_at(listing: CarListing) -> datetime | None:
     return listing.avby_renewed_at or listing.avby_published_at or listing.created_at
+
+
+def _as_naive_utc(value: datetime) -> datetime:
+    if value.tzinfo is None:
+        return value
+    return value.replace(tzinfo=None)
+
+
+def listing_days_on_market(listing: CarListing, *, now: datetime | None = None) -> int | None:
+    """Days the listing was/is on the market.
+
+    Published: from open date until now («висит»).
+    Archived: from open until last known activity (no archived_at in DB).
+    """
+    opened = _listing_opened_at(listing)
+    if opened is None:
+        return None
+    opened = _as_naive_utc(opened)
+    current = _as_naive_utc(now or datetime.utcnow())
+    if listing.status == ListingStatus.archived:
+        end = _listing_activity_at(listing)
+        end = _as_naive_utc(end) if end is not None else opened
+        if end < opened:
+            end = opened
+    else:
+        end = current
+    return max(0, (end - opened).days)
+
+
+def format_days_label(days: int | None) -> str:
+    if days is None:
+        return "—"
+    return f"{days} дн."
+
+
+def format_listing_lifetime_label(listing: CarListing, days: int | None) -> str:
+    if days is None:
+        return "—"
+    if listing.status == ListingStatus.archived:
+        return f"прожило ~{days} дн."
+    if listing.status == ListingStatus.published:
+        return f"висит {days} дн."
+    return f"{days} дн."
 
 
 def _price_byn(listing: CarListing) -> float | None:
@@ -197,6 +242,9 @@ class BusinessSellerStats:
     vs_market_below: int = 0
     vs_market_near: int = 0
     vs_market_avg_pct: float | None = None
+    avg_lifetime_days: float | None = None
+    avg_hanging_days: float | None = None
+    avg_archived_lifetime_days: float | None = None
 
     @property
     def detail_url(self) -> str:
@@ -226,6 +274,21 @@ class BusinessSellerStats:
             f"сравнено {self.vs_market_compared}: "
             f"выше {self.vs_market_above} · ниже {self.vs_market_below} · ≈ {self.vs_market_near}"
         )
+
+    @property
+    def avg_lifetime_label(self) -> str:
+        if self.avg_lifetime_days is None:
+            return "—"
+        return f"{self.avg_lifetime_days:.0f} дн."
+
+    @property
+    def lifetime_detail(self) -> str:
+        parts: list[str] = []
+        if self.avg_hanging_days is not None:
+            parts.append(f"активные ср. {self.avg_hanging_days:.0f} дн.")
+        if self.avg_archived_lifetime_days is not None:
+            parts.append(f"архив ср. ~{self.avg_archived_lifetime_days:.0f} дн.")
+        return " · ".join(parts) if parts else "нет дат"
 
 
 @dataclass(frozen=True)
@@ -257,6 +320,8 @@ class BusinessSellerListingRow:
     market_avg_label: str = "—"
     vs_market_pct: float | None = None
     vs_market_label: str = "—"
+    days_on_market: int | None = None
+    lifetime_label: str = "—"
 
 
 def _status_label(status: ListingStatus) -> str:
@@ -271,6 +336,8 @@ def _aggregate_seller(
     name: str,
     listings: list[CarListing],
     avg_map: AvgPriceMap | None = None,
+    *,
+    now: datetime | None = None,
 ) -> BusinessSellerStats:
     cities: set[str] = set()
     opened_at: datetime | None = None
@@ -281,6 +348,10 @@ def _aggregate_seller(
     pcts: list[float] = []
     above = below = near = 0
     price_map = avg_map or {}
+    lifetime_all: list[int] = []
+    lifetime_published: list[int] = []
+    lifetime_archived: list[int] = []
+    current = now or datetime.utcnow()
 
     for listing in listings:
         city = (listing.city or "").strip()
@@ -309,6 +380,14 @@ def _aggregate_seller(
                 archived_sum += price
         else:
             draft += 1
+
+        days = listing_days_on_market(listing, now=current)
+        if days is not None and listing.status in (ListingStatus.published, ListingStatus.archived):
+            lifetime_all.append(days)
+            if listing.status == ListingStatus.published:
+                lifetime_published.append(days)
+            else:
+                lifetime_archived.append(days)
 
         if listing.status in (ListingStatus.published, ListingStatus.archived):
             pct = listing_vs_market_pct(listing, price_map)
@@ -342,11 +421,19 @@ def _aggregate_seller(
         vs_market_below=below,
         vs_market_near=near,
         vs_market_avg_pct=round(sum(pcts) / len(pcts), 1) if pcts else None,
+        avg_lifetime_days=round(sum(lifetime_all) / len(lifetime_all), 1) if lifetime_all else None,
+        avg_hanging_days=(
+            round(sum(lifetime_published) / len(lifetime_published), 1) if lifetime_published else None
+        ),
+        avg_archived_lifetime_days=(
+            round(sum(lifetime_archived) / len(lifetime_archived), 1) if lifetime_archived else None
+        ),
     )
 
 
 def _sort_key(row: BusinessSellerStats, sort: str):
     vs_key = row.vs_market_avg_pct if row.vs_market_avg_pct is not None else float("-inf")
+    lifetime_key = row.avg_lifetime_days if row.avg_lifetime_days is not None else float("-inf")
     mapping = {
         "name": (row.seller_name.casefold(),),
         "total": (row.total, row.seller_name.casefold()),
@@ -354,6 +441,7 @@ def _sort_key(row: BusinessSellerStats, sort: str):
         "archived": (row.archived, row.seller_name.casefold()),
         "opened": (row.opened_at or datetime.min, row.seller_name.casefold()),
         "activity": (row.last_activity_at or datetime.min, row.seller_name.casefold()),
+        "lifetime": (lifetime_key, row.seller_name.casefold()),
         "published_sum": (row.published_sum_byn, row.seller_name.casefold()),
         "archived_sum": (row.archived_sum_byn, row.seller_name.casefold()),
         "vs_market": (vs_key, row.vs_market_compared, row.seller_name.casefold()),
@@ -457,6 +545,7 @@ def build_business_seller_listings(
         avg_key = _listing_avg_key(listing)
         market_avg = avg_map.get(avg_key) if avg_key else None
         pct = listing_vs_market_pct(listing, avg_map)
+        days = listing_days_on_market(listing)
         rows.append(
             BusinessSellerListingRow(
                 listing=listing,
@@ -467,6 +556,8 @@ def build_business_seller_listings(
                 market_avg_label=format_money_amount(market_avg) if market_avg is not None else "—",
                 vs_market_pct=pct,
                 vs_market_label=format_vs_market_label(pct, compared=1 if pct is not None else 0),
+                days_on_market=days,
+                lifetime_label=format_listing_lifetime_label(listing, days),
             )
         )
     return stats, rows

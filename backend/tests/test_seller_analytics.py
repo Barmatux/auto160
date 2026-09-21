@@ -164,6 +164,70 @@ def test_build_business_seller_report_vs_market():
     assert "рынок" in row.vs_market_label
 
 
+def test_listing_days_on_market():
+    from app.seller_analytics import format_listing_lifetime_label, listing_days_on_market
+
+    now = datetime(2026, 3, 15)
+    published = _listing(
+        status=ListingStatus.published,
+        avby_published_at=datetime(2026, 3, 1),
+        avby_renewed_at=datetime(2026, 3, 10),
+    )
+    assert listing_days_on_market(published, now=now) == 14
+    assert format_listing_lifetime_label(published, 14) == "висит 14 дн."
+
+    archived = _listing(
+        status=ListingStatus.archived,
+        avby_published_at=datetime(2026, 1, 1),
+        avby_renewed_at=datetime(2026, 1, 21),
+    )
+    assert listing_days_on_market(archived, now=now) == 20
+    assert "прожило" in format_listing_lifetime_label(archived, 20)
+
+
+def test_build_business_seller_report_lifetime_avg():
+    now = datetime(2026, 3, 15)
+    listings = [
+        _listing(
+            id=1,
+            seller_name="ООО Срок",
+            status=ListingStatus.published,
+            avby_published_at=datetime(2026, 3, 5),
+            avby_renewed_at=datetime(2026, 3, 10),
+        ),
+        _listing(
+            id=2,
+            seller_name="ООО Срок",
+            status=ListingStatus.archived,
+            avby_published_at=datetime(2026, 1, 1),
+            avby_renewed_at=datetime(2026, 1, 31),
+        ),
+    ]
+    db = _db_with_listings_and_avgs(listings)
+    import app.seller_analytics as mod
+
+    original = mod.datetime
+
+    class _FixedDatetime(datetime):
+        @classmethod
+        def utcnow(cls):
+            return now
+
+    mod.datetime = _FixedDatetime  # type: ignore[misc,assignment]
+    try:
+        _summary, rows = build_business_seller_report(db)
+    finally:
+        mod.datetime = original  # type: ignore[misc]
+
+    assert len(rows) == 1
+    row = rows[0]
+    # published: 10 days, archived: 30 days → avg 20
+    assert row.avg_hanging_days == 10.0
+    assert row.avg_archived_lifetime_days == 30.0
+    assert row.avg_lifetime_days == 20.0
+    assert row.avg_lifetime_label == "20 дн."
+
+
 def test_build_business_seller_listings_detail():
     listings = [
         _listing(id=10, seller_name="ООО Тест", brand="BMW", model="X1", year=2019, price=23000),
@@ -195,3 +259,4 @@ def test_build_business_seller_listings_detail():
     assert priced.vs_market_pct == 15.0
     assert "выше" in priced.vs_market_label
     assert priced.market_avg_label == "20 000"
+    assert priced.lifetime_label.startswith("висит")
