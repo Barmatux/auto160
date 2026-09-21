@@ -105,6 +105,37 @@ class ListingEmbedding(Base):
     listing: Mapped["CarListing"] = relationship(back_populates="embedding")
 
 
+class RagChunk(Base):
+    """Embedded guide/FAQ chunk for chat RAG."""
+
+    __tablename__ = "rag_chunks"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    source_key: Mapped[str] = mapped_column(String(120), unique=True, index=True)
+    title: Mapped[str] = mapped_column(String(200))
+    content: Mapped[str] = mapped_column(Text)
+    url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    embedding: Mapped[list] = mapped_column(Vector(1536) if Vector is not None else JSON, nullable=False)
+    content_hash: Mapped[str] = mapped_column(String(64), index=True)
+    model: Mapped[str] = mapped_column(String(80), index=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class ChatLog(Base):
+    """Public chat dialog log (no secrets)."""
+
+    __tablename__ = "chat_logs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+    client_ip: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    session_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    question: Mapped[str] = mapped_column(Text)
+    answer: Mapped[str | None] = mapped_column(Text, nullable=True)
+    tool_calls: Mapped[dict | list | None] = mapped_column(JSON, nullable=True)
+    error: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
 class CatalogItem(Base):
     __tablename__ = "catalog_items"
 

@@ -43,6 +43,11 @@ class Settings(BaseSettings):
     embedding_model: str = "text-embedding-3-small"
     # openai | local — local = deterministic hash vectors (no API key; for smoke/dev).
     embedding_provider: str = "openai"
+    # Public chat (OpenRouter / OpenAI-compatible chat completions).
+    chat_model: str = "openai/gpt-4o-mini"
+    chat_enabled: bool = True
+    chat_rate_limit_per_hour: int = 30
+    chat_max_tool_rounds: int = 3
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

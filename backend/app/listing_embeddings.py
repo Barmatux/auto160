@@ -79,8 +79,13 @@ def _embedding_client() -> OpenAI:
     if proxy:
         import httpx
 
-        kwargs["http_client"] = httpx.Client(proxy=proxy, timeout=60.0)
+        kwargs["http_client"] = httpx.Client(proxy=proxy, timeout=90.0)
     return OpenAI(**kwargs)
+
+
+def get_openai_client() -> OpenAI:
+    """Shared OpenAI-compatible client (embeddings + chat via OpenRouter)."""
+    return _embedding_client()
 
 
 def _local_embed_text(text_value: str, dim: int = DEFAULT_EMBEDDING_DIM) -> list[float]:

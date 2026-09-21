@@ -11,11 +11,14 @@ OPENAI_BASE_URL=https://openrouter.ai/api/v1
 OPENAI_HTTP_PROXY=http://user:pass@host:port
 EMBEDDING_MODEL=openai/text-embedding-3-small
 EMBEDDING_PROVIDER=openai
+CHAT_MODEL=openai/gpt-4o-mini
+CHAT_ENABLED=true
+CHAT_RATE_LIMIT_PER_HOUR=30
 ```
 
-Without `OPENAI_API_KEY` the service uses deterministic **local hash vectors** so deploy/smoke works; set a real key and re-run `--force` for production quality.
+Without `OPENAI_API_KEY` the service uses deterministic **local hash vectors** so deploy/smoke works; set a real key and re-run `--force` for production quality. Chat requires a real key.
 
-## Backfill
+## Backfill listings
 
 ```bash
 cd ~/auto160/backend
@@ -27,8 +30,19 @@ Options: `--limit 100`, `--force`, `--ids 1,2,3`.
 
 After `avby-sync` / `autoplius-sync` the scheduler also runs reindex (skips unchanged `content_hash`). Without `OPENAI_API_KEY` sync continues; embeddings step logs a warning.
 
+## Backfill guides/FAQ (RAG)
+
+```bash
+docker compose --env-file .env.vm -f docker-compose.vm.yml exec -T api \
+  python tools/reindex_rag.py
+```
+
 ## API
 
 ```bash
 curl 'http://127.0.0.1:8000/api/v1/listings/semantic?q=bmw+x1+автомат&limit=10'
+curl -sS 'http://127.0.0.1:8000/api/v1/chat/status'
+curl -sS -X POST 'http://127.0.0.1:8000/api/v1/chat' \
+  -H 'Content-Type: application/json' \
+  -d '{"message":"Зачем авто до 160 л.с.?"}'
 ```
