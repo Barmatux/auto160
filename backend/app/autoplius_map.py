@@ -14,9 +14,14 @@ from urllib.request import Request, urlopen
 
 NBRB_EUR_URL = "https://api.nbrb.by/exrates/rates/EUR?parammode=2"
 
-# Photos live in Yandex Object Storage (private bucket), not the scrape /media proxy.
+# Photos: scrape-platform writes to auto160-media (auto24/, autoplius/, mobile_de/).
+# Legacy Autoplius keys (listings/) still live in the private autoplius-media bucket.
 DEFAULT_MEDIA_BUCKET = "autoplius-media"
 DEFAULT_MEDIA_ENDPOINT = "https://storage.yandexcloud.net"
+APP_MEDIA_BUCKET = "auto160-media"
+_SCRAPE_PLATFORM_KEY_PREFIXES = ("auto24/", "autoplius/", "mobile_de/")
+_LEGACY_AUTOPLIUS_KEY_PREFIXES = ("listings/",)
+_KNOWN_STORAGE_KEY_PREFIXES = _SCRAPE_PLATFORM_KEY_PREFIXES + _LEGACY_AUTOPLIUS_KEY_PREFIXES
 
 # Lithuania / Baltics feed policy: cars up to 5 years with modest engines (in addition to ≤160 hp).
 DEFAULT_MAX_AGE_YEARS = 5
@@ -181,33 +186,47 @@ def extract_engine_power_hp(row: dict[str, Any]) -> int | None:
     return None
 
 
+def is_scrape_storage_key(key: str | None) -> bool:
+    """True when key looks like an object written by scrape-platform or legacy Autoplius sync."""
+    if not key:
+        return False
+    return key.startswith(_KNOWN_STORAGE_KEY_PREFIXES)
+
+
 def extract_storage_key(path: str | None) -> str | None:
-    """Normalize scrape media paths to an object key inside autoplius-media."""
+    """Normalize scrape media paths to an object storage key."""
     if not path:
         return None
     text = str(path).strip()
     if not text:
         return None
     if text.startswith("s3://"):
-        # s3://autoplius-media/listings/...
+        # s3://autoplius-media/listings/... or s3://auto160-media/auto24/...
         without = text[5:]
         if "/" not in without:
             return None
         _bucket, key = without.split("/", 1)
-        return unquote(key).lstrip("/") or None
-    if "media/object" in text or "key=" in text:
+        key = unquote(key).lstrip("/") or None
+        return key if is_scrape_storage_key(key) else None
+    if "media/object" in text or "media/autoplius" in text or "key=" in text:
         parsed = urlparse(text if "://" in text else f"http://local{text if text.startswith('/') else '/' + text}")
         qs = parse_qs(parsed.query)
         if qs.get("key"):
-            return unquote(qs["key"][0]).lstrip("/") or None
+            key = unquote(qs["key"][0]).lstrip("/") or None
+            return key if is_scrape_storage_key(key) else None
     if text.startswith("http://") or text.startswith("https://"):
         parsed = urlparse(text)
+        # https://storage.yandexcloud.net/auto160-media/auto24/...
         # https://storage.yandexcloud.net/autoplius-media/listings/...
         parts = [p for p in parsed.path.split("/") if p]
-        if len(parts) >= 2 and parts[0] in {DEFAULT_MEDIA_BUCKET, "autoplius-media"}:
-            return "/".join(parts[1:])
-        return parsed.path.lstrip("/") or None
-    return text.lstrip("/")
+        known_buckets = {DEFAULT_MEDIA_BUCKET, "autoplius-media", APP_MEDIA_BUCKET, "auto160-media"}
+        if len(parts) >= 2 and parts[0] in known_buckets:
+            key = "/".join(parts[1:])
+            return key if is_scrape_storage_key(key) else None
+        # Do not treat CDN / arbitrary HTTP paths as storage keys.
+        return None
+    key = text.lstrip("/")
+    return key if is_scrape_storage_key(key) else None
 
 
 def absolute_media_url(
@@ -220,7 +239,8 @@ def absolute_media_url(
 ) -> str | None:
     """Build a fetchable URL for a photo.
 
-    Default: app proxy ``/media/autoplius?key=...`` (private Yandex bucket).
+    scrape-platform keys (auto24/, autoplius/, mobile_de/) → ``/media/object`` (auto160-media).
+    Legacy listings/ keys → ``/media/autoplius`` (autoplius-media).
     If ``media_base`` is set, keep legacy scrape HTTP proxy mode.
     If ``use_app_proxy`` is False, build a direct Yandex path-style URL.
     """
@@ -239,13 +259,20 @@ def absolute_media_url(
             text = "/" + text
         return base + text
 
-    key = extract_storage_key(path)
+    raw = str(path).strip().lstrip("/") if path else ""
+    if is_scrape_storage_key(raw) and "key=" not in raw and "://" not in raw:
+        key = raw
+    else:
+        key = extract_storage_key(path)
     if not key:
         return None
+    uses_app_bucket = key.startswith(_SCRAPE_PLATFORM_KEY_PREFIXES)
     if use_app_proxy:
+        if uses_app_bucket:
+            return f"/media/object?key={quote(key, safe='')}"
         return f"/media/autoplius?key={quote(key, safe='')}"
     endpoint = media_endpoint.rstrip("/")
-    bucket = (media_bucket or DEFAULT_MEDIA_BUCKET).strip()
+    bucket = APP_MEDIA_BUCKET if uses_app_bucket else (media_bucket or DEFAULT_MEDIA_BUCKET).strip()
     return f"{endpoint}/{bucket}/{key}"
 
 

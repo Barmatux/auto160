@@ -97,3 +97,25 @@ def test_extract_storage_key_from_media_proxy():
         extract_storage_key("/media/object?key=listings%2F29526558%2F000_x.jpg")
         == "listings/29526558/000_x.jpg"
     )
+    assert (
+        extract_storage_key("/media/object?key=autoplius%2F29526558%2F000_x.jpg")
+        == "autoplius/29526558/000_x.jpg"
+    )
+    assert extract_storage_key("https://img13.img-bcg.eu/h30/abc/s1/1.jpg") is None
+
+
+def test_absolute_media_url_routes_by_bucket():
+    from app.autoplius_map import absolute_media_url
+
+    assert (
+        absolute_media_url("listings/1/000_a.jpg")
+        == "/media/autoplius?key=listings%2F1%2F000_a.jpg"
+    )
+    assert (
+        absolute_media_url("auto24/1/000_a.jpg")
+        == "/media/object?key=auto24%2F1%2F000_a.jpg"
+    )
+    assert (
+        absolute_media_url("autoplius/1/000_a.jpg")
+        == "/media/object?key=autoplius%2F1%2F000_a.jpg"
+    )

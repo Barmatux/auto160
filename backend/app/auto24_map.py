@@ -199,7 +199,7 @@ def _brand_model(row: dict[str, Any]) -> tuple[str | None, str | None]:
 
 
 def _cdn_photo_urls(row: dict[str, Any]) -> list[str]:
-    """Prefer original Auto24 CDN URLs — scrape media keys are often not uploaded to Yandex."""
+    """Original Auto24 CDN URLs from parameters (fallback when S3 keys are missing)."""
     urls: list[str] = []
     for params in _param_maps(row):
         raw_list = params.get("source_photo_urls")
@@ -253,20 +253,16 @@ def map_auto24_row(
         except (TypeError, ValueError):
             engine_l = None
 
-    cdn_urls = _cdn_photo_urls(row)
-    photo_keys: list[str] = []
-    if cdn_urls:
-        # CDN originals work; local auto24/ keys in scrape are stubs until S3 upload exists.
-        photo_urls = cdn_urls
-        cover = cdn_urls[0]
-    else:
-        photo_urls_raw = row.get("photo_urls") or []
-        if not isinstance(photo_urls_raw, list):
-            photo_urls_raw = []
-        photo_keys = [k for k in (extract_storage_key(p) for p in photo_urls_raw) if k]
-        cover_key = extract_storage_key(row.get("photo_url"))
-        if cover_key and cover_key not in photo_keys:
-            photo_keys = [cover_key, *photo_keys]
+    # Prefer uploaded S3 keys from scrape-platform; CDN only if keys are absent.
+    photo_urls_raw = row.get("photo_urls") or []
+    if not isinstance(photo_urls_raw, list):
+        photo_urls_raw = []
+    photo_keys = [k for k in (extract_storage_key(p) for p in photo_urls_raw) if k]
+    cover_key = extract_storage_key(row.get("photo_url"))
+    if cover_key and cover_key not in photo_keys:
+        photo_keys = [cover_key, *photo_keys]
+
+    if photo_keys:
         photo_urls = [
             u
             for u in (
@@ -291,6 +287,10 @@ def map_auto24_row(
             )
             or (photo_urls[0] if photo_urls else None)
         )
+    else:
+        cdn_urls = _cdn_photo_urls(row)
+        photo_urls = cdn_urls
+        cover = cdn_urls[0] if cdn_urls else None
 
     body_type = _normalize_lookup(row.get("body_type"), BODY_MAP)
     engine_type = _normalize_lookup(row.get("fuel"), FUEL_MAP)
