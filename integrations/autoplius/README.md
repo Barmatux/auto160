@@ -39,11 +39,14 @@ docker compose --env-file .env.vm -f docker-compose.vm.yml exec -T api \
 `docker-compose.vm.yml` runs `autoplius-sync` every 45 minutes:
 
 - reads scrape-platform Postgres (`AUTOPLIUS_SCRAPE_DSN` / default `10.129.0.33:5433`)
-- upserts into `car_listings` with filters ≤160 hp / ≤5y / ≤1.9 L
+- fetches only `detail_scraped` active rows, then upserts into `car_listings` with filters ≤160 hp / ≤5y / ≤1.9 L
 - Autoplius scrape itself runs only on scrape-platform (`/opt/scrape-platform`)
+
+Listing embeddings are **not** rebuilt in this loop — nightly `listing-embeddings` (04:00 local) runs `reindex_listing_embeddings.py` once per day.
 
 ```bash
 docker compose --env-file .env.vm -f docker-compose.vm.yml logs -f autoplius-sync
+docker compose --env-file .env.vm -f docker-compose.vm.yml logs -f listing-embeddings
 ```
 
 Identity: `source=autoplius` + `external_id`. Belarus av.by rows use `source=av.by`.

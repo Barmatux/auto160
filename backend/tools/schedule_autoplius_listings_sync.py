@@ -21,7 +21,30 @@ REINDEX_PATH = ROOT_DIR / "tools" / "reindex_listing_embeddings.py"
 logger = logging.getLogger(__name__)
 
 
-def run_once(*, max_hp: int, max_age_years: int, max_engine_l: float) -> int:
+def run_embedding_reindex() -> int:
+    cmd = [sys.executable, str(REINDEX_PATH)]
+    logger.info("autoplius-embeddings-start: %s", " ".join(cmd))
+    result = subprocess.run(cmd, cwd=str(ROOT_DIR), capture_output=True, text=True)
+    if result.stdout:
+        for line in result.stdout.splitlines()[-20:]:
+            logger.info("autoplius-embeddings | %s", line)
+    if result.stderr:
+        for line in result.stderr.splitlines()[-10:]:
+            logger.warning("autoplius-embeddings ! %s", line)
+    if result.returncode != 0:
+        logger.warning("autoplius-embeddings failed exit_code=%s; continuing", result.returncode)
+        return 0
+    logger.info("autoplius-embeddings-finish: exit_code=%s", result.returncode)
+    return 0
+
+
+def run_once(
+    *,
+    max_hp: int,
+    max_age_years: int,
+    max_engine_l: float,
+    reindex_embeddings: bool = False,
+) -> int:
     cmd = [
         sys.executable,
         str(IMPORTER_PATH),
@@ -43,23 +66,8 @@ def run_once(*, max_hp: int, max_age_years: int, max_engine_l: float) -> int:
     logger.info("autoplius-import-finish: exit_code=%s", result.returncode)
     if result.returncode != 0:
         return result.returncode
-    return run_embedding_reindex()
-
-
-def run_embedding_reindex() -> int:
-    cmd = [sys.executable, str(REINDEX_PATH)]
-    logger.info("autoplius-embeddings-start: %s", " ".join(cmd))
-    result = subprocess.run(cmd, cwd=str(ROOT_DIR), capture_output=True, text=True)
-    if result.stdout:
-        for line in result.stdout.splitlines()[-20:]:
-            logger.info("autoplius-embeddings | %s", line)
-    if result.stderr:
-        for line in result.stderr.splitlines()[-10:]:
-            logger.warning("autoplius-embeddings ! %s", line)
-    if result.returncode != 0:
-        logger.warning("autoplius-embeddings failed exit_code=%s; continuing", result.returncode)
-        return 0
-    logger.info("autoplius-embeddings-finish: exit_code=%s", result.returncode)
+    if reindex_embeddings:
+        return run_embedding_reindex()
     return 0
 
 
@@ -70,6 +78,11 @@ def main() -> int:
     parser.add_argument("--max-age-years", type=int, default=5)
     parser.add_argument("--max-engine-l", type=float, default=1.9)
     parser.add_argument("--run-once", action="store_true")
+    parser.add_argument(
+        "--reindex-embeddings",
+        action="store_true",
+        help="Reindex listing embeddings after import (default: skip; use nightly listing-embeddings)",
+    )
     args = parser.parse_args()
 
     setup_logging()
@@ -78,6 +91,7 @@ def main() -> int:
             max_hp=args.max_hp,
             max_age_years=args.max_age_years,
             max_engine_l=args.max_engine_l,
+            reindex_embeddings=args.reindex_embeddings,
         )
 
     interval_seconds = max(60, args.interval_minutes * 60)
@@ -86,6 +100,7 @@ def main() -> int:
             max_hp=args.max_hp,
             max_age_years=args.max_age_years,
             max_engine_l=args.max_engine_l,
+            reindex_embeddings=args.reindex_embeddings,
         )
         logger.info("sleep: %ss", interval_seconds)
         time.sleep(interval_seconds)

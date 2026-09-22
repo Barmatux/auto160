@@ -94,5 +94,23 @@ services:
       --run-at-hour 3
       --delay 0.5
 
+  listing-embeddings:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: auto160-listing-embeddings
+    restart: unless-stopped
+    environment:
+      LOG_DIR: /app/logs
+      LOG_SERVICE: listing-embeddings
+    volumes:
+      - ../logs:/app/logs
+    depends_on:
+      db:
+        condition: service_healthy
+    command: >
+      python tools/schedule_listing_embeddings.py
+      --run-at-hour 4
+
 volumes:
   pgdata:

@@ -67,6 +67,7 @@ SELECT
 FROM listings
 WHERE source = %s
   AND status = 'active'
+  AND detail_scraped IS TRUE
 ORDER BY id DESC
 """
 

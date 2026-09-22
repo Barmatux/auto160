@@ -111,7 +111,7 @@ def run_once(
     refresh_prices: bool = True,
     price_refresh_delay: float = 0.12,
     recompute_avg_prices: bool = True,
-    reindex_embeddings: bool = True,
+    reindex_embeddings: bool = False,
 ) -> int:
     cmd = [
         sys.executable,
@@ -197,11 +197,17 @@ def main() -> None:
         action="store_true",
         help="Do not recompute brand/model/year average prices after sync",
     )
+    parser.add_argument(
+        "--reindex-embeddings",
+        action="store_true",
+        help="Reindex listing embeddings after sync (default: skip; use nightly listing-embeddings)",
+    )
     args = parser.parse_args()
 
     update_existing = not args.no_update_existing
     refresh_prices = not args.skip_price_refresh
     recompute_avg_prices = not args.skip_avg_prices
+    reindex_embeddings = args.reindex_embeddings
     if args.run_once:
         raise SystemExit(
             run_once(
@@ -217,6 +223,7 @@ def main() -> None:
                 refresh_prices=refresh_prices,
                 price_refresh_delay=args.price_refresh_delay,
                 recompute_avg_prices=recompute_avg_prices,
+                reindex_embeddings=reindex_embeddings,
             )
         )
 
@@ -235,6 +242,7 @@ def main() -> None:
             refresh_prices=refresh_prices,
             price_refresh_delay=args.price_refresh_delay,
             recompute_avg_prices=recompute_avg_prices,
+            reindex_embeddings=reindex_embeddings,
         )
         logger.info("sleep: %ss", interval_seconds)
         time.sleep(interval_seconds)

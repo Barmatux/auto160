@@ -134,5 +134,26 @@ services:
       --max-age-years 5
       --max-engine-l 1.9
 
+  listing-embeddings:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: auto160-listing-embeddings
+    restart: unless-stopped
+    env_file:
+      - .env.vm
+    environment:
+      LOG_DIR: /app/logs
+      LOG_SERVICE: listing-embeddings
+      LOG_TIMEZONE: Europe/Minsk
+    volumes:
+      - ../logs:/app/logs
+    depends_on:
+      db:
+        condition: service_healthy
+    command: >
+      python tools/schedule_listing_embeddings.py
+      --run-at-hour 4
+
 volumes:
   pgdata:
