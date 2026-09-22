@@ -18,8 +18,8 @@ NBRB_EUR_URL = "https://api.nbrb.by/exrates/rates/EUR?parammode=2"
 DEFAULT_MEDIA_BUCKET = "autoplius-media"
 DEFAULT_MEDIA_ENDPOINT = "https://storage.yandexcloud.net"
 
-# Lithuania feed policy: young cars with modest engines (in addition to ≤160 hp).
-DEFAULT_MAX_AGE_YEARS = 5
+# Lithuania feed policy: cars up to 10 years with modest engines (in addition to ≤160 hp).
+DEFAULT_MAX_AGE_YEARS = 10
 DEFAULT_MAX_ENGINE_L = 1.9
 
 
