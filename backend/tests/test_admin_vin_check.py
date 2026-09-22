@@ -167,6 +167,14 @@ def test_listing_matches_vin_check_filters():
         auto_diesel,
         VinCheckListingFilters(brand="BMW", model="X1"),
     ) is True
+    assert listing_matches_vin_check_filters(
+        SimpleNamespace(transmission_type="Автомат", engine_type="бензин", year=2009, brand="BMW", model="X1"),
+        VinCheckListingFilters(),
+    ) is False
+    assert listing_matches_vin_check_filters(
+        SimpleNamespace(transmission_type="Автомат", engine_type="бензин", year=2010, brand="BMW", model="X1"),
+        VinCheckListingFilters(),
+    ) is True
 
 
 def test_normalize_vin_check_sort():

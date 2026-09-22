@@ -81,6 +81,7 @@ VIN_CHECK_SORT_LABELS = {
     VIN_CHECK_SORT_PRICE: "По цене",
     VIN_CHECK_SORT_MILEAGE: "По пробегу",
 }
+VIN_CHECK_DEFAULT_YEAR_FROM = 2010
 
 
 def normalize_vin_check_sort(value: str | None) -> str:
@@ -977,6 +978,13 @@ def listing_matches_vin_check_filters(
     listing: CarListing,
     filters: VinCheckListingFilters | None = None,
 ) -> bool:
+    year = getattr(listing, "year", None)
+    try:
+        year_int = int(year) if year is not None else None
+    except (TypeError, ValueError):
+        year_int = None
+    if year_int is None or year_int < VIN_CHECK_DEFAULT_YEAR_FROM:
+        return False
     if filters is None:
         return True
     brand_filter = normalize_catalog_name(filters.brand)
@@ -992,8 +1000,7 @@ def listing_matches_vin_check_filters(
         if classify_fuel_type(getattr(listing, "engine_type", None)) != FUEL_GROUP_DIESEL:
             return False
     if filters.year_from_2020:
-        year = getattr(listing, "year", None)
-        if year is None or int(year) < 2020:
+        if year_int < 2020:
             return False
     return True
 
