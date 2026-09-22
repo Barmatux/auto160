@@ -385,7 +385,7 @@ body.theme-admin .pager .page-link {
 }
 
 body.theme-admin .listing-description-backdrop {
-  background: rgba(0, 0, 0, 0.72);
+  display: none !important;
 }
 
 body.theme-admin .catalog-make-card .make-logo-wrap,
