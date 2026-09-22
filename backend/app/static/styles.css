@@ -950,7 +950,7 @@ body.theme-admin.theme-admin-light .header-theme-toggle:focus-visible {
 
 .admin-vin-found-head {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(260px, 340px);
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 720px);
   gap: 16px 20px;
   align-items: start;
 }
@@ -959,11 +959,35 @@ body.theme-admin.theme-admin-light .header-theme-toggle:focus-visible {
   margin: 0 0 6px;
 }
 
+.admin-vin-stats-duo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  width: 100%;
+  justify-self: end;
+}
+
+.admin-vin-stats-duo.is-open {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-width: 720px;
+  justify-self: center;
+  grid-column: 1 / -1;
+}
+
 .admin-vin-stats-panel {
   background: rgba(255, 255, 255, 0.72);
   border: 1px solid #bfd6f7;
   border-radius: 14px;
   padding: 12px;
+  min-width: 0;
+}
+
+.admin-vin-accounts-panel[hidden] {
+  display: none !important;
+}
+
+.admin-vin-accounts-subtitle {
+  margin: 6px 0 10px;
 }
 
 .admin-vin-stats-panel-toggle {
@@ -1116,6 +1140,13 @@ body.theme-admin.theme-admin-light .header-theme-toggle:focus-visible {
 @media (max-width: 900px) {
   .admin-vin-found-head {
     grid-template-columns: 1fr;
+  }
+
+  .admin-vin-stats-duo.is-open {
+    grid-template-columns: 1fr;
+    max-width: none;
+    justify-self: stretch;
+    grid-column: auto;
   }
 }
 

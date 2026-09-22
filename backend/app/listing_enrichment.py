@@ -974,6 +974,34 @@ def build_vin_found_collection_stats_by_day(
     return groups
 
 
+def build_vin_found_collection_stats_by_account(
+    db: Session,
+    *,
+    days: int = 30,
+    today: date | None = None,
+) -> list[dict]:
+    """VIN collection totals per account for the last `days` days (inclusive)."""
+    end = today or date.today()
+    start = end - timedelta(days=max(days, 1) - 1)
+    listings, _ = paginate_rating_one_listings_with_vin(
+        db,
+        page=1,
+        page_size=10**9,
+        date_filter=VinFoundDateFilter(date_from=start, date_to=end),
+    )
+    account_labels = build_listing_vin_account_labels(db, listings)
+    counts: dict[str, int] = defaultdict(int)
+    for listing in listings:
+        label = account_labels.get(listing.id) or "Без аккаунта"
+        counts[label] += 1
+    rows = [
+        {"label": label, "count": count}
+        for label, count in counts.items()
+    ]
+    rows.sort(key=lambda row: (-row["count"], row["label"].casefold()))
+    return rows
+
+
 def listing_matches_vin_check_filters(
     listing: CarListing,
     filters: VinCheckListingFilters | None = None,

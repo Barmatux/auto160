@@ -87,6 +87,7 @@ from app.listing_enrichment import (
     build_vin_check_brand_model_map,
     build_vin_check_page_stats,
     build_vin_found_collection_stats_by_day,
+    build_vin_found_collection_stats_by_account,
     build_vin_found_rows,
     format_vin_check_stats_summary,
     get_listing_customs_summary,
@@ -3707,6 +3708,10 @@ def admin_vin_found_page(
         db,
         date_from=stats_date_from,
         date_to=stats_date_to,
+    )
+    context["vin_found_account_stats_30d"] = build_vin_found_collection_stats_by_account(db, days=30)
+    context["vin_found_account_stats_30d_total"] = sum(
+        row["count"] for row in context["vin_found_account_stats_30d"]
     )
     context["vin_stats_from"] = stats_date_from
     context["vin_stats_to"] = stats_date_to

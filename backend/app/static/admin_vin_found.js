@@ -388,6 +388,7 @@
     const panel = document.querySelector("[data-vin-stats-panel]");
     const toggle = document.querySelector("[data-vin-stats-toggle]");
     const body = document.querySelector("[data-vin-stats-body]");
+    const accountsPanel = document.querySelector("[data-vin-accounts-panel]");
     if (!panel || !toggle || !body) return;
 
     const storageKey = "auto160.vinFoundStatsOpen";
@@ -401,6 +402,7 @@
     function setOpen(nextOpen) {
       open = Boolean(nextOpen);
       body.hidden = !open;
+      if (accountsPanel) accountsPanel.hidden = !open;
       toggle.setAttribute("aria-expanded", open ? "true" : "false");
       panel.classList.toggle("is-open", open);
       try {

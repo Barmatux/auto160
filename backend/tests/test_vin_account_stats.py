@@ -4,6 +4,7 @@ from unittest.mock import MagicMock
 
 from app.listing_enrichment import (
     VinFoundDateFilter,
+    build_vin_found_collection_stats_by_account,
     build_vin_found_collection_stats_by_day,
 )
 from app.vin_account_stats import build_vin_fetch_stats_by_day
@@ -97,3 +98,47 @@ def test_build_vin_found_collection_stats_by_day_uses_listing_check_dates(monkey
     assert groups[0]["accounts"][0]["label"] == "+375336125246"
     assert groups[-1]["total"] == 1
     assert groups[1]["total"] == 0
+
+
+def test_build_vin_found_collection_stats_by_account_last_30_days(monkeypatch):
+    listing_a = SimpleNamespace(
+        id=1,
+        vin="WBA11111111111111",
+        vin_fetched_at=datetime(2026, 9, 20, 12, 0, 0),
+        created_at=datetime(2026, 9, 10, 8, 0, 0),
+    )
+    listing_b = SimpleNamespace(
+        id=2,
+        vin="WBA22222222222222",
+        vin_fetched_at=datetime(2026, 9, 18, 9, 0, 0),
+        created_at=datetime(2026, 9, 9, 8, 0, 0),
+    )
+    listing_c = SimpleNamespace(
+        id=3,
+        vin="WBA33333333333333",
+        vin_fetched_at=datetime(2026, 9, 19, 9, 0, 0),
+        created_at=datetime(2026, 9, 9, 8, 0, 0),
+    )
+
+    monkeypatch.setattr(
+        "app.listing_enrichment.paginate_rating_one_listings_with_vin",
+        lambda db, **kwargs: ([listing_a, listing_b, listing_c], 3),
+    )
+    monkeypatch.setattr(
+        "app.listing_enrichment.build_listing_vin_account_labels",
+        lambda db, listings: {
+            1: "+375336125246",
+            2: "+375291112233",
+            3: "+375336125246",
+        },
+    )
+
+    rows = build_vin_found_collection_stats_by_account(
+        MagicMock(),
+        days=30,
+        today=date(2026, 9, 21),
+    )
+    assert rows == [
+        {"label": "+375336125246", "count": 2},
+        {"label": "+375291112233", "count": 1},
+    ]

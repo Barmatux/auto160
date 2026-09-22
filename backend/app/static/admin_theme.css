@@ -179,6 +179,10 @@ body.theme-admin .admin-vin-stats-panel {
   border-color: #9ec5ef;
 }
 
+body.theme-admin .admin-vin-accounts-subtitle {
+  color: #334155;
+}
+
 body.theme-admin .admin-vin-stats-range-field input[type="date"] {
   background: #fff;
   color: #0f172a;
