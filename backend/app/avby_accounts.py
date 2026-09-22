@@ -311,13 +311,16 @@ def select_auth_account(db: Session, *, exclude_ids: set[int] | None = None) -> 
 def list_vin_accounts_for_checks(db: Session, *, require_active: bool = True) -> list[AvbyServiceAccount]:
     """VIN pool with remaining daily quota.
 
+    Prefer accounts that already spent quota today (sticky: drain one account to its
+    limit, then move on). Tie-break by lowest id.
+
     require_active=True — automatic parser/enrichment rotation.
     require_active=False — admin manual VIN reveal (inactive accounts still allowed).
     Accounts with a stored paywall error are skipped until the next calendar day.
     """
     rows = (
         _vin_account_base_query(db, require_active=require_active)
-        .order_by(AvbyServiceAccount.vin_checks_today.asc(), AvbyServiceAccount.id.asc())
+        .order_by(AvbyServiceAccount.vin_checks_today.desc(), AvbyServiceAccount.id.asc())
         .all()
     )
     eligible: list[AvbyServiceAccount] = []
@@ -327,6 +330,8 @@ def list_vin_accounts_for_checks(db: Session, *, require_active: bool = True) ->
             continue
         if can_consume_vin_check(account):
             eligible.append(account)
+    # Re-sort after day reset: still prefer highest usage among remaining quota.
+    eligible.sort(key=lambda a: (-(a.vin_checks_today or 0), a.id or 0))
     return eligible
 
 
@@ -356,7 +361,7 @@ def list_vin_accounts_for_keepalive(db: Session) -> list[AvbyServiceAccount]:
 
 
 def get_vin_test_account(db: Session) -> AvbyServiceAccount | None:
-    """Pick next account from the active VIN pool (lowest usage first)."""
+    """Pick sticky account from the active VIN pool (drain one to limit, then next)."""
     return select_vin_account(db)
 
 

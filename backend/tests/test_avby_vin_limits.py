@@ -90,6 +90,55 @@ def test_list_skips_accounts_with_paywall_error():
     assert [row.id for row in rows] == [1]
 
 
+def test_vin_rotation_drains_one_account_before_next():
+    """Sticky rotation: prefer the account already in use until its daily limit."""
+    from app.avby_accounts import list_vin_accounts_for_checks, select_vin_account
+
+    unused = AvbyServiceAccount(
+        id=1,
+        email="unused@test.local",
+        status="phone_verified",
+        purpose="vin_test",
+        is_active=True,
+        api_key="key",
+        daily_vin_limit=30,
+        vin_checks_today=0,
+        vin_checks_day=date.today(),
+    )
+    in_use = AvbyServiceAccount(
+        id=2,
+        email="inuse@test.local",
+        status="phone_verified",
+        purpose="vin_test",
+        is_active=True,
+        api_key="key",
+        daily_vin_limit=30,
+        vin_checks_today=25,
+        vin_checks_day=date.today(),
+    )
+    exhausted = AvbyServiceAccount(
+        id=3,
+        email="done@test.local",
+        status="phone_verified",
+        purpose="vin_test",
+        is_active=True,
+        api_key="key",
+        daily_vin_limit=30,
+        vin_checks_today=30,
+        vin_checks_day=date.today(),
+    )
+    db = MagicMock()
+    query = MagicMock()
+    db.query.return_value = query
+    query.filter.return_value = query
+    query.order_by.return_value = query
+    query.all.return_value = [unused, in_use, exhausted]
+
+    rows = list_vin_accounts_for_checks(db, require_active=True)
+    assert [row.id for row in rows] == [2, 1]
+    assert select_vin_account(db).id == 2
+
+
 def test_reset_vin_checks_clears_stale_paywall_error():
     account = AvbyServiceAccount(
         email="reset@test.local",
