@@ -134,6 +134,30 @@ services:
       --max-age-years 10
       --max-engine-l 1.9
 
+  auto24-sync:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: auto160-auto24-sync
+    restart: unless-stopped
+    env_file:
+      - .env.vm
+    environment:
+      LOG_DIR: /app/logs
+      LOG_SERVICE: auto24-sync
+      LOG_TIMEZONE: Europe/Minsk
+    volumes:
+      - ../logs:/app/logs
+    depends_on:
+      db:
+        condition: service_healthy
+    command: >
+      python tools/schedule_auto24_listings_sync.py
+      --interval-minutes 45
+      --max-hp 160
+      --max-age-years 10
+      --max-engine-l 1.9
+
   listing-embeddings:
     build:
       context: .

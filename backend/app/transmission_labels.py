@@ -38,6 +38,7 @@ _FILTER_SLUG_ALIASES: dict[str, str] = {
     "автомат": TRANSMISSION_SLUG_AUTO_CLASSIC,
     "automatic": TRANSMISSION_SLUG_AUTO_CLASSIC,
     "автоматическая": TRANSMISSION_SLUG_AUTO_CLASSIC,
+    "automaat": TRANSMISSION_SLUG_AUTO_CLASSIC,
     "auto-classic": TRANSMISSION_SLUG_AUTO_CLASSIC,
     "robot": TRANSMISSION_SLUG_ROBOT,
     "dct": TRANSMISSION_SLUG_ROBOT,
@@ -45,6 +46,7 @@ _FILTER_SLUG_ALIASES: dict[str, str] = {
     "cvt": TRANSMISSION_SLUG_CVT,
     "вариатор": TRANSMISSION_SLUG_CVT,
     "manual": TRANSMISSION_SLUG_MANUAL,
+    "manuaal": TRANSMISSION_SLUG_MANUAL,
     "механика": TRANSMISSION_SLUG_MANUAL,
     "механ": TRANSMISSION_SLUG_MANUAL,
 }
@@ -95,13 +97,13 @@ def classify_transmission_slug(value: str | None) -> str | None:
     if not key:
         return None
 
-    if key in {"manual", "механика"} or key.startswith("механ"):
+    if key in {"manual", "механика", "manuaal"} or key.startswith("механ"):
         return TRANSMISSION_SLUG_MANUAL
     if key in {"cvt", "вариатор"} or "вариатор" in key:
         return TRANSMISSION_SLUG_CVT
     if key in {"dct", "robot", "робот"} or key.startswith("робот"):
         return TRANSMISSION_SLUG_ROBOT
-    if key in {"automatic", "автомат", "автоматическая"} or "автомат" in key:
+    if key in {"automatic", "автомат", "автоматическая", "automaat"} or "автомат" in key:
         return TRANSMISSION_SLUG_AUTO_CLASSIC
     return None
 

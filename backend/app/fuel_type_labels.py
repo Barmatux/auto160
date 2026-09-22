@@ -23,6 +23,7 @@ DIESEL_EXACT_KEYS = frozenset(
         "дизельное топливо",
         "дт",
         "dt",
+        "diisel",
     }
 )
 
@@ -33,6 +34,7 @@ PETROL_EXACT_KEYS = frozenset(
         "бензин",
         "этанол",
         "ethanol",
+        "bensiin",
     }
 )
 

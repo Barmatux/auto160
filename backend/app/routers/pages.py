@@ -2178,7 +2178,7 @@ def _home_latest_listings(db: Session, *, limit: int = 20) -> list[CarListing]:
             db.query(CarListing)
             .filter(
                 CarListing.status == ListingStatus.published,
-                or_(CarListing.source.is_(None), CarListing.source != "autoplius"),
+                or_(CarListing.source.is_(None), ~CarListing.source.in_(("autoplius", "auto24"))),
                 or_(
                     and_(CarListing.cover_photo_url.isnot(None), CarListing.cover_photo_url != ""),
                     CarListing.raw_photos.isnot(None),
@@ -2249,6 +2249,7 @@ def sitemap_xml(request: Request, db: Session = Depends(get_db)):
 
 @router.get("/listings")
 @router.get("/listings/lt")
+@router.get("/listings/ee")
 def listings_page(
     request: Request,
     year_from: str | None = Query(default=None),
@@ -2260,8 +2261,16 @@ def listings_page(
     page: int = Query(default=1, ge=1),
     db: Session = Depends(get_db),
 ):
-    listings_market = "lt" if request.url.path.rstrip("/").endswith("/listings/lt") else "by"
-    listings_base_path = "/listings/lt" if listings_market == "lt" else "/listings"
+    path = request.url.path.rstrip("/")
+    if path.endswith("/listings/lt"):
+        listings_market = "lt"
+        listings_base_path = "/listings/lt"
+    elif path.endswith("/listings/ee"):
+        listings_market = "ee"
+        listings_base_path = "/listings/ee"
+    else:
+        listings_market = "by"
+        listings_base_path = "/listings"
     current_user = _resolve_user_from_request(request, db)
     vehicle_rows = _parse_vehicle_filter_rows(request.query_params, make_key="brand", model_key="model", generation_key="generation")
     parsed_year_from = _parse_optional_year(year_from)
@@ -2301,8 +2310,18 @@ def listings_page(
             CarListing.engine_capacity_l.isnot(None),
             CarListing.engine_capacity_l <= DEFAULT_MAX_ENGINE_L,
         )
+    elif listings_market == "ee":
+        from app.auto24_map import DEFAULT_MAX_AGE_YEARS, DEFAULT_MAX_ENGINE_L, min_year_for_max_age
+
+        ee_year_min = min_year_for_max_age(DEFAULT_MAX_AGE_YEARS)
+        query = query.filter(
+            CarListing.source == "auto24",
+            CarListing.year >= ee_year_min,
+            CarListing.engine_capacity_l.isnot(None),
+            CarListing.engine_capacity_l <= DEFAULT_MAX_ENGINE_L,
+        )
     else:
-        query = query.filter(or_(CarListing.source.is_(None), CarListing.source != "autoplius"))
+        query = query.filter(or_(CarListing.source.is_(None), ~CarListing.source.in_(("autoplius", "auto24"))))
 
     catalog_item_filter = db.get(CatalogItem, catalog_item_id) if catalog_item_id else None
     if catalog_item_filter:
@@ -2520,15 +2539,31 @@ def listings_page(
         seo = build_seo_context(
             request,
             SeoMeta(
-                title="Авто из Литвы до 5 лет и 1.9 л — Auto160"
+                title="Авто из Литвы до 10 лет и 1.9 л — Auto160"
                 + (f", стр. {page}" if page > 1 else ""),
                 description=(
-                    "Объявления из Литвы (autoplius.lt): возраст до 5 лет, "
+                    "Объявления из Литвы (autoplius.lt): возраст до 10 лет, "
                     "двигатель до 1.9 л, мощность до 160 л.с. Цены в BYN по курсу НБ РБ."
                 ),
                 path=listings_base_path,
-                h1="Литва — до 5 лет и 1.9 л",
-                intro="Autoplius: авто не старше 5 лет, двигатель до 1.9 л, до 160 л.с.",
+                h1="Литва — до 10 лет и 1.9 л",
+                intro="Autoplius: авто не старше 10 лет, двигатель до 1.9 л, до 160 л.с.",
+                noindex=page > 1 or noisy_filters or (brand == "__multi__"),
+            ),
+        )
+    elif listings_market == "ee":
+        seo = build_seo_context(
+            request,
+            SeoMeta(
+                title="Авто из Эстонии до 10 лет и 1.9 л — Auto160"
+                + (f", стр. {page}" if page > 1 else ""),
+                description=(
+                    "Объявления из Эстонии (auto24.ee): возраст до 10 лет, "
+                    "двигатель до 1.9 л, мощность до 160 л.с. Цены в BYN по курсу НБ РБ."
+                ),
+                path=listings_base_path,
+                h1="Эстония — до 10 лет и 1.9 л",
+                intro="Auto24: авто не старше 10 лет, двигатель до 1.9 л, до 160 л.с.",
                 noindex=page > 1 or noisy_filters or (brand == "__multi__"),
             ),
         )

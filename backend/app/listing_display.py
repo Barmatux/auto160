@@ -12,7 +12,7 @@ from app.models import CarListing
 
 _AVBY_TITLE_SUFFIX = re.compile(r"\s*\(av\.by\s*#\d+\)\s*", re.IGNORECASE)
 _IMPORT_META_LINE = re.compile(
-    r"^(?:AVBY_ID:\s*\d+|AUTOPLIUS_ID:\s*\S+|URL:\s*\S+|Источник:\s*(?:av\.by|autoplius\.lt))\s*$",
+    r"^(?:AVBY_ID:\s*\d+|AUTOPLIUS_ID:\s*\S+|AUTO24_ID:\s*\S+|URL:\s*\S+|Источник:\s*(?:av\.by|autoplius\.lt|auto24\.ee))\s*$",
     re.IGNORECASE,
 )
 _LEGAL_ENTITY_MARKER = re.compile(
