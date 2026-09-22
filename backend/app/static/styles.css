@@ -910,6 +910,29 @@ body.theme-admin.theme-admin-light .header-theme-toggle:focus-visible {
   cursor: not-allowed;
 }
 
+.admin-vin-check-sort-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 14px;
+  color: #334155;
+  white-space: nowrap;
+}
+
+.admin-vin-check-sort-field select {
+  min-width: 180px;
+  max-width: 240px;
+  min-height: 34px;
+  padding: 4px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #fff;
+  color: #0f172a;
+  font: inherit;
+  font-size: 14px;
+}
+
 .admin-vin-found-link {
   display: inline-block;
   margin-left: auto;

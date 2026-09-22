@@ -63,6 +63,41 @@ class VinCheckListingFilters:
     year_from_2020: bool = False
     brand: str | None = None
     model: str | None = None
+    sort: str = "added"
+
+
+VIN_CHECK_SORT_ADDED = "added"
+VIN_CHECK_SORT_PRICE = "price"
+VIN_CHECK_SORT_MILEAGE = "mileage"
+VIN_CHECK_SORT_VALUES = frozenset(
+    {
+        VIN_CHECK_SORT_ADDED,
+        VIN_CHECK_SORT_PRICE,
+        VIN_CHECK_SORT_MILEAGE,
+    }
+)
+VIN_CHECK_SORT_LABELS = {
+    VIN_CHECK_SORT_ADDED: "По дате добавления",
+    VIN_CHECK_SORT_PRICE: "По цене",
+    VIN_CHECK_SORT_MILEAGE: "По пробегу",
+}
+
+
+def normalize_vin_check_sort(value: str | None) -> str:
+    cleaned = (value or "").strip().lower()
+    if cleaned in VIN_CHECK_SORT_VALUES:
+        return cleaned
+    return VIN_CHECK_SORT_ADDED
+
+
+def _listing_created_at_sort_value(listing: CarListing) -> float:
+    created = getattr(listing, "created_at", None)
+    if created is None:
+        return 0.0
+    try:
+        return float(created.timestamp())
+    except (AttributeError, OSError, TypeError, ValueError):
+        return 0.0
 
 
 def build_vin_check_brand_model_map(db: Session) -> dict[str, list[str]]:
@@ -975,22 +1010,53 @@ def paginate_rating_one_listings(
         return [], 0
 
     offset = max(page - 1, 0) * page_size
-    matched: list[CarListing] = []
-    total = 0
+    sort = normalize_vin_check_sort(filters.sort if filters else None)
     query = (
         db.query(CarListing)
         .filter(CarListing.status == ListingStatus.published)
         .order_by(CarListing.created_at.desc())
     )
+
+    if sort == VIN_CHECK_SORT_ADDED:
+        matched: list[CarListing] = []
+        total = 0
+        for listing in query.yield_per(200):
+            if not listing_matches_rating_one(listing, targets):
+                continue
+            if not listing_matches_vin_check_filters(listing, filters):
+                continue
+            if total >= offset and len(matched) < page_size:
+                matched.append(listing)
+            total += 1
+        return matched, total
+
+    candidates: list[CarListing] = []
     for listing in query.yield_per(200):
         if not listing_matches_rating_one(listing, targets):
             continue
         if not listing_matches_vin_check_filters(listing, filters):
             continue
-        if total >= offset and len(matched) < page_size:
-            matched.append(listing)
-        total += 1
-    return matched, total
+        candidates.append(listing)
+
+    if sort == VIN_CHECK_SORT_PRICE:
+        candidates.sort(
+            key=lambda row: (
+                getattr(row, "price", None) is None,
+                float(getattr(row, "price", None) or 0),
+                -_listing_created_at_sort_value(row),
+            )
+        )
+    elif sort == VIN_CHECK_SORT_MILEAGE:
+        candidates.sort(
+            key=lambda row: (
+                getattr(row, "mileage", None) is None,
+                int(getattr(row, "mileage", None) or 0),
+                -_listing_created_at_sort_value(row),
+            )
+        )
+
+    total = len(candidates)
+    return candidates[offset : offset + page_size], total
 
 
 def build_listing_customs_map(db: Session, listings: list[CarListing]) -> dict[int, ListingCustomsSummary]:

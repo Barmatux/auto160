@@ -169,6 +169,16 @@ def test_listing_matches_vin_check_filters():
     ) is True
 
 
+def test_normalize_vin_check_sort():
+    from app.listing_enrichment import normalize_vin_check_sort
+
+    assert normalize_vin_check_sort(None) == "added"
+    assert normalize_vin_check_sort("") == "added"
+    assert normalize_vin_check_sort("price") == "price"
+    assert normalize_vin_check_sort("MILEAGE") == "mileage"
+    assert normalize_vin_check_sort("unknown") == "added"
+
+
 def test_listing_matches_vin_found_date_filter():
     from datetime import datetime
 

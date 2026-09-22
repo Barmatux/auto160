@@ -67,6 +67,14 @@
             />
             От 2020г.
           </label>
+          <label class="admin-vin-check-sort-field">
+            <span>Сортировка</span>
+            <select name="sort" data-vin-check-sort onchange="this.form.submit()">
+              {% for option in vin_check_sort_options %}
+                <option value="{{ option.value }}" {% if vin_check_filters.sort == option.value %}selected{% endif %}>{{ option.label }}</option>
+              {% endfor %}
+            </select>
+          </label>
         </form>
         <a class="page-link admin-vin-found-link" href="/admin/vin-check/found">
           Найден VIN{% if vin_found_count %} ({{ vin_found_count }}){% endif %}

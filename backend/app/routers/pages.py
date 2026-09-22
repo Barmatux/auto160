@@ -93,10 +93,13 @@ from app.listing_enrichment import (
     count_rating_one_listings_with_vin,
     paginate_rating_one_listings_with_vin,
     listing_vin_check_was_launched,
+    normalize_vin_check_sort,
     paginate_rating_one_listings,
     VinCheckListingFilters,
     VinFoundDateFilter,
     VinFoundImportFilter,
+    VIN_CHECK_SORT_ADDED,
+    VIN_CHECK_SORT_LABELS,
     VIN_FOUND_IMPORT_FILTER_LABELS,
 )
 from app.listing_catalog_link import (
@@ -3767,6 +3770,9 @@ def _build_admin_vin_check_url(
             params["diesel"] = "1"
         if filters.year_from_2020:
             params["from2020"] = "1"
+        sort = normalize_vin_check_sort(filters.sort)
+        if sort != VIN_CHECK_SORT_ADDED:
+            params["sort"] = sort
     if not params:
         return "/admin/vin-check"
     return f"/admin/vin-check?{urlencode(params)}"
@@ -3781,6 +3787,7 @@ def admin_vin_check_page(
     auto: str | None = Query(default=None),
     diesel: str | None = Query(default=None),
     from2020: str | None = Query(default=None),
+    sort: str | None = Query(default=None),
     db: Session = Depends(get_db),
 ):
     current_user = _resolve_user_from_request(request, db)
@@ -3803,6 +3810,7 @@ def admin_vin_check_page(
         year_from_2020=_parse_vin_check_bool_param(from2020),
         brand=brand_value,
         model=model_value,
+        sort=normalize_vin_check_sort(sort),
     )
     page_size = LISTINGS_PAGE_SIZE
     listings, total = paginate_rating_one_listings(
@@ -3848,6 +3856,9 @@ def admin_vin_check_page(
     context["has_next"] = page < total_pages
     context["vin_check_filters"] = vin_check_filters
     context["vin_check_brand_model_map"] = brand_model_map
+    context["vin_check_sort_options"] = [
+        {"value": value, "label": label} for value, label in VIN_CHECK_SORT_LABELS.items()
+    ]
     context["prev_url"] = (
         _build_admin_vin_check_url(page=page - 1, filters=vin_check_filters) if context["has_prev"] else None
     )
