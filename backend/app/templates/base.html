@@ -30,7 +30,7 @@
     {% if seo_json_ld_script %}
       <script type="application/ld+json">{{ seo_json_ld_script | safe }}</script>
     {% endif %}
-    <link rel="stylesheet" href="/static/styles.css?v=20260922-03" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260922-04" />
     {% if site_theme_uses_logo %}
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -70,7 +70,6 @@
           {% if is_admin %}
             <a href="/admin/users">Пользователи</a>
             <a href="/admin/avby-accounts">Аккаунты</a>
-            <a href="/admin/avby-sync">Парсинг</a>
           {% endif %}
         </nav>
         {% if is_admin %}
@@ -111,10 +110,13 @@
             <a href="/admin/analytics">Аналитика</a>
             <a href="/admin/business-sellers">Бизнес-аккаунты</a>
             <a href="/admin/ratings">Управление каталогом</a>
-            <a href="/admin/logs">Логи</a>
           </nav>
         {% endif %}
         <nav class="header-nav header-nav-row header-nav-row-account">
+          {% if is_admin %}
+            <a href="/admin/avby-sync">Парсинг</a>
+            <a href="/admin/logs">Логи</a>
+          {% endif %}
           {% if is_authenticated %}
             <span class="user-badge">{{ current_user.email }} ({{ current_user.role.value }})</span>
             <a href="/logout">Выход</a>
