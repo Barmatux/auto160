@@ -198,6 +198,25 @@ def _brand_model(row: dict[str, Any]) -> tuple[str | None, str | None]:
     return parts[0], parts[1]
 
 
+def _cdn_photo_urls(row: dict[str, Any]) -> list[str]:
+    """Prefer original Auto24 CDN URLs — scrape media keys are often not uploaded to Yandex."""
+    urls: list[str] = []
+    for params in _param_maps(row):
+        raw_list = params.get("source_photo_urls")
+        if not isinstance(raw_list, list):
+            continue
+        for item in raw_list:
+            if not isinstance(item, str):
+                continue
+            cleaned = item.strip()
+            if cleaned.startswith("http://") or cleaned.startswith("https://"):
+                if cleaned not in urls:
+                    urls.append(cleaned)
+        if urls:
+            break
+    return urls
+
+
 def map_auto24_row(
     row: dict[str, Any],
     *,
@@ -234,37 +253,44 @@ def map_auto24_row(
         except (TypeError, ValueError):
             engine_l = None
 
-    photo_urls_raw = row.get("photo_urls") or []
-    if not isinstance(photo_urls_raw, list):
-        photo_urls_raw = []
-    photo_keys = [k for k in (extract_storage_key(p) for p in photo_urls_raw) if k]
-    cover_key = extract_storage_key(row.get("photo_url"))
-    if cover_key and cover_key not in photo_keys:
-        photo_keys = [cover_key, *photo_keys]
-    photo_urls = [
-        u
-        for u in (
+    cdn_urls = _cdn_photo_urls(row)
+    photo_keys: list[str] = []
+    if cdn_urls:
+        # CDN originals work; local auto24/ keys in scrape are stubs until S3 upload exists.
+        photo_urls = cdn_urls
+        cover = cdn_urls[0]
+    else:
+        photo_urls_raw = row.get("photo_urls") or []
+        if not isinstance(photo_urls_raw, list):
+            photo_urls_raw = []
+        photo_keys = [k for k in (extract_storage_key(p) for p in photo_urls_raw) if k]
+        cover_key = extract_storage_key(row.get("photo_url"))
+        if cover_key and cover_key not in photo_keys:
+            photo_keys = [cover_key, *photo_keys]
+        photo_urls = [
+            u
+            for u in (
+                absolute_media_url(
+                    key,
+                    media_base=media_base,
+                    media_bucket=media_bucket,
+                    media_endpoint=media_endpoint,
+                    use_app_proxy=use_app_proxy,
+                )
+                for key in photo_keys
+            )
+            if u
+        ]
+        cover = (
             absolute_media_url(
-                key,
+                cover_key or (photo_keys[0] if photo_keys else None),
                 media_base=media_base,
                 media_bucket=media_bucket,
                 media_endpoint=media_endpoint,
                 use_app_proxy=use_app_proxy,
             )
-            for key in photo_keys
+            or (photo_urls[0] if photo_urls else None)
         )
-        if u
-    ]
-    cover = (
-        absolute_media_url(
-            cover_key or (photo_keys[0] if photo_keys else None),
-            media_base=media_base,
-            media_bucket=media_bucket,
-            media_endpoint=media_endpoint,
-            use_app_proxy=use_app_proxy,
-        )
-        or (photo_urls[0] if photo_urls else None)
-    )
 
     body_type = _normalize_lookup(row.get("body_type"), BODY_MAP)
     engine_type = _normalize_lookup(row.get("fuel"), FUEL_MAP)

@@ -3,7 +3,7 @@
 ## What it does
 
 - Imports active Auto24 ads (≤160 hp, age ≤5 years, engine ≤1.9 L) from scrape Postgres into `car_listings`
-- Photos via `/media/autoplius?key=auto24/...` (same Yandex bucket as Autoplius)
+- Photos: prefer CDN URLs from scrape `parameters.source_photo_urls` (Yandex `auto24/` keys are often missing until scrape uploads them)
 - UI tab: **Эстония** → `/listings/ee`
 
 ## Env
