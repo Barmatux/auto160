@@ -2,7 +2,7 @@
 
 ## What it does
 
-- Imports active Auto24 ads (≤160 hp, age ≤10 years, engine ≤1.9 L) from scrape Postgres into `car_listings`
+- Imports active Auto24 ads (≤160 hp, age ≤5 years, engine ≤1.9 L) from scrape Postgres into `car_listings`
 - Photos via `/media/autoplius?key=auto24/...` (same Yandex bucket as Autoplius)
 - UI tab: **Эстония** → `/listings/ee`
 

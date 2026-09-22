@@ -112,7 +112,7 @@ services:
       python tools/schedule_auto24_listings_sync.py
       --interval-minutes 45
       --max-hp 160
-      --max-age-years 10
+      --max-age-years 5
       --max-engine-l 1.9
 
   listing-embeddings:

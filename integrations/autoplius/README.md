@@ -2,7 +2,7 @@
 
 ## What it does
 
-- Imports active Autoplius ads (≤160 hp, age ≤10 years, engine ≤1.9 L) from scrape Postgres into `car_listings`
+- Imports active Autoplius ads (≤160 hp, age ≤5 years, engine ≤1.9 L) from scrape Postgres into `car_listings`
 - Photos served via `/media/autoplius?key=...` from Yandex bucket `autoplius-media`
 - UI tab: **Литва** → `/listings/lt` (Belarus feed stays `/listings`)
 
@@ -39,7 +39,7 @@ docker compose --env-file .env.vm -f docker-compose.vm.yml exec -T api \
 `docker-compose.vm.yml` runs `autoplius-sync` every 45 minutes:
 
 - reads scrape-platform Postgres (`AUTOPLIUS_SCRAPE_DSN` / default `10.129.0.33:5433`)
-- fetches only `detail_scraped` active rows, then upserts into `car_listings` with filters ≤160 hp / ≤10y / ≤1.9 L
+- fetches only `detail_scraped` active rows, then upserts into `car_listings` with filters ≤160 hp / ≤5y / ≤1.9 L
 - Autoplius scrape itself runs only on scrape-platform (`/opt/scrape-platform`)
 
 Listing embeddings are **not** rebuilt in this loop — nightly `listing-embeddings` (04:00 local) runs `reindex_listing_embeddings.py` once per day.

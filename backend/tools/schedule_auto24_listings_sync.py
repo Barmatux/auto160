@@ -75,7 +75,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Schedule Auto24 → Auto160 import")
     parser.add_argument("--interval-minutes", type=int, default=45)
     parser.add_argument("--max-hp", type=int, default=160)
-    parser.add_argument("--max-age-years", type=int, default=10)
+    parser.add_argument("--max-age-years", type=int, default=5)
     parser.add_argument("--max-engine-l", type=float, default=1.9)
     parser.add_argument("--run-once", action="store_true")
     parser.add_argument(

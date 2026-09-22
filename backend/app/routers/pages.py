@@ -2539,15 +2539,15 @@ def listings_page(
         seo = build_seo_context(
             request,
             SeoMeta(
-                title="Авто из Литвы до 10 лет и 1.9 л — Auto160"
+                title="Авто из Литвы до 5 лет и 1.9 л — Auto160"
                 + (f", стр. {page}" if page > 1 else ""),
                 description=(
-                    "Объявления из Литвы (autoplius.lt): возраст до 10 лет, "
+                    "Объявления из Литвы (autoplius.lt): возраст до 5 лет, "
                     "двигатель до 1.9 л, мощность до 160 л.с. Цены в BYN по курсу НБ РБ."
                 ),
                 path=listings_base_path,
-                h1="Литва — до 10 лет и 1.9 л",
-                intro="Autoplius: авто не старше 10 лет, двигатель до 1.9 л, до 160 л.с.",
+                h1="Литва — до 5 лет и 1.9 л",
+                intro="Autoplius: авто не старше 5 лет, двигатель до 1.9 л, до 160 л.с.",
                 noindex=page > 1 or noisy_filters or (brand == "__multi__"),
             ),
         )
@@ -2555,15 +2555,15 @@ def listings_page(
         seo = build_seo_context(
             request,
             SeoMeta(
-                title="Авто из Эстонии до 10 лет и 1.9 л — Auto160"
+                title="Авто из Эстонии до 5 лет и 1.9 л — Auto160"
                 + (f", стр. {page}" if page > 1 else ""),
                 description=(
-                    "Объявления из Эстонии (auto24.ee): возраст до 10 лет, "
+                    "Объявления из Эстонии (auto24.ee): возраст до 5 лет, "
                     "двигатель до 1.9 л, мощность до 160 л.с. Цены в BYN по курсу НБ РБ."
                 ),
                 path=listings_base_path,
-                h1="Эстония — до 10 лет и 1.9 л",
-                intro="Auto24: авто не старше 10 лет, двигатель до 1.9 л, до 160 л.с.",
+                h1="Эстония — до 5 лет и 1.9 л",
+                intro="Auto24: авто не старше 5 лет, двигатель до 1.9 л, до 160 л.с.",
                 noindex=page > 1 or noisy_filters or (brand == "__multi__"),
             ),
         )
