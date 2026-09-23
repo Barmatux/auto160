@@ -35,7 +35,8 @@ body.theme-admin a:hover {
 
 body.theme-admin .header {
   align-items: center;
-  background: linear-gradient(180deg, rgba(8, 10, 14, 0.98), rgba(10, 13, 18, 0.96));
+  /* Match logo plaque black (~#030303) so the mark does not float on a different charcoal */
+  background: #030303;
   border-bottom: 1px solid transparent;
   border-image: linear-gradient(90deg, rgba(0, 168, 255, 0.55), rgba(0, 226, 138, 0.55)) 1;
   box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
@@ -429,10 +430,16 @@ body.theme-admin .catalog-make-card .make-logo-wrap:focus-visible {
   border-color: rgba(0, 168, 255, 0.4);
 }
 
-/* Dark brand marks are near-invisible on dark cards — render them light. */
-body.theme-admin:not(.theme-admin-light) .make-logo {
+/* Dark brand marks are near-invisible on dark cards — render them light.
+   Keep country flags in natural colors (they use .make-logo + .home-direction-flag). */
+body.theme-admin:not(.theme-admin-light) .make-logo:not(.home-direction-flag) {
   filter: brightness(0) invert(1);
   opacity: 0.92;
+}
+
+body.theme-admin:not(.theme-admin-light) .home-direction-flag {
+  filter: none;
+  opacity: 1;
 }
 
 body.theme-admin:not(.theme-admin-light) .home-make-fallback {
@@ -463,7 +470,7 @@ body.theme-admin .catalog-main-head label {
   }
 
   body.theme-admin .header-nav-wrap {
-    background: #0b0e14;
+    background: #030303;
     border: 1px solid var(--border);
     box-shadow: var(--shadow);
   }
@@ -501,7 +508,7 @@ body.theme-admin.theme-admin-light a:hover {
 }
 
 body.theme-admin.theme-admin-light .header {
-  background: linear-gradient(180deg, rgba(8, 10, 14, 0.98), rgba(10, 13, 18, 0.96));
+  background: #030303;
 }
 
 body.theme-admin.theme-admin-light .header-nav a,
@@ -632,6 +639,6 @@ body.theme-admin.theme-admin-light .cookie-consent-btn-secondary {
 
 @media (max-width: 900px) {
   body.theme-admin.theme-admin-light .header-nav-wrap {
-    background: #0b0e14;
+    background: #030303;
   }
 }
