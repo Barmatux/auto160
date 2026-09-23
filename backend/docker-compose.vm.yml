@@ -203,5 +203,27 @@ services:
       python tools/schedule_listing_embeddings.py
       --run-at-hour 4
 
+  customs-import-dates:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: auto160-customs-import-dates
+    restart: unless-stopped
+    env_file:
+      - .env.vm
+    environment:
+      LOG_DIR: /app/logs
+      LOG_SERVICE: customs-import-dates
+      LOG_TIMEZONE: Europe/Minsk
+    volumes:
+      - ../logs:/app/logs
+    depends_on:
+      db:
+        condition: service_healthy
+    command: >
+      python tools/schedule_customs_import_dates.py
+      --run-at-hour 2
+      --delay 1.5
+
 volumes:
   pgdata:

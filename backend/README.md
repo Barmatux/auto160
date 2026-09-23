@@ -289,6 +289,16 @@ docker compose --env-file .env.vm -f docker-compose.vm.yml exec -T api \
 - Scheduler: `tools/schedule_avby_archive_check.py` — ночной прогон (сервис `avby-archive` в compose).
 - Отчёт: `python tools/report_listing_freshness.py` — published/archived, последний archive-run из лога.
 
+### Дата ввоза (таможня ГТК) для объявлений с VIN
+
+- Скрипт: `tools/backfill_customs_import_dates.py` — для всех объявлений с сохранённым VIN запрашивает базу ГТК (дата выпуска в РБ). Не тратит дневной лимит av.by `/vin`.
+- Кэш: 7 дней если найдено, 24 часа если не найдено (`vin_customs_checks`).
+- Scheduler: `tools/schedule_customs_import_dates.py` — ночной прогон в 02:00 (сервис `customs-import-dates` в compose).
+- Примеры:
+  - `python tools/backfill_customs_import_dates.py --dry-run`
+  - `python tools/backfill_customs_import_dates.py --limit 50 --delay 1.5`
+  - `python tools/schedule_customs_import_dates.py --run-once`
+
 ### Фото объявлений
 
 - Аудит: `python tools/audit_listing_photos.py`
