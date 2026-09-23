@@ -10,7 +10,14 @@ class RegisterRequest(BaseModel):
     email: EmailStr
     name: str = Field(min_length=2, max_length=120)
     password: str = Field(min_length=6, max_length=128)
+    password_confirm: str = Field(min_length=6, max_length=128)
     role: UserRole = UserRole.seller
+
+    @model_validator(mode="after")
+    def passwords_must_match(self) -> "RegisterRequest":
+        if self.password != self.password_confirm:
+            raise ValueError("Пароли не совпадают")
+        return self
 
 
 class LoginRequest(BaseModel):

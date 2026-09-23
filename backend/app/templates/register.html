@@ -6,8 +6,9 @@
 
 <form class="form" onsubmit="event.preventDefault(); registerByApi();">
   <label>Имя <input id="name" required /></label>
-  <label>Email <input id="email" type="email" required /></label>
-  <label>Пароль <input id="password" type="password" required minlength="6" /></label>
+  <label>Email <input id="email" type="email" required autocomplete="email" /></label>
+  <label>Пароль <input id="password" type="password" required minlength="6" autocomplete="new-password" /></label>
+  <label>Повторите пароль <input id="password_confirm" type="password" required minlength="6" autocomplete="new-password" /></label>
   <button type="submit">Создать аккаунт</button>
 </form>
 
@@ -20,10 +21,19 @@
     messageEl.hidden = true;
     messageEl.textContent = "";
 
+    const password = document.getElementById("password").value;
+    const passwordConfirm = document.getElementById("password_confirm").value;
+    if (password !== passwordConfirm) {
+      messageEl.textContent = "Пароли не совпадают";
+      messageEl.hidden = false;
+      return;
+    }
+
     const payload = {
       name: document.getElementById("name").value,
       email: document.getElementById("email").value,
-      password: document.getElementById("password").value,
+      password: password,
+      password_confirm: passwordConfirm,
       role: "seller",
     };
     const response = await fetch("/api/v1/auth/register", {
@@ -33,7 +43,11 @@
     });
     const data = await response.json();
     if (!response.ok) {
-      messageEl.textContent = data.detail || "Не удалось создать аккаунт";
+      let detail = data.detail || "Не удалось создать аккаунт";
+      if (Array.isArray(detail)) {
+        detail = detail.map((item) => item.msg || JSON.stringify(item)).join("; ");
+      }
+      messageEl.textContent = detail;
       messageEl.hidden = false;
       return;
     }
