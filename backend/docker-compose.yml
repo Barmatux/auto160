@@ -115,6 +115,27 @@ services:
       --max-age-years 5
       --max-engine-l 1.9
 
+  mobile-de-sync:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: auto160-mobile-de-sync
+    restart: unless-stopped
+    environment:
+      LOG_DIR: /app/logs
+      LOG_SERVICE: mobile-de-sync
+    volumes:
+      - ../logs:/app/logs
+    depends_on:
+      db:
+        condition: service_healthy
+    command: >
+      python tools/schedule_mobile_de_listings_sync.py
+      --interval-minutes 45
+      --max-hp 160
+      --max-age-years 5
+      --max-engine-l 1.9
+
   listing-embeddings:
     build:
       context: .

@@ -2178,7 +2178,10 @@ def _home_latest_listings(db: Session, *, limit: int = 20) -> list[CarListing]:
             db.query(CarListing)
             .filter(
                 CarListing.status == ListingStatus.published,
-                or_(CarListing.source.is_(None), ~CarListing.source.in_(("autoplius", "auto24"))),
+                or_(
+                    CarListing.source.is_(None),
+                    ~CarListing.source.in_(("autoplius", "auto24", "mobile_de")),
+                ),
                 or_(
                     and_(CarListing.cover_photo_url.isnot(None), CarListing.cover_photo_url != ""),
                     CarListing.raw_photos.isnot(None),
@@ -2278,19 +2281,12 @@ def sitemap_xml(request: Request, db: Session = Depends(get_db)):
     return Response(content=xml, media_type="application/xml; charset=utf-8")
 
 
-@router.get("/listings/de")
 @router.get("/listings/auctions")
 def listings_coming_soon_page(request: Request, db: Session = Depends(get_db)):
     current_user = _resolve_user_from_request(request, db)
-    path = request.url.path.rstrip("/")
-    if path.endswith("/listings/de"):
-        page_heading = "Авто из Германии"
-        page_title = "Авто из Германии"
-        seo_path = "/listings/de"
-    else:
-        page_heading = "Авто с европейских аукционов"
-        page_title = "Авто с европейских аукционов"
-        seo_path = "/listings/auctions"
+    page_heading = "Авто с европейских аукционов"
+    page_title = "Авто с европейских аукционов"
+    seo_path = "/listings/auctions"
     context = _template_context(
         request,
         current_user,
@@ -2310,6 +2306,7 @@ def listings_coming_soon_page(request: Request, db: Session = Depends(get_db)):
 @router.get("/listings")
 @router.get("/listings/lt")
 @router.get("/listings/ee")
+@router.get("/listings/de")
 def listings_page(
     request: Request,
     year_from: str | None = Query(default=None),
@@ -2328,6 +2325,9 @@ def listings_page(
     elif path.endswith("/listings/ee"):
         listings_market = "ee"
         listings_base_path = "/listings/ee"
+    elif path.endswith("/listings/de"):
+        listings_market = "de"
+        listings_base_path = "/listings/de"
     else:
         listings_market = "by"
         listings_base_path = "/listings"
@@ -2380,8 +2380,23 @@ def listings_page(
             CarListing.engine_capacity_l.isnot(None),
             CarListing.engine_capacity_l <= DEFAULT_MAX_ENGINE_L,
         )
+    elif listings_market == "de":
+        from app.mobile_de_map import DEFAULT_MAX_AGE_YEARS, DEFAULT_MAX_ENGINE_L, min_year_for_max_age
+
+        de_year_min = min_year_for_max_age(DEFAULT_MAX_AGE_YEARS)
+        query = query.filter(
+            CarListing.source == "mobile_de",
+            CarListing.year >= de_year_min,
+            CarListing.engine_capacity_l.isnot(None),
+            CarListing.engine_capacity_l <= DEFAULT_MAX_ENGINE_L,
+        )
     else:
-        query = query.filter(or_(CarListing.source.is_(None), ~CarListing.source.in_(("autoplius", "auto24"))))
+        query = query.filter(
+            or_(
+                CarListing.source.is_(None),
+                ~CarListing.source.in_(("autoplius", "auto24", "mobile_de")),
+            )
+        )
 
     catalog_item_filter = db.get(CatalogItem, catalog_item_id) if catalog_item_id else None
     if catalog_item_filter:
@@ -2624,6 +2639,22 @@ def listings_page(
                 path=listings_base_path,
                 h1="Эстония — до 5 лет и 1.9 л",
                 intro="Auto24: авто не старше 5 лет, двигатель до 1.9 л, до 160 л.с.",
+                noindex=page > 1 or noisy_filters or (brand == "__multi__"),
+            ),
+        )
+    elif listings_market == "de":
+        seo = build_seo_context(
+            request,
+            SeoMeta(
+                title="Авто из Германии до 5 лет и 1.9 л — Auto160"
+                + (f", стр. {page}" if page > 1 else ""),
+                description=(
+                    "Объявления из Германии (mobile.de): возраст до 5 лет, "
+                    "двигатель до 1.9 л, мощность до 160 л.с. Цены в BYN по курсу НБ РБ."
+                ),
+                path=listings_base_path,
+                h1="Германия — до 5 лет и 1.9 л",
+                intro="mobile.de: авто не старше 5 лет, двигатель до 1.9 л, до 160 л.с.",
                 noindex=page > 1 or noisy_filters or (brand == "__multi__"),
             ),
         )

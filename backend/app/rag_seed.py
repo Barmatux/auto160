@@ -98,7 +98,7 @@ SEED_CHUNKS: tuple[SeedChunk, ...] = (
         "Лента объявлений",
         (
             "Лента объявлений Auto160: автомобили до 160 л.с. из Беларуси (av.by) и Литвы (Autoplius). "
-            "Фильтры по марке, городу, цене. Литва: /listings/lt. Эстония: /listings/ee. Минск: /listings?city=Минск. "
+            "Фильтры по марке, городу, цене. Литва: /listings/lt. Эстония: /listings/ee. Германия: /listings/de. Минск: /listings?city=Минск. "
             "Цены в BYN где доступны."
         ),
         "/listings",

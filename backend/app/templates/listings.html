@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{% if listings_market == 'lt' %}Литва (Autoplius) - Auto160{% elif listings_market == 'ee' %}Эстония (Auto24) - Auto160{% else %}Лента объявлений - Auto160{% endif %}{% endblock %}
+{% block title %}{% if listings_market == 'lt' %}Литва (Autoplius) - Auto160{% elif listings_market == 'ee' %}Эстония (Auto24) - Auto160{% elif listings_market == 'de' %}Германия (mobile.de) - Auto160{% else %}Лента объявлений - Auto160{% endif %}{% endblock %}
 {% block content %}
 <div class="catalog-page">
   {% set vehicle_hierarchy = listings_filters.vehicle_hierarchy %}
@@ -25,6 +25,12 @@
       role="tab"
       aria-selected="{{ 'true' if listings_market == 'ee' else 'false' }}"
     >Эстония</a>
+    <a
+      class="listings-market-tab{% if listings_market == 'de' %} is-active{% endif %}"
+      href="/listings/de"
+      role="tab"
+      aria-selected="{{ 'true' if listings_market == 'de' else 'false' }}"
+    >Германия</a>
   </div>
   {% include "partials/vehicle_filters_bar.html" %}
   <div class="catalog-layout">
@@ -33,7 +39,10 @@
       <div class="catalog-main-head">
         <h1>{{ seo_h1 or (
           "Литва — объявления Autoplius" if listings_market == "lt"
-          else ("Эстония — объявления Auto24" if listings_market == "ee" else "Лента объявлений")
+          else (
+            "Эстония — объявления Auto24" if listings_market == "ee"
+            else ("Германия — объявления mobile.de" if listings_market == "de" else "Лента объявлений")
+          )
         ) }}</h1>
         {% if seo_intro %}
           <p class="hint">{{ seo_intro }}</p>
