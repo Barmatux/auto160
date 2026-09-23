@@ -46,6 +46,16 @@ def test_listing_matches_rating_one_by_make_model_year():
     assert listing_matches_rating_one(ListingWrongYear(), targets) is False
 
 
+def test_listing_is_belarus_vin_check_source():
+    from app.listing_enrichment import listing_is_belarus_vin_check_source
+
+    assert listing_is_belarus_vin_check_source(SimpleNamespace(source=None)) is True
+    assert listing_is_belarus_vin_check_source(SimpleNamespace(source="av.by")) is True
+    assert listing_is_belarus_vin_check_source(SimpleNamespace(source="autoplius")) is False
+    assert listing_is_belarus_vin_check_source(SimpleNamespace(source="auto24")) is False
+    assert listing_is_belarus_vin_check_source(SimpleNamespace(source="mobile_de")) is False
+
+
 def test_perform_listing_vin_check_uses_inactive_accounts(monkeypatch):
     listing = SimpleNamespace(id=7, vin="WBAINACTIVE0000001", avby_id=123)
     seen: dict[str, bool] = {}
