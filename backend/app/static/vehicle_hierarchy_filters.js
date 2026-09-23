@@ -96,11 +96,22 @@
         formAttr() +
         "></select>" +
         "</label>" +
-        '<button type="button" class="vehicle-hierarchy-remove" aria-label="Удалить строку">×</button>';
+        '<button type="button" class="vehicle-hierarchy-remove" aria-label="Удалить строку" hidden>×</button>';
 
       syncRowSelects(row, values);
       bindRow(row);
       return row;
+    }
+
+    function updateRemoveButtons() {
+      const rows = rowsContainer.querySelectorAll(".vehicle-hierarchy-row");
+      const showRemove = rows.length > 1;
+      rows.forEach((row) => {
+        const removeButton = row.querySelector(".vehicle-hierarchy-remove");
+        if (!removeButton) return;
+        removeButton.hidden = !showRemove;
+        removeButton.setAttribute("aria-hidden", showRemove ? "false" : "true");
+      });
     }
 
     function bindRow(row) {
@@ -125,9 +136,11 @@
         const rows = rowsContainer.querySelectorAll(".vehicle-hierarchy-row");
         if (rows.length <= 1) {
           syncRowSelects(row, { make: "", model: "", generation: "" });
+          updateRemoveButtons();
           return;
         }
         row.remove();
+        updateRemoveButtons();
       });
     }
 
@@ -135,10 +148,12 @@
       bindRow(row);
       syncRowSelects(row, rowValues(row));
     });
+    updateRemoveButtons();
 
     if (addButton) {
       addButton.addEventListener("click", () => {
         rowsContainer.appendChild(createRow());
+        updateRemoveButtons();
       });
     }
 
@@ -151,8 +166,28 @@
             row.remove();
           }
         });
+        updateRemoveButtons();
       });
     }
+
+    // Import-age checkboxes live outside the <form> (form= attribute), so bind here
+    // and auto-submit — querying form.querySelectorAll would miss them.
+    root.querySelectorAll("[data-import-age-filter]").forEach((checkbox) => {
+      checkbox.addEventListener("change", () => {
+        if (checkbox.checked) {
+          root.querySelectorAll("[data-import-age-filter]").forEach((other) => {
+            if (other !== checkbox) other.checked = false;
+          });
+        }
+        const targetForm = checkbox.form || form;
+        if (!targetForm) return;
+        if (typeof targetForm.requestSubmit === "function") {
+          targetForm.requestSubmit();
+        } else {
+          targetForm.submit();
+        }
+      });
+    });
   }
 
   window.initVehicleHierarchyFilters = initVehicleHierarchyFilters;

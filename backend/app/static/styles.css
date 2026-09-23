@@ -2483,7 +2483,7 @@ body.vin-enter-modal-open {
 }
 
 .catalog-page .vehicle-hierarchy-row {
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) 28px;
+  display: flex;
 }
 
 .catalog-make-card .make-logo-wrap:hover,
@@ -2592,8 +2592,8 @@ body.vin-enter-modal-open {
 }
 
 .vehicle-hierarchy-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) 28px;
+  display: flex;
+  flex-wrap: nowrap;
   gap: 8px;
   align-items: end;
 }
@@ -2602,6 +2602,7 @@ body.vin-enter-modal-open {
   display: grid;
   gap: 4px;
   font-size: 14px;
+  flex: 1 1 0;
   min-width: 0;
 }
 
@@ -2643,25 +2644,31 @@ body.vin-enter-modal-open {
 
 .vehicle-hierarchy-remove {
   appearance: none;
-  border: 1px solid #cbd5e1;
+  border: 1px solid #f87171;
   border-radius: 6px;
-  background: var(--surface-soft);
-  color: #64748b;
-  font-size: 0.95rem;
+  background: #ef4444;
+  color: #fff;
+  font-size: 1.05rem;
+  font-weight: 700;
   line-height: 1;
   cursor: pointer;
+  flex: 0 0 auto;
   width: 28px;
   height: 28px;
   min-height: 28px;
   padding: 0;
   align-self: end;
-  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+  transition: background 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+}
+
+.vehicle-hierarchy-remove[hidden] {
+  display: none !important;
 }
 
 .vehicle-hierarchy-remove:hover {
-  border-color: #fca5a5;
-  background: #fef2f2;
-  color: #b91c1c;
+  border-color: #dc2626;
+  background: #dc2626;
+  color: #fff;
 }
 
 .vehicle-hierarchy-actions {
@@ -2741,38 +2748,42 @@ body.vin-enter-modal-open {
 }
 
 @media (max-width: 900px) {
-  .vehicle-hierarchy-row {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) 28px;
+  .vehicle-hierarchy-row,
+  .catalog-page .vehicle-hierarchy-row {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 6px;
   }
 
-  .catalog-page .vehicle-hierarchy-row {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) 28px;
+  .vehicle-hierarchy-field select {
+    padding: 8px 6px;
+    font-size: 13px;
+    min-height: 36px;
   }
 }
 
 @media (max-width: 640px) {
   .vehicle-hierarchy-row {
-    grid-template-columns: 1fr 1fr;
-    grid-template-areas:
-      "make model"
-      "generation remove";
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 4px;
   }
 
-  .vehicle-hierarchy-field:nth-child(1) {
-    grid-area: make;
+  .vehicle-hierarchy-label {
+    font-size: 11px;
   }
 
-  .vehicle-hierarchy-field:nth-child(2) {
-    grid-area: model;
-  }
-
-  .vehicle-hierarchy-field:nth-child(3) {
-    grid-area: generation;
+  .vehicle-hierarchy-field select {
+    padding: 7px 4px;
+    font-size: 12px;
+    min-height: 34px;
   }
 
   .vehicle-hierarchy-remove {
-    grid-area: remove;
-    justify-self: end;
+    width: 26px;
+    height: 26px;
+    min-height: 26px;
+    font-size: 0.95rem;
   }
 
   .catalog.listings-feed {
