@@ -57,11 +57,23 @@ def register(payload: RegisterRequest, request: Request, db: Session = Depends(g
     return user
 
 
+def _find_user_by_login(db: Session, login: str) -> User | None:
+    """Resolve user by username or email (case-insensitive)."""
+    value = (login or "").strip()
+    if not value:
+        return None
+    lowered = value.lower()
+    user = db.query(User).filter(func.lower(User.username) == lowered).first()
+    if user:
+        return user
+    return db.query(User).filter(func.lower(User.email) == lowered).first()
+
+
 @router.post("/login", response_model=TokenResponse)
 def login(payload: LoginRequest, request: Request, db: Session = Depends(get_db)):
-    user = db.query(User).filter(func.lower(User.username) == payload.login.lower()).first()
+    user = _find_user_by_login(db, payload.login)
     if not user or not verify_password(payload.password, user.password_hash):
-        raise HTTPException(status_code=401, detail="Invalid login or password")
+        raise HTTPException(status_code=401, detail="Неправильный логин и(или) пароль. ")
 
     access_token = create_access_token(subject=user.email)
     refresh_token = create_refresh_token(subject=user.email)

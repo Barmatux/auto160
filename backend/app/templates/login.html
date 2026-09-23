@@ -2,11 +2,11 @@
 {% block title %}Вход - Auto160{% endblock %}
 {% block content %}
 <h1>Вход в кабинет</h1>
-<p class="hint">После входа вы будете перенаправлены в кабинет.</p>
+<p class="hint">Можно войти по логину или email. После входа вы будете перенаправлены на главную.</p>
 
 <form class="form" onsubmit="event.preventDefault(); loginByApi();">
-  <label>Логин <input id="login" required /></label>
-  <label>Пароль <input id="password" type="password" required /></label>
+  <label>Логин или email <input id="login" required autocomplete="username" /></label>
+  <label>Пароль <input id="password" type="password" required autocomplete="current-password" /></label>
   <button type="submit">Войти</button>
 </form>
 
@@ -20,7 +20,7 @@
     messageEl.textContent = "";
 
     const payload = {
-      login: document.getElementById("login").value,
+      login: document.getElementById("login").value.trim(),
       password: document.getElementById("password").value,
     };
     const response = await fetch("/api/v1/auth/login", {
@@ -34,7 +34,11 @@
       window.location.href = "/";
       return;
     }
-    messageEl.textContent = data.detail || "Неверный логин или пароль";
+    let detail = data.detail || "Неправильный логин и(или) пароль. ";
+    if (Array.isArray(detail)) {
+      detail = detail.map((item) => item.msg || JSON.stringify(item)).join("; ");
+    }
+    messageEl.textContent = detail;
     messageEl.hidden = false;
   }
 </script>
