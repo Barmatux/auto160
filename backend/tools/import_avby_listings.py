@@ -47,6 +47,13 @@ DEFAULT_CREATION_DATE = 10
 DEFAULT_SORT = 4
 PRESERVE_ON_UPDATE_FIELDS = frozenset({"vin", "vin_fetched_at"})
 
+# av.by filters/main/init → engine_type options
+ENGINE_TYPE_DIESEL_IDS = (5, 6)  # дизель, дизель (гибрид)
+ENGINE_TYPE_PRESETS = {
+    "diesel": ENGINE_TYPE_DIESEL_IDS,
+    "дизель": ENGINE_TYPE_DIESEL_IDS,
+}
+
 
 def _parse_avby_datetime(value: Any) -> datetime | None:
     """Parse av.by publishedAt / renewedAt into naive UTC datetime."""
@@ -395,6 +402,31 @@ def _extract_price_usd(advert: dict[str, Any]) -> float | None:
     return _to_float(usd.get("amount") or usd.get("amountFiat"))
 
 
+def _parse_engine_type_ids(values: list[str] | None) -> list[int] | None:
+    if not values:
+        return None
+    ids: list[int] = []
+    seen: set[int] = set()
+    for raw in values:
+        token = (raw or "").strip()
+        if not token:
+            continue
+        preset = ENGINE_TYPE_PRESETS.get(token.casefold())
+        if preset is not None:
+            for option_id in preset:
+                if option_id not in seen:
+                    seen.add(option_id)
+                    ids.append(option_id)
+            continue
+        option_id = _to_int(token)
+        if option_id is None:
+            raise ValueError(f"Unknown engine_type value: {raw!r} (use diesel or numeric id)")
+        if option_id not in seen:
+            seen.add(option_id)
+            ids.append(option_id)
+    return ids or None
+
+
 def _build_apply_properties(
     brand_id: int,
     *,
@@ -402,6 +434,7 @@ def _build_apply_properties(
     price_usd_min: int,
     max_hp: int,
     creation_date: int | None,
+    engine_type_ids: list[int] | None = None,
 ) -> list[dict[str, Any]]:
     properties: list[dict[str, Any]] = [
         {"name": "price_currency", "value": 2},
@@ -410,6 +443,8 @@ def _build_apply_properties(
         {"name": "engine_power_hp", "value": {"max": max_hp}},
         {"name": "brands", "value": [{"brand": brand_id}]},
     ]
+    if engine_type_ids:
+        properties.append({"name": "engine_type", "value": list(engine_type_ids)})
     if creation_date is not None and creation_date > 0:
         properties.append({"name": "creation_date", "value": creation_date})
     return properties
@@ -495,6 +530,7 @@ def _fetch_brand_page(
     max_hp: int,
     creation_date: int | None,
     sort: int = DEFAULT_SORT,
+    engine_type_ids: list[int] | None = None,
 ) -> dict[str, Any]:
     payload = {
         "page": page,
@@ -505,6 +541,7 @@ def _fetch_brand_page(
             price_usd_min=price_usd_min,
             max_hp=max_hp,
             creation_date=creation_date,
+            engine_type_ids=engine_type_ids,
         ),
     }
     response = requests.post(
@@ -579,6 +616,7 @@ def run_import(
     price_usd_min: int = DEFAULT_PRICE_USD_MIN,
     creation_date: int | None = DEFAULT_CREATION_DATE,
     sort: int = DEFAULT_SORT,
+    engine_type_ids: list[int] | None = None,
     update_existing: bool = True,
     create_new: bool = True,
     refresh_prices_only: bool = False,
@@ -644,7 +682,7 @@ def run_import(
         f"catalog: {len(catalog_targets)} make/model pairs ({len(targets)} fetch targets), "
         f"{len(brand_to_models)} brands to sync "
         f"filters: year>={year_min} price_usd>={price_usd_min} hp<={max_hp} "
-        f"creation_date={creation_date} sort={sort}"
+        f"creation_date={creation_date} sort={sort} engine_type={engine_type_ids or 'any'}"
         + (" [refresh-prices-only]" if refresh_prices_only else "")
     )
     brand_id_map = _fetch_brand_id_map(user_agent)
@@ -696,6 +734,7 @@ def run_import(
                         max_hp=max_hp,
                         creation_date=creation_date,
                         sort=sort,
+                        engine_type_ids=engine_type_ids,
                     )
                 except Exception as exc:
                     failed_brands += 1
@@ -1075,6 +1114,12 @@ def main() -> None:
     )
     parser.add_argument("--sort", type=int, default=DEFAULT_SORT, help="sorting id (4 = as on cars.av.by filter URL)")
     parser.add_argument(
+        "--engine-type",
+        action="append",
+        default=None,
+        help="Filter by engine_type: diesel/дизель or numeric av.by id (repeatable)",
+    )
+    parser.add_argument(
         "--no-update-existing",
         action="store_true",
         help="Do not update existing imported AV.BY listings",
@@ -1111,6 +1156,10 @@ def main() -> None:
     args = parser.parse_args()
 
     creation_date = args.creation_date if args.creation_date > 0 else None
+    try:
+        engine_type_ids = _parse_engine_type_ids(args.engine_type)
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from None
 
     try:
         result = run_import(
@@ -1125,6 +1174,7 @@ def main() -> None:
             price_usd_min=args.price_usd_min,
             creation_date=creation_date,
             sort=args.sort,
+            engine_type_ids=engine_type_ids,
             update_existing=not args.no_update_existing,
             archive_overpowered=args.archive_overpowered,
             prune_non_catalog=not args.no_prune_non_catalog,
