@@ -61,6 +61,8 @@ class VinCheckListingFilters:
     only_automatic: bool = False
     only_diesel: bool = False
     year_from_2020: bool = False
+    mileage_to_100k: bool = False
+    mileage_to_200k: bool = False
     brand: str | None = None
     model: str | None = None
     sort: str = "added"
@@ -1029,6 +1031,14 @@ def listing_matches_vin_check_filters(
             return False
     if filters.year_from_2020:
         if year_int < 2020:
+            return False
+    if filters.mileage_to_100k or filters.mileage_to_200k:
+        try:
+            mileage_int = int(getattr(listing, "mileage", None) or 0)
+        except (TypeError, ValueError):
+            mileage_int = 0
+        max_km = 100_000 if filters.mileage_to_100k else 200_000
+        if mileage_int > max_km:
             return False
     return True
 

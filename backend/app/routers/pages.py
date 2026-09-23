@@ -3810,6 +3810,10 @@ def _build_admin_vin_check_url(
             params["diesel"] = "1"
         if filters.year_from_2020:
             params["from2020"] = "1"
+        if filters.mileage_to_100k:
+            params["km100"] = "1"
+        elif filters.mileage_to_200k:
+            params["km200"] = "1"
         sort = normalize_vin_check_sort(filters.sort)
         if sort != VIN_CHECK_SORT_ADDED:
             params["sort"] = sort
@@ -3827,6 +3831,8 @@ def admin_vin_check_page(
     auto: str | None = Query(default=None),
     diesel: str | None = Query(default=None),
     from2020: str | None = Query(default=None),
+    km100: str | None = Query(default=None),
+    km200: str | None = Query(default=None),
     sort: str | None = Query(default=None),
     db: Session = Depends(get_db),
 ):
@@ -3844,10 +3850,17 @@ def admin_vin_check_page(
     if brand_value and model_value and model_value not in brand_model_map.get(brand_value, []):
         model_value = None
 
+    mileage_to_100k = _parse_vin_check_bool_param(km100)
+    mileage_to_200k = _parse_vin_check_bool_param(km200)
+    if mileage_to_100k:
+        mileage_to_200k = False
+
     vin_check_filters = VinCheckListingFilters(
         only_automatic=_parse_vin_check_bool_param(auto),
         only_diesel=_parse_vin_check_bool_param(diesel),
         year_from_2020=_parse_vin_check_bool_param(from2020),
+        mileage_to_100k=mileage_to_100k,
+        mileage_to_200k=mileage_to_200k,
         brand=brand_value,
         model=model_value,
         sort=normalize_vin_check_sort(sort),

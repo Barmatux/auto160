@@ -67,6 +67,26 @@
             />
             От 2020г.
           </label>
+          <label class="inline-checkbox">
+            <input
+              type="checkbox"
+              name="km100"
+              value="1"
+              data-vin-check-mileage-cap="100"
+              {% if vin_check_filters.mileage_to_100k %}checked{% endif %}
+            />
+            пробег до 100т.км.
+          </label>
+          <label class="inline-checkbox">
+            <input
+              type="checkbox"
+              name="km200"
+              value="1"
+              data-vin-check-mileage-cap="200"
+              {% if vin_check_filters.mileage_to_200k %}checked{% endif %}
+            />
+            пробег до 200т.км.
+          </label>
           <label class="admin-vin-check-sort-field">
             <span>Сортировка</span>
             <select name="sort" data-vin-check-sort onchange="this.form.submit()">
@@ -144,6 +164,18 @@
     form.submit();
   });
   modelSelect?.addEventListener("change", () => form.submit());
+
+  const mileageCaps = Array.from(form.querySelectorAll("[data-vin-check-mileage-cap]"));
+  mileageCaps.forEach((checkbox) => {
+    checkbox.addEventListener("change", () => {
+      if (checkbox.checked) {
+        mileageCaps.forEach((other) => {
+          if (other !== checkbox) other.checked = false;
+        });
+      }
+      form.submit();
+    });
+  });
 })();
 </script>
 <script src="/static/listings_feed_gallery.js?v=20260730-01" defer></script>

@@ -175,6 +175,38 @@ def test_listing_matches_vin_check_filters():
         SimpleNamespace(transmission_type="Автомат", engine_type="бензин", year=2010, brand="BMW", model="X1"),
         VinCheckListingFilters(),
     ) is True
+    low_mileage = SimpleNamespace(
+        transmission_type="Автомат",
+        engine_type="бензин",
+        year=2018,
+        brand="BMW",
+        model="X1",
+        mileage=95_000,
+    )
+    mid_mileage = SimpleNamespace(
+        transmission_type="Автомат",
+        engine_type="бензин",
+        year=2018,
+        brand="BMW",
+        model="X1",
+        mileage=150_000,
+    )
+    high_mileage = SimpleNamespace(
+        transmission_type="Автомат",
+        engine_type="бензин",
+        year=2018,
+        brand="BMW",
+        model="X1",
+        mileage=210_000,
+    )
+    assert listing_matches_vin_check_filters(low_mileage, VinCheckListingFilters(mileage_to_100k=True)) is True
+    assert listing_matches_vin_check_filters(mid_mileage, VinCheckListingFilters(mileage_to_100k=True)) is False
+    assert listing_matches_vin_check_filters(mid_mileage, VinCheckListingFilters(mileage_to_200k=True)) is True
+    assert listing_matches_vin_check_filters(high_mileage, VinCheckListingFilters(mileage_to_200k=True)) is False
+    assert listing_matches_vin_check_filters(
+        mid_mileage,
+        VinCheckListingFilters(mileage_to_100k=True, mileage_to_200k=True),
+    ) is False
 
 
 def test_normalize_vin_check_sort():
