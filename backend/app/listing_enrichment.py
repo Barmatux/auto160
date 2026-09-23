@@ -9,6 +9,7 @@ from collections import defaultdict
 from datetime import UTC, date, datetime, timedelta
 
 from sqlalchemy.orm import Session
+from sqlalchemy import or_
 
 from app.avby_offer_metadata import fetch_and_apply_offer_vin_metadata
 from app.avby_vin import AvbyVinError, get_or_fetch_listing_vin
@@ -84,6 +85,22 @@ VIN_CHECK_SORT_LABELS = {
     VIN_CHECK_SORT_MILEAGE: "По пробегу",
 }
 VIN_CHECK_DEFAULT_YEAR_FROM = 2010
+VIN_CHECK_EXCLUDED_SOURCES = frozenset({"autoplius", "auto24", "mobile_de"})
+
+
+def listing_is_belarus_vin_check_source(listing: CarListing) -> bool:
+    """VIN CHECK is Belarus customs — skip Lithuania/Estonia/Germany feeds."""
+    source = (getattr(listing, "source", None) or "").strip().casefold()
+    if not source:
+        return True
+    return source not in VIN_CHECK_EXCLUDED_SOURCES
+
+
+def _belarus_vin_check_listings_query_filter():
+    return or_(
+        CarListing.source.is_(None),
+        ~CarListing.source.in_(tuple(VIN_CHECK_EXCLUDED_SOURCES)),
+    )
 
 
 def normalize_vin_check_sort(value: str | None) -> str:
@@ -480,6 +497,8 @@ def enrich_rating_one_listings(
     processed = 0
 
     for listing in listings:
+        if not listing_is_belarus_vin_check_source(listing):
+            continue
         if not listing_matches_rating_one(listing, rating_targets):
             continue
         total.eligible += 1
@@ -833,6 +852,7 @@ def count_rating_one_listings_with_vin(db: Session) -> int:
     query = (
         db.query(CarListing)
         .filter(CarListing.status == ListingStatus.published)
+        .filter(_belarus_vin_check_listings_query_filter())
         .order_by(CarListing.created_at.desc())
     )
     for listing in query.yield_per(200):
@@ -860,6 +880,7 @@ def paginate_rating_one_listings_with_vin(
     query = (
         db.query(CarListing)
         .filter(CarListing.status == ListingStatus.published)
+        .filter(_belarus_vin_check_listings_query_filter())
         .order_by(CarListing.vin_fetched_at.desc().nullslast(), CarListing.created_at.desc())
     )
 
@@ -1059,6 +1080,7 @@ def paginate_rating_one_listings(
     query = (
         db.query(CarListing)
         .filter(CarListing.status == ListingStatus.published)
+        .filter(_belarus_vin_check_listings_query_filter())
         .order_by(CarListing.created_at.desc())
     )
 
