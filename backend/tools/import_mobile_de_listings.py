@@ -68,6 +68,7 @@ FROM listings
 WHERE source = %s
   AND status = 'active'
   AND detail_scraped IS TRUE
+  AND coalesce(title, '') <> ''
 ORDER BY id DESC
 """
 
