@@ -148,7 +148,6 @@ from app.listing_display import (
 from app.listing_import_age import (
     IMPORT_AGE_OVER_10M,
     IMPORT_AGE_RF_PASSABLE,
-    MASKED_IMPORT_DATE_LABEL,
     import_age_min_months,
     normalize_import_age_filter,
     paginate_query_with_import_age,
@@ -403,7 +402,6 @@ def _template_context(request: Request, current_user: User | None, seo: SeoMeta 
         "site_theme": site_theme,
         "site_theme_uses_logo": site_theme_uses_logo(site_theme),
         "site_theme_labels": SITE_THEME_LABELS,
-        "MASKED_IMPORT_DATE_LABEL": MASKED_IMPORT_DATE_LABEL,
         "show_import_age_filters": False,
         "import_age_rf_passable": False,
         "import_age_over_10m": False,
@@ -2572,8 +2570,6 @@ def listings_page(
     context["import_age_filter"] = import_age_filter
     context["import_age_rf_passable"] = import_age_filter == IMPORT_AGE_RF_PASSABLE
     context["import_age_over_10m"] = import_age_filter == IMPORT_AGE_OVER_10M
-    context["MASKED_IMPORT_DATE_LABEL"] = MASKED_IMPORT_DATE_LABEL
-
     query_params: list[tuple[str, str]] = []
     if catalog_item_id:
         query_params.append(("catalog_item_id", str(catalog_item_id)))
@@ -2743,7 +2739,6 @@ def listing_item(request: Request, listing_id: int, db: Session = Depends(get_db
     context["listing"] = listing
     context["generation_listings_url"] = None
     context["modification_listings_url"] = None
-    context["MASKED_IMPORT_DATE_LABEL"] = MASKED_IMPORT_DATE_LABEL
     context["show_listing_contact_cta"] = current_user is not None
     if listing:
         catalog_items = resolve_catalog_items_for_listings(db, [listing])

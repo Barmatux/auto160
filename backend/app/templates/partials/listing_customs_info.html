@@ -1,11 +1,6 @@
 {% if customs and customs.found and customs.release_date %}
   <p class="listing-customs-info">
-    {% if is_admin %}
-      <strong>Дата ввоза в РБ:</strong>
-      <span>{{ customs.release_date }}</span>
-    {% else %}
-      <strong>{{ MASKED_IMPORT_DATE_LABEL | default("Дата ввоза в РБ *******г.") }}</strong>
-    {% endif %}
+    <strong>Дата ввоза в РБ {{ customs.release_date }}г.</strong>
   </p>
 {% elif is_admin and customs %}
   <p class="listing-customs-info">

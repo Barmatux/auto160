@@ -20,8 +20,6 @@ IMPORT_AGE_OVER_10M = "import_over_10m"
 IMPORT_AGE_RF_MONTHS = 12
 IMPORT_AGE_OVER_10M_MONTHS = 10
 
-MASKED_IMPORT_DATE_LABEL = "Дата ввоза в РБ *******г."
-
 
 def add_calendar_months(value: date, months: int) -> date:
     month_index = value.month - 1 + months
@@ -132,12 +130,10 @@ def paginate_query_with_import_age(
     return matched[offset : offset + page_size], total
 
 
-def masked_import_date_label(release_date: str | None, *, reveal: bool = False) -> str | None:
+def format_import_date_label(release_date: str | None) -> str | None:
     cleaned = (release_date or "").strip()
     if not cleaned:
         return None
-    if reveal:
-        if re.search(r"г\.?\s*$", cleaned, flags=re.IGNORECASE):
-            return f"Дата ввоза в РБ {cleaned}"
-        return f"Дата ввоза в РБ {cleaned}г."
-    return MASKED_IMPORT_DATE_LABEL
+    if re.search(r"г\.?\s*$", cleaned, flags=re.IGNORECASE):
+        return f"Дата ввоза в РБ {cleaned}"
+    return f"Дата ввоза в РБ {cleaned}г."

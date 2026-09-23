@@ -3,10 +3,9 @@ from datetime import date
 from app.listing_import_age import (
     IMPORT_AGE_OVER_10M,
     IMPORT_AGE_RF_PASSABLE,
-    MASKED_IMPORT_DATE_LABEL,
     add_calendar_months,
+    format_import_date_label,
     import_age_min_months,
-    masked_import_date_label,
     normalize_import_age_filter,
     release_date_older_than_months,
 )
@@ -34,7 +33,7 @@ def test_add_calendar_months_handles_month_end():
     assert add_calendar_months(date(2026, 9, 23), -12) == date(2025, 9, 23)
 
 
-def test_masked_import_date_label():
-    assert masked_import_date_label("15.03.2023") == MASKED_IMPORT_DATE_LABEL
-    assert masked_import_date_label("15.03.2023", reveal=True) == "Дата ввоза в РБ 15.03.2023г."
-    assert masked_import_date_label(None) is None
+def test_format_import_date_label():
+    assert format_import_date_label("15.03.2023") == "Дата ввоза в РБ 15.03.2023г."
+    assert format_import_date_label("15.03.2023г.") == "Дата ввоза в РБ 15.03.2023г."
+    assert format_import_date_label(None) is None
