@@ -30,7 +30,7 @@
     {% if seo_json_ld_script %}
       <script type="application/ld+json">{{ seo_json_ld_script | safe }}</script>
     {% endif %}
-    <link rel="stylesheet" href="/static/styles.css?v=20260922-04" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260923-01" />
     {% if site_theme_uses_logo %}
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -63,9 +63,22 @@
           {% if is_admin %}
             <a href="/catalog/beta" class="header-beta-link">beta Каталог</a>
           {% endif %}
-          <a href="/listings">Лента объявлений</a>
-          <a href="/listings/lt">Литва</a>
-          <a href="/listings/ee">Эстония</a>
+          <div class="header-nav-dropdown" data-header-dropdown>
+            <button
+              type="button"
+              class="header-nav-dropdown-toggle"
+              data-header-dropdown-toggle
+              aria-expanded="false"
+              aria-haspopup="true"
+            >Объявления</button>
+            <div class="header-nav-dropdown-menu" data-header-dropdown-menu hidden>
+              <a href="/listings">Авто из Беларуси</a>
+              <a href="/listings/de">Авто из Германии</a>
+              <a href="/listings/auctions">Авто с европейских аукционов</a>
+              <a href="/listings/ee">Авто из Эстонии</a>
+              <a href="/listings/lt">Авто из Литвы</a>
+            </div>
+          </div>
           <a href="/inspection">Проверка</a>
           {% if is_admin %}
             <a href="/admin/users">Пользователи</a>

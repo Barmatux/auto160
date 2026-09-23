@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" role="img" aria-label="Германия">
+  <rect width="48" height="48" rx="24" fill="#fff"/>
+  <path d="M8 8h32v10.7H8z" fill="#0a0a0a"/>
+  <path d="M8 18.7h32v10.6H8z" fill="#dd0000"/>
+  <path d="M8 29.3h32v10.7H8z" fill="#ffce00"/>
+</svg>

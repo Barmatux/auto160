@@ -2,15 +2,15 @@
 {% block title %}Auto160 — подбор авто до 160 л.с.{% endblock %}
 {% block content %}
 <section class="home-hero">
-  <h1>Подбор авто под льготный утильсбор (до 160 л.с.) в Беларуси</h1>
+  <h1>Подбор авто под льготный утильсбор (до 160 л.с.)<br />в Европе и Беларуси</h1>
   <p class="home-subtitle">
-    Сравнивай комплектации в каталоге, смотри актуальные объявления с av.by и проверяй VIN
-    в базе таможни перед покупкой.
+    Сравнивай комплектации в каталоге, смотри актуальные объявления автомобилей без утильсбора
+    с онлайн-площадок в Европе и Беларуси, проверяй VIN перед покупкой.
   </p>
 
   <div class="home-actions">
     <a class="btn-secondary" href="/catalog">Каталог</a>
-    <a class="btn-secondary" href="/listings">Лента объявлений</a>
+    <a class="btn-secondary" href="/listings">Объявления</a>
     <a class="btn-secondary" href="/inspection">Проверка VIN</a>
   </div>
   {% if catalog_quick_links %}
@@ -20,6 +20,20 @@
       {% endfor %}
     </div>
   {% endif %}
+</section>
+
+<section class="home-section home-section-directions">
+  <div class="home-section-head">
+    <h2>Популярные направления</h2>
+  </div>
+  <div class="home-makes home-directions">
+    {% for item in popular_directions %}
+      <a class="home-make-card home-direction-card" href="{{ item.url }}">
+        <img class="make-logo home-direction-flag" src="{{ item.flag_url }}" alt="" loading="lazy" />
+        <strong>{{ item.label }}</strong>
+      </a>
+    {% endfor %}
+  </div>
 </section>
 
 <section class="home-section home-section-makes">

@@ -19,8 +19,8 @@ from app.models import CarListing, CatalogItem, ListingStatus
 
 SITE_NAME = "Auto160"
 DEFAULT_DESCRIPTION = (
-    "Auto160 — подбор авто до 160 л.с. в Беларуси: каталог комплектаций av.by, "
-    "лента объявлений и проверка VIN в базе таможни ГТК."
+    "Auto160 — подбор авто до 160 л.с. в Европе и Беларуси: каталог комплектаций, "
+    "объявления без утильсбора с онлайн-площадок и проверка VIN перед покупкой."
 )
 
 # City landings that are allowed to be indexed (unique title/H1/canonical).
@@ -307,7 +307,7 @@ def home_seo_meta(request: Request) -> SeoMeta:
         description=description,
         path="/",
         json_ld=[organization_json_ld(base), website_json_ld(base)],
-        h1="Подбор авто под льготный утильсбор (до 160 л.с.) в Беларуси",
+        h1="Подбор авто под льготный утильсбор (до 160 л.с.) в Европе и Беларуси",
     )
 
 

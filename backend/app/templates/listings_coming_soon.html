@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }} — Auto160{% endblock %}
+{% block content %}
+<section class="home-hero">
+  <h1>{{ page_heading }}</h1>
+  <p class="home-subtitle">
+    Раздел в разработке. Скоро здесь появятся объявления без утильсбора с этой площадки.
+  </p>
+  <div class="home-actions">
+    <a class="btn-secondary" href="/listings">Авто из Беларуси</a>
+    <a class="btn-secondary" href="/listings/lt">Авто из Литвы</a>
+    <a class="btn-secondary" href="/listings/ee">Авто из Эстонии</a>
+  </div>
+</section>
+{% endblock %}

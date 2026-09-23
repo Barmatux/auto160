@@ -2199,6 +2199,36 @@ def _home_latest_listings(db: Session, *, limit: int = 20) -> list[CarListing]:
     return with_photos
 
 
+def _home_popular_directions() -> list[dict]:
+    return [
+        {
+            "label": "Авто из Беларуси",
+            "url": "/listings",
+            "flag_url": "/static/flags/by.svg",
+        },
+        {
+            "label": "Авто из Германии",
+            "url": "/listings/de",
+            "flag_url": "/static/flags/de.svg",
+        },
+        {
+            "label": "Авто с европейских аукционов",
+            "url": "/listings/auctions",
+            "flag_url": "/static/flags/eu.svg",
+        },
+        {
+            "label": "Авто из Эстонии",
+            "url": "/listings/ee",
+            "flag_url": "/static/flags/ee.svg",
+        },
+        {
+            "label": "Авто из Литвы",
+            "url": "/listings/lt",
+            "flag_url": "/static/flags/lt.svg",
+        },
+    ]
+
+
 @router.get("/")
 def home(request: Request, db: Session = Depends(get_db)):
     current_user = _resolve_user_from_request(request, db)
@@ -2206,6 +2236,7 @@ def home(request: Request, db: Session = Depends(get_db)):
     context = _template_context(request, current_user, home_seo_meta(request))
     context.update(_home_stats(db))
     context["popular_makes"] = _home_popular_makes(db)
+    context["popular_directions"] = _home_popular_directions()
     context["latest_listings"] = latest_listings
     context["listing_gallery_urls"] = resolve_listing_gallery_urls_map(latest_listings, limit=5)
     context["listing_customs_map"] = build_listing_customs_map(db, latest_listings) if latest_listings else {}
@@ -2245,6 +2276,35 @@ def sitemap_xml(request: Request, db: Session = Depends(get_db)):
     entries = build_sitemap_entries(db, base)
     xml = render_sitemap_xml(entries)
     return Response(content=xml, media_type="application/xml; charset=utf-8")
+
+
+@router.get("/listings/de")
+@router.get("/listings/auctions")
+def listings_coming_soon_page(request: Request, db: Session = Depends(get_db)):
+    current_user = _resolve_user_from_request(request, db)
+    path = request.url.path.rstrip("/")
+    if path.endswith("/listings/de"):
+        page_heading = "Авто из Германии"
+        page_title = "Авто из Германии"
+        seo_path = "/listings/de"
+    else:
+        page_heading = "Авто с европейских аукционов"
+        page_title = "Авто с европейских аукционов"
+        seo_path = "/listings/auctions"
+    context = _template_context(
+        request,
+        current_user,
+        SeoMeta(
+            title=f"{page_title} — Auto160",
+            description=f"{page_heading}: раздел в разработке. Скоро появятся объявления без утильсбора.",
+            path=seo_path,
+            noindex=True,
+            h1=page_heading,
+        ),
+    )
+    context["page_heading"] = page_heading
+    context["page_title"] = page_title
+    return templates.TemplateResponse(request, "listings_coming_soon.html", context)
 
 
 @router.get("/listings")

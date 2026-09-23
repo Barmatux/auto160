@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" role="img" aria-label="Беларусь">
+  <rect width="48" height="48" rx="24" fill="#fff"/>
+  <path d="M8 8h32v21H8z" fill="#c8312a"/>
+  <path d="M8 29h32v11H8z" fill="#4aa54a"/>
+  <path d="M8 8h7v32H8z" fill="#fff"/>
+  <path d="M9.2 10.5h4.6v2.2H9.2zm0 4.5h4.6v2.2H9.2zm0 4.5h4.6v2.2H9.2zm0 4.5h4.6v2.2H9.2zm0 4.5h4.6v2.2H9.2zm0 4.5h4.6v2.2H9.2z" fill="#c8312a" opacity=".85"/>
+</svg>
