@@ -50,8 +50,52 @@
   <div class="vehicle-hierarchy-actions">
     <button type="submit" class="vehicle-hierarchy-submit" formaction="{{ vehicle_hierarchy_submit_action | default('/catalog/modifications') }}"{% if form_id %} form="{{ form_id }}"{% endif %}>Показать</button>
     <button type="button" class="vehicle-hierarchy-add">+ {{ vh.labels.make }}</button>
+    {% if show_import_age_filters %}
+      <label class="inline-checkbox vehicle-hierarchy-import-age">
+        <input
+          type="checkbox"
+          name="rf_passable"
+          value="1"
+          form="{{ form_id }}"
+          data-import-age-filter="rf_passable"
+          {% if import_age_rf_passable %}checked{% endif %}
+        />
+        Проходные на РФ
+      </label>
+      <label class="inline-checkbox vehicle-hierarchy-import-age">
+        <input
+          type="checkbox"
+          name="import_over_10m"
+          value="1"
+          form="{{ form_id }}"
+          data-import-age-filter="import_over_10m"
+          {% if import_age_over_10m %}checked{% endif %}
+        />
+        Более 10 месяцев с ввоза в РБ
+      </label>
+    {% endif %}
     {% if filters_reset_url %}
       <a class="page-link vehicle-hierarchy-reset" href="{{ filters_reset_url }}">Сбросить</a>
     {% endif %}
   </div>
 </div>
+{% if show_import_age_filters %}
+<script>
+(function () {
+  const form = document.getElementById({{ form_id|tojson }});
+  if (!form) return;
+  const boxes = Array.from(form.querySelectorAll("[data-import-age-filter]"));
+  if (!boxes.length) return;
+  boxes.forEach((checkbox) => {
+    checkbox.addEventListener("change", () => {
+      if (checkbox.checked) {
+        boxes.forEach((other) => {
+          if (other !== checkbox) other.checked = false;
+        });
+      }
+      form.requestSubmit ? form.requestSubmit() : form.submit();
+    });
+  });
+})();
+</script>
+{% endif %}

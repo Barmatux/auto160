@@ -145,6 +145,14 @@ from app.listing_display import (
     listing_source_href,
     listing_source_label,
 )
+from app.listing_import_age import (
+    IMPORT_AGE_OVER_10M,
+    IMPORT_AGE_RF_PASSABLE,
+    MASKED_IMPORT_DATE_LABEL,
+    import_age_min_months,
+    normalize_import_age_filter,
+    paginate_query_with_import_age,
+)
 from app.listing_price_filter import (
     apply_listings_price_range_filter,
     listing_price_range_options,
@@ -395,6 +403,11 @@ def _template_context(request: Request, current_user: User | None, seo: SeoMeta 
         "site_theme": site_theme,
         "site_theme_uses_logo": site_theme_uses_logo(site_theme),
         "site_theme_labels": SITE_THEME_LABELS,
+        "MASKED_IMPORT_DATE_LABEL": MASKED_IMPORT_DATE_LABEL,
+        "show_import_age_filters": False,
+        "import_age_rf_passable": False,
+        "import_age_over_10m": False,
+        "show_listing_contact_cta": False,
     }
     context.update(build_seo_context(request, seo))
     context.update(yandex_metrika_context(request))
@@ -2313,6 +2326,8 @@ def listings_page(
     year_to: str | None = Query(default=None),
     catalog_item_id: int | None = Query(default=None),
     passable: bool = Query(default=False),
+    rf_passable: str | None = Query(default=None),
+    import_over_10m: str | None = Query(default=None),
     freshness: str = Query(default="all"),
     sort: str = Query(default="newest"),
     page: int = Query(default=1, ge=1),
@@ -2332,6 +2347,14 @@ def listings_page(
         listings_market = "by"
         listings_base_path = "/listings"
     current_user = _resolve_user_from_request(request, db)
+    is_authenticated = current_user is not None
+    import_age_filter = None
+    if listings_market == "by" and is_authenticated:
+        import_age_filter = normalize_import_age_filter(
+            _parse_vin_check_bool_param(rf_passable),
+            _parse_vin_check_bool_param(import_over_10m),
+        )
+    import_age_months = import_age_min_months(import_age_filter)
     vehicle_rows = _parse_vehicle_filter_rows(request.query_params, make_key="brand", model_key="model", generation_key="generation")
     parsed_year_from = _parse_optional_year(year_from)
     parsed_year_to = _parse_optional_year(year_to)
@@ -2520,7 +2543,17 @@ def listings_page(
     total = query.count()
     page_size = LISTINGS_PAGE_SIZE
     offset = (page - 1) * page_size
-    listings = query.offset(offset).limit(page_size).all()
+    if import_age_months is not None:
+        listings, total = paginate_query_with_import_age(
+            db,
+            query,
+            min_months=import_age_months,
+            page=page,
+            page_size=page_size,
+        )
+        offset = (page - 1) * page_size
+    else:
+        listings = query.offset(offset).limit(page_size).all()
     context = _template_context(request, current_user)
     context["listings"] = listings
     context["listing_cover_urls"] = _resolve_listing_cover_urls(listings, db)
@@ -2528,13 +2561,18 @@ def listings_page(
     context["listing_catalog_items"] = resolve_catalog_items_for_listings(db, listings)
     context["total"] = total
     context["page"] = page
-    context["total_pages"] = max(1, (total + page_size - 1) // page_size)
-    context["has_prev"] = page > 1
+    context["total_pages"] = max(1, (total + page_size - 1) // page_size) if total else 1
+    context["has_prev"] = page > 1 and total > 0
     context["has_next"] = offset + len(listings) < total
     context["listings_filters"] = _listings_filters_payload(request, db, published_only=not is_admin)
     context["catalog_item_filter"] = catalog_item_filter
     context["listings_market"] = listings_market
     context["listings_base_path"] = listings_base_path
+    context["show_import_age_filters"] = listings_market == "by" and is_authenticated
+    context["import_age_filter"] = import_age_filter
+    context["import_age_rf_passable"] = import_age_filter == IMPORT_AGE_RF_PASSABLE
+    context["import_age_over_10m"] = import_age_filter == IMPORT_AGE_OVER_10M
+    context["MASKED_IMPORT_DATE_LABEL"] = MASKED_IMPORT_DATE_LABEL
 
     query_params: list[tuple[str, str]] = []
     if catalog_item_id:
@@ -2563,6 +2601,10 @@ def listings_page(
         query_params.append(("price_range", price_range))
     if passable:
         query_params.append(("passable", "1"))
+    if import_age_filter == IMPORT_AGE_RF_PASSABLE:
+        query_params.append(("rf_passable", "1"))
+    elif import_age_filter == IMPORT_AGE_OVER_10M:
+        query_params.append(("import_over_10m", "1"))
     if freshness and freshness != "all":
         query_params.append(("freshness", freshness))
     if sort and sort != "newest":
@@ -2594,6 +2636,7 @@ def listings_page(
         or parsed_year_to is not None
         or price_range
         or passable
+        or import_age_filter is not None
         or (freshness and freshness != "all")
         or (sort and sort != "newest")
         or brand == "__multi__"
@@ -2700,6 +2743,8 @@ def listing_item(request: Request, listing_id: int, db: Session = Depends(get_db
     context["listing"] = listing
     context["generation_listings_url"] = None
     context["modification_listings_url"] = None
+    context["MASKED_IMPORT_DATE_LABEL"] = MASKED_IMPORT_DATE_LABEL
+    context["show_listing_contact_cta"] = current_user is not None
     if listing:
         catalog_items = resolve_catalog_items_for_listings(db, [listing])
         catalog_item = catalog_items.get(listing.id)

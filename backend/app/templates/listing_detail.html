@@ -119,7 +119,23 @@
           </div>
         </dl>
         <div class="listing-detail-side-actions">
-          <a class="listing-detail-side-action listing-detail-side-action-primary" href="/inspection?listing_id={{ listing.id }}">Проверить VIN</a>
+          {% if is_admin %}
+            <a class="listing-detail-side-action listing-detail-side-action-primary" href="/inspection?listing_id={{ listing.id }}">Проверить VIN</a>
+          {% endif %}
+          {% if show_listing_contact_cta %}
+            <div class="listing-contact-cta" data-listing-contact-cta>
+              <button type="button" class="listing-detail-side-action listing-detail-side-action-primary" data-listing-contact-toggle>
+                Получить подробную информацию по автомобилю
+              </button>
+              <div class="listing-contact-messengers" data-listing-contact-messengers hidden>
+                <p class="hint">Выберите мессенджер для связи:</p>
+                <a class="listing-contact-messenger" href="#" data-messenger="telegram">Telegram</a>
+                <a class="listing-contact-messenger" href="#" data-messenger="max">MAX</a>
+                <a class="listing-contact-messenger" href="#" data-messenger="whatsapp">WhatsApp</a>
+                <a class="listing-contact-messenger" href="#" data-messenger="viber">Viber</a>
+              </div>
+            </div>
+          {% endif %}
           {% if generation_listings_url %}
             <a class="listing-detail-side-action" href="{{ generation_listings_url }}">Другие объявления по этому поколению</a>
           {% endif %}
@@ -321,6 +337,21 @@
     if (event.key === "Escape") closeLightbox();
     if (event.key === "ArrowLeft") shiftLightbox(-1);
     if (event.key === "ArrowRight") shiftLightbox(1);
+  });
+})();
+</script>
+{% endif %}
+{% if show_listing_contact_cta %}
+<script>
+(function () {
+  const root = document.querySelector("[data-listing-contact-cta]");
+  if (!root) return;
+  const toggle = root.querySelector("[data-listing-contact-toggle]");
+  const panel = root.querySelector("[data-listing-contact-messengers]");
+  if (!toggle || !panel) return;
+  toggle.addEventListener("click", function () {
+    panel.hidden = !panel.hidden;
+    toggle.setAttribute("aria-expanded", panel.hidden ? "false" : "true");
   });
 })();
 </script>

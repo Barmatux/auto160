@@ -2670,6 +2670,51 @@ body.vin-enter-modal-open {
   flex-wrap: wrap;
 }
 
+.vehicle-hierarchy-import-age {
+  margin: 0;
+  white-space: nowrap;
+}
+
+.listing-contact-cta {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.listing-contact-cta > button.listing-detail-side-action {
+  width: 100%;
+  border: none;
+  cursor: pointer;
+  font: inherit;
+  text-align: center;
+}
+
+.listing-contact-messengers {
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-soft);
+}
+
+.listing-contact-messenger {
+  display: block;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid #dbe6fb;
+  background: #fff;
+  color: #1d4ed8;
+  text-decoration: none;
+  font-weight: 600;
+  text-align: center;
+}
+
+.listing-contact-messenger:hover {
+  border-color: #93c5fd;
+  background: #eff6ff;
+}
+
 .vehicle-hierarchy-submit {
   border: none;
   border-radius: 8px;

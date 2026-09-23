@@ -1,9 +1,16 @@
-{% if customs %}
+{% if customs and customs.found and customs.release_date %}
   <p class="listing-customs-info">
-    <strong>Дата выпуска в РБ:</strong>
-    {% if customs.found and customs.release_date %}
+    {% if is_admin %}
+      <strong>Дата ввоза в РБ:</strong>
       <span>{{ customs.release_date }}</span>
-    {% elif customs.found %}
+    {% else %}
+      <strong>{{ MASKED_IMPORT_DATE_LABEL | default("Дата ввоза в РБ *******г.") }}</strong>
+    {% endif %}
+  </p>
+{% elif is_admin and customs %}
+  <p class="listing-customs-info">
+    <strong>Дата ввоза в РБ:</strong>
+    {% if customs.found %}
       <span class="hint">найдено в ГТК, дата не распознана</span>
     {% else %}
       <span class="hint">не найдено в базе ГТК</span>
