@@ -36,21 +36,9 @@
   <div class="catalog-layout">
     {% include "partials/listings_filters_panel.html" %}
     <section class="catalog-main">
-      <div class="catalog-main-head">
-        <h1>{{ seo_h1 or (
-          "Литва — объявления Autoplius" if listings_market == "lt"
-          else (
-            "Эстония — объявления Auto24" if listings_market == "ee"
-            else ("Германия — объявления mobile.de" if listings_market == "de" else "Лента объявлений")
-          )
-        ) }}</h1>
-        {% if seo_intro %}
-          <p class="hint">{{ seo_intro }}</p>
-        {% endif %}
-        {% if catalog_item_filter %}
-          <p class="hint">Комплектация: {{ catalog_item_filter.make }} {{ catalog_item_filter.model }}{% if catalog_item_filter.generation %} · {{ catalog_item_filter.generation }}{% endif %}</p>
-        {% endif %}
-      </div>
+      {% if catalog_item_filter %}
+        <p class="hint listings-catalog-filter-hint">Комплектация: {{ catalog_item_filter.make }} {{ catalog_item_filter.model }}{% if catalog_item_filter.generation %} · {{ catalog_item_filter.generation }}{% endif %}</p>
+      {% endif %}
 
       {% if listings %}
         <div class="catalog listings-feed">
@@ -85,5 +73,5 @@
 {% if is_admin %}
   {% include "partials/listing_vin_admin_script.html" %}
 {% endif %}
-<script src="/static/listings_feed_gallery.js?v=20260730-01" defer></script>
+<script src="/static/listings_feed_gallery.js?v=20260923-06" defer></script>
 {% endblock %}

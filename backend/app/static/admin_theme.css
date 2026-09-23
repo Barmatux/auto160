@@ -518,6 +518,68 @@ body.theme-admin .listings-feed .listing-photo-nav {
   color: #fff;
 }
 
+body.theme-admin:not(.theme-admin-light) .listing-detail-title {
+  color: #f3f6fb;
+}
+
+body.theme-admin:not(.theme-admin-light) .listing-spec-row {
+  border-bottom-color: #2a3345;
+}
+
+body.theme-admin:not(.theme-admin-light) .listing-spec-row dt {
+  color: #9aa6bc;
+}
+
+body.theme-admin:not(.theme-admin-light) .listing-spec-row dd {
+  color: #f3f6fb;
+}
+
+body.theme-admin:not(.theme-admin-light) .listing-detail-catalog-link {
+  background: #181d27;
+  border-color: #3d4a63;
+  color: #8fd9ff;
+}
+
+body.theme-admin:not(.theme-admin-light) .listing-detail-catalog-link:hover {
+  background: #1e2633;
+  border-color: rgba(0, 168, 255, 0.45);
+  color: #b8ffe0;
+}
+
+body.theme-admin:not(.theme-admin-light) .listing-detail-side-action {
+  border-color: #3d4a63;
+  background: #181d27;
+  color: #e8eef8;
+}
+
+body.theme-admin:not(.theme-admin-light) .listing-detail-description {
+  border-top-color: #2a3345;
+}
+
+body.theme-admin:not(.theme-admin-light) .listing-detail-description-title,
+body.theme-admin:not(.theme-admin-light) .listing-detail-description-body {
+  color: #f3f6fb;
+}
+
+body.theme-admin:not(.theme-admin-light) .listing-contact-messengers {
+  background: #181d27;
+  border-color: #3d4a63;
+}
+
+body.theme-admin:not(.theme-admin-light) .listing-contact-messengers-title {
+  color: #e2e8f0;
+}
+
+body.theme-admin:not(.theme-admin-light) .listing-gallery-main-btn,
+body.theme-admin:not(.theme-admin-light) .listing-gallery-thumb-btn {
+  background: #0c1017;
+  border-color: #2a3345;
+}
+
+body.theme-admin:not(.theme-admin-light) .listing-spec-icon {
+  color: #9aa6bc;
+}
+
 body.theme-admin .inline-checkbox,
 body.theme-admin label {
   color: var(--text);
