@@ -26,9 +26,11 @@
         var dy = event.touches[0].clientY - startY;
         if (Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy)) {
           moved = true;
+          // Keep the page from rubber-banding horizontally while swiping photos.
+          if (event.cancelable) event.preventDefault();
         }
       },
-      { passive: true }
+      { passive: false }
     );
 
     target.addEventListener(

@@ -355,9 +355,10 @@
         const dy = event.touches[0].clientY - touchStartY;
         if (Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy)) {
           touchMoved = true;
+          if (event.cancelable) event.preventDefault();
         }
       },
-      { passive: true }
+      { passive: false }
     );
     mainBtn.addEventListener("touchend", function (event) {
       if (!touchMoved || photoUrls.length <= 1) return;
