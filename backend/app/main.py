@@ -79,6 +79,125 @@ def health():
     return {"status": "ok"}
 
 
+@app.get("/api/v1/ops/customs-night-stats", include_in_schema=False)
+def customs_night_stats():
+    """Aggregate GTK customs backfill stats for the last nightly window (no VIN values)."""
+    from datetime import datetime, timedelta, timezone
+    from zoneinfo import ZoneInfo
+
+    from sqlalchemy import case, func
+
+    from app.customs_vin import DATABASE_PERSONAL
+    from app.db import SessionLocal
+    from app.models import VinCustomsCheck
+
+    minsk = ZoneInfo("Europe/Minsk")
+    now_msk = datetime.now(minsk)
+    run_day = now_msk.date() if now_msk.hour >= 2 else (now_msk.date() - timedelta(days=1))
+    window_start_msk = datetime(run_day.year, run_day.month, run_day.day, 2, 0, tzinfo=minsk)
+    window_end_msk = window_start_msk + timedelta(hours=8)
+    start_utc = window_start_msk.astimezone(timezone.utc).replace(tzinfo=None)
+    end_utc = window_end_msk.astimezone(timezone.utc).replace(tzinfo=None)
+
+    def _bucket(db, *, since: datetime | None = None, until: datetime | None = None) -> dict:
+        filters = [VinCustomsCheck.database == DATABASE_PERSONAL]
+        if since is not None:
+            filters.append(VinCustomsCheck.checked_at >= since)
+        if until is not None:
+            filters.append(VinCustomsCheck.checked_at < until)
+        row = (
+            db.query(
+                func.count(VinCustomsCheck.id).label("total"),
+                func.coalesce(
+                    func.sum(
+                        case(
+                            (
+                                (VinCustomsCheck.found.is_(True))
+                                & (VinCustomsCheck.release_date.isnot(None)),
+                                1,
+                            ),
+                            else_=0,
+                        )
+                    ),
+                    0,
+                ).label("found_with_date"),
+                func.coalesce(
+                    func.sum(
+                        case(
+                            (
+                                (VinCustomsCheck.found.is_(True))
+                                & (VinCustomsCheck.release_date.is_(None)),
+                                1,
+                            ),
+                            else_=0,
+                        )
+                    ),
+                    0,
+                ).label("found_no_date"),
+                func.coalesce(
+                    func.sum(case((VinCustomsCheck.found.is_(False), 1), else_=0)),
+                    0,
+                ).label("not_found"),
+                func.coalesce(
+                    func.sum(case((VinCustomsCheck.error_message.isnot(None), 1), else_=0)),
+                    0,
+                ).label("with_error"),
+            )
+            .filter(*filters)
+            .one()
+        )
+        total = int(row.total or 0)
+        found_with_date = int(row.found_with_date or 0)
+        found_no_date = int(row.found_no_date or 0)
+        not_found = int(row.not_found or 0)
+        with_error = int(row.with_error or 0)
+        return {
+            "total": total,
+            "found_with_date": found_with_date,
+            "found_no_date": found_no_date,
+            "not_found": not_found,
+            "with_error": with_error,
+            "success": found_with_date,
+            "unsuccessful": not_found + found_no_date,
+        }
+
+    db = SessionLocal()
+    try:
+        log_tail: list[str] = []
+        log_path = Path("/app/logs/customs-import-dates.log")
+        if log_path.is_file():
+            lines = log_path.read_text(encoding="utf-8", errors="replace").splitlines()
+            interesting = [
+                line
+                for line in lines
+                if any(
+                    marker in line
+                    for marker in (
+                        "customs-import-dates-start",
+                        "customs-import-dates-finish",
+                        "candidates=",
+                        "done ",
+                        "customs-import |",
+                    )
+                )
+            ]
+            log_tail = interesting[-40:]
+
+        return {
+            "timezone": "Europe/Minsk",
+            "night_window": {
+                "start": window_start_msk.isoformat(),
+                "end": window_end_msk.isoformat(),
+            },
+            "night": _bucket(db, since=start_utc, until=end_utc),
+            "last_24h": _bucket(db, since=datetime.utcnow() - timedelta(hours=24)),
+            "all_time": _bucket(db),
+            "log_tail": log_tail,
+        }
+    finally:
+        db.close()
+
+
 app.include_router(auth.router)
 app.include_router(listings.router)
 app.include_router(catalog_photos.router)
