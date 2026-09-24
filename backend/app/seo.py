@@ -284,7 +284,7 @@ def build_seo_context(request: Request, meta: SeoMeta | None = None) -> dict:
     path = resolved.path or request.url.path
     canonical = f"{base}{path}" if path.startswith("/") else f"{base}/{path}"
     noindex = resolved.noindex if resolved.noindex is not None else _should_noindex(request.url.path)
-    og_image = absolute_url(base, resolved.image) or f"{base}/static/og-default.svg"
+    og_image = absolute_url(base, resolved.image) or f"{base}/static/og-default.png"
     return {
         "seo_title": resolved.title,
         "seo_description": _truncate(resolved.description, 160),
@@ -306,6 +306,7 @@ def home_seo_meta(request: Request) -> SeoMeta:
         title=title,
         description=description,
         path="/",
+        image="/static/og-default.png",
         json_ld=[organization_json_ld(base), website_json_ld(base)],
         h1="Подбор авто под льготный утильсбор (до 160 л.с.) в Европе и Беларуси",
     )
