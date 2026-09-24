@@ -22,6 +22,9 @@ _STATIC_DIR = Path(__file__).resolve().parent / "static"
 _FAVICON_ICO = _STATIC_DIR / "icons" / "favicon.ico"
 if not _FAVICON_ICO.is_file():
     _FAVICON_ICO = _STATIC_DIR / "favicon.ico"
+_APPLE_TOUCH = _STATIC_DIR / "icons" / "apple-touch-icon.png"
+if not _APPLE_TOUCH.is_file():
+    _APPLE_TOUCH = _STATIC_DIR / "apple-touch-icon.png"
 
 
 @app.get("/favicon.ico", include_in_schema=False)
@@ -30,6 +33,16 @@ def favicon():
     return FileResponse(
         _FAVICON_ICO,
         media_type="image/x-icon",
+        headers={"Cache-Control": "no-store"},
+    )
+
+
+@app.get("/apple-touch-icon.png", include_in_schema=False)
+@app.get("/apple-touch-icon-precomposed.png", include_in_schema=False)
+def apple_touch_icon():
+    return FileResponse(
+        _APPLE_TOUCH,
+        media_type="image/png",
         headers={"Cache-Control": "no-store"},
     )
 
