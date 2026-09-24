@@ -29,6 +29,7 @@ SKIP_PATH_PREFIXES = (
     "/api/",
     "/health",
     "/favicon.ico",
+    "/apple-touch-icon",
     "/robots.txt",
     "/sitemap.xml",
 )

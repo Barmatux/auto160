@@ -7,6 +7,11 @@ from app.analytics import SESSION_COOKIE, SESSION_MAX_AGE, ensure_session_id, re
 
 class AnalyticsMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next) -> Response:
+        path = request.url.path or "/"
+        # Don't attach session cookies to icon probes — Safari Favorites fetch these.
+        if path == "/favicon.ico" or path.startswith("/apple-touch-icon") or path.startswith("/static/"):
+            return await call_next(request)
+
         session_id, is_new = ensure_session_id(request)
         response = await call_next(request)
         if is_new:

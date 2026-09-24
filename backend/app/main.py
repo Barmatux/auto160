@@ -26,24 +26,43 @@ _APPLE_TOUCH = _STATIC_DIR / "icons" / "apple-touch-icon.png"
 if not _APPLE_TOUCH.is_file():
     _APPLE_TOUCH = _STATIC_DIR / "apple-touch-icon.png"
 
+# Safari Favorites probe root apple-touch-icon with HEAD and need a cacheable PNG.
+_ICON_CACHE_HEADERS = {
+    "Cache-Control": "public, max-age=604800",
+}
 
-@app.get("/favicon.ico", include_in_schema=False)
-def favicon():
-    # Browsers cache /favicon.ico by URL alone; never long-cache so tab icons can update.
+
+def _png_icon_response(path: Path) -> FileResponse:
     return FileResponse(
-        _FAVICON_ICO,
-        media_type="image/x-icon",
-        headers={"Cache-Control": "no-store"},
+        path,
+        media_type="image/png",
+        headers=_ICON_CACHE_HEADERS,
     )
 
 
-@app.get("/apple-touch-icon.png", include_in_schema=False)
-@app.get("/apple-touch-icon-precomposed.png", include_in_schema=False)
-def apple_touch_icon():
+@app.api_route("/favicon.ico", methods=["GET", "HEAD"], include_in_schema=False)
+def favicon():
     return FileResponse(
-        _APPLE_TOUCH,
-        media_type="image/png",
-        headers={"Cache-Control": "no-store"},
+        _FAVICON_ICO,
+        media_type="image/x-icon",
+        headers=_ICON_CACHE_HEADERS,
+    )
+
+
+def apple_touch_icon():
+    return _png_icon_response(_APPLE_TOUCH)
+
+
+for _apple_touch_path in (
+    "/apple-touch-icon.png",
+    "/apple-touch-icon-precomposed.png",
+    "/apple-touch-icon-180x180.png",
+):
+    app.add_api_route(
+        _apple_touch_path,
+        apple_touch_icon,
+        methods=["GET", "HEAD"],
+        include_in_schema=False,
     )
 
 
