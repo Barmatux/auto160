@@ -1,0 +1,83 @@
+name: VM customs report
+
+on:
+  workflow_dispatch:
+
+jobs:
+  report:
+    name: Customs import-dates night report
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Load SSH key
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.VM_SSH_KEY }}
+
+      - name: Trust VM host key
+        env:
+          VM_HOST: ${{ secrets.VM_HOST }}
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          ssh-keyscan -H "$VM_HOST" >> ~/.ssh/known_hosts
+
+      - name: Fetch customs backfill stats
+        env:
+          VM_HOST: ${{ secrets.VM_HOST }}
+          VM_USER: ${{ secrets.VM_USER }}
+          VM_APP_DIR: ${{ secrets.VM_APP_DIR }}
+        run: |
+          set -euo pipefail
+          APP_DIR="${VM_APP_DIR:-/home/${VM_USER}/auto160}"
+          SSH_OPTS="-o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=30"
+          ssh $SSH_OPTS "${VM_USER}@${VM_HOST}" bash -s -- "$APP_DIR" <<'EOS'
+          set -euo pipefail
+          APP_DIR="$1"
+          echo "=== host $(hostname) date $(date -Is) ==="
+          echo "=== log files ==="
+          ls -la "$APP_DIR/logs" 2>/dev/null || true
+          LOG="$APP_DIR/logs/customs-import-dates.log"
+          echo "=== docker container ==="
+          docker ps -a --filter name=customs-import --format 'table {{.Names}}\t{{.Status}}\t{{.CreatedAt}}' || true
+          echo "=== docker logs (last 200) ==="
+          docker logs --tail 200 auto160-customs-import-dates 2>&1 || true
+          echo "=== log file tail ==="
+          if [[ -f "$LOG" ]]; then
+            echo "--- last start/finish/done lines ---"
+            grep -E 'customs-import-dates-start|customs-import-dates-finish|candidates=|done |ERROR' "$LOG" | tail -80 || true
+            echo "--- full last run block ---"
+            # Print from last start marker to end
+            awk '/customs-import-dates-start/{buf=""} {buf=buf $0 ORS} END{printf "%s", buf}' "$LOG" | tail -120
+          else
+            echo "missing $LOG"
+          fi
+          echo "=== DB summary since yesterday 00:00 Europe/Minsk ==="
+          cd "$APP_DIR/backend"
+          docker compose --env-file .env.vm -f docker-compose.vm.yml exec -T db \
+            psql -U postgres -d auto160 -v ON_ERROR_STOP=1 -c "
+              SELECT
+                count(*) AS checks_total,
+                count(*) FILTER (WHERE found AND release_date IS NOT NULL) AS found_with_date,
+                count(*) FILTER (WHERE found AND release_date IS NULL) AS found_no_date,
+                count(*) FILTER (WHERE NOT found) AS not_found,
+                count(*) FILTER (WHERE error_message IS NOT NULL) AS with_error,
+                min(checked_at) AS first_checked,
+                max(checked_at) AS last_checked
+              FROM vin_customs_checks
+              WHERE checked_at >= (timezone('Europe/Minsk', now())::date - 1)::timestamp
+                AT TIME ZONE 'Europe/Minsk';
+            " || true
+          docker compose --env-file .env.vm -f docker-compose.vm.yml exec -T db \
+            psql -U postgres -d auto160 -v ON_ERROR_STOP=1 -c "
+              SELECT date_trunc('hour', checked_at AT TIME ZONE 'Europe/Minsk') AS hour_msk,
+                     count(*) AS n,
+                     count(*) FILTER (WHERE found AND release_date IS NOT NULL) AS with_date,
+                     count(*) FILTER (WHERE NOT found) AS not_found
+              FROM vin_customs_checks
+              WHERE checked_at >= (timezone('Europe/Minsk', now())::date - 1)::timestamp
+                AT TIME ZONE 'Europe/Minsk'
+              GROUP BY 1
+              ORDER BY 1;
+            " || true
+          EOS
