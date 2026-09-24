@@ -705,11 +705,12 @@ body {
 .listings-market-tab {
   display: inline-flex;
   align-items: center;
+  gap: 0.35em;
   padding: 0.45rem 0.9rem;
   border: 1px solid rgba(0, 0, 0, 0.12);
   border-radius: 999px;
   text-decoration: none;
-  color: inherit;
+  color: #1e3a8a;
   font-weight: 600;
   background: #fff;
 }
@@ -717,7 +718,7 @@ body {
 .listings-market-tab.is-active {
   border-color: transparent;
   background: #1f3b2c;
-  color: #fff;
+  color: #ffffff;
 }
 
 .catalog-main-head h1,

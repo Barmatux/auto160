@@ -634,6 +634,19 @@ body.theme-admin.theme-admin-light a:hover {
   color: #0e7490;
 }
 
+body.theme-admin a.listings-market-tab,
+body.theme-admin.theme-admin-light a.listings-market-tab {
+  color: #1e3a8a;
+}
+
+body.theme-admin a.listings-market-tab.is-active,
+body.theme-admin.theme-admin-light a.listings-market-tab.is-active,
+body.theme-admin a.listings-market-tab.is-active:hover,
+body.theme-admin.theme-admin-light a.listings-market-tab.is-active:hover {
+  color: #ffffff;
+  background: #1f3b2c;
+}
+
 body.theme-admin.theme-admin-light .header {
   background: #030303;
 }
