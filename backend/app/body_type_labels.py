@@ -100,6 +100,23 @@ def body_type_filter_options(raw_values: list[str]) -> list[str]:
     return sorted(label for label in labels if label)
 
 
+def body_type_filter_options_native(raw_values: list[str]) -> list[str]:
+    """One option per body family, using the most common native-language spelling."""
+    from collections import Counter
+
+    groups: dict[str, Counter[str]] = {}
+    for value in raw_values:
+        text = (value or "").strip()
+        if not text or is_hidden_body_type(text):
+            continue
+        canonical = normalize_body_type_label(text) or capitalize_label(text)
+        if canonical in HIDDEN_BODY_TYPE_LABELS:
+            continue
+        groups.setdefault(canonical, Counter())[text] += 1
+    options = [counter.most_common(1)[0][0] for counter in groups.values()]
+    return sorted(options, key=lambda label: label.casefold())
+
+
 def body_type_db_values_for_filter(raw_values: list[str], canonical: str | None) -> list[str]:
     if not canonical:
         return []

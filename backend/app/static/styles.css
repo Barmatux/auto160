@@ -474,7 +474,9 @@ body {
 }
 
 .catalog-sidebar:has(.catalog-multi-select.is-open) {
-  overflow: visible;
+  /* Keep vertical scroll when a multi-select is open (overflow:visible blocked scrolling). */
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .filters .catalog-filter-field.catalog-multi-select {
@@ -664,9 +666,12 @@ body {
   top: 82px;
   align-self: start;
   max-height: calc(100vh - 96px);
+  overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-gutter: stable;
+  padding-bottom: 40px;
+  -webkit-overflow-scrolling: touch;
 }
 
 .catalog-sidebar h3 {

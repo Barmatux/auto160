@@ -11,7 +11,6 @@
     {% set selected_location_regions = listings_filters.filters.location_regions %}
     {% set selected_location_cities = listings_filters.filters.location_cities %}
     <div class="catalog-filter-group">
-      <p class="catalog-filter-group-title">Параметры объявления</p>
       <div
         class="catalog-filter-field catalog-multi-select{% if selected_location_regions or selected_location_cities %} is-active{% endif %}"
         data-catalog-multi-select
@@ -240,6 +239,23 @@
             <option value="" {% if listings_filters.filters.year_to == "" %}selected{% endif %}>до</option>
             {% for year in listings_filters.options.years %}
               <option value="{{ year }}" {% if listings_filters.filters.year_to == year %}selected{% endif %}>{{ year }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="catalog-filter-field catalog-filter-year-range{% if listings_filters.filters.mileage_from != "" or listings_filters.filters.mileage_to != "" %} is-active{% endif %}">
+        <span class="catalog-filter-field-label">Пробег</span>
+        <div class="catalog-filter-year-range-inputs">
+          <select name="mileage_from">
+            <option value="" {% if listings_filters.filters.mileage_from == "" %}selected{% endif %}>от</option>
+            {% for km in listings_filters.options.mileages %}
+              <option value="{{ km }}" {% if listings_filters.filters.mileage_from == km %}selected{% endif %}>{{ km | format_mileage_km }}</option>
+            {% endfor %}
+          </select>
+          <select name="mileage_to">
+            <option value="" {% if listings_filters.filters.mileage_to == "" %}selected{% endif %}>до</option>
+            {% for km in listings_filters.options.mileages %}
+              <option value="{{ km }}" {% if listings_filters.filters.mileage_to == km %}selected{% endif %}>{{ km | format_mileage_km }}</option>
             {% endfor %}
           </select>
         </div>

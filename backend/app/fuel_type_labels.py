@@ -106,6 +106,34 @@ def fuel_type_filter_options(raw_values: list[str]) -> list[str]:
     return grouped + other
 
 
+def fuel_type_filter_options_native(raw_values: list[str]) -> list[str]:
+    """One option per fuel group, using the most common native-language spelling."""
+    from collections import Counter
+
+    groups: dict[str, Counter[str]] = {}
+    ungrouped: Counter[str] = Counter()
+    for value in raw_values:
+        text = (value or "").strip()
+        if not text:
+            continue
+        group = classify_fuel_type(text)
+        if group:
+            groups.setdefault(group, Counter())[text] += 1
+        else:
+            ungrouped[text] += 1
+    options: list[str] = []
+    for group in FUEL_FILTER_ORDER:
+        counter = groups.get(group)
+        if counter:
+            options.append(counter.most_common(1)[0][0])
+    for group, counter in groups.items():
+        if group in FUEL_FILTER_ORDER:
+            continue
+        options.append(counter.most_common(1)[0][0])
+    options.extend(sorted(ungrouped.keys(), key=lambda label: label.casefold()))
+    return options
+
+
 def fuel_type_db_values_for_filter(raw_values: list[str], canonical: str | None) -> list[str]:
     if not canonical:
         return []

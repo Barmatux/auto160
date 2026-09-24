@@ -15,6 +15,7 @@ from app.config import settings
 from app.body_type_labels import (
     body_type_db_values_for_filter,
     body_type_filter_options,
+    body_type_filter_options_native,
     exclude_hidden_body_type,
     is_hidden_body_type,
     normalize_body_type_label,
@@ -25,6 +26,7 @@ from app.fuel_type_labels import (
     classify_fuel_type,
     fuel_type_db_values_for_filter,
     fuel_type_filter_options,
+    fuel_type_filter_options_native,
     normalize_fuel_type_label,
     resolved_catalog_fuel_type,
 )
@@ -671,6 +673,22 @@ def _parse_optional_int(value: str | int | None) -> int | None:
     return parsed if parsed > 0 else None
 
 
+def _parse_optional_mileage(value: str | int | None) -> int | None:
+    """Mileage filter bounds: allow 0 (unlike _parse_optional_int)."""
+    if value is None:
+        return None
+    if isinstance(value, int):
+        return value if value >= 0 else None
+    raw = str(value).strip()
+    if raw == "":
+        return None
+    try:
+        parsed = int(raw)
+    except ValueError:
+        return None
+    return parsed if parsed >= 0 else None
+
+
 def _parse_optional_float(value: str | float | int | None) -> float | None:
     if value is None:
         return None
@@ -870,27 +888,106 @@ def _listing_brand_model_map(db: Session, *, published_only: bool = True) -> dic
     return mapping
 
 
-def _listing_year_options(db: Session, *, published_only: bool = True) -> list[int]:
+FOREIGN_LISTING_SOURCES = ("autoplius", "auto24", "mobile_de")
+MILEAGE_FILTER_STEP = 25_000
+MILEAGE_FILTER_MAX = 500_000
+
+
+def _listings_market_source_predicate(market: str):
+    if market == "lt":
+        return CarListing.source == "autoplius"
+    if market == "ee":
+        return CarListing.source == "auto24"
+    if market == "de":
+        return CarListing.source == "mobile_de"
+    return or_(
+        CarListing.source.is_(None),
+        ~CarListing.source.in_(FOREIGN_LISTING_SOURCES),
+    )
+
+
+def _apply_listings_market_source_filter(query, market: str | None):
+    if not market:
+        return query
+    return query.filter(_listings_market_source_predicate(market))
+
+
+def _listing_year_options(
+    db: Session,
+    *,
+    published_only: bool = True,
+    listings_market: str | None = None,
+) -> list[int]:
     query = db.query(CarListing.year).filter(CarListing.year.isnot(None))
     if published_only:
         query = query.filter(CarListing.status == ListingStatus.published)
+    query = _apply_listings_market_source_filter(query, listings_market)
     years = sorted({row[0] for row in query.distinct().all() if row[0]})
     return years
 
 
-def _distinct_listing_values(db: Session, column, *, published_only: bool = True) -> list[str]:
+def _listing_mileage_options() -> list[int]:
+    return list(range(0, MILEAGE_FILTER_MAX + 1, MILEAGE_FILTER_STEP))
+
+
+def _distinct_listing_values(
+    db: Session,
+    column,
+    *,
+    published_only: bool = True,
+    listings_market: str | None = None,
+) -> list[str]:
     query = db.query(column).filter(column.isnot(None))
     if published_only:
         query = query.filter(CarListing.status == ListingStatus.published)
+    query = _apply_listings_market_source_filter(query, listings_market)
     return [row[0] for row in query.distinct().order_by(column.asc()).all() if row[0]]
 
 
-def _listing_body_type_values(db: Session, *, published_only: bool = True) -> list[str]:
-    return _distinct_listing_values(db, CarListing.body_type, published_only=published_only)
+def _listing_body_type_values(
+    db: Session,
+    *,
+    published_only: bool = True,
+    listings_market: str | None = None,
+) -> list[str]:
+    return _distinct_listing_values(
+        db,
+        CarListing.body_type,
+        published_only=published_only,
+        listings_market=listings_market,
+    )
 
 
 def _catalog_body_type_values(db: Session) -> list[str]:
     return _distinct_values(db, CatalogItem.body_type)
+
+
+def _parse_listings_body_fuel_filters(
+    query_params,
+    *,
+    listings_market: str = "by",
+) -> tuple[list[str], list[str]]:
+    """Keep Russian canonical labels for BY; preserve native spellings for LT/EE/DE."""
+    if listings_market == "by":
+        body_types = _parse_multi_catalog_filter_values(
+            query_params.getlist("body_type"),
+            normalize_body_type_label,
+        )
+        fuel_types = _parse_multi_catalog_filter_values(
+            query_params.getlist("engine_type"),
+            normalize_fuel_type_label,
+        )
+        return body_types, fuel_types
+
+    def _keep_raw(value: str | None) -> str | None:
+        if value is None:
+            return None
+        trimmed = value.strip()
+        return trimmed or None
+
+    body_types = _parse_multi_catalog_filter_values(query_params.getlist("body_type"), _keep_raw)
+    fuel_types = _parse_multi_catalog_filter_values(query_params.getlist("engine_type"), _keep_raw)
+    return body_types, fuel_types
 
 
 def _apply_listings_characteristic_filters(
@@ -901,26 +998,41 @@ def _apply_listings_characteristic_filters(
     fuel_types: list[str],
     transmission_slugs: list[str],
     published_only: bool = True,
+    listings_market: str | None = None,
 ):
     if body_types:
-        raw_body = _listing_body_type_values(db, published_only=published_only)
+        raw_body = _listing_body_type_values(
+            db,
+            published_only=published_only,
+            listings_market=listings_market,
+        )
         body_matches: list[str] = []
         for body_type in body_types:
             canonical = normalize_body_type_label(body_type) or body_type
             body_matches.extend(body_type_db_values_for_filter(raw_body, canonical))
+            if body_type not in body_matches:
+                body_matches.append(body_type)
         unique_body = list(dict.fromkeys(body_matches))
         if unique_body:
             query = query.filter(CarListing.body_type.in_(unique_body))
     if fuel_types:
-        raw_fuel = _distinct_listing_values(db, CarListing.engine_type, published_only=published_only)
+        raw_fuel = _distinct_listing_values(
+            db,
+            CarListing.engine_type,
+            published_only=published_only,
+            listings_market=listings_market,
+        )
         fuel_matches: list[str] = []
         fuel_preds = []
         for fuel_type in fuel_types:
+            classified = classify_fuel_type(fuel_type)
             canonical = normalize_fuel_type_label(fuel_type) or fuel_type
-            if canonical == FUEL_GROUP_HYBRID:
+            if classified == FUEL_GROUP_HYBRID or canonical == FUEL_GROUP_HYBRID:
                 fuel_preds.append(_listing_hybrid_predicate())
             else:
-                fuel_matches.extend(fuel_type_db_values_for_filter(raw_fuel, canonical))
+                fuel_matches.extend(fuel_type_db_values_for_filter(raw_fuel, canonical or fuel_type))
+                if fuel_type not in fuel_matches:
+                    fuel_matches.append(fuel_type)
         if fuel_matches:
             fuel_preds.append(CarListing.engine_type.in_(list(dict.fromkeys(fuel_matches))))
         if fuel_preds:
@@ -930,6 +1042,7 @@ def _apply_listings_characteristic_filters(
             db,
             CarListing.transmission_type,
             published_only=published_only,
+            listings_market=listings_market,
         )
         query = apply_catalog_transmission_filter(
             query,
@@ -947,10 +1060,18 @@ def _listing_hybrid_predicate():
     )
 
 
-def _listings_filters_payload(request: Request, db: Session, *, published_only: bool = True) -> dict:
+def _listings_filters_payload(
+    request: Request,
+    db: Session,
+    *,
+    published_only: bool = True,
+    listings_market: str = "by",
+) -> dict:
     query = request.query_params
     parsed_year_from = _parse_optional_year(query.get("year_from"))
     parsed_year_to = _parse_optional_year(query.get("year_to"))
+    parsed_mileage_from = _parse_optional_mileage(query.get("mileage_from"))
+    parsed_mileage_to = _parse_optional_mileage(query.get("mileage_to"))
     catalog_item_id = _parse_optional_int(query.get("catalog_item_id"))
     brand = (query.get("brand") or "").strip()
     model = _canonical_model_name(query.get("model") or "")
@@ -966,10 +1087,21 @@ def _listings_filters_payload(request: Request, db: Session, *, published_only: 
     brand_model_generation_map = _make_model_generation_map(db)
     model_options = brand_model_map.get(brand, []) if brand else []
     generation_options = brand_model_generation_map.get(brand, {}).get(model, []) if brand and model else []
-    body_type_raw = _listing_body_type_values(db, published_only=published_only)
-    engine_type_raw = _distinct_listing_values(db, CarListing.engine_type, published_only=published_only)
-    body_types = _parse_multi_catalog_filter_values(query.getlist("body_type"), normalize_body_type_label)
-    fuel_types = _parse_multi_catalog_filter_values(query.getlist("engine_type"), normalize_fuel_type_label)
+    body_type_raw = _listing_body_type_values(
+        db,
+        published_only=published_only,
+        listings_market=listings_market,
+    )
+    engine_type_raw = _distinct_listing_values(
+        db,
+        CarListing.engine_type,
+        published_only=published_only,
+        listings_market=listings_market,
+    )
+    body_types, fuel_types = _parse_listings_body_fuel_filters(
+        query,
+        listings_market=listings_market,
+    )
     transmission_slugs = parse_transmission_filter_values(
         query.getlist("transmission") or query.getlist("transmission_type")
     )
@@ -977,12 +1109,33 @@ def _listings_filters_payload(request: Request, db: Session, *, published_only: 
         query.getlist("region"),
         query.getlist("city"),
     )
-    listing_cities = _distinct_listing_values(db, CarListing.city, published_only=published_only)
+    listing_cities = _distinct_listing_values(
+        db,
+        CarListing.city,
+        published_only=published_only,
+        listings_market=listings_market,
+    )
     location_checked = location_filter_checked_state(location_regions, location_cities)
-    engine_options = fuel_type_filter_options(engine_type_raw)
-    if db.query(CarListing.id).filter(_listing_hybrid_predicate()).limit(1).first():
-        if FUEL_GROUP_HYBRID not in engine_options:
+    if listings_market == "by":
+        body_options = body_type_filter_options(body_type_raw)
+        engine_options = fuel_type_filter_options(engine_type_raw)
+        hybrid_query = db.query(CarListing.id).filter(_listing_hybrid_predicate())
+        hybrid_query = _apply_listings_market_source_filter(hybrid_query, listings_market)
+        if published_only:
+            hybrid_query = hybrid_query.filter(CarListing.status == ListingStatus.published)
+        if hybrid_query.limit(1).first() and FUEL_GROUP_HYBRID not in engine_options:
             engine_options = [*engine_options, FUEL_GROUP_HYBRID]
+    else:
+        body_options = body_type_filter_options_native(body_type_raw)
+        engine_options = fuel_type_filter_options_native(engine_type_raw)
+        hybrid_query = db.query(CarListing.id).filter(_listing_hybrid_predicate())
+        hybrid_query = _apply_listings_market_source_filter(hybrid_query, listings_market)
+        if published_only:
+            hybrid_query = hybrid_query.filter(CarListing.status == ListingStatus.published)
+        if hybrid_query.limit(1).first():
+            has_hybrid_option = any(classify_fuel_type(opt) == FUEL_GROUP_HYBRID for opt in engine_options)
+            if not has_hybrid_option:
+                engine_options = [*engine_options, FUEL_GROUP_HYBRID]
     return {
         "filters": {
             "brand": brand,
@@ -1002,6 +1155,8 @@ def _listings_filters_payload(request: Request, db: Session, *, published_only: 
             "transmission_display": transmission_filter_display_label(transmission_slugs),
             "year_from": parsed_year_from if parsed_year_from is not None else "",
             "year_to": parsed_year_to if parsed_year_to is not None else "",
+            "mileage_from": parsed_mileage_from if parsed_mileage_from is not None else "",
+            "mileage_to": parsed_mileage_to if parsed_mileage_to is not None else "",
             "price_range": parse_listing_price_range(query.get("price_range")) or "",
             "passable": query.get("passable") in ("1", "true", "on"),
             "freshness": query.get("freshness") or "all",
@@ -1014,10 +1169,15 @@ def _listings_filters_payload(request: Request, db: Session, *, published_only: 
             "brand_model_map": brand_model_map,
             "brand_model_generation_map": brand_model_generation_map,
             "location_groups": location_filter_groups(listing_cities),
-            "body_type": body_type_filter_options(body_type_raw),
+            "body_type": body_options,
             "engine_type": engine_options,
             "transmission_groups": TRANSMISSION_FILTER_GROUPS,
-            "years": _listing_year_options(db, published_only=published_only),
+            "years": _listing_year_options(
+                db,
+                published_only=published_only,
+                listings_market=listings_market,
+            ),
+            "mileages": _listing_mileage_options(),
             "price_ranges": listing_price_range_options(),
         },
         "vehicle_hierarchy": _build_vehicle_hierarchy_payload(
@@ -2356,13 +2516,11 @@ def listings_page(
     vehicle_rows = _parse_vehicle_filter_rows(request.query_params, make_key="brand", model_key="model", generation_key="generation")
     parsed_year_from = _parse_optional_year(year_from)
     parsed_year_to = _parse_optional_year(year_to)
-    body_types = _parse_multi_catalog_filter_values(
-        request.query_params.getlist("body_type"),
-        normalize_body_type_label,
-    )
-    fuel_types = _parse_multi_catalog_filter_values(
-        request.query_params.getlist("engine_type"),
-        normalize_fuel_type_label,
+    parsed_mileage_from = _parse_optional_mileage(request.query_params.get("mileage_from"))
+    parsed_mileage_to = _parse_optional_mileage(request.query_params.get("mileage_to"))
+    body_types, fuel_types = _parse_listings_body_fuel_filters(
+        request.query_params,
+        listings_market=listings_market,
     )
     transmission_slugs = parse_transmission_filter_values(
         request.query_params.getlist("transmission") or request.query_params.getlist("transmission_type")
@@ -2412,12 +2570,7 @@ def listings_page(
             CarListing.engine_capacity_l <= DEFAULT_MAX_ENGINE_L,
         )
     else:
-        query = query.filter(
-            or_(
-                CarListing.source.is_(None),
-                ~CarListing.source.in_(("autoplius", "auto24", "mobile_de")),
-            )
-        )
+        query = query.filter(_listings_market_source_predicate("by"))
 
     catalog_item_filter = db.get(CatalogItem, catalog_item_id) if catalog_item_id else None
     if catalog_item_filter:
@@ -2487,7 +2640,12 @@ def listings_page(
     else:
         query = _apply_listing_vehicle_rows_filter(query, vehicle_rows)
     available_listing_cities = set(
-        _distinct_listing_values(db, CarListing.city, published_only=not is_admin)
+        _distinct_listing_values(
+            db,
+            CarListing.city,
+            published_only=not is_admin,
+            listings_market=listings_market,
+        )
     )
     query = apply_listings_location_filter(
         query,
@@ -2506,6 +2664,7 @@ def listings_page(
             fuel_types=fuel_types,
             transmission_slugs=transmission_slugs,
             published_only=not is_admin,
+            listings_market=listings_market,
         )
     else:
         query = _apply_listings_characteristic_filters(
@@ -2515,12 +2674,17 @@ def listings_page(
             fuel_types=[],
             transmission_slugs=[],
             published_only=not is_admin,
+            listings_market=listings_market,
         )
     if not (catalog_item_filter or has_modification_tech):
         if parsed_year_from is not None:
             query = query.filter(CarListing.year >= parsed_year_from)
         if parsed_year_to is not None:
             query = query.filter(CarListing.year <= parsed_year_to)
+    if parsed_mileage_from is not None:
+        query = query.filter(CarListing.mileage >= parsed_mileage_from)
+    if parsed_mileage_to is not None:
+        query = query.filter(CarListing.mileage <= parsed_mileage_to)
     query = apply_listings_price_range_filter(query, price_range)
     if passable:
         year_min, year_max = _passable_year_bounds()
@@ -2562,7 +2726,12 @@ def listings_page(
     context["total_pages"] = max(1, (total + page_size - 1) // page_size) if total else 1
     context["has_prev"] = page > 1 and total > 0
     context["has_next"] = offset + len(listings) < total
-    context["listings_filters"] = _listings_filters_payload(request, db, published_only=not is_admin)
+    context["listings_filters"] = _listings_filters_payload(
+        request,
+        db,
+        published_only=not is_admin,
+        listings_market=listings_market,
+    )
     context["catalog_item_filter"] = catalog_item_filter
     context["listings_market"] = listings_market
     context["listings_base_path"] = listings_base_path
@@ -2593,6 +2762,10 @@ def listings_page(
         query_params.append(("year_from", str(parsed_year_from)))
     if parsed_year_to is not None:
         query_params.append(("year_to", str(parsed_year_to)))
+    if parsed_mileage_from is not None:
+        query_params.append(("mileage_from", str(parsed_mileage_from)))
+    if parsed_mileage_to is not None:
+        query_params.append(("mileage_to", str(parsed_mileage_to)))
     if price_range:
         query_params.append(("price_range", price_range))
     if passable:
@@ -2630,6 +2803,8 @@ def listings_page(
         or transmission_slugs
         or parsed_year_from is not None
         or parsed_year_to is not None
+        or parsed_mileage_from is not None
+        or parsed_mileage_to is not None
         or price_range
         or passable
         or import_age_filter is not None
