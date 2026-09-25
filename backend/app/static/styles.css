@@ -5408,6 +5408,7 @@ body.listing-lightbox-open {
     margin-top: 0;
   }
 
+  .home-actions-quick,
   .home-quick-link-desktop-only {
     display: none !important;
   }

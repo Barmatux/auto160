@@ -1655,6 +1655,7 @@ def _home_catalog_quick_links() -> list[dict[str, str | bool]]:
                     ("fuel_type", "дизель"),
                 ],
             ),
+            "hide_on_mobile": True,
         },
     ]
 
