@@ -11,7 +11,8 @@ from app.exchange_rates import NbrbRates, fetch_nbrb_rates
 from app.models import CarListing
 
 _AVBY_TITLE_SUFFIX = re.compile(r"\s*\(av\.by\s*#\d+\)\s*", re.IGNORECASE)
-_AUTOPLIUS_REG_YM = re.compile(r"(\d{4}-\d{2})\s*m\.", re.IGNORECASE)
+_REG_YM_MARKED = re.compile(r"((?:19|20)\d{2})-(0[1-9]|1[0-2])\s*m\.", re.IGNORECASE)
+_REG_YM_BARE = re.compile(r"(?<!\d)((?:19|20)\d{2})-(0[1-9]|1[0-2])(?!\d)")
 _IMPORT_META_LINE = re.compile(
     r"^(?:AVBY_ID:\s*\d+|AUTOPLIUS_ID:\s*\S+|AUTO24_ID:\s*\S+|MOBILE_DE_ID:\s*\S+|URL:\s*\S+|Источник:\s*(?:av\.by|autoplius\.lt|auto24\.ee|mobile\.de))\s*$",
     re.IGNORECASE,
@@ -36,20 +37,22 @@ def listing_display_title(title: str | None) -> str:
 
 
 def listing_registration_ym(listing: CarListing) -> str | None:
-    """YYYY-MM first-registration month from Autoplius-style titles, if present."""
+    """YYYY-MM first-registration month from title (Autoplius / Auto24), if present."""
     title = listing.title or ""
-    match = _AUTOPLIUS_REG_YM.search(title)
-    return match.group(1) if match else None
+    match = _REG_YM_MARKED.search(title) or _REG_YM_BARE.search(title)
+    if not match:
+        return None
+    return f"{match.group(1)}-{match.group(2)}"
 
 
 def listing_feed_heading(listing: CarListing) -> str:
-    """Compact feed title: foreign markets use reg month; BY puts generation before year."""
+    """Compact feed title: LT/EE use reg month; BY puts generation before year."""
     brand = (listing.brand or "").strip()
     model = (listing.model or "").strip()
     name = " ".join(part for part in (brand, model) if part)
     source = (listing.source or "").strip().lower()
 
-    if source == "autoplius":
+    if source in {"autoplius", "auto24"}:
         reg_ym = listing_registration_ym(listing)
         if reg_ym:
             return f"{name} · {reg_ym}" if name else reg_ym
@@ -63,6 +66,26 @@ def listing_feed_heading(listing: CarListing) -> str:
     if listing.year is not None:
         heading = f"{heading} {listing.year}".strip()
     return heading or listing_display_title(listing.title)
+
+
+def listing_registration_date_label(listing: CarListing) -> str:
+    """Spec row label: first registration for Baltics, manufacture year otherwise."""
+    source = (listing.source or "").strip().lower()
+    if source in {"autoplius", "auto24"}:
+        return "Дата первой регистрации"
+    return "Год выпуска"
+
+
+def listing_registration_date_value(listing: CarListing) -> str:
+    """Spec row value: YYYY-MM when known, else year."""
+    source = (listing.source or "").strip().lower()
+    if source in {"autoplius", "auto24"}:
+        reg_ym = listing_registration_ym(listing)
+        if reg_ym:
+            return reg_ym
+    if listing.year is not None:
+        return str(listing.year)
+    return "—"
 
 
 def listing_source_href(listing: CarListing) -> str | None:

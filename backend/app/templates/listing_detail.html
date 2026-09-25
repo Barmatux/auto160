@@ -64,8 +64,8 @@
         {% endif %}
         <dl class="listing-spec-list">
           <div class="listing-spec-row">
-            <dt>Год выпуска:</dt>
-            <dd>{{ listing.year }}</dd>
+            <dt>{{ listing | listing_registration_date_label }}:</dt>
+            <dd>{{ listing | listing_registration_date_value }}</dd>
           </div>
           {% if listing.body_type %}
             <div class="listing-spec-row listing-spec-row-icon">

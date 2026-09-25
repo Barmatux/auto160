@@ -1,4 +1,11 @@
-from app.auto24_map import map_auto24_row, parse_engine_field, _cdn_photo_urls, _city
+from app.auto24_map import (
+    map_auto24_row,
+    parse_engine_field,
+    parse_registration_ym,
+    extract_registration_ym,
+    _cdn_photo_urls,
+    _city,
+)
 
 
 def test_parse_engine_liters_and_kw():
@@ -17,6 +24,23 @@ def test_parse_engine_from_title():
     liters, hp = parse_engine_field(None, "Ford Focus 1.5 71kW")
     assert liters == 1.5
     assert hp == 97
+
+
+def test_parse_registration_ym_formats():
+    assert parse_registration_ym("2023-01") == "2023-01"
+    assert parse_registration_ym("2023/1") == "2023-01"
+    assert parse_registration_ym("01.2023") == "2023-01"
+    assert parse_registration_ym("1/2023") == "2023-01"
+    assert parse_registration_ym("2023") is None
+
+
+def test_extract_registration_ym_from_parameters():
+    assert (
+        extract_registration_ym(
+            {"year": 2021, "parameters": {"first_registration": "03/2021"}}
+        )
+        == "2021-03"
+    )
 
 
 def test_cdn_photo_urls_from_parameters():
@@ -53,11 +77,11 @@ def test_city_from_parameters_location():
     )
 
 
-def test_map_prefers_s3_keys_over_cdn():
+def test_map_embeds_registration_month_in_title():
     row = {
         "external_id": "123",
         "title": "Ford Focus 1.5 71kW",
-        "year": 2020,
+        "year": "2020-06",
         "price_eur": 10000,
         "mileage_km": 50000,
         "city": None,
@@ -76,7 +100,9 @@ def test_map_prefers_s3_keys_over_cdn():
     }
     mapped = map_auto24_row(row, eur_rate=None, max_hp=None, max_age_years=None, max_engine_l=None)
     assert mapped.skip_reason is None
+    assert mapped.year == 2020
     assert mapped.city == "Tallinn"
+    assert "2020-06 m." in mapped.title
     assert mapped.photo_storage_keys == ["auto24/123/000_abc.jpg"]
     assert mapped.cover_photo_url == "/media/object?key=auto24%2F123%2F000_abc.jpg"
     assert mapped.photo_urls == ["/media/object?key=auto24%2F123%2F000_abc.jpg"]

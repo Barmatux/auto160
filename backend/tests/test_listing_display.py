@@ -46,6 +46,25 @@ def test_listing_feed_heading_autoplius_uses_registration_month():
     assert listing_feed_heading(listing) == "Hyundai i10 · 2023-01"
 
 
+def test_listing_feed_heading_auto24_uses_registration_month():
+    from app.listing_display import (
+        listing_feed_heading,
+        listing_registration_date_label,
+        listing_registration_date_value,
+    )
+
+    listing = _listing(
+        source="auto24",
+        brand="Hyundai",
+        model="i10",
+        year=2023,
+        title="Hyundai i10 1.0 49kW 2023-01 m.",
+    )
+    assert listing_feed_heading(listing) == "Hyundai i10 · 2023-01"
+    assert listing_registration_date_label(listing) == "Дата первой регистрации"
+    assert listing_registration_date_value(listing) == "2023-01"
+
+
 def test_listing_feed_heading_belarus_puts_generation_before_year():
     from app.listing_display import listing_feed_heading
 

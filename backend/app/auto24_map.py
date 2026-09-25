@@ -306,6 +306,101 @@ def _city(row: dict[str, Any]) -> str | None:
     return None
 
 
+# "2023-01", "2023/1", "01.2023", "1/2023"
+_YM_YEAR_FIRST = re.compile(
+    r"(?<!\d)(?P<y>(?:19|20)\d{2})[-/.](?P<m>0?[1-9]|1[0-2])(?!\d)"
+)
+_YM_MONTH_FIRST = re.compile(
+    r"(?<!\d)(?P<m>0?[1-9]|1[0-2])[-/.](?P<y>(?:19|20)\d{2})(?!\d)"
+)
+_REG_YM_IN_TITLE = re.compile(
+    r"(?:19|20)\d{2}-(?:0[1-9]|1[0-2])(?:\s*m\.)?",
+    re.IGNORECASE,
+)
+
+_REGISTRATION_PARAM_KEYS = (
+    "first_registration",
+    "first_reg",
+    "first_registration_date",
+    "registration",
+    "registration_date",
+    "reg_date",
+    "registered",
+    "esmaregistreerimine",
+    "Esmaregistreerimine",
+    "esmane_registreerimine",
+)
+
+
+def _format_registration_ym(year: int, month: int) -> str | None:
+    if not (1950 <= year <= 2100 and 1 <= month <= 12):
+        return None
+    return f"{year:04d}-{month:02d}"
+
+
+def parse_registration_ym(value: Any) -> str | None:
+    """Parse first-registration year-month from Auto24 year/date strings."""
+    if value is None:
+        return None
+    text = str(value).strip()
+    if not text:
+        return None
+    match = _YM_YEAR_FIRST.search(text)
+    if match:
+        return _format_registration_ym(int(match.group("y")), int(match.group("m")))
+    match = _YM_MONTH_FIRST.search(text)
+    if match:
+        return _format_registration_ym(int(match.group("y")), int(match.group("m")))
+    return None
+
+
+def extract_registration_ym(row: dict[str, Any]) -> str | None:
+    """Best-effort YYYY-MM from year column and detail parameters."""
+    direct = parse_registration_ym(row.get("year"))
+    if direct:
+        return direct
+    for params in _param_maps(row):
+        for key in _REGISTRATION_PARAM_KEYS:
+            candidate = parse_registration_ym(params.get(key))
+            if candidate:
+                return candidate
+        for key, value in params.items():
+            if not isinstance(key, str):
+                continue
+            key_cf = key.casefold().replace("ä", "a").replace("ö", "o").replace("ü", "u")
+            if any(
+                token in key_cf
+                for token in ("regist", "first_reg", "esmareg", "registration")
+            ):
+                candidate = parse_registration_ym(value)
+                if candidate:
+                    return candidate
+        for list_key in ("specs", "details", "attributes", "fields", "items"):
+            items = params.get(list_key)
+            if not isinstance(items, list):
+                continue
+            for item in items:
+                if not isinstance(item, dict):
+                    continue
+                label = str(item.get("name") or item.get("label") or item.get("key") or "")
+                label_cf = label.casefold().replace("ä", "a").replace("ö", "o").replace("ü", "u")
+                if any(token in label_cf for token in ("regist", "esmareg", "first reg")):
+                    candidate = parse_registration_ym(item.get("value") or item.get("text"))
+                    if candidate:
+                        return candidate
+    return parse_registration_ym(row.get("title"))
+
+
+def _title_with_registration_ym(title: str, reg_ym: str | None) -> str:
+    """Persist YYYY-MM in title (Autoplius-compatible «2023-01 m.» marker)."""
+    cleaned = (title or "").strip()
+    if not reg_ym:
+        return cleaned
+    if _REG_YM_IN_TITLE.search(cleaned):
+        return cleaned
+    return f"{cleaned} {reg_ym} m.".strip()
+
+
 def _cdn_photo_urls(row: dict[str, Any]) -> list[str]:
     """Original Auto24 CDN URLs from parameters (fallback when S3 keys are missing)."""
     urls: list[str] = []
@@ -341,7 +436,11 @@ def map_auto24_row(
     external_id = str(row.get("external_id") or "").strip()
     title = (row.get("title") or "").strip()
     brand, model = _brand_model(row)
+    reg_ym = extract_registration_ym(row)
     year = parse_year(row.get("year"))
+    if year is None and reg_ym:
+        year = int(reg_ym[:4])
+    title = _title_with_registration_ym(title, reg_ym)
     price_eur = row.get("price_eur")
     try:
         price_eur_i = int(price_eur) if price_eur is not None else None
@@ -428,10 +527,18 @@ def map_auto24_row(
 
     description = (row.get("description_ru") or row.get("description") or "").strip() or None
 
+    if len(title) > 180:
+        if reg_ym:
+            suffix = f" {reg_ym} m."
+            head = title[: max(0, 180 - len(suffix))].rstrip()
+            title = f"{head}{suffix}"[:180]
+        else:
+            title = title[:180]
+
     return Auto24MappedListing(
         external_id=external_id,
         source_url=(row.get("url") or None),
-        title=title[:180],
+        title=title,
         brand=brand,
         model=model,
         year=year,
