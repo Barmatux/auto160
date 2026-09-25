@@ -186,6 +186,40 @@ def listing_seller_label(seller_name: str | None) -> str:
     return "Частное лицо"
 
 
+_SOURCE_COUNTRY_LABELS: dict[str, str] = {
+    "av.by": "Беларусь",
+    "autoplius": "Литва",
+    "auto24": "Эстония",
+    "mobile_de": "Германия",
+}
+
+
+def listing_country_label(listing: CarListing) -> str | None:
+    source = (listing.source or "av.by").strip().lower()
+    if not source:
+        return "Беларусь"
+    return _SOURCE_COUNTRY_LABELS.get(source)
+
+
+def listing_location_display(listing: CarListing) -> str:
+    """Country and city for feed cards, e.g. «Литва, Vilnius»."""
+    city = (listing.city or "").strip()
+    country = listing_country_label(listing)
+    if not city and not country:
+        return "—"
+    if not country:
+        return city or "—"
+    if not city:
+        return country
+    city_cf = city.casefold()
+    country_cf = country.casefold()
+    if city_cf == country_cf:
+        return country
+    if city_cf.startswith(f"{country_cf},"):
+        return city
+    return f"{country}, {city}"
+
+
 def is_legal_entity_seller(seller_name: str | None) -> bool:
     """True when seller_name looks like a company / sole proprietor, not a private person."""
     name = (seller_name or "").strip()

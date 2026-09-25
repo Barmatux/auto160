@@ -11,6 +11,6 @@
     {% endif %}
     <p class="offer-feed-price"><strong>Цена:</strong> {% include "partials/listing_price_display.html" %}</p>
     <p><strong>Пробег:</strong> {{ listing.mileage | format_mileage_km }} км</p>
-    <p><strong>Город:</strong> {{ listing.city }}</p>
+    <p><strong>Местонахождение:</strong> {{ listing | listing_location_display }}</p>
   </div>
 </article>

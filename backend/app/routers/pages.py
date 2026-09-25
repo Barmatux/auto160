@@ -143,6 +143,7 @@ from app.listing_display import (
     listing_display_title,
     listing_engine_summary,
     listing_feed_heading,
+    listing_location_display,
     listing_price_display,
     listing_seller_label,
     listing_source_href,
@@ -191,6 +192,7 @@ templates = Jinja2Templates(directory="app/templates")
 templates.env.filters["body_type_label"] = normalize_body_type_label
 templates.env.filters["listing_display_title"] = listing_display_title
 templates.env.filters["listing_feed_heading"] = listing_feed_heading
+templates.env.filters["listing_location_display"] = listing_location_display
 templates.env.filters["listing_display_description"] = listing_display_description
 templates.env.filters["listing_source_href"] = listing_source_href
 templates.env.filters["listing_source_label"] = listing_source_label

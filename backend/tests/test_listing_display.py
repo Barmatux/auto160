@@ -97,6 +97,19 @@ def test_format_vin_found_specs_line_formats_whole_liters_with_decimal():
     assert format_vin_found_specs_line(listing) == "2.0 бензин 50.000км"
 
 
+def test_listing_location_display_joins_country_and_city():
+    from app.listing_display import listing_location_display
+
+    by_listing = _listing(source="av.by", city="Минск")
+    assert listing_location_display(by_listing) == "Беларусь, Минск"
+
+    lt_listing = _listing(source="autoplius", city="Vilnius")
+    assert listing_location_display(lt_listing) == "Литва, Vilnius"
+
+    country_only = _listing(source="auto24", city="Эстония")
+    assert listing_location_display(country_only) == "Эстония"
+
+
 def test_format_mileage_km_uses_thousands_separator():
     assert format_mileage_km(123456) == "123 456"
     assert format_mileage_km(86000) == "86 000"
