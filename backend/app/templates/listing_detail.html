@@ -152,7 +152,8 @@
             <a class="listing-detail-side-action" href="{{ modification_listings_url }}">Другие объявления по этой модификации</a>
           {% endif %}
         </div>
-        {% if listing.vin_indicated is not none %}
+        {% set listing_source = (listing.source or 'av.by')|lower %}
+        {% if listing.vin_indicated is not none and listing_source not in ('autoplius', 'auto24', 'mobile_de') %}
           <dl class="listing-spec-list">
             <div class="listing-spec-row">
               <dt>VIN на av.by</dt>
