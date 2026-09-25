@@ -5019,6 +5019,11 @@ body.listing-lightbox-open {
   color: #1e3a8a;
 }
 
+.home-hero-hp {
+  display: inline-block;
+  font-size: calc(1em + 2px);
+}
+
 .home-subtitle {
   max-width: 720px;
   margin: 0 auto 16px;
