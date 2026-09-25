@@ -97,6 +97,10 @@ done
 echo "==> Smoke tests"
 bash "$APP_DIR/scripts/smoke-vm.sh"
 
+echo "==> Util-sbor exclusions cleanup (Chevrolet Malibu 1.5/160)"
+docker compose --env-file .env.vm -f docker-compose.vm.yml exec -T api \
+  python tools/remove_chevrolet_malibu_15_160.py || echo "WARNING: Malibu util-sbor cleanup failed"
+
 MAINTENANCE_SCRIPT="$BACKEND_DIR/.maintenance/pending.sh"
 if [[ -f "$MAINTENANCE_SCRIPT" ]]; then
   echo "==> Run pending maintenance"

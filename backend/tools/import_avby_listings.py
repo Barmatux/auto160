@@ -29,7 +29,7 @@ from app.avby_offer_metadata import enrich_listings_vin_metadata
 from app.body_type_labels import is_hidden_body_type
 from app.models import AvbySyncRun, CarListing, CatalogItem, ListingStatus, User, UserRole
 from app.security import hash_password
-from app.util_sbor_exclusions import listing_payload_is_mercedes_16_diesel_160_util_exclusion
+from app.util_sbor_exclusions import listing_payload_is_util_sbor_exclusion
 
 
 AVBY_ID_RE = re.compile(r"AVBY_ID:\s*(\d+)")
@@ -845,7 +845,7 @@ def run_import(
                     if payload is None:
                         skipped += 1
                         continue
-                    if listing_payload_is_mercedes_16_diesel_160_util_exclusion(payload):
+                    if listing_payload_is_util_sbor_exclusion(payload):
                         skipped += 1
                         if (
                             existing

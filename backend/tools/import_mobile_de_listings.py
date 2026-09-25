@@ -35,6 +35,7 @@ from app.mobile_de_map import (
 )
 from app.models import CarListing, ListingStatus, User, UserRole
 from app.security import hash_password
+from app.util_sbor_exclusions import listing_is_util_sbor_exclusion
 
 SOURCE = "mobile_de"
 
@@ -197,6 +198,14 @@ def main() -> int:
             if is_hidden_body_type(mapped.body_type):
                 skipped += 1
                 skip_reasons["hidden_body_type"] = skip_reasons.get("hidden_body_type", 0) + 1
+                continue
+            if listing_is_util_sbor_exclusion(mapped):
+                skipped += 1
+                skip_reasons["util_sbor_exclusion"] = skip_reasons.get("util_sbor_exclusion", 0) + 1
+                existing = by_external.get(mapped.external_id)
+                if existing and existing.status == ListingStatus.published and not args.dry_run:
+                    existing.status = ListingStatus.archived
+                    archived += 1
                 continue
             if (row.get("status") or "").strip() != "active":
                 skipped += 1

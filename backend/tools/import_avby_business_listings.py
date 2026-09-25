@@ -38,6 +38,7 @@ os.chdir(ROOT_DIR)
 
 from app.avby_photo_store import is_avby_s3_media_url
 from app.db import SessionLocal
+from app.util_sbor_exclusions import listing_payload_is_util_sbor_exclusion
 from app.listing_display import is_legal_entity_seller
 from app.listing_missing_byn import apply_import_byn_price_state
 from app.logging_setup import setup_logging
@@ -290,6 +291,16 @@ def upsert_advert(
         fallback_model=fallback_model,
     )
     if payload is None:
+        return "skipped"
+    if listing_payload_is_util_sbor_exclusion(payload):
+        existing = existing_map.get(payload.get("avby_id"))
+        if (
+            existing
+            and existing.status == ListingStatus.published
+            and not dry_run
+        ):
+            existing.status = ListingStatus.archived
+            return "updated"
         return "skipped"
 
     avby_id = payload.pop("avby_id")

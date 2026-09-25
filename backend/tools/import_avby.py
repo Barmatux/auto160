@@ -24,7 +24,7 @@ from app.fuel_type_labels import preferred_fuel_type, resolved_catalog_fuel_type
 from app.body_type_labels import is_hidden_body_type
 from app.models import CatalogItem
 from app.seat_labels import has_7_seats_from_raw
-from app.util_sbor_exclusions import catalog_payload_is_mercedes_16_diesel_160_util_exclusion
+from app.util_sbor_exclusions import catalog_payload_is_util_sbor_exclusion
 
 
 def _to_int(value: str | None) -> int | None:
@@ -548,7 +548,7 @@ def main() -> None:
                     if args.max_hp is not None and hp is not None and hp > args.max_hp:
                         counts["filtered_hp"] += 1
                         continue
-                    if catalog_payload_is_mercedes_16_diesel_160_util_exclusion(payload):
+                    if catalog_payload_is_util_sbor_exclusion(payload):
                         counts["filtered_util_sbor"] = counts.get("filtered_util_sbor", 0) + 1
                         continue
                     result = upsert_catalog_item(
