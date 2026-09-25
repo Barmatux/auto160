@@ -14,12 +14,9 @@
     <a class="btn-secondary" href="/inspection">Проверка VIN</a>
   </div>
   {% if catalog_quick_links %}
-    <div class="home-actions home-actions-quick">
+    <div class="home-actions home-actions-quick home-actions-quick--desktop-only">
       {% for link in catalog_quick_links %}
-        <a
-          class="btn-secondary{% if link.hide_on_mobile %} home-quick-link-desktop-only{% endif %}"
-          href="{{ link.url }}"
-        >{{ link.label }}</a>
+        <a class="btn-secondary" href="{{ link.url }}">{{ link.label }}</a>
       {% endfor %}
     </div>
   {% endif %}
