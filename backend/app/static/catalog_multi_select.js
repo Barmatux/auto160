@@ -402,10 +402,18 @@
     if (!ref) {
       return;
     }
-    const height = ref.getBoundingClientRect().height;
-    trigger.style.height = `${height}px`;
-    trigger.style.minHeight = `${height}px`;
-    trigger.style.maxHeight = `${height}px`;
+    // Prefer computed style height so Chrome/Safari stay aligned even when
+    // native <select> metrics differ before layout settles.
+    const computed = window.getComputedStyle(ref).height;
+    const parsed = Number.parseFloat(computed);
+    const height = Number.isFinite(parsed) && parsed > 0 ? parsed : ref.getBoundingClientRect().height;
+    if (!height) {
+      return;
+    }
+    const px = `${Math.round(height)}px`;
+    trigger.style.height = px;
+    trigger.style.minHeight = px;
+    trigger.style.maxHeight = px;
   }
 
   function setRowSelected(input, selected) {

@@ -2223,16 +2223,24 @@ body.vin-enter-modal-open {
 
 .catalog-page .filters select,
 .catalog-page .filters .catalog-multi-select-trigger {
-  padding-top: 11px;
-  padding-bottom: 11px;
+  /* Fixed height: Chrome native <select> otherwise grows taller than Safari. */
+  box-sizing: border-box;
+  height: 40px;
+  min-height: 40px;
+  max-height: 40px;
+  padding-top: 0;
+  padding-bottom: 0;
   padding-left: 10px;
   font-size: 15px;
-  line-height: 1.15;
-  min-height: 0;
+  line-height: 1.2;
 }
 
 .catalog-page .filters .catalog-multi-select-trigger {
   padding-right: 32px;
+}
+
+.catalog-page .filters select {
+  padding-right: 10px;
 }
 
 .catalog-multi-select-trigger-label {
@@ -2481,10 +2489,7 @@ body.vin-enter-modal-open {
 }
 
 .catalog-page .filters select {
-  padding: 11px 10px;
-  font-size: 15px;
-  line-height: 1.15;
-  min-height: 0;
+  /* Height/padding controlled with .catalog-multi-select-trigger above. */
 }
 
 .catalog-page .vehicle-hierarchy-field {
