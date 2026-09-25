@@ -198,6 +198,114 @@ def _brand_model(row: dict[str, Any]) -> tuple[str | None, str | None]:
     return parts[0], parts[1]
 
 
+_COUNTRY_CITY_ALIASES = frozenset(
+    {
+        "эстония",
+        "estonia",
+        "eesti",
+        "est",
+        "ee",
+    }
+)
+
+_CITY_PARAM_KEYS = (
+    "city",
+    "city_raw",
+    "city_name",
+    "location",
+    "location_name",
+    "seller_location",
+    "seller_city",
+    "asukoht",
+    "Asukoht",
+    "address_city",
+    "settlement",
+    "parish",
+    "vald",
+)
+
+
+def _looks_like_country_only(value: str) -> bool:
+    cleaned = " ".join(value.strip().split())
+    if not cleaned:
+        return True
+    return cleaned.casefold() in _COUNTRY_CITY_ALIASES
+
+
+def _city_candidate(value: Any) -> str | None:
+    if value is None:
+        return None
+    if isinstance(value, dict):
+        for key in _CITY_PARAM_KEYS:
+            nested = _city_candidate(value.get(key))
+            if nested:
+                return nested
+        return None
+    if isinstance(value, (list, tuple)):
+        for item in value:
+            nested = _city_candidate(item)
+            if nested:
+                return nested
+        return None
+    text = str(value).strip()
+    if not text or _looks_like_country_only(text):
+        return None
+    # "Tallinn, Harjumaa" / "Harjumaa / Tallinn" — keep first meaningful chunk.
+    for sep in (",", "/", "|", "·"):
+        if sep in text:
+            parts = [part.strip() for part in text.split(sep) if part.strip()]
+            for part in parts:
+                if not _looks_like_country_only(part):
+                    return part[:80]
+            return None
+    return text[:80]
+
+
+def _city(row: dict[str, Any]) -> str | None:
+    """Seller city from scrape column or detail parameters (location / Asukoht)."""
+    direct = _city_candidate(row.get("city"))
+    if direct:
+        return direct
+    for params in _param_maps(row):
+        for key in _CITY_PARAM_KEYS:
+            candidate = _city_candidate(params.get(key))
+            if candidate:
+                return candidate
+        # Case-insensitive key scan for Estonian/English labels.
+        for key, value in params.items():
+            if not isinstance(key, str):
+                continue
+            key_cf = key.casefold().replace("ü", "u").replace("ä", "a").replace("ö", "o")
+            if key_cf in {
+                "city",
+                "location",
+                "asukoht",
+                "seller_location",
+                "seller_city",
+                "location_name",
+                "city_name",
+                "city_raw",
+            }:
+                candidate = _city_candidate(value)
+                if candidate:
+                    return candidate
+        # Spec tables sometimes store [{"name": "Asukoht", "value": "Tallinn"}, ...]
+        for list_key in ("specs", "details", "attributes", "fields", "items"):
+            items = params.get(list_key)
+            if not isinstance(items, list):
+                continue
+            for item in items:
+                if not isinstance(item, dict):
+                    continue
+                label = str(item.get("name") or item.get("label") or item.get("key") or "")
+                label_cf = label.casefold().replace("ü", "u")
+                if label_cf in {"asukoht", "location", "city", "seller location"}:
+                    candidate = _city_candidate(item.get("value") or item.get("text"))
+                    if candidate:
+                        return candidate
+    return None
+
+
 def _cdn_photo_urls(row: dict[str, Any]) -> list[str]:
     """Original Auto24 CDN URLs from parameters (fallback when S3 keys are missing)."""
     urls: list[str] = []
@@ -330,7 +438,7 @@ def map_auto24_row(
         mileage=int(row["mileage_km"]) if row.get("mileage_km") is not None else None,
         price_eur=price_eur_i,
         price_byn=price_byn,
-        city=(row.get("city") or None),
+        city=_city(row),
         body_type=body_type,
         engine_type=engine_type,
         transmission_type=transmission_type,

@@ -1,0 +1,50 @@
+name: VM auto24 import
+
+on:
+  workflow_dispatch:
+
+jobs:
+  import:
+    name: Re-import Auto24 listings (cities)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Load SSH key
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.VM_SSH_KEY }}
+
+      - name: Trust VM host key
+        env:
+          VM_HOST: ${{ secrets.VM_HOST }}
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          ssh-keyscan -H "$VM_HOST" >> ~/.ssh/known_hosts
+
+      - name: Run Auto24 import on VM
+        env:
+          VM_HOST: ${{ secrets.VM_HOST }}
+          VM_USER: ${{ secrets.VM_USER }}
+          VM_APP_DIR: ${{ secrets.VM_APP_DIR }}
+        run: |
+          set -euo pipefail
+          APP_DIR="${VM_APP_DIR:-/home/${VM_USER}/auto160}"
+          SSH_OPTS="-o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=30"
+          ssh $SSH_OPTS "${VM_USER}@${VM_HOST}" bash -s -- "$APP_DIR" <<'EOS'
+          set -euo pipefail
+          APP_DIR="$1"
+          cd "$APP_DIR/backend"
+          echo "=== host $(hostname) date $(date -Is) ==="
+          docker compose --env-file .env.vm -f docker-compose.vm.yml exec -T api \
+            python tools/import_auto24_listings.py
+          docker compose --env-file .env.vm -f docker-compose.vm.yml exec -T db \
+            psql -U postgres -d auto160 -c "
+              SELECT city, COUNT(*) AS c
+              FROM car_listings
+              WHERE source = 'auto24' AND status = 'published'
+              GROUP BY city
+              ORDER BY c DESC
+              LIMIT 20;
+            "
+          EOS
