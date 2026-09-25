@@ -1,0 +1,64 @@
+<script>
+(function () {
+  function closeAllDescriptionPopups() {
+    document.querySelectorAll("[data-description-popup]").forEach((popup) => {
+      popup.hidden = true;
+    });
+    document.querySelectorAll(".listing-description-wrap.is-open").forEach((wrap) => {
+      wrap.classList.remove("is-open");
+    });
+    document.querySelectorAll(".listing-card.is-description-open, .listing-vin-check-card.is-description-open").forEach((card) => {
+      card.classList.remove("is-description-open");
+    });
+  }
+
+  document.querySelectorAll(".listing-description-btn").forEach((btn) => {
+    const wrap = btn.closest(".listing-description-wrap");
+    const popup = wrap?.querySelector("[data-description-popup]");
+    const card = wrap?.closest(".listing-card, .listing-vin-check-card");
+    if (!wrap || !popup) return;
+
+    let hideTimer = null;
+    const open = () => {
+      if (hideTimer) {
+        clearTimeout(hideTimer);
+        hideTimer = null;
+      }
+      if (!popup.hidden && wrap.classList.contains("is-open")) return;
+      closeAllDescriptionPopups();
+      wrap.classList.add("is-open");
+      if (card) card.classList.add("is-description-open");
+      popup.hidden = false;
+    };
+    const scheduleClose = () => {
+      if (hideTimer) clearTimeout(hideTimer);
+      hideTimer = setTimeout(() => {
+        hideTimer = null;
+        closeAllDescriptionPopups();
+      }, 180);
+    };
+
+    btn.addEventListener("mouseenter", open);
+    btn.addEventListener("focus", open);
+    wrap.addEventListener("mouseenter", () => {
+      if (hideTimer) {
+        clearTimeout(hideTimer);
+        hideTimer = null;
+      }
+    });
+    wrap.addEventListener("mouseleave", scheduleClose);
+    btn.addEventListener("blur", scheduleClose);
+    btn.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      if (popup.hidden) open();
+      else closeAllDescriptionPopups();
+    });
+  });
+
+  document.addEventListener("click", (event) => {
+    if (event.target.closest(".listing-description-wrap")) return;
+    closeAllDescriptionPopups();
+  });
+})();
+</script>

@@ -10,10 +10,9 @@
           {{ listing.brand }} {{ listing.model }}{% if listing.generation %} ({{ listing.generation }}){% endif %}
         </h1>
         {% set source_href = listing | listing_source_href %}
-        {% if source_href %}
+        {% if is_admin and source_href %}
           <p class="listing-source-link hint">
-            Оригинал объявления размещен по адресу:
-            <a href="{{ source_href }}" target="_blank" rel="noopener">{{ source_href | listing_source_label }}</a>
+            <a href="{{ source_href }}" target="_blank" rel="noopener">Оригинал объявления</a>
           </p>
         {% endif %}
       </div>

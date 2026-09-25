@@ -11,6 +11,7 @@ from app.exchange_rates import NbrbRates, fetch_nbrb_rates
 from app.models import CarListing
 
 _AVBY_TITLE_SUFFIX = re.compile(r"\s*\(av\.by\s*#\d+\)\s*", re.IGNORECASE)
+_AUTOPLIUS_REG_YM = re.compile(r"(\d{4}-\d{2})\s*m\.", re.IGNORECASE)
 _IMPORT_META_LINE = re.compile(
     r"^(?:AVBY_ID:\s*\d+|AUTOPLIUS_ID:\s*\S+|AUTO24_ID:\s*\S+|MOBILE_DE_ID:\s*\S+|URL:\s*\S+|Источник:\s*(?:av\.by|autoplius\.lt|auto24\.ee|mobile\.de))\s*$",
     re.IGNORECASE,
@@ -32,6 +33,36 @@ def listing_display_title(title: str | None) -> str:
     if not title:
         return ""
     return _AVBY_TITLE_SUFFIX.sub("", title).strip()
+
+
+def listing_registration_ym(listing: CarListing) -> str | None:
+    """YYYY-MM first-registration month from Autoplius-style titles, if present."""
+    title = listing.title or ""
+    match = _AUTOPLIUS_REG_YM.search(title)
+    return match.group(1) if match else None
+
+
+def listing_feed_heading(listing: CarListing) -> str:
+    """Compact feed title: foreign markets use reg month; BY puts generation before year."""
+    brand = (listing.brand or "").strip()
+    model = (listing.model or "").strip()
+    name = " ".join(part for part in (brand, model) if part)
+    source = (listing.source or "").strip().lower()
+
+    if source == "autoplius":
+        reg_ym = listing_registration_ym(listing)
+        if reg_ym:
+            return f"{name} · {reg_ym}" if name else reg_ym
+        if listing.year:
+            return f"{name} · {listing.year}" if name else str(listing.year)
+        return name
+
+    generation = (listing.generation or "").strip()
+    parts = [part for part in (brand, model, generation) if part]
+    heading = " ".join(parts)
+    if listing.year is not None:
+        heading = f"{heading} {listing.year}".strip()
+    return heading or listing_display_title(listing.title)
 
 
 def listing_source_href(listing: CarListing) -> str | None:

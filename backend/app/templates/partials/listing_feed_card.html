@@ -25,8 +25,7 @@
       {% endif %}
     </div>
   {% endif %}
-  <h3><a href="/listings/{{ listing.id }}">{{ listing.title | listing_display_title }}</a></h3>
-  <p><strong>{{ listing.brand }} {{ listing.model }}</strong> · {{ listing.year }}{% if listing.generation %} · {{ listing.generation }}{% endif %}</p>
+  <h3><a href="/listings/{{ listing.id }}">{{ listing | listing_feed_heading }}</a></h3>
   <p><strong>Пробег:</strong> {{ listing.mileage | format_mileage_km }} км</p>
   <p><strong>Город:</strong> {{ listing.city }}</p>
   <p><strong>Продавец:</strong> {{ listing.seller_name | listing_seller_label }}</p>
@@ -37,13 +36,26 @@
     {% if listing.transmission_type %}<span>{{ listing.transmission_type }}</span>{% endif %}
     {% if listing.drive_type %}<span>{{ listing.drive_type }}</span>{% endif %}
     {% if listing.body_type %}<span>{{ listing.body_type | body_type_label }}</span>{% endif %}
-    {% if listing.vin_indicated is not none %}<span>{% if listing.vin_indicated %}VIN указан{% else %}VIN скрыт{% endif %}</span>{% endif %}
   </div>
-  {% set source_href = listing | listing_source_href %}
-  {% if source_href %}
-    <p class="hint listings-feed-source">Оригинал объявления: <a href="{{ source_href }}" target="_blank" rel="noopener">{{ source_href | listing_source_label }}</a></p>
+  {% set show_description = (listings_market is not defined or listings_market in ('by', 'lt', 'ee')) and (listing.source or '') != 'mobile_de' %}
+  {% set clean_description = listing.description | listing_display_description %}
+  {% if show_description and clean_description %}
+    <div class="listing-description-wrap">
+      <button type="button" class="btn-link-like listing-description-btn" data-description-btn>Описание</button>
+      <div class="listing-description-popup" data-description-popup hidden>
+        <p class="listing-description-text">{{ clean_description }}</p>
+      </div>
+    </div>
   {% endif %}
-  {% with customs=listing_customs_map.get(listing.id) %}
+  {% if is_admin %}
+    {% set source_href = listing | listing_source_href %}
+    {% if source_href %}
+      <p class="hint listings-feed-source">
+        <a href="{{ source_href }}" target="_blank" rel="noopener">Оригинал объявления</a>
+      </p>
+    {% endif %}
+  {% endif %}
+  {% with customs=listing_customs_map.get(listing.id) if listing_customs_map is defined else none %}
     {% include "partials/listing_customs_info.html" %}
   {% endwith %}
   {% if is_admin %}

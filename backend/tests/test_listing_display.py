@@ -33,6 +33,33 @@ def test_listing_display_title_strips_avby_suffix():
     assert listing_display_title("BMW X1 2019 (av.by #1234567)") == "BMW X1 2019"
 
 
+def test_listing_feed_heading_autoplius_uses_registration_month():
+    from app.listing_display import listing_feed_heading
+
+    listing = _listing(
+        source="autoplius",
+        brand="Hyundai",
+        model="i10",
+        year=2023,
+        title="Hyundai i10, 1.0 l., Хэтчбек 2023-01 m., | A30330493",
+    )
+    assert listing_feed_heading(listing) == "Hyundai i10 · 2023-01"
+
+
+def test_listing_feed_heading_belarus_puts_generation_before_year():
+    from app.listing_display import listing_feed_heading
+
+    listing = _listing(
+        source="av.by",
+        brand="Nissan",
+        model="Qashqai",
+        generation="II",
+        year=2014,
+        title="Nissan Qashqai 2014 (av.by #1)",
+    )
+    assert listing_feed_heading(listing) == "Nissan Qashqai II 2014"
+
+
 def test_listing_source_label_shows_host_and_path():
     assert (
         listing_source_label("https://cars.av.by/1234567")
