@@ -27,6 +27,7 @@ from app.config import settings
 from app.db import SessionLocal
 from app.listing_catalog_link import link_listing_to_catalog
 from app.listing_missing_byn import apply_import_byn_price_state
+from app.listing_source_time import apply_scrape_source_timestamps
 from app.mobile_de_map import (
     DEFAULT_MAX_AGE_YEARS,
     DEFAULT_MAX_ENGINE_L,
@@ -64,7 +65,10 @@ SELECT
   parameters,
   raw,
   detail_scraped,
-  status
+  status,
+  first_seen_at,
+  last_seen_at,
+  updated_at
 FROM listings
 WHERE source = %s
   AND status = 'active'
@@ -97,7 +101,7 @@ def _photo_payload(mapped) -> tuple[str | None, list[dict] | None]:
     return cover, raw_photos or None
 
 
-def _apply_mapped(listing: CarListing, mapped, *, seller_id: int) -> None:
+def _apply_mapped(listing: CarListing, mapped, *, seller_id: int, scrape_row: dict | None = None) -> None:
     cover, raw_photos = _photo_payload(mapped)
     listing.seller_id = seller_id
     listing.source = SOURCE
@@ -129,6 +133,8 @@ def _apply_mapped(listing: CarListing, mapped, *, seller_id: int) -> None:
     price_missing = price_byn is None
     apply_import_byn_price_state(listing, price_byn=price_byn, price_byn_missing=price_missing)
     listing.status = ListingStatus.draft if price_missing else ListingStatus.published
+    if scrape_row is not None:
+        apply_scrape_source_timestamps(listing, scrape_row)
 
 
 def main() -> int:
@@ -233,7 +239,7 @@ def main() -> int:
                     description="",
                     status=ListingStatus.draft,
                 )
-                _apply_mapped(listing, mapped, seller_id=seller.id)
+                _apply_mapped(listing, mapped, seller_id=seller.id, scrape_row=dict(row))
                 db.add(listing)
                 db.flush()
                 link_listing_to_catalog(db, listing)
@@ -247,7 +253,7 @@ def main() -> int:
                 if args.dry_run:
                     updated += 1
                     continue
-                _apply_mapped(existing, mapped, seller_id=seller.id)
+                _apply_mapped(existing, mapped, seller_id=seller.id, scrape_row=dict(row))
                 link_listing_to_catalog(db, existing)
                 updated += 1
 

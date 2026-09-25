@@ -1670,7 +1670,11 @@ def _catalog_items_base_query(db: Session, request: Request, current_user=None) 
 
 
 def _listing_source_at_expr():
-    """Timestamp for feed order / freshness: prefer av.by renewed → published → local created."""
+    """Timestamp for feed order / freshness: renewed → published → local created.
+
+    For Europe scrape imports, avby_* are filled from scrape first_seen_at so the
+    mixed EU feed interleaves sources by appearance instead of local import batches.
+    """
     return func.coalesce(
         CarListing.avby_renewed_at,
         CarListing.avby_published_at,
