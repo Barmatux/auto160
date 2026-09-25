@@ -56,6 +56,13 @@ from app.belarus_locations import (
     location_filter_groups,
     parse_location_filter_values,
 )
+from app.europe_locations import (
+    apply_europe_location_filter,
+    europe_location_filter_checked_state,
+    europe_location_filter_display_label,
+    europe_location_filter_groups,
+    parse_europe_location_filter_values,
+)
 from app.transmission_labels import (
     TRANSMISSION_FILTER_GROUPS,
     TRANSMISSION_SLUG_AUTO,
@@ -1115,13 +1122,24 @@ def _listings_filters_payload(
         query.getlist("region"),
         query.getlist("city"),
     )
-    listing_cities = _distinct_listing_values(
-        db,
-        CarListing.city,
-        published_only=published_only,
-        listings_market=listings_market,
-    )
-    location_checked = location_filter_checked_state(location_regions, location_cities)
+    if listings_market == "eu":
+        location_regions, location_cities = parse_europe_location_filter_values(
+            query.getlist("region"),
+            query.getlist("city"),
+        )
+        location_checked = europe_location_filter_checked_state(location_regions)
+        location_display = europe_location_filter_display_label(location_regions)
+        location_groups = europe_location_filter_groups()
+    else:
+        location_checked = location_filter_checked_state(location_regions, location_cities)
+        location_display = location_filter_display_label(location_regions, location_cities)
+        listing_cities = _distinct_listing_values(
+            db,
+            CarListing.city,
+            published_only=published_only,
+            listings_market=listings_market,
+        )
+        location_groups = location_filter_groups(listing_cities)
     if listings_market == "by":
         body_options = body_type_filter_options(body_type_raw)
         engine_options = fuel_type_filter_options(engine_type_raw)
@@ -1151,7 +1169,7 @@ def _listings_filters_payload(
             "location_regions": location_regions,
             "location_cities": location_cities,
             "location_checked": location_checked,
-            "location_display": location_filter_display_label(location_regions, location_cities),
+            "location_display": location_display,
             "body_types": body_types,
             "body_type_display": _multi_filter_display_label(body_types, "Любой"),
             "fuel_types": fuel_types,
@@ -1174,7 +1192,7 @@ def _listings_filters_payload(
             "generations": generation_options,
             "brand_model_map": brand_model_map,
             "brand_model_generation_map": brand_model_generation_map,
-            "location_groups": location_filter_groups(listing_cities),
+            "location_groups": location_groups,
             "body_type": body_options,
             "engine_type": engine_options,
             "transmission_groups": TRANSMISSION_FILTER_GROUPS,
@@ -2531,6 +2549,11 @@ def listings_page(
         request.query_params.getlist("region"),
         request.query_params.getlist("city"),
     )
+    if listings_market == "eu":
+        location_regions, location_cities = parse_europe_location_filter_values(
+            request.query_params.getlist("region"),
+            request.query_params.getlist("city"),
+        )
     price_range = parse_listing_price_range(request.query_params.get("price_range"))
     query = exclude_hidden_body_type(db.query(CarListing), CarListing.body_type)
     is_admin = _is_admin_user(current_user)
@@ -2624,13 +2647,20 @@ def listings_page(
             listings_market=listings_market,
         )
     )
-    query = apply_listings_location_filter(
-        query,
-        CarListing.city,
-        region_slugs=location_regions,
-        city_names=location_cities,
-        available_cities=available_listing_cities,
-    )
+    if listings_market == "eu":
+        query = apply_europe_location_filter(
+            query,
+            CarListing.source,
+            region_slugs=location_regions,
+        )
+    else:
+        query = apply_listings_location_filter(
+            query,
+            CarListing.city,
+            region_slugs=location_regions,
+            city_names=location_cities,
+            available_cities=available_listing_cities,
+        )
     # Characteristic sidebar filters still apply on top unless already used as modification tech.
     # Body type / location / price stay as usual; fuel/transmission already in modification match.
     if not (catalog_item_filter or has_modification_tech):
