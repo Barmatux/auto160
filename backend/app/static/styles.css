@@ -468,6 +468,19 @@ body {
   min-height: 48px;
 }
 
+.catalog-filters-panel .filters > .page-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  box-sizing: border-box;
+  text-align: center;
+  font-size: 16px;
+  font-weight: 600;
+  padding: 13px 16px;
+  min-height: 48px;
+}
+
 .catalog-filter-field-label {
   font-size: 14px;
   line-height: 1.2;
@@ -2826,6 +2839,10 @@ body.vin-enter-modal-open {
 
 .vehicle-hierarchy-actions .page-link,
 .vehicle-hierarchy-actions .vehicle-hierarchy-reset {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
   padding: 10px 14px;
   font-size: 15px;
   font-weight: 600;
