@@ -2365,7 +2365,7 @@ def _home_latest_listings(db: Session, *, limit: int = 20) -> list[CarListing]:
             ),
             CarListing.body_type,
         )
-        .order_by(desc(_listing_source_at_expr()), desc(CarListing.id))
+        .order_by(desc(_listing_source_at_expr()), desc(CarListing.created_at), desc(CarListing.id))
         .limit(fetch_limit)
         .all()
     )
@@ -2675,7 +2675,7 @@ def listings_page(
     elif sort == "year_asc":
         query = query.order_by(CarListing.year.asc(), desc(_listing_source_at_expr()), desc(CarListing.id))
     else:
-        query = query.order_by(desc(_listing_source_at_expr()), desc(CarListing.id))
+        query = query.order_by(desc(_listing_source_at_expr()), desc(CarListing.created_at), desc(CarListing.id))
 
     total = query.count()
     page_size = LISTINGS_PAGE_SIZE

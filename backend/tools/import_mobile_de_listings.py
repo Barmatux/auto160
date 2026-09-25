@@ -242,6 +242,7 @@ def main() -> int:
                 _apply_mapped(listing, mapped, seller_id=seller.id, scrape_row=dict(row))
                 db.add(listing)
                 db.flush()
+                apply_scrape_source_timestamps(listing, dict(row))
                 link_listing_to_catalog(db, listing)
                 by_external[mapped.external_id] = listing
                 created += 1
