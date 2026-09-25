@@ -33,7 +33,7 @@ from app.config import settings
 from app.db import SessionLocal
 from app.listing_catalog_link import link_listing_to_catalog
 from app.listing_missing_byn import apply_import_byn_price_state
-from app.listing_source_time import apply_scrape_source_timestamps
+from app.listing_source_time import apply_scrape_source_timestamps, detect_bulk_first_seen
 from app.models import CarListing, ListingStatus, User, UserRole
 from app.security import hash_password
 from app.util_sbor_exclusions import listing_is_util_sbor_exclusion
@@ -100,7 +100,14 @@ def _photo_payload(mapped) -> tuple[str | None, list[dict] | None]:
     return cover, raw_photos or None
 
 
-def _apply_mapped(listing: CarListing, mapped, *, seller_id: int, scrape_row: dict | None = None) -> None:
+def _apply_mapped(
+    listing: CarListing,
+    mapped,
+    *,
+    seller_id: int,
+    scrape_row: dict | None = None,
+    bulk_first_seen=None,
+) -> None:
     cover, raw_photos = _photo_payload(mapped)
     listing.seller_id = seller_id
     listing.source = SOURCE
@@ -133,7 +140,7 @@ def _apply_mapped(listing: CarListing, mapped, *, seller_id: int, scrape_row: di
     apply_import_byn_price_state(listing, price_byn=price_byn, price_byn_missing=price_missing)
     listing.status = ListingStatus.draft if price_missing else ListingStatus.published
     if scrape_row is not None:
-        apply_scrape_source_timestamps(listing, scrape_row)
+        apply_scrape_source_timestamps(listing, scrape_row, bulk_first_seen=bulk_first_seen)
 
 
 def main() -> int:
@@ -169,13 +176,14 @@ def main() -> int:
     try:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
             cur.execute(SELECT_SQL, (SOURCE,))
-            rows = cur.fetchall()
+            rows = [dict(r) for r in cur.fetchall()]
     finally:
         conn.close()
 
     if args.limit and args.limit > 0:
         rows = rows[: args.limit]
-    print(f"fetched={len(rows)}")
+    bulk_first_seen = detect_bulk_first_seen(rows)
+    print(f"fetched={len(rows)} bulk_first_seen_keys={len(bulk_first_seen)}")
 
     db = SessionLocal()
     created = updated = skipped = archived = 0
@@ -238,10 +246,16 @@ def main() -> int:
                     description="",
                     status=ListingStatus.draft,
                 )
-                _apply_mapped(listing, mapped, seller_id=seller.id, scrape_row=dict(row))
+                _apply_mapped(
+                    listing,
+                    mapped,
+                    seller_id=seller.id,
+                    scrape_row=row,
+                    bulk_first_seen=bulk_first_seen,
+                )
                 db.add(listing)
                 db.flush()
-                apply_scrape_source_timestamps(listing, dict(row))
+                apply_scrape_source_timestamps(listing, row, bulk_first_seen=bulk_first_seen)
                 link_listing_to_catalog(db, listing)
                 by_external[mapped.external_id] = listing
                 created += 1
@@ -253,7 +267,13 @@ def main() -> int:
                 if args.dry_run:
                     updated += 1
                     continue
-                _apply_mapped(existing, mapped, seller_id=seller.id, scrape_row=dict(row))
+                _apply_mapped(
+                    existing,
+                    mapped,
+                    seller_id=seller.id,
+                    scrape_row=row,
+                    bulk_first_seen=bulk_first_seen,
+                )
                 link_listing_to_catalog(db, existing)
                 updated += 1
 
