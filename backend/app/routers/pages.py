@@ -1633,7 +1633,7 @@ def _build_catalog_filtered_url(path: str, pairs: list[tuple[str, str]]) -> str:
     return path + "?" + urlencode(pairs)
 
 
-def _home_catalog_quick_links() -> list[dict[str, str]]:
+def _home_catalog_quick_links() -> list[dict[str, str | bool]]:
     return [
         {
             "label": "Кроссовер на автомате",
@@ -1644,6 +1644,7 @@ def _home_catalog_quick_links() -> list[dict[str, str]]:
                     ("transmission", TRANSMISSION_SLUG_AUTO),
                 ],
             ),
+            "hide_on_mobile": True,
         },
         {
             "label": "Дизельный универсал",
