@@ -33,7 +33,7 @@
   <div class="home-makes home-directions">
     {% for item in popular_directions %}
       <a class="home-make-card home-direction-card" href="{{ item.url }}">
-        <img class="make-logo home-direction-flag" src="{{ item.flag_url }}" alt="" loading="lazy" />
+        <span class="home-direction-flag" aria-hidden="true">{{ item.flag_emoji }}</span>
         <strong>{{ item.label }}</strong>
       </a>
     {% endfor %}

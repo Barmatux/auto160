@@ -2380,27 +2380,27 @@ def _home_popular_directions() -> list[dict]:
         {
             "label": "Авто из Беларуси",
             "url": "/listings",
-            "flag_url": "/static/flags/by.svg",
+            "flag_emoji": "🇧🇾",
         },
         {
             "label": "Авто из Германии",
             "url": "/listings/de",
-            "flag_url": "/static/flags/de.svg",
+            "flag_emoji": "🇩🇪",
         },
         {
             "label": "Авто с европейских аукционов",
             "url": "/listings/auctions",
-            "flag_url": "/static/flags/eu.svg",
+            "flag_emoji": "🇪🇺",
         },
         {
             "label": "Авто из Эстонии",
             "url": "/listings/ee",
-            "flag_url": "/static/flags/ee.svg",
+            "flag_emoji": "🇪🇪",
         },
         {
             "label": "Авто из Литвы",
             "url": "/listings/lt",
-            "flag_url": "/static/flags/lt.svg",
+            "flag_emoji": "🇱🇹",
         },
     ]
 

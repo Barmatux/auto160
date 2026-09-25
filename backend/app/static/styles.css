@@ -5181,8 +5181,15 @@ body.listing-lightbox-open {
 }
 
 .home-direction-flag {
-  border-radius: 50%;
-  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.08);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  font-size: 34px;
+  line-height: 1;
+  border-radius: 0;
+  box-shadow: none;
 }
 
 .home-direction-card {

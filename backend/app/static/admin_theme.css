@@ -495,9 +495,8 @@ body.theme-admin .catalog-make-card .make-logo-wrap:focus-visible {
   border-color: rgba(0, 168, 255, 0.4);
 }
 
-/* Dark brand marks are near-invisible on dark cards — render them light.
-   Keep country flags in natural colors (they use .make-logo + .home-direction-flag). */
-body.theme-admin:not(.theme-admin-light) .make-logo:not(.home-direction-flag) {
+/* Dark brand marks are near-invisible on dark cards — render them light. */
+body.theme-admin:not(.theme-admin-light) .make-logo {
   filter: brightness(0) invert(1);
   opacity: 0.92;
 }
