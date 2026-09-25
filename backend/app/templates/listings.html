@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{% if listings_market == 'lt' %}Литва (Autoplius) - Auto160{% elif listings_market == 'ee' %}Эстония (Auto24) - Auto160{% elif listings_market == 'de' %}Германия (mobile.de) - Auto160{% else %}Лента объявлений - Auto160{% endif %}{% endblock %}
+{% block title %}{% if listings_market == 'eu' %}Европа (Autoplius / Auto24 / mobile.de) - Auto160{% else %}Лента объявлений - Auto160{% endif %}{% endblock %}
 {% block content %}
 <div class="catalog-page">
   {% set vehicle_hierarchy = listings_filters.vehicle_hierarchy %}
@@ -14,23 +14,11 @@
       aria-selected="{{ 'true' if listings_market == 'by' else 'false' }}"
     >🇧🇾 Беларусь</a>
     <a
-      class="listings-market-tab{% if listings_market == 'lt' %} is-active{% endif %}"
-      href="/listings/lt"
+      class="listings-market-tab{% if listings_market == 'eu' %} is-active{% endif %}"
+      href="/listings/eu"
       role="tab"
-      aria-selected="{{ 'true' if listings_market == 'lt' else 'false' }}"
-    >🇱🇹 Литва</a>
-    <a
-      class="listings-market-tab{% if listings_market == 'ee' %} is-active{% endif %}"
-      href="/listings/ee"
-      role="tab"
-      aria-selected="{{ 'true' if listings_market == 'ee' else 'false' }}"
-    >🇪🇪 Эстония</a>
-    <a
-      class="listings-market-tab{% if listings_market == 'de' %} is-active{% endif %}"
-      href="/listings/de"
-      role="tab"
-      aria-selected="{{ 'true' if listings_market == 'de' else 'false' }}"
-    >🇩🇪 Германия</a>
+      aria-selected="{{ 'true' if listings_market == 'eu' else 'false' }}"
+    >🇪🇺 Европа</a>
   </div>
   {% include "partials/vehicle_filters_bar.html" %}
   <div class="catalog-layout">

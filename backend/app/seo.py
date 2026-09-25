@@ -671,6 +671,7 @@ def build_sitemap_entries(db: Session, base_url: str) -> list[tuple[str, str]]:
         "/",
         "/catalog",
         "/listings",
+        "/listings/eu",
         "/inspection",
         "/guides/vin",
         "/guides/do-160-hp",

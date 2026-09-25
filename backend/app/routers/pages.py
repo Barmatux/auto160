@@ -896,6 +896,8 @@ MILEAGE_FILTER_MAX = 500_000
 
 
 def _listings_market_source_predicate(market: str):
+    if market == "eu":
+        return CarListing.source.in_(FOREIGN_LISTING_SOURCES)
     if market == "lt":
         return CarListing.source == "autoplius"
     if market == "ee":
@@ -2351,10 +2353,7 @@ def _home_latest_listings(db: Session, *, limit: int = 20) -> list[CarListing]:
             db.query(CarListing)
             .filter(
                 CarListing.status == ListingStatus.published,
-                or_(
-                    CarListing.source.is_(None),
-                    ~CarListing.source.in_(("autoplius", "auto24", "mobile_de")),
-                ),
+                _listings_market_source_predicate("by"),
                 or_(
                     and_(CarListing.cover_photo_url.isnot(None), CarListing.cover_photo_url != ""),
                     CarListing.raw_photos.isnot(None),
@@ -2383,24 +2382,14 @@ def _home_popular_directions() -> list[dict]:
             "flag_emoji": "🇧🇾",
         },
         {
-            "label": "Авто из Германии",
-            "url": "/listings/de",
-            "flag_emoji": "🇩🇪",
+            "label": "Авто из Европы",
+            "url": "/listings/eu",
+            "flag_emoji": "🇪🇺",
         },
         {
             "label": "Авто с европейских аукционов",
             "url": "/listings/auctions",
             "flag_emoji": "🇪🇺",
-        },
-        {
-            "label": "Авто из Эстонии",
-            "url": "/listings/ee",
-            "flag_emoji": "🇪🇪",
-        },
-        {
-            "label": "Авто из Литвы",
-            "url": "/listings/lt",
-            "flag_emoji": "🇱🇹",
         },
     ]
 
@@ -2476,10 +2465,16 @@ def listings_coming_soon_page(request: Request, db: Session = Depends(get_db)):
     return templates.TemplateResponse(request, "listings_coming_soon.html", context)
 
 
+@router.get("/listings/lt", include_in_schema=False)
+@router.get("/listings/ee", include_in_schema=False)
+@router.get("/listings/de", include_in_schema=False)
+def listings_europe_country_redirect():
+    """Legacy country tabs → unified Europe feed."""
+    return RedirectResponse(url="/listings/eu", status_code=302)
+
+
 @router.get("/listings")
-@router.get("/listings/lt")
-@router.get("/listings/ee")
-@router.get("/listings/de")
+@router.get("/listings/eu")
 def listings_page(
     request: Request,
     year_from: str | None = Query(default=None),
@@ -2494,15 +2489,9 @@ def listings_page(
     db: Session = Depends(get_db),
 ):
     path = request.url.path.rstrip("/")
-    if path.endswith("/listings/lt"):
-        listings_market = "lt"
-        listings_base_path = "/listings/lt"
-    elif path.endswith("/listings/ee"):
-        listings_market = "ee"
-        listings_base_path = "/listings/ee"
-    elif path.endswith("/listings/de"):
-        listings_market = "de"
-        listings_base_path = "/listings/de"
+    if path.endswith("/listings/eu"):
+        listings_market = "eu"
+        listings_base_path = "/listings/eu"
     else:
         listings_market = "by"
         listings_base_path = "/listings"
@@ -2541,33 +2530,13 @@ def listings_page(
     is_admin = _is_admin_user(current_user)
     if not is_admin:
         query = query.filter(CarListing.status == ListingStatus.published)
-    if listings_market == "lt":
+    if listings_market == "eu":
         from app.autoplius_map import DEFAULT_MAX_AGE_YEARS, DEFAULT_MAX_ENGINE_L, min_year_for_max_age
 
-        lt_year_min = min_year_for_max_age(DEFAULT_MAX_AGE_YEARS)
+        eu_year_min = min_year_for_max_age(DEFAULT_MAX_AGE_YEARS)
         query = query.filter(
-            CarListing.source == "autoplius",
-            CarListing.year >= lt_year_min,
-            CarListing.engine_capacity_l.isnot(None),
-            CarListing.engine_capacity_l <= DEFAULT_MAX_ENGINE_L,
-        )
-    elif listings_market == "ee":
-        from app.auto24_map import DEFAULT_MAX_AGE_YEARS, DEFAULT_MAX_ENGINE_L, min_year_for_max_age
-
-        ee_year_min = min_year_for_max_age(DEFAULT_MAX_AGE_YEARS)
-        query = query.filter(
-            CarListing.source == "auto24",
-            CarListing.year >= ee_year_min,
-            CarListing.engine_capacity_l.isnot(None),
-            CarListing.engine_capacity_l <= DEFAULT_MAX_ENGINE_L,
-        )
-    elif listings_market == "de":
-        from app.mobile_de_map import DEFAULT_MAX_AGE_YEARS, DEFAULT_MAX_ENGINE_L, min_year_for_max_age
-
-        de_year_min = min_year_for_max_age(DEFAULT_MAX_AGE_YEARS)
-        query = query.filter(
-            CarListing.source == "mobile_de",
-            CarListing.year >= de_year_min,
+            _listings_market_source_predicate("eu"),
+            CarListing.year >= eu_year_min,
             CarListing.engine_capacity_l.isnot(None),
             CarListing.engine_capacity_l <= DEFAULT_MAX_ENGINE_L,
         )
@@ -2826,51 +2795,19 @@ def listings_page(
     if not location_regions and len(location_cities) == 1:
         seo_city = location_cities[0]
     seo_brand = None if brand == "__multi__" else brand
-    if listings_market == "lt":
+    if listings_market == "eu":
         seo = build_seo_context(
             request,
             SeoMeta(
-                title="Авто из Литвы до 5 лет и 1.9 л — Auto160"
+                title="Авто из Европы до 5 лет и 1.9 л — Auto160"
                 + (f", стр. {page}" if page > 1 else ""),
                 description=(
-                    "Объявления из Литвы (autoplius.lt): возраст до 5 лет, "
+                    "Объявления из Европы (autoplius.lt, auto24.ee, mobile.de): возраст до 5 лет, "
                     "двигатель до 1.9 л, мощность до 160 л.с. Цены в BYN по курсу НБ РБ."
                 ),
                 path=listings_base_path,
-                h1="Литва — до 5 лет и 1.9 л",
-                intro="Autoplius: авто не старше 5 лет, двигатель до 1.9 л, до 160 л.с.",
-                noindex=page > 1 or noisy_filters or (brand == "__multi__"),
-            ),
-        )
-    elif listings_market == "ee":
-        seo = build_seo_context(
-            request,
-            SeoMeta(
-                title="Авто из Эстонии до 5 лет и 1.9 л — Auto160"
-                + (f", стр. {page}" if page > 1 else ""),
-                description=(
-                    "Объявления из Эстонии (auto24.ee): возраст до 5 лет, "
-                    "двигатель до 1.9 л, мощность до 160 л.с. Цены в BYN по курсу НБ РБ."
-                ),
-                path=listings_base_path,
-                h1="Эстония — до 5 лет и 1.9 л",
-                intro="Auto24: авто не старше 5 лет, двигатель до 1.9 л, до 160 л.с.",
-                noindex=page > 1 or noisy_filters or (brand == "__multi__"),
-            ),
-        )
-    elif listings_market == "de":
-        seo = build_seo_context(
-            request,
-            SeoMeta(
-                title="Авто из Германии до 5 лет и 1.9 л — Auto160"
-                + (f", стр. {page}" if page > 1 else ""),
-                description=(
-                    "Объявления из Германии (mobile.de): возраст до 5 лет, "
-                    "двигатель до 1.9 л, мощность до 160 л.с. Цены в BYN по курсу НБ РБ."
-                ),
-                path=listings_base_path,
-                h1="Германия — до 5 лет и 1.9 л",
-                intro="mobile.de: авто не старше 5 лет, двигатель до 1.9 л, до 160 л.с.",
+                h1="Европа — до 5 лет и 1.9 л",
+                intro="Литва, Эстония и Германия: авто не старше 5 лет, двигатель до 1.9 л, до 160 л.с.",
                 noindex=page > 1 or noisy_filters or (brand == "__multi__"),
             ),
         )
