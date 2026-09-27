@@ -27,7 +27,19 @@ def _request(
 def test_classify_yandex_bot():
     result = classify_visitor(_request(user_agent="Mozilla/5.0 (compatible; YandexBot/3.0; +http://yandex.com/bots)"))
     assert result["visitor_name"] == "Яндекс-бот"
+    assert result["visitor_label"] == "bot:yandex"
 
+
+def test_classify_yandex_images_bot():
+    result = classify_visitor(_request(user_agent="Mozilla/5.0 (compatible; YandexImages/3.0; +http://yandex.com/bots)"))
+    assert result["visitor_label"] == "bot:yandex"
+
+
+def test_classify_semrush_bot():
+    result = classify_visitor(
+        _request(user_agent="Mozilla/5.0 (compatible; SemrushBot/7~bl; +http://www.semrush.com/bot.html)")
+    )
+    assert result["visitor_label"] == "bot:semrush"
 
 def test_classify_internal_client_header():
     result = classify_visitor(_request(client_header="avby-sync"))

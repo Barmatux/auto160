@@ -630,25 +630,47 @@ def guide_do_160_seo_meta(base: str) -> SeoMeta:
     )
 
 
+# Google/Yandex hard limit is 50_000 URLs per sitemap file; stay under it.
+SITEMAP_MAX_URLS = 40_000
+
+_ROBOTS_DISALLOW = (
+    "/admin/",
+    "/api/",
+    "/login",
+    "/register",
+    "/logout",
+    "/profile/",
+    "/create-listing",
+    "/design-preview",
+    "/catalog/compare",
+)
+
+# Yandex Clean-param: drop tracking query noise so landings share one URL.
+_ROBOTS_CLEAN_PARAM = (
+    "utm_source&utm_medium&utm_campaign&utm_content&utm_term&utm_id"
+    "&yclid&ysclid&fbclid&gclid&from&_openstat&ref&fb_action_ids&fb_action_types"
+)
+
+
 def build_robots_txt(base_url: str) -> str:
-    return "\n".join(
+    host = base_url.replace("https://", "").replace("http://", "").rstrip("/")
+    lines = [
+        "User-agent: *",
+        "Allow: /",
+    ]
+    for path in _ROBOTS_DISALLOW:
+        lines.append(f"Disallow: {path}")
+    lines.extend(
         [
-            "User-agent: *",
-            "Allow: /",
-            "Disallow: /admin/",
-            "Disallow: /api/",
-            "Disallow: /login",
-            "Disallow: /register",
-            "Disallow: /logout",
-            "Disallow: /profile/",
-            "Disallow: /create-listing",
-            "Disallow: /design-preview",
-            "Disallow: /catalog/compare",
+            f"Clean-param: {_ROBOTS_CLEAN_PARAM}",
             "",
+            # Yandex still honors Host when HTTPS canonical is set.
+            f"Host: {host}",
             f"Sitemap: {base_url}/sitemap.xml",
             "",
         ]
     )
+    return "\n".join(lines)
 
 
 def _hp_filter():
@@ -663,9 +685,32 @@ def _format_lastmod(value: datetime | None) -> str:
     return value.astimezone(UTC).strftime("%Y-%m-%d")
 
 
-def build_sitemap_entries(db: Session, base_url: str) -> list[tuple[str, str]]:
-    entries: list[tuple[str, str]] = []
+def _chunk_entries(
+    entries: list[tuple[str, str]],
+    *,
+    prefix: str,
+    max_urls: int = SITEMAP_MAX_URLS,
+) -> list[tuple[str, list[tuple[str, str]]]]:
+    """Split entries into named sitemap parts: prefix, prefix-2, …"""
+    if not entries:
+        return []
+    if len(entries) <= max_urls:
+        return [(prefix, entries)]
+    parts: list[tuple[str, list[tuple[str, str]]]] = []
+    for index in range(0, len(entries), max_urls):
+        chunk = entries[index : index + max_urls]
+        part_no = index // max_urls + 1
+        slug = prefix if part_no == 1 else f"{prefix}-{part_no}"
+        parts.append((slug, chunk))
+    return parts
+
+
+def build_sitemap_sections(db: Session, base_url: str) -> dict[str, list[tuple[str, str]]]:
+    """Group sitemap URLs into static / catalog / listings sections."""
     today = datetime.now(UTC).strftime("%Y-%m-%d")
+    static: list[tuple[str, str]] = []
+    catalog: list[tuple[str, str]] = []
+    listings_entries: list[tuple[str, str]] = []
 
     for path in (
         "/",
@@ -677,7 +722,7 @@ def build_sitemap_entries(db: Session, base_url: str) -> list[tuple[str, str]]:
         "/guides/do-160-hp",
         "/privacy",
     ):
-        entries.append((f"{base_url}{path}", today))
+        static.append((f"{base_url}{path}", today))
 
     for city in sorted(INDEXABLE_CITIES):
         count = (
@@ -687,7 +732,7 @@ def build_sitemap_entries(db: Session, base_url: str) -> list[tuple[str, str]]:
             or 0
         )
         if count > 0:
-            entries.append((f"{base_url}/listings?city={quote(city)}", today))
+            static.append((f"{base_url}/listings?city={quote(city)}", today))
 
     makes = (
         db.query(CatalogItem.make)
@@ -700,7 +745,7 @@ def build_sitemap_entries(db: Session, base_url: str) -> list[tuple[str, str]]:
         if not make:
             continue
         make = make.strip()
-        entries.append((f"{base_url}/catalog/models?make={quote(make)}", today))
+        catalog.append((f"{base_url}/catalog/models?make={quote(make)}", today))
 
         model_rows = (
             db.query(CatalogItem.model)
@@ -718,7 +763,7 @@ def build_sitemap_entries(db: Session, base_url: str) -> list[tuple[str, str]]:
             if not model:
                 continue
             model = model.strip()
-            entries.append(
+            catalog.append(
                 (
                     f"{base_url}/catalog/generations?make={quote(make)}&model={quote(model)}",
                     today,
@@ -740,31 +785,19 @@ def build_sitemap_entries(db: Session, base_url: str) -> list[tuple[str, str]]:
             for (generation,) in gen_rows:
                 if not generation:
                     continue
-                entries.append(
+                catalog.append(
                     (
                         f"{base_url}/catalog/modifications?"
                         f"make={quote(make)}&model={quote(model)}&generation={quote(generation.strip())}",
                         today,
                     )
                 )
-            # Also include make+model modifications without generation (landing).
-            entries.append(
+            catalog.append(
                 (
                     f"{base_url}/catalog/modifications?make={quote(make)}&model={quote(model)}",
                     today,
                 )
             )
-
-    listings = (
-        exclude_hidden_body_type(
-            db.query(CarListing.id, CarListing.created_at).filter(CarListing.status == ListingStatus.published),
-            CarListing.body_type,
-        )
-        .order_by(CarListing.id.asc())
-        .all()
-    )
-    for listing_id, created_at in listings:
-        entries.append((f"{base_url}/listings/{listing_id}", _format_lastmod(created_at)))
 
     catalog_items = (
         exclude_hidden_body_type(
@@ -775,9 +808,72 @@ def build_sitemap_entries(db: Session, base_url: str) -> list[tuple[str, str]]:
         .all()
     )
     for item_id, created_at in catalog_items:
-        entries.append((f"{base_url}/catalog/item/{item_id}", _format_lastmod(created_at)))
+        catalog.append((f"{base_url}/catalog/item/{item_id}", _format_lastmod(created_at)))
 
+    listings = (
+        exclude_hidden_body_type(
+            db.query(CarListing.id, CarListing.created_at).filter(CarListing.status == ListingStatus.published),
+            CarListing.body_type,
+        )
+        .order_by(CarListing.id.asc())
+        .all()
+    )
+    for listing_id, created_at in listings:
+        listings_entries.append((f"{base_url}/listings/{listing_id}", _format_lastmod(created_at)))
+
+    return {
+        "static": static,
+        "catalog": catalog,
+        "listings": listings_entries,
+    }
+
+
+def build_sitemap_entries(db: Session, base_url: str) -> list[tuple[str, str]]:
+    """Flat list of all sitemap URLs (tests / debugging)."""
+    sections = build_sitemap_sections(db, base_url)
+    entries: list[tuple[str, str]] = []
+    for key in ("static", "catalog", "listings"):
+        entries.extend(sections.get(key) or [])
     return entries
+
+
+def build_sitemap_parts(
+    db: Session,
+    base_url: str,
+    *,
+    max_urls: int = SITEMAP_MAX_URLS,
+) -> list[tuple[str, list[tuple[str, str]]]]:
+    """Return ordered (slug, entries) parts for sitemap index children."""
+    sections = build_sitemap_sections(db, base_url)
+    parts: list[tuple[str, list[tuple[str, str]]]] = []
+    for prefix in ("static", "catalog", "listings"):
+        parts.extend(_chunk_entries(sections.get(prefix) or [], prefix=prefix, max_urls=max_urls))
+    return parts
+
+
+def sitemap_part_lastmod(entries: list[tuple[str, str]]) -> str:
+    if not entries:
+        return datetime.now(UTC).strftime("%Y-%m-%d")
+    return max(lastmod for _loc, lastmod in entries)
+
+
+def render_sitemap_index(base_url: str, parts: list[tuple[str, str]]) -> str:
+    """Render sitemap index. ``parts`` is [(slug, lastmod), ...]."""
+    lines = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+    ]
+    for slug, lastmod in parts:
+        lines.extend(
+            [
+                "  <sitemap>",
+                f"    <loc>{base_url}/sitemap-{slug}.xml</loc>",
+                f"    <lastmod>{lastmod}</lastmod>",
+                "  </sitemap>",
+            ]
+        )
+    lines.append("</sitemapindex>")
+    return "\n".join(lines) + "\n"
 
 
 def render_sitemap_xml(entries: list[tuple[str, str]]) -> str:

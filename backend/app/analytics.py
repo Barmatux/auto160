@@ -30,9 +30,26 @@ SKIP_PATH_PREFIXES = (
     "/health",
     "/favicon.ico",
     "/apple-touch-icon",
-    "/robots.txt",
-    "/sitemap.xml",
 )
+
+# Track robots/sitemap hits so Yandex/Google discovery crawls show up in analytics.
+CRAWL_PATH_EXACT = frozenset({"/robots.txt", "/sitemap.xml"})
+
+
+def should_track_request(request: Request) -> bool:
+    path = request.url.path
+    if any(path.startswith(prefix) for prefix in SKIP_PATH_PREFIXES):
+        return False
+    if request.method not in {"GET", "HEAD"}:
+        return False
+    # Always track robots + sitemap* (bots often omit Accept: text/html).
+    if path in CRAWL_PATH_EXACT or path.startswith("/sitemap-"):
+        return True
+    accept = (request.headers.get("accept") or "").lower()
+    # Empty Accept is common for crawlers; allow it.
+    if accept and "text/html" not in accept and "*/*" not in accept:
+        return False
+    return True
 
 EVENT_LABELS = {
     "page_view": "Просмотр страницы",
@@ -74,18 +91,6 @@ def _resolve_user_from_request(request: Request, db: Session) -> User | None:
     if not email:
         return None
     return db.query(User).filter(User.email == email).first()
-
-
-def should_track_request(request: Request) -> bool:
-    path = request.url.path
-    if any(path.startswith(prefix) for prefix in SKIP_PATH_PREFIXES):
-        return False
-    if request.method not in {"GET", "HEAD"}:
-        return False
-    accept = (request.headers.get("accept") or "").lower()
-    if "text/html" not in accept and "*/*" not in accept:
-        return False
-    return True
 
 
 def ensure_session_id(request: Request) -> tuple[str, bool]:

@@ -11,10 +11,29 @@ INTERNAL_UA_PREFIX = "Auto160Internal/"
 INTERNAL_CLIENT_HEADER = "x-auto160-client"
 
 BOT_RULES: tuple[tuple[str, str, tuple[str, ...]], ...] = (
-    ("bot:yandex", "Яндекс-бот", ("yandexbot", "yandex.com/bots", "yandexrenderresources")),
+    (
+        "bot:yandex",
+        "Яндекс-бот",
+        (
+            "yandexbot",
+            "yandex.com/bots",
+            "yandexrenderresources",
+            "yandeximages",
+            "yandexvideo",
+            "yandexmobilebot",
+            "yandexwebmaster",
+            "yandexfavicons",
+            "yandexaccessibilitybot",
+            "yandexadditionalbot",
+            "yadirectfetcher",
+        ),
+    ),
     ("bot:google", "Google-бот", ("googlebot", "adsbot-google", "mediapartners-google", "google-inspectiontool")),
     ("bot:bing", "Bing-бот", ("bingbot", "msnbot")),
     ("bot:mail", "Почтовый бот", ("mail.ru_bot", "yahoo!", "slurp")),
+    ("bot:semrush", "Semrush-бот", ("semrushbot", "semrush.com/bot")),
+    ("bot:mj12", "MJ12-бот", ("mj12bot", "majestic12")),
+    ("bot:ahrefs", "Ahrefs-бот", ("ahrefsbot",)),
 )
 
 SCRIPT_UA_MARKERS = (

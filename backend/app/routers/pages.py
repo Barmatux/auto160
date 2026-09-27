@@ -127,7 +127,7 @@ from app.seo import (
     SeoMeta,
     build_robots_txt,
     build_seo_context,
-    build_sitemap_entries,
+    build_sitemap_parts,
     catalog_generations_seo_meta,
     catalog_item_seo_meta,
     catalog_models_seo_meta,
@@ -138,8 +138,10 @@ from app.seo import (
     inspection_seo_meta,
     listing_seo_meta,
     listings_feed_seo_meta,
+    render_sitemap_index,
     render_sitemap_xml,
     site_base_url,
+    sitemap_part_lastmod,
 )
 from app.listing_display import (
     format_mileage_km,
@@ -2463,13 +2465,30 @@ def yandex_webmaster_verification(code: str):
     return HTMLResponse(path.read_text(encoding="utf-8"), media_type="text/html; charset=utf-8")
 
 
+_SITEMAP_CACHE_HEADERS = {"Cache-Control": "public, max-age=3600"}
+
+
 @router.get("/sitemap.xml", include_in_schema=False)
 def sitemap_xml(request: Request, db: Session = Depends(get_db)):
+    """Sitemap index pointing at split urlset files (≤40k URLs each)."""
     base = site_base_url(request)
-    entries = build_sitemap_entries(db, base)
-    xml = render_sitemap_xml(entries)
-    return Response(content=xml, media_type="application/xml; charset=utf-8")
+    parts = build_sitemap_parts(db, base)
+    index_parts = [(slug, sitemap_part_lastmod(entries)) for slug, entries in parts]
+    xml = render_sitemap_index(base, index_parts)
+    return Response(content=xml, media_type="application/xml; charset=utf-8", headers=_SITEMAP_CACHE_HEADERS)
 
+
+@router.get("/sitemap-{slug}.xml", include_in_schema=False)
+def sitemap_part_xml(slug: str, request: Request, db: Session = Depends(get_db)):
+    if not re.fullmatch(r"[a-z]+(?:-\d+)?", slug or ""):
+        raise HTTPException(status_code=404, detail="Not found")
+    base = site_base_url(request)
+    parts = {name: entries for name, entries in build_sitemap_parts(db, base)}
+    entries = parts.get(slug)
+    if entries is None:
+        raise HTTPException(status_code=404, detail="Not found")
+    xml = render_sitemap_xml(entries)
+    return Response(content=xml, media_type="application/xml; charset=utf-8", headers=_SITEMAP_CACHE_HEADERS)
 
 @router.get("/listings/auctions")
 def listings_coming_soon_page(request: Request, db: Session = Depends(get_db)):

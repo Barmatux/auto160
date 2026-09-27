@@ -69,12 +69,37 @@ def test_robots_txt_disallows_compare_and_points_sitemap():
     assert "Disallow: /catalog/compare" in text
     assert "Disallow: /design-preview" in text
     assert "Sitemap: https://auto160.ru/sitemap.xml" in text
+    assert "Host: auto160.ru" in text
+    assert "Clean-param:" in text
+    assert "yclid" in text
 
 
 def test_render_sitemap_xml_shape():
     xml = render_sitemap_xml([("https://auto160.ru/guides/vin", "2026-07-30")])
     assert "<loc>https://auto160.ru/guides/vin</loc>" in xml
     assert "<lastmod>2026-07-30</lastmod>" in xml
+
+
+def test_render_sitemap_index_shape():
+    from app.seo import render_sitemap_index
+
+    xml = render_sitemap_index(
+        "https://auto160.ru",
+        [("static", "2026-09-27"), ("listings", "2026-09-26")],
+    )
+    assert "<sitemapindex" in xml
+    assert "<loc>https://auto160.ru/sitemap-static.xml</loc>" in xml
+    assert "<loc>https://auto160.ru/sitemap-listings.xml</loc>" in xml
+
+
+def test_chunk_entries_splits_over_limit():
+    from app.seo import _chunk_entries
+
+    entries = [(f"https://auto160.ru/x/{i}", "2026-09-27") for i in range(5)]
+    parts = _chunk_entries(entries, prefix="listings", max_urls=2)
+    assert [slug for slug, _ in parts] == ["listings", "listings-2", "listings-3"]
+    assert len(parts[0][1]) == 2
+    assert len(parts[2][1]) == 1
 
 
 def test_build_sitemap_entries_resolves_models():
@@ -97,7 +122,6 @@ def test_build_sitemap_entries_resolves_models():
     assert "https://auto160.ru/" in locs
     assert "https://auto160.ru/listings" in locs
     assert "https://auto160.ru/catalog" in locs
-
 
 
 def test_listing_seo_json_ld_offer():
