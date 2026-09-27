@@ -5976,7 +5976,7 @@ body.listing-lightbox-open {
 .a160-msg {
   position: fixed;
   right: 18px;
-  bottom: 78px; /* above AI assistant toggle */
+  bottom: 18px;
   z-index: 1200;
   font-family: inherit;
 }
@@ -6155,6 +6155,57 @@ body.listing-lightbox-open {
   padding: 0 12px;
   cursor: pointer;
   font-weight: 600;
+}
+.a160-msg-external {
+  padding: 10px 12px 12px;
+  border-top: 1px solid rgba(0,0,0,.08);
+  background: #fafbfc;
+}
+.a160-msg-external-title {
+  margin: 0 0 8px;
+  font-size: 12px;
+  color: #666;
+  font-weight: 600;
+}
+.a160-msg-external-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.a160-msg-external-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid rgba(0,0,0,.12);
+  border-radius: 999px;
+  background: #fff;
+  padding: 6px 12px 6px 8px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1a1a1a;
+  cursor: pointer;
+}
+.a160-msg-external-btn:hover {
+  border-color: rgba(0,0,0,.22);
+  background: #f3f6fa;
+}
+.a160-msg-external-btn svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+.a160-msg-external-btn[data-messenger="telegram"] { color: #229ED9; }
+.a160-msg-external-btn[data-messenger="whatsapp"] { color: #25D366; }
+.a160-msg-external-btn[data-messenger="viber"] { color: #7360F2; }
+.a160-msg-external-btn[data-messenger="max"] { color: #1b4f8a; }
+.a160-msg-external-btn span {
+  color: #1a1a1a;
+}
+.a160-msg-external-hint {
+  margin: 8px 0 0;
+  font-size: 11px;
+  color: #888;
 }
 .a160-msg-modal {
   position: fixed;
