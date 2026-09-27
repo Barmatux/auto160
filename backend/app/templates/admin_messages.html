@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Админка — Сообщения{% endblock %}
+{% block content %}
+{% set admin_section = "messages" %}
+{% include "partials/admin_nav.html" %}
+
+<h1>Сообщения <span class="admin-msg-unread-badge" data-admin-msg-badge hidden>0</span></h1>
+<p class="hint">Диалоги посетителей с менеджерами Auto160 по объявлениям.</p>
+
+<div class="admin-messenger" data-admin-messenger>
+  <aside class="admin-messenger-list" data-admin-thread-list>
+    <div class="admin-messenger-list-toolbar">
+      <label class="admin-messenger-filter">
+        <input type="checkbox" data-admin-unread-only /> Только непрочитанные
+      </label>
+      <button type="button" class="btn-secondary" data-admin-refresh>Обновить</button>
+    </div>
+    <div class="admin-messenger-threads" data-admin-threads></div>
+  </aside>
+  <section class="admin-messenger-chat" data-admin-chat>
+    <div class="admin-messenger-empty" data-admin-empty>Выберите диалог слева</div>
+    <div class="admin-messenger-chat-inner" data-admin-chat-inner hidden>
+      <header class="admin-messenger-chat-header" data-admin-chat-header></header>
+      <div class="admin-messenger-messages" data-admin-messages></div>
+      <form class="admin-messenger-compose" data-admin-compose>
+        <textarea name="message" rows="3" maxlength="4000" placeholder="Ответ менеджера…" required></textarea>
+        <button type="submit" class="btn-primary">Отправить</button>
+      </form>
+    </div>
+  </section>
+</div>
+
+<script src="/static/admin_messenger.js?v=20260927-01" defer></script>
+{% endblock %}

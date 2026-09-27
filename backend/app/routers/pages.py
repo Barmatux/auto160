@@ -2912,7 +2912,7 @@ def listing_item(request: Request, listing_id: int, db: Session = Depends(get_db
     context["listing"] = listing
     context["generation_listings_url"] = None
     context["modification_listings_url"] = None
-    context["show_listing_contact_cta"] = current_user is not None
+    context["show_listing_contact_cta"] = True
     if listing:
         catalog_items = resolve_catalog_items_for_listings(db, [listing])
         catalog_item = catalog_items.get(listing.id)
@@ -4805,6 +4805,16 @@ def admin_business_sellers_page(
         }
     )
     return templates.TemplateResponse(request, "admin_business_sellers.html", context)
+
+
+@router.get("/admin/messages")
+def admin_messages_page(request: Request, db: Session = Depends(get_db)):
+    current_user = _resolve_user_from_request(request, db)
+    redirect = _admin_page_redirect(current_user)
+    if redirect:
+        return redirect
+    context = _template_context(request, current_user)
+    return templates.TemplateResponse(request, "admin_messages.html", context)
 
 
 @router.get("/admin/analytics")

@@ -356,3 +356,54 @@ class VinCustomsCheck(Base):
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
     checked_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class MessageThreadStatus(str, enum.Enum):
+    open = "open"
+    closed = "closed"
+
+
+class MessageSender(str, enum.Enum):
+    visitor = "visitor"
+    manager = "manager"
+
+
+class MessageThread(Base):
+    """Visitor↔manager conversation about a listing."""
+
+    __tablename__ = "message_threads"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    listing_id: Mapped[int] = mapped_column(ForeignKey("car_listings.id", ondelete="CASCADE"), index=True)
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    guest_token: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    contact_name: Mapped[str] = mapped_column(String(120))
+    contact_phone: Mapped[str] = mapped_column(String(40))
+    contact_email: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    status: Mapped[MessageThreadStatus] = mapped_column(
+        Enum(MessageThreadStatus), default=MessageThreadStatus.open, nullable=False, index=True
+    )
+    visitor_last_read_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    manager_last_read_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    last_message_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+
+    listing: Mapped["CarListing"] = relationship()
+    messages: Mapped[list["Message"]] = relationship(
+        back_populates="thread",
+        cascade="all, delete-orphan",
+        order_by="Message.created_at",
+    )
+
+
+class Message(Base):
+    __tablename__ = "messages"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    thread_id: Mapped[int] = mapped_column(ForeignKey("message_threads.id", ondelete="CASCADE"), index=True)
+    sender: Mapped[MessageSender] = mapped_column(Enum(MessageSender), nullable=False, index=True)
+    sender_user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    body: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+
+    thread: Mapped["MessageThread"] = relationship(back_populates="messages")

@@ -125,6 +125,7 @@
             </div>
             <a href="/admin/vin-check" class="header-vin-check-link">VIN CHECK</a>
             <a href="/admin/analytics">Аналитика</a>
+            <a href="/admin/messages">Сообщения <span class="admin-msg-unread-badge" data-admin-msg-badge hidden>0</span></a>
             <a href="/admin/business-sellers">Бизнес-аккаунты</a>
             <a href="/admin/ratings">Управление каталогом</a>
           </nav>
@@ -183,6 +184,23 @@
     {% include "partials/cookie_consent.html" %}
     <script src="/static/header_nav.js?v=20260918-01" defer></script>
     <script src="/static/listing_price_tooltip.js?v=20260918-01" defer></script>
+    <script src="/static/messenger_widget.js?v=20260927-01" defer></script>
     <script src="/static/chat_widget.js?v=20260321-02" defer></script>
+    {% if is_admin %}
+      <script>
+        (function () {
+          fetch("/api/v1/admin/messages/unread-count", { credentials: "same-origin" })
+            .then(function (r) { return r.ok ? r.json() : null; })
+            .then(function (data) {
+              if (!data || !data.count) return;
+              document.querySelectorAll("[data-admin-msg-badge]").forEach(function (el) {
+                el.hidden = false;
+                el.textContent = String(data.count);
+              });
+            })
+            .catch(function () {});
+        })();
+      </script>
+    {% endif %}
   </body>
 </html>

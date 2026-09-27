@@ -122,9 +122,16 @@
             <a class="listing-detail-side-action listing-detail-side-action-primary" href="/inspection?listing_id={{ listing.id }}">Проверить VIN</a>
           {% endif %}
           {% if show_listing_contact_cta %}
-            <div class="listing-contact-cta" data-listing-contact-cta>
-              <button type="button" class="listing-detail-side-action listing-detail-side-action-primary" data-listing-contact-toggle>
-                Получить подробную информацию по автомобилю
+            <div class="listing-contact-cta" data-listing-contact-cta data-listing-id="{{ listing.id }}">
+              <button
+                type="button"
+                class="listing-detail-side-action listing-detail-side-action-primary"
+                data-messenger-start
+              >
+                Написать менеджеру
+              </button>
+              <button type="button" class="listing-detail-side-action" data-listing-contact-toggle>
+                Или в мессенджерах
               </button>
               <div class="listing-contact-messengers" data-listing-contact-messengers hidden>
                 <p class="hint listing-contact-messengers-title">Выберите мессенджер для связи:</p>

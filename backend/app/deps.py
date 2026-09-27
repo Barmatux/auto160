@@ -78,17 +78,15 @@ def get_optional_current_user(
     token: str | None = Depends(oauth2_optional_scheme),
     db: Session = Depends(get_db),
 ) -> User | None:
-    if not token:
-        return None
+    return _user_from_access_token(token, db)
 
-    try:
-        payload = decode_token(token)
-        if payload.get("type") != "access" or is_token_revoked(payload):
-            return None
-        email = payload.get("sub")
-        if email is None:
-            return None
-    except JWTError:
-        return None
 
-    return db.query(User).filter(User.email == email).first()
+def get_optional_user_flexible(
+    request: Request,
+    token: str | None = Depends(oauth2_optional_scheme),
+    db: Session = Depends(get_db),
+) -> User | None:
+    user = _user_from_access_token(token, db)
+    if user is None:
+        user = _user_from_access_token(request.cookies.get("access_token"), db)
+    return user
