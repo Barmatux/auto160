@@ -5976,7 +5976,7 @@ body.listing-lightbox-open {
 .a160-msg {
   position: fixed;
   right: 18px;
-  bottom: 18px;
+  bottom: 78px; /* above AI assistant toggle */
   z-index: 1200;
   font-family: inherit;
 }
@@ -6037,6 +6037,15 @@ body.listing-lightbox-open {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+.a160-msg-panel[hidden],
+.a160-msg-chat[hidden],
+.a160-msg-list[hidden],
+.a160-msg-back[hidden],
+.a160-msg-fab-badge[hidden],
+.a160-msg-error[hidden],
+.admin-msg-unread-badge[hidden] {
+  display: none !important;
 }
 .a160-msg-panel-header {
   display: flex;
