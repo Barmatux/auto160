@@ -906,19 +906,22 @@ def _listing_brand_model_map(db: Session, *, published_only: bool = True) -> dic
 
 
 FOREIGN_LISTING_SOURCES = ("autoplius", "auto24", "mobile_de")
+# Public Europe feed: mobile.de hidden for now (still excluded from BY via FOREIGN_LISTING_SOURCES).
+PUBLIC_EU_LISTING_SOURCES = ("autoplius", "auto24")
 MILEAGE_FILTER_STEP = 25_000
 MILEAGE_FILTER_MAX = 500_000
 
 
 def _listings_market_source_predicate(market: str):
     if market == "eu":
-        return CarListing.source.in_(FOREIGN_LISTING_SOURCES)
+        return CarListing.source.in_(PUBLIC_EU_LISTING_SOURCES)
     if market == "lt":
         return CarListing.source == "autoplius"
     if market == "ee":
         return CarListing.source == "auto24"
     if market == "de":
-        return CarListing.source == "mobile_de"
+        # mobile.de temporarily removed from public feed
+        return CarListing.id < 0
     return or_(
         CarListing.source.is_(None),
         ~CarListing.source.in_(FOREIGN_LISTING_SOURCES),
@@ -2861,12 +2864,12 @@ def listings_page(
                 title="Авто из Европы до 5 лет и 1.9 л — Auto160"
                 + (f", стр. {page}" if page > 1 else ""),
                 description=(
-                    "Объявления из Европы (autoplius.lt, auto24.ee, mobile.de): возраст до 5 лет, "
+                    "Объявления из Европы (autoplius.lt, auto24.ee): возраст до 5 лет, "
                     "двигатель до 1.9 л, мощность до 160 л.с. Цены в BYN по курсу НБ РБ."
                 ),
                 path=listings_base_path,
                 h1="Европа — до 5 лет и 1.9 л",
-                intro="Литва, Эстония и Германия: авто не старше 5 лет, двигатель до 1.9 л, до 160 л.с.",
+                intro="Литва и Эстония: авто не старше 5 лет, двигатель до 1.9 л, до 160 л.с.",
                 noindex=page > 1 or noisy_filters or (brand == "__multi__"),
             ),
         )
