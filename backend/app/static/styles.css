@@ -4318,6 +4318,17 @@ body.vin-enter-modal-open {
   color: #1e3a8a;
 }
 
+.listing-detail-title-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.listing-detail-title-link:hover,
+.listing-detail-title-link:focus-visible {
+  text-decoration: underline;
+  text-underline-offset: 0.12em;
+}
+
 .listing-detail-layout {
   display: grid;
   grid-template-columns: minmax(220px, 270px) minmax(0, 1fr) minmax(180px, 240px);

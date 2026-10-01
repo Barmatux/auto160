@@ -2913,6 +2913,8 @@ def listing_item(request: Request, listing_id: int, db: Session = Depends(get_db
         )
     context = _template_context(request, current_user, seo)
     context["listing"] = listing
+    context["brand_listings_url"] = None
+    context["model_listings_url"] = None
     context["generation_listings_url"] = None
     context["modification_listings_url"] = None
     context["show_listing_contact_cta"] = True
@@ -2921,19 +2923,22 @@ def listing_item(request: Request, listing_id: int, db: Session = Depends(get_db
         catalog_item = catalog_items.get(listing.id)
         context["catalog_item"] = catalog_item
         context["gallery_urls"] = resolve_listing_gallery_urls(listing)
+        brand = (listing.brand or "").strip()
+        model = _canonical_model_name(listing.model) or (listing.model or "").strip()
+        generation = (listing.generation or "").strip()
+        if brand:
+            context["brand_listings_url"] = _build_listings_url(brand=brand)
+        if brand and model:
+            context["model_listings_url"] = _build_listings_url(brand=brand, model=model)
         if catalog_item:
             context["generation_listings_url"] = _generation_listings_url(db, catalog_item)
             context["modification_listings_url"] = _modification_listings_url(catalog_item)
-        else:
-            brand = (listing.brand or "").strip()
-            model = _canonical_model_name(listing.model) or (listing.model or "").strip()
-            generation = (listing.generation or "").strip()
-            if brand and model and generation:
-                context["generation_listings_url"] = _build_listings_url(
-                    brand=brand,
-                    model=model,
-                    generation=generation,
-                )
+        if not context["generation_listings_url"] and brand and model and generation:
+            context["generation_listings_url"] = _build_listings_url(
+                brand=brand,
+                model=model,
+                generation=generation,
+            )
     else:
         context["catalog_item"] = None
         context["gallery_urls"] = []

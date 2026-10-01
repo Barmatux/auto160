@@ -7,7 +7,21 @@
     <header class="listing-detail-header">
       <div class="listing-detail-heading">
         <h1 class="listing-detail-title">
-          {{ listing.brand }} {{ listing.model }}{% if listing.generation %} ({{ listing.generation }}){% endif %}
+          {% if listing.brand and brand_listings_url %}
+            <a class="listing-detail-title-link" href="{{ brand_listings_url }}">{{ listing.brand }}</a>
+          {% elif listing.brand %}
+            {{ listing.brand }}
+          {% endif %}
+          {% if listing.model and model_listings_url %}
+            <a class="listing-detail-title-link" href="{{ model_listings_url }}">{{ listing.model }}</a>
+          {% elif listing.model %}
+            {{ listing.model }}
+          {% endif %}
+          {% if listing.generation and generation_listings_url %}
+            <a class="listing-detail-title-link" href="{{ generation_listings_url }}">({{ listing.generation }})</a>
+          {% elif listing.generation %}
+            ({{ listing.generation }})
+          {% endif %}
         </h1>
         {% set source_href = listing | listing_source_href %}
         {% if is_admin and source_href %}

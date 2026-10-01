@@ -521,6 +521,10 @@ body.theme-admin:not(.theme-admin-light) .listing-detail-title {
   color: #f3f6fb;
 }
 
+body.theme-admin:not(.theme-admin-light) .listing-detail-title-link {
+  color: inherit;
+}
+
 body.theme-admin:not(.theme-admin-light) .listing-spec-row {
   border-bottom-color: #2a3345;
 }
