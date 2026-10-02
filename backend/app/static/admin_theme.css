@@ -501,9 +501,13 @@ body.theme-admin:not(.theme-admin-light) .make-logo {
   opacity: 0.92;
 }
 
-body.theme-admin:not(.theme-admin-light) .home-direction-flag {
-  filter: none;
-  opacity: 1;
+body.theme-admin:not(.theme-admin-light) .home-direction-card {
+  border-color: rgba(255, 255, 255, 0.14);
+  box-shadow: none;
+}
+
+body.theme-admin:not(.theme-admin-light) .home-direction-label {
+  color: #fff;
 }
 
 body.theme-admin:not(.theme-admin-light) .home-make-fallback {

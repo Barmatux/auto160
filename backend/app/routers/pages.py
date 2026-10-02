@@ -2412,17 +2412,20 @@ def _home_popular_directions() -> list[dict]:
         {
             "label": "Авто из Беларуси",
             "url": "/listings",
-            "flag_emoji": "🇧🇾",
+            "flag_key": "by",
+            "flag_src": "/static/flags/by-wide.svg",
         },
         {
             "label": "Авто из Европы",
             "url": "/listings/eu",
-            "flag_emoji": "🇪🇺",
+            "flag_key": "eu",
+            "flag_src": "/static/flags/eu-wide.svg",
         },
         {
             "label": "Авто с европейских аукционов",
             "url": "/listings/auctions",
-            "flag_emoji": "🇪🇺",
+            "flag_key": "eu-auctions",
+            "flag_src": "/static/flags/eu-wide.svg",
         },
     ]
 
