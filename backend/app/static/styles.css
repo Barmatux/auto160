@@ -5283,7 +5283,8 @@ body.listing-lightbox-open {
   }
 }
 
-@media (max-width: 900px) {
+/* 760px: keep desktop chrome in Cursor side browser (~880–900px) and small tablets */
+@media (max-width: 760px) {
   .catalog.listings-feed {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
