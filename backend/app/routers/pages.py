@@ -2413,19 +2413,19 @@ def _home_popular_directions() -> list[dict]:
             "label": "Авто из Беларуси",
             "url": "/listings",
             "flag_key": "by",
-            "flag_src": "/static/flags/by-wide.svg",
+            "flag_src": "/static/flags/by-wide.svg?v=20261002-05",
         },
         {
             "label": "Авто из Европы",
             "url": "/listings/eu",
             "flag_key": "eu",
-            "flag_src": "/static/flags/eu-wide.svg",
+            "flag_src": "/static/flags/eu-wide.svg?v=20261002-05",
         },
         {
             "label": "Авто с европейских аукционов",
             "url": "/listings/auctions",
             "flag_key": "eu-auctions",
-            "flag_src": "/static/flags/eu-wide.svg",
+            "flag_src": "/static/flags/eu-wide.svg?v=20261002-05",
         },
     ]
 
