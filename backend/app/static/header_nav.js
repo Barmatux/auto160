@@ -29,7 +29,7 @@
   });
 
   window.addEventListener("resize", function () {
-    if (window.innerWidth > 900) {
+    if (window.innerWidth > 760) {
       setOpen(false);
     }
   });

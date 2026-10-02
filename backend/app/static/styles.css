@@ -5312,6 +5312,7 @@ body.listing-lightbox-open {
   }
 
   .header .brand {
+    order: 1;
     font-size: 24px;
   }
 
@@ -5319,8 +5320,14 @@ body.listing-lightbox-open {
     display: inline-flex;
   }
 
+  /* Keep theme + burger on the top row; open nav drops below */
   .header-actions {
+    order: 2;
+    position: static;
+    top: auto;
+    right: auto;
     margin-left: auto;
+    align-items: center;
   }
 
   .header-theme-toggle {
@@ -5329,7 +5336,9 @@ body.listing-lightbox-open {
   }
 
   .header-nav-wrap {
+    order: 3;
     display: none;
+    flex: 1 0 100%;
     width: 100%;
     flex-direction: column;
     align-items: stretch;
