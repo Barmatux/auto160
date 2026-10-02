@@ -74,15 +74,15 @@ body {
   align-items: center;
   justify-content: center;
   margin: 0;
-  padding: 8px 12px;
+  padding: 2px 10px;
   border: 1px solid #cfe0ff;
-  border-radius: 10px;
+  border-radius: 8px;
   background: #f8fbff;
   color: #1e3a8a;
   font: inherit;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
-  line-height: 1.2;
+  line-height: 1.15;
   white-space: nowrap;
   cursor: pointer;
 }
@@ -92,6 +92,21 @@ body {
   background: #edf3ff;
   border-color: #93c5fd;
   color: #1d4ed8;
+}
+
+/* Desktop: pin theme toggle to the top-right corner of the header */
+@media (min-width: 761px) {
+  .header-actions {
+    position: absolute;
+    top: 6px;
+    right: 14px;
+    z-index: 2;
+    align-items: flex-start;
+  }
+
+  .header-theme-toggle {
+    padding: 2px 9px;
+  }
 }
 
 .header-menu-toggle {
@@ -5309,8 +5324,8 @@ body.listing-lightbox-open {
   }
 
   .header-theme-toggle {
-    padding: 8px 10px;
-    font-size: 12px;
+    padding: 2px 8px;
+    font-size: 11px;
   }
 
   .header-nav-wrap {
