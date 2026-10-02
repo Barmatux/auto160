@@ -140,10 +140,16 @@ class ListingPriceDisplay:
     byn_formatted: str
     rub_formatted: str | None
     usd_formatted: str | None
+    eur_formatted: str | None
     rate_date: date | None
     rate_source: str
     disclaimer: str | None
     has_conversions: bool
+    is_europe: bool = False
+    label_prefix: str | None = None
+
+
+_EUROPE_PRICE_SOURCES = frozenset({"autoplius", "auto24", "mobile_de"})
 
 
 def _format_usd_amount(value: float) -> str:
@@ -151,20 +157,27 @@ def _format_usd_amount(value: float) -> str:
     return f"${format_money_amount(rounded)}"
 
 
+def _empty_price_display(*, is_europe: bool = False) -> ListingPriceDisplay:
+    return ListingPriceDisplay(
+        byn_formatted="—",
+        rub_formatted=None,
+        usd_formatted=None,
+        eur_formatted=None,
+        rate_date=None,
+        rate_source="НБ РБ",
+        disclaimer=None,
+        has_conversions=False,
+        is_europe=is_europe,
+        label_prefix="Цена в 🇪🇺" if is_europe else None,
+    )
+
+
 def build_listing_price_display(
     price_byn: float | int | None,
     rates: NbrbRates | None = None,
 ) -> ListingPriceDisplay:
     if price_byn is None:
-        return ListingPriceDisplay(
-            byn_formatted="—",
-            rub_formatted=None,
-            usd_formatted=None,
-            rate_date=None,
-            rate_source="НБ РБ",
-            disclaimer=None,
-            has_conversions=False,
-        )
+        return _empty_price_display()
 
     resolved_rates = rates if rates is not None else fetch_nbrb_rates()
     byn_formatted = format_money_amount(price_byn)
@@ -173,6 +186,7 @@ def build_listing_price_display(
             byn_formatted=byn_formatted,
             rub_formatted=None,
             usd_formatted=None,
+            eur_formatted=None,
             rate_date=None,
             rate_source="НБ РБ",
             disclaimer=None,
@@ -191,6 +205,7 @@ def build_listing_price_display(
         byn_formatted=byn_formatted,
         rub_formatted=format_money_amount(int(round(rub_value))),
         usd_formatted=_format_usd_amount(usd_value),
+        eur_formatted=None,
         rate_date=resolved_rates.rate_date,
         rate_source=resolved_rates.source_label,
         disclaimer=disclaimer,
@@ -198,8 +213,68 @@ def build_listing_price_display(
     )
 
 
-def listing_price_display(price_byn: float | int | None) -> ListingPriceDisplay:
-    return build_listing_price_display(price_byn)
+def build_europe_listing_price_display(
+    price_byn: float | int | None,
+    rates: NbrbRates | None = None,
+) -> ListingPriceDisplay:
+    """Europe feed/detail: original EUR (from BYN via NBRB) + approximate RUB."""
+    if price_byn is None:
+        return _empty_price_display(is_europe=True)
+
+    resolved_rates = rates if rates is not None else fetch_nbrb_rates()
+    byn_formatted = format_money_amount(price_byn)
+    if not resolved_rates or not resolved_rates.has_eur:
+        # Fall back to BYN primary if EUR rate is unavailable.
+        fallback = build_listing_price_display(price_byn, resolved_rates)
+        return ListingPriceDisplay(
+            byn_formatted=fallback.byn_formatted,
+            rub_formatted=fallback.rub_formatted,
+            usd_formatted=None,
+            eur_formatted=None,
+            rate_date=fallback.rate_date,
+            rate_source=fallback.rate_source,
+            disclaimer=fallback.disclaimer,
+            has_conversions=fallback.has_conversions,
+            is_europe=True,
+            label_prefix="Цена в 🇪🇺",
+        )
+
+    amount_byn = float(price_byn)
+    eur_value = resolved_rates.convert_byn_to_eur(amount_byn)
+    rub_value = resolved_rates.convert_byn_to_rub(amount_byn)
+    rate_date_label = resolved_rates.rate_date.strftime("%d.%m.%Y")
+    disclaimer = (
+        f"Цена в евро соответствует объявлению на площадке. "
+        f"Ориентировочная сумма в российских рублях рассчитана по официальному курсу "
+        f"{resolved_rates.source_label} на {rate_date_label}."
+    )
+    return ListingPriceDisplay(
+        byn_formatted=byn_formatted,
+        rub_formatted=format_money_amount(int(round(rub_value))),
+        usd_formatted=None,
+        eur_formatted=format_money_amount(int(round(eur_value))),
+        rate_date=resolved_rates.rate_date,
+        rate_source=resolved_rates.source_label,
+        disclaimer=disclaimer,
+        has_conversions=True,
+        is_europe=True,
+        label_prefix="Цена в 🇪🇺",
+    )
+
+
+def listing_is_europe_source(listing: CarListing | None) -> bool:
+    source = (getattr(listing, "source", None) or "").strip().lower()
+    return source in _EUROPE_PRICE_SOURCES
+
+
+def listing_price_display(listing: CarListing | float | int | None) -> ListingPriceDisplay:
+    """Jinja filter: pass listing for market-aware EUR/BYN display."""
+    if listing is None or isinstance(listing, (int, float)):
+        return build_listing_price_display(listing)
+    price = getattr(listing, "price", None)
+    if listing_is_europe_source(listing):
+        return build_europe_listing_price_display(price)
+    return build_listing_price_display(price)
 
 
 def listing_seller_label(seller_name: str | None) -> str:

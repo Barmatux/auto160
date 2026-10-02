@@ -4290,11 +4290,29 @@ body.vin-enter-modal-open {
   color: #1e3a8a;
 }
 
+.listing-detail-header-price .listing-price-europe .listing-price-primary {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35em;
+  justify-content: flex-end;
+}
+
+.listing-detail-header-price .listing-price-prefix {
+  font-size: 0.72em;
+  font-weight: 600;
+  color: #475569;
+}
+
 .listing-detail-header-price .listing-price-has-conversions .listing-price-converted-rub {
   grid-column: 1;
   font-size: 16px;
   font-weight: 700;
   color: #0f172a;
+}
+
+.listing-detail-header-price .listing-price-europe .listing-price-converted-rub {
+  grid-column: 1 / -1;
 }
 
 .listing-detail-header-price .listing-price-has-conversions .listing-price-converted-usd {
@@ -4616,6 +4634,19 @@ body.vin-enter-modal-open {
   font-size: 17px;
   font-weight: 700;
   color: #1e3a8a;
+}
+
+.listings-feed .listings-feed-price .listing-price-europe .listing-price-primary {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.3em;
+}
+
+.listings-feed .listings-feed-price .listing-price-prefix {
+  font-size: 0.78em;
+  font-weight: 600;
+  color: #475569;
 }
 
 .listings-feed .listings-feed-price .listing-price-converted-rub {

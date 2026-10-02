@@ -1,21 +1,48 @@
-{% set price = listing.price | listing_price_display %}
-<div class="listing-price{% if price.has_conversions %} listing-price-has-conversions{% endif %}" tabindex="0">
+{% set price = listing | listing_price_display %}
+<div class="listing-price{% if price.has_conversions %} listing-price-has-conversions{% endif %}{% if price.is_europe %} listing-price-europe{% endif %}" tabindex="0">
   <div class="listing-price-values">
-    <span class="listing-price-primary">
-      <span class="listing-price-byn">{{ price.byn_formatted }}{% include "partials/byn_sign.html" %}</span>
-    </span>
-    {% if price.has_conversions %}
-      <span class="listing-price-converted listing-price-converted-rub">≈ {{ price.rub_formatted }} ₽</span>
-      <span class="listing-price-converted listing-price-converted-usd">≈ {{ price.usd_formatted }}</span>
+    {% if price.is_europe and price.eur_formatted %}
+      <span class="listing-price-primary">
+        <span class="listing-price-prefix">{{ price.label_prefix }}</span>
+        <span class="listing-price-eur">{{ price.eur_formatted }} €</span>
+      </span>
+      {% if price.rub_formatted %}
+        <span class="listing-price-converted listing-price-converted-rub">≈ {{ price.rub_formatted }} ₽</span>
+      {% endif %}
+    {% else %}
+      <span class="listing-price-primary">
+        {% if price.is_europe and price.label_prefix %}
+          <span class="listing-price-prefix">{{ price.label_prefix }}</span>
+        {% endif %}
+        <span class="listing-price-byn">{{ price.byn_formatted }}{% include "partials/byn_sign.html" %}</span>
+      </span>
+      {% if price.has_conversions %}
+        <span class="listing-price-converted listing-price-converted-rub">≈ {{ price.rub_formatted }} ₽</span>
+        {% if price.usd_formatted %}
+          <span class="listing-price-converted listing-price-converted-usd">≈ {{ price.usd_formatted }}</span>
+        {% endif %}
+      {% endif %}
     {% endif %}
   </div>
   {% if price.has_conversions %}
     <div class="listing-price-tooltip" role="tooltip">
-      <p class="listing-price-tooltip-primary">
-        <span class="listing-price-byn">{{ price.byn_formatted }}{% include "partials/byn_sign.html" %}</span>
-      </p>
-      <p class="listing-price-tooltip-converted listing-price-tooltip-converted-rub">≈ {{ price.rub_formatted }} ₽</p>
-      <p class="listing-price-tooltip-converted listing-price-tooltip-converted-usd">≈ {{ price.usd_formatted }}</p>
+      {% if price.is_europe and price.eur_formatted %}
+        <p class="listing-price-tooltip-primary">
+          <span class="listing-price-prefix">{{ price.label_prefix }}</span>
+          <span class="listing-price-eur">{{ price.eur_formatted }} €</span>
+        </p>
+        {% if price.rub_formatted %}
+          <p class="listing-price-tooltip-converted listing-price-tooltip-converted-rub">≈ {{ price.rub_formatted }} ₽</p>
+        {% endif %}
+      {% else %}
+        <p class="listing-price-tooltip-primary">
+          <span class="listing-price-byn">{{ price.byn_formatted }}{% include "partials/byn_sign.html" %}</span>
+        </p>
+        <p class="listing-price-tooltip-converted listing-price-tooltip-converted-rub">≈ {{ price.rub_formatted }} ₽</p>
+        {% if price.usd_formatted %}
+          <p class="listing-price-tooltip-converted listing-price-tooltip-converted-usd">≈ {{ price.usd_formatted }}</p>
+        {% endif %}
+      {% endif %}
       <p class="listing-price-tooltip-note">{{ price.disclaimer }}</p>
     </div>
   {% endif %}
