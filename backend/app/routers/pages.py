@@ -360,26 +360,40 @@ SPEC_VALUE_LABELS_RU = {
     "pickup": "Пикап",
 }
 
-# Brand logos are self-hosted under /static/logos/ (Simple Icons, CC0).
+# Brand logos are self-hosted under /static/logos/ (Simple Icons CC0 + mono marks).
+# Keys are lowercase make names with spaces normalized to hyphens.
 MAKE_LOGO_SLUGS = frozenset(
     {
+        "abarth",
+        "alfa-romeo",
         "audi",
         "bmw",
+        "buick",
+        "chevrolet",
         "citroen",
+        "cupra",
         "dacia",
         "ds",
         "fiat",
         "ford",
+        "gmc",
         "honda",
         "hyundai",
+        "infiniti",
+        "jaguar",
         "jeep",
         "kia",
+        "land-rover",
+        "lexus",
+        "mazda",
         "mercedes-benz",
         "mini",
+        "mitsubishi",
         "nissan",
         "opel",
         "peugeot",
         "renault",
+        "seat",
         "skoda",
         "subaru",
         "toyota",
@@ -1819,10 +1833,14 @@ def _humanize_spec_value(value: str) -> str:
     return source
 
 
+def _make_logo_slug(make: str) -> str:
+    return make.strip().lower().replace(" ", "-")
+
+
 def _make_logo_url(make: str | None) -> str | None:
     if not make:
         return None
-    key = make.strip().lower()
+    key = _make_logo_slug(make)
     if key not in MAKE_LOGO_SLUGS:
         return None
     return f"/static/logos/{key}.svg"
