@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from sqlalchemy import inspect
 from sqlalchemy.orm import Session
 
@@ -28,6 +30,8 @@ def ensure_admin_user(db: Session) -> None:
             existing.username = _get_unique_login(db, settings.bootstrap_admin_login)
         if existing.role != UserRole.admin:
             existing.role = UserRole.admin
+        if existing.email_verified_at is None:
+            existing.email_verified_at = existing.created_at or datetime.utcnow()
         db.commit()
         return
 
@@ -37,6 +41,7 @@ def ensure_admin_user(db: Session) -> None:
         name=settings.bootstrap_admin_name,
         role=UserRole.admin,
         password_hash=hash_password(settings.bootstrap_admin_password),
+        email_verified_at=datetime.utcnow(),
     )
     db.add(admin)
     db.commit()

@@ -3,6 +3,7 @@
 {% block content %}
 <h1>Вход в кабинет</h1>
 <p class="hint">Можно войти по логину или email. После входа вы будете перенаправлены на главную.</p>
+<p id="verified-banner" class="hint" hidden role="status">Email подтверждён — теперь можно войти.</p>
 
 <form class="form" onsubmit="event.preventDefault(); loginByApi();">
   <label>Логин или email <input id="login" required autocomplete="username" /></label>
@@ -10,14 +11,29 @@
   <button type="submit">Войти</button>
 </form>
 
+<div id="unverified-box" hidden>
+  <p class="hint">Аккаунт ещё не подтверждён. Запросите письмо ещё раз:</p>
+  <button type="button" class="btn-secondary" onclick="resendFromLogin()">Отправить письмо ещё раз</button>
+</div>
+
 <p id="form-message" class="hint" hidden role="alert"></p>
 
 {% include "partials/auth_script.html" %}
 <script>
+  (function () {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("verified") === "1") {
+      const banner = document.getElementById("verified-banner");
+      banner.hidden = false;
+    }
+  })();
+
   async function loginByApi() {
     const messageEl = document.getElementById("form-message");
+    const unverifiedBox = document.getElementById("unverified-box");
     messageEl.hidden = true;
     messageEl.textContent = "";
+    unverifiedBox.hidden = true;
 
     const payload = {
       login: document.getElementById("login").value.trim(),
@@ -35,6 +51,33 @@
       return;
     }
     let detail = data.detail || "Неправильный логин и(или) пароль. ";
+    if (Array.isArray(detail)) {
+      detail = detail.map((item) => item.msg || JSON.stringify(item)).join("; ");
+    }
+    messageEl.textContent = detail;
+    messageEl.hidden = false;
+    if (response.status === 403) {
+      unverifiedBox.hidden = false;
+    }
+  }
+
+  async function resendFromLogin() {
+    const login = document.getElementById("login").value.trim();
+    const email = login.includes("@") ? login : "";
+    if (!email) {
+      const messageEl = document.getElementById("form-message");
+      messageEl.textContent = "Для повторной отправки укажите email (не логин) в поле входа.";
+      messageEl.hidden = false;
+      return;
+    }
+    const response = await fetch("/api/v1/auth/resend-verification", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+    const data = await response.json();
+    const messageEl = document.getElementById("form-message");
+    let detail = data.message || data.detail || (response.ok ? "Готово" : "Не удалось отправить");
     if (Array.isArray(detail)) {
       detail = detail.map((item) => item.msg || JSON.stringify(item)).join("; ");
     }

@@ -48,6 +48,14 @@ class Settings(BaseSettings):
     chat_enabled: bool = True
     chat_rate_limit_per_hour: int = 30
     chat_max_tool_rounds: int = 3
+    # SMTP for email verification (empty host = sending disabled).
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: str = ""
+    smtp_from: str = "Auto160 <noreply@auto160.ru>"
+    smtp_use_tls: bool = True
+    email_verify_token_hours: int = 24
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

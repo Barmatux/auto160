@@ -38,9 +38,19 @@ class UserPublic(BaseModel):
     email: EmailStr
     name: str
     role: UserRole
+    email_verified: bool = False
 
     class Config:
         from_attributes = True
+
+
+class RegisterResponse(UserPublic):
+    email_sent: bool = False
+    message: str = ""
+
+
+class ResendVerificationRequest(BaseModel):
+    email: EmailStr
 
 
 class ListingCreate(BaseModel):
