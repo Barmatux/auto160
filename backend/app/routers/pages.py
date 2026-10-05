@@ -161,10 +161,7 @@ from app.listing_display import (
     listing_source_label,
 )
 from app.listing_import_age import (
-    IMPORT_AGE_OVER_10M,
-    IMPORT_AGE_RF_PASSABLE,
-    import_age_min_months,
-    normalize_import_age_filter,
+    parse_import_age_filters,
     paginate_query_with_import_age,
 )
 from app.listing_price_filter import (
@@ -360,26 +357,40 @@ SPEC_VALUE_LABELS_RU = {
     "pickup": "Пикап",
 }
 
-# Brand logos are self-hosted under /static/logos/ (Simple Icons, CC0).
+# Brand logos are self-hosted under /static/logos/ (Simple Icons CC0 + mono marks).
+# Keys are lowercase make names with spaces normalized to hyphens.
 MAKE_LOGO_SLUGS = frozenset(
     {
+        "abarth",
+        "alfa-romeo",
         "audi",
         "bmw",
+        "buick",
+        "chevrolet",
         "citroen",
+        "cupra",
         "dacia",
         "ds",
         "fiat",
         "ford",
+        "gmc",
         "honda",
         "hyundai",
+        "infiniti",
+        "jaguar",
         "jeep",
         "kia",
+        "land-rover",
+        "lexus",
+        "mazda",
         "mercedes-benz",
         "mini",
+        "mitsubishi",
         "nissan",
         "opel",
         "peugeot",
         "renault",
+        "seat",
         "skoda",
         "subaru",
         "toyota",
@@ -1819,10 +1830,14 @@ def _humanize_spec_value(value: str) -> str:
     return source
 
 
+def _make_logo_slug(make: str) -> str:
+    return make.strip().lower().replace(" ", "-")
+
+
 def _make_logo_url(make: str | None) -> str | None:
     if not make:
         return None
-    key = make.strip().lower()
+    key = _make_logo_slug(make)
     if key not in MAKE_LOGO_SLUGS:
         return None
     return f"/static/logos/{key}.svg"
@@ -2412,17 +2427,20 @@ def _home_popular_directions() -> list[dict]:
         {
             "label": "Авто из Беларуси",
             "url": "/listings",
-            "flag_emoji": "🇧🇾",
+            "flag_key": "by",
+            "flag_src": "/static/flags/by-wide.svg?v=20261002-05",
         },
         {
             "label": "Авто из Европы",
             "url": "/listings/eu",
-            "flag_emoji": "🇪🇺",
+            "flag_key": "eu",
+            "flag_src": "/static/flags/eu-wide.svg?v=20261002-05",
         },
         {
             "label": "Авто с европейских аукционов",
             "url": "/listings/auctions",
-            "flag_emoji": "🇪🇺",
+            "flag_key": "eu-auctions",
+            "flag_src": "/static/flags/eu-wide.svg?v=20261002-05",
         },
     ]
 
@@ -2547,13 +2565,12 @@ def listings_page(
         listings_base_path = "/listings"
     current_user = _resolve_user_from_request(request, db)
     is_authenticated = current_user is not None
-    import_age_filter = None
+    import_age_selection = parse_import_age_filters(False, False)
     if listings_market == "by" and is_authenticated:
-        import_age_filter = normalize_import_age_filter(
+        import_age_selection = parse_import_age_filters(
             _parse_vin_check_bool_param(rf_passable),
             _parse_vin_check_bool_param(import_over_10m),
         )
-    import_age_months = import_age_min_months(import_age_filter)
     vehicle_rows = _parse_vehicle_filter_rows(request.query_params, make_key="brand", model_key="model", generation_key="generation")
     parsed_year_from = _parse_optional_year(year_from)
     parsed_year_to = _parse_optional_year(year_to)
@@ -2738,11 +2755,11 @@ def listings_page(
     total = query.count()
     page_size = LISTINGS_PAGE_SIZE
     offset = (page - 1) * page_size
-    if import_age_months is not None:
+    if import_age_selection.active:
         listings, total = paginate_query_with_import_age(
             db,
             query,
-            min_months=import_age_months,
+            selection=import_age_selection,
             page=page,
             page_size=page_size,
         )
@@ -2769,9 +2786,8 @@ def listings_page(
     context["listings_market"] = listings_market
     context["listings_base_path"] = listings_base_path
     context["show_import_age_filters"] = listings_market == "by" and is_authenticated
-    context["import_age_filter"] = import_age_filter
-    context["import_age_rf_passable"] = import_age_filter == IMPORT_AGE_RF_PASSABLE
-    context["import_age_over_10m"] = import_age_filter == IMPORT_AGE_OVER_10M
+    context["import_age_rf_passable"] = import_age_selection.rf_passable
+    context["import_age_over_10m"] = import_age_selection.months_10_12
     query_params: list[tuple[str, str]] = []
     if catalog_item_id:
         query_params.append(("catalog_item_id", str(catalog_item_id)))
@@ -2803,9 +2819,9 @@ def listings_page(
         query_params.append(("price_range", price_range))
     if passable:
         query_params.append(("passable", "1"))
-    if import_age_filter == IMPORT_AGE_RF_PASSABLE:
+    if import_age_selection.rf_passable:
         query_params.append(("rf_passable", "1"))
-    elif import_age_filter == IMPORT_AGE_OVER_10M:
+    if import_age_selection.months_10_12:
         query_params.append(("import_over_10m", "1"))
     if freshness and freshness != "all":
         query_params.append(("freshness", freshness))
@@ -2840,7 +2856,7 @@ def listings_page(
         or parsed_mileage_to is not None
         or price_range
         or passable
-        or import_age_filter is not None
+        or import_age_selection.active
         or (freshness and freshness != "all")
         or (sort and sort != "newest")
         or brand == "__multi__"
@@ -2913,6 +2929,8 @@ def listing_item(request: Request, listing_id: int, db: Session = Depends(get_db
         )
     context = _template_context(request, current_user, seo)
     context["listing"] = listing
+    context["brand_listings_url"] = None
+    context["model_listings_url"] = None
     context["generation_listings_url"] = None
     context["modification_listings_url"] = None
     context["show_listing_contact_cta"] = True
@@ -2921,19 +2939,22 @@ def listing_item(request: Request, listing_id: int, db: Session = Depends(get_db
         catalog_item = catalog_items.get(listing.id)
         context["catalog_item"] = catalog_item
         context["gallery_urls"] = resolve_listing_gallery_urls(listing)
+        brand = (listing.brand or "").strip()
+        model = _canonical_model_name(listing.model) or (listing.model or "").strip()
+        generation = (listing.generation or "").strip()
+        if brand:
+            context["brand_listings_url"] = _build_listings_url(brand=brand)
+        if brand and model:
+            context["model_listings_url"] = _build_listings_url(brand=brand, model=model)
         if catalog_item:
             context["generation_listings_url"] = _generation_listings_url(db, catalog_item)
             context["modification_listings_url"] = _modification_listings_url(catalog_item)
-        else:
-            brand = (listing.brand or "").strip()
-            model = _canonical_model_name(listing.model) or (listing.model or "").strip()
-            generation = (listing.generation or "").strip()
-            if brand and model and generation:
-                context["generation_listings_url"] = _build_listings_url(
-                    brand=brand,
-                    model=model,
-                    generation=generation,
-                )
+        if not context["generation_listings_url"] and brand and model and generation:
+            context["generation_listings_url"] = _build_listings_url(
+                brand=brand,
+                model=model,
+                generation=generation,
+            )
     else:
         context["catalog_item"] = None
         context["gallery_urls"] = []

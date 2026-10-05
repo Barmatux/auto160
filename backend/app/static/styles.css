@@ -74,15 +74,15 @@ body {
   align-items: center;
   justify-content: center;
   margin: 0;
-  padding: 8px 12px;
+  padding: 2px 10px;
   border: 1px solid #cfe0ff;
-  border-radius: 10px;
+  border-radius: 8px;
   background: #f8fbff;
   color: #1e3a8a;
   font: inherit;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
-  line-height: 1.2;
+  line-height: 1.15;
   white-space: nowrap;
   cursor: pointer;
 }
@@ -92,6 +92,21 @@ body {
   background: #edf3ff;
   border-color: #93c5fd;
   color: #1d4ed8;
+}
+
+/* Desktop: pin theme toggle to the top-right corner of the header */
+@media (min-width: 761px) {
+  .header-actions {
+    position: absolute;
+    top: 6px;
+    right: 14px;
+    z-index: 2;
+    align-items: flex-start;
+  }
+
+  .header-theme-toggle {
+    padding: 2px 9px;
+  }
 }
 
 .header-menu-toggle {
@@ -4275,11 +4290,29 @@ body.vin-enter-modal-open {
   color: #1e3a8a;
 }
 
+.listing-detail-header-price .listing-price-europe .listing-price-primary {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35em;
+  justify-content: flex-end;
+}
+
+.listing-detail-header-price .listing-price-prefix {
+  font-size: 0.72em;
+  font-weight: 600;
+  color: #475569;
+}
+
 .listing-detail-header-price .listing-price-has-conversions .listing-price-converted-rub {
   grid-column: 1;
   font-size: 16px;
   font-weight: 700;
   color: #0f172a;
+}
+
+.listing-detail-header-price .listing-price-europe .listing-price-converted-rub {
+  grid-column: 1 / -1;
 }
 
 .listing-detail-header-price .listing-price-has-conversions .listing-price-converted-usd {
@@ -4316,6 +4349,17 @@ body.vin-enter-modal-open {
   line-height: 1.25;
   font-weight: 700;
   color: #1e3a8a;
+}
+
+.listing-detail-title-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.listing-detail-title-link:hover,
+.listing-detail-title-link:focus-visible {
+  text-decoration: underline;
+  text-underline-offset: 0.12em;
 }
 
 .listing-detail-layout {
@@ -4590,6 +4634,19 @@ body.vin-enter-modal-open {
   font-size: 17px;
   font-weight: 700;
   color: #1e3a8a;
+}
+
+.listings-feed .listings-feed-price .listing-price-europe .listing-price-primary {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.3em;
+}
+
+.listings-feed .listings-feed-price .listing-price-prefix {
+  font-size: 0.78em;
+  font-weight: 600;
+  color: #475569;
 }
 
 .listings-feed .listings-feed-price .listing-price-converted-rub {
@@ -5186,30 +5243,95 @@ body.listing-lightbox-open {
   object-fit: contain;
 }
 
-.home-direction-flag {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 48px;
-  height: 48px;
-  font-size: 34px;
-  line-height: 1;
-  border-radius: 0;
-  box-shadow: none;
+.home-directions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
 }
 
 .home-direction-card {
-  min-height: 118px;
-  justify-content: flex-start;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 148px;
+  padding: 22px 18px;
+  overflow: hidden;
+  border-radius: 16px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  background: #0f172a;
+  text-decoration: none;
+  text-align: center;
+  box-shadow: var(--shadow);
+  isolation: isolate;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
-.home-direction-card strong {
-  line-height: 1.25;
-  color: #1d4ed8;
+.home-direction-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.35);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.18);
 }
 
-.home-directions {
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+.home-direction-card:focus-visible {
+  outline: 3px solid #60a5fa;
+  outline-offset: 3px;
+}
+
+.home-direction-flag-img {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  transform: scale(1.02);
+  transition: transform 0.35s ease;
+}
+
+.home-direction-card:hover .home-direction-flag-img {
+  transform: scale(1.06);
+}
+
+.home-direction-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background:
+    linear-gradient(180deg, rgba(15, 23, 42, 0.18) 0%, rgba(15, 23, 42, 0.42) 55%, rgba(15, 23, 42, 0.58) 100%);
+  pointer-events: none;
+}
+
+.home-direction-card--by .home-direction-scrim {
+  background:
+    linear-gradient(180deg, rgba(60, 8, 8, 0.12) 0%, rgba(20, 10, 10, 0.38) 50%, rgba(10, 20, 10, 0.55) 100%);
+}
+
+.home-direction-card--eu .home-direction-scrim,
+.home-direction-card--eu-auctions .home-direction-scrim {
+  background:
+    linear-gradient(180deg, rgba(0, 26, 77, 0.15) 0%, rgba(0, 20, 60, 0.4) 55%, rgba(0, 12, 40, 0.58) 100%);
+}
+
+.home-direction-label {
+  position: relative;
+  z-index: 2;
+  max-width: 14ch;
+  margin: 0;
+  color: #fff;
+  font-size: clamp(1.05rem, 1.6vw, 1.28rem);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+  text-wrap: balance;
+  text-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.45),
+    0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+.home-direction-card--eu-auctions .home-direction-label {
+  max-width: 16ch;
 }
 
 .home-make-fallback {
@@ -5272,7 +5394,8 @@ body.listing-lightbox-open {
   }
 }
 
-@media (max-width: 900px) {
+/* 760px: keep desktop chrome in Cursor side browser (~880–900px) and small tablets */
+@media (max-width: 760px) {
   .catalog.listings-feed {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -5285,6 +5408,7 @@ body.listing-lightbox-open {
   }
 
   .header .brand {
+    order: 1;
     font-size: 24px;
   }
 
@@ -5292,17 +5416,25 @@ body.listing-lightbox-open {
     display: inline-flex;
   }
 
+  /* Keep theme + burger on the top row; open nav drops below */
   .header-actions {
+    order: 2;
+    position: static;
+    top: auto;
+    right: auto;
     margin-left: auto;
+    align-items: center;
   }
 
   .header-theme-toggle {
-    padding: 8px 10px;
-    font-size: 12px;
+    padding: 2px 8px;
+    font-size: 11px;
   }
 
   .header-nav-wrap {
+    order: 3;
     display: none;
+    flex: 1 0 100%;
     width: 100%;
     flex-direction: column;
     align-items: stretch;
@@ -5456,6 +5588,19 @@ body.listing-lightbox-open {
 
   .home-section-directions {
     margin-top: 10px;
+  }
+
+  .home-directions {
+    grid-template-columns: 1fr;
+  }
+
+  .home-direction-card {
+    min-height: 128px;
+  }
+
+  .home-direction-label {
+    max-width: 22ch;
+    font-size: 1.12rem;
   }
 
   .home-actions {

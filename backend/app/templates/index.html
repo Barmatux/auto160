@@ -30,11 +30,23 @@
   <div class="home-section-head">
     <h2>Популярные направления</h2>
   </div>
-  <div class="home-makes home-directions">
+  <div class="home-directions">
     {% for item in popular_directions %}
-      <a class="home-make-card home-direction-card" href="{{ item.url }}">
-        <span class="home-direction-flag" aria-hidden="true">{{ item.flag_emoji }}</span>
-        <strong>{{ item.label }}</strong>
+      <a
+        class="home-direction-card home-direction-card--{{ item.flag_key }}"
+        href="{{ item.url }}"
+      >
+        <img
+          class="home-direction-flag-img"
+          src="{{ item.flag_src }}"
+          alt=""
+          width="960"
+          height="480"
+          loading="lazy"
+          decoding="async"
+        />
+        <span class="home-direction-scrim" aria-hidden="true"></span>
+        <strong class="home-direction-label">{{ item.label }}</strong>
       </a>
     {% endfor %}
   </div>

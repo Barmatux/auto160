@@ -116,3 +116,12 @@ def test_build_listings_url_keeps_tech_without_catalog_id():
     assert "catalog_item_id" not in url
     assert "hp=136" in url
     assert "volume=1.5" in url
+
+
+def test_build_listings_url_brand_model_generation_levels():
+    assert _build_listings_url(brand="Renault") == "/listings?brand=Renault"
+    assert _build_listings_url(brand="Renault", model="Trafic") == "/listings?brand=Renault&model=Trafic"
+    assert (
+        _build_listings_url(brand="Renault", model="Trafic", generation="III")
+        == "/listings?brand=Renault&model=Trafic&generation=III"
+    )

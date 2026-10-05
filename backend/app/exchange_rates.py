@@ -20,10 +20,16 @@ class NbrbRates:
     usd_scale: int
     rub_rate: float
     rub_scale: int
+    eur_rate: float = 0.0
+    eur_scale: int = 1
 
     @property
     def source_label(self) -> str:
         return "НБ РБ"
+
+    @property
+    def has_eur(self) -> bool:
+        return self.eur_rate > 0 and self.eur_scale > 0
 
     def convert_byn_to_usd(self, amount_byn: float) -> float:
         if self.usd_rate <= 0:
@@ -34,6 +40,11 @@ class NbrbRates:
         if self.rub_rate <= 0:
             return 0.0
         return amount_byn / self.rub_rate * self.rub_scale
+
+    def convert_byn_to_eur(self, amount_byn: float) -> float:
+        if not self.has_eur:
+            return 0.0
+        return amount_byn / self.eur_rate * self.eur_scale
 
     def convert_rub_to_byn(self, amount_rub: float) -> float:
         if self.rub_scale <= 0:
@@ -76,15 +87,20 @@ def fetch_nbrb_rates(*, force_refresh: bool = False) -> NbrbRates | None:
     try:
         usd_payload = _fetch_currency_rate("USD")
         rub_payload = _fetch_currency_rate("RUB")
+        eur_payload = _fetch_currency_rate("EUR")
     except (URLError, ValueError, TypeError, json.JSONDecodeError, KeyError):
         return cached if isinstance(cached, NbrbRates) else None
 
     rates = NbrbRates(
-        rate_date=_parse_rate_date(usd_payload.get("Date") or rub_payload.get("Date")),
+        rate_date=_parse_rate_date(
+            usd_payload.get("Date") or rub_payload.get("Date") or eur_payload.get("Date")
+        ),
         usd_rate=float(usd_payload["Cur_OfficialRate"]),
         usd_scale=int(usd_payload.get("Cur_Scale") or 1),
         rub_rate=float(rub_payload["Cur_OfficialRate"]),
         rub_scale=int(rub_payload.get("Cur_Scale") or 100),
+        eur_rate=float(eur_payload["Cur_OfficialRate"]),
+        eur_scale=int(eur_payload.get("Cur_Scale") or 1),
     )
     _CACHE["fetched_at"] = datetime.now(timezone.utc)
     _CACHE["rates"] = rates
