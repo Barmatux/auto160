@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import calendar
 import re
+from dataclasses import dataclass
 from datetime import date
 
 from sqlalchemy import func
@@ -21,6 +22,18 @@ IMPORT_AGE_RF_MONTHS = 12
 IMPORT_AGE_OVER_10M_MONTHS = 10
 
 
+@dataclass(frozen=True)
+class ImportAgeFilterSelection:
+    """Active import-age checkboxes; both may be selected (OR)."""
+
+    rf_passable: bool = False
+    months_10_12: bool = False
+
+    @property
+    def active(self) -> bool:
+        return self.rf_passable or self.months_10_12
+
+
 def add_calendar_months(value: date, months: int) -> date:
     month_index = value.month - 1 + months
     year = value.year + month_index // 12
@@ -29,19 +42,29 @@ def add_calendar_months(value: date, months: int) -> date:
     return date(year, month, day)
 
 
+def parse_import_age_filters(rf_passable: bool, import_over_10m: bool) -> ImportAgeFilterSelection:
+    return ImportAgeFilterSelection(rf_passable=bool(rf_passable), months_10_12=bool(import_over_10m))
+
+
 def normalize_import_age_filter(rf_passable: bool, import_over_10m: bool) -> str | None:
-    """Return active filter key; RF passable wins if both are set."""
-    if rf_passable:
+    """Legacy single-key helper. Prefer parse_import_age_filters for new code."""
+    selection = parse_import_age_filters(rf_passable, import_over_10m)
+    if selection.rf_passable and selection.months_10_12:
+        return "both"
+    if selection.rf_passable:
         return IMPORT_AGE_RF_PASSABLE
-    if import_over_10m:
+    if selection.months_10_12:
         return IMPORT_AGE_OVER_10M
     return None
 
 
 def import_age_min_months(filter_key: str | None) -> int | None:
+    """Legacy: minimum age for a single filter key (not for combined selection)."""
     if filter_key == IMPORT_AGE_RF_PASSABLE:
         return IMPORT_AGE_RF_MONTHS
     if filter_key == IMPORT_AGE_OVER_10M:
+        return IMPORT_AGE_OVER_10M_MONTHS
+    if filter_key == "both":
         return IMPORT_AGE_OVER_10M_MONTHS
     return None
 
@@ -52,6 +75,32 @@ def release_date_older_than_months(release_date_raw: str | None, months: int, *,
         return False
     cutoff = add_calendar_months(today or date.today(), -months)
     return parsed <= cutoff
+
+
+def release_date_matches_import_age(
+    release_date_raw: str | None,
+    selection: ImportAgeFilterSelection,
+    *,
+    today: date | None = None,
+) -> bool:
+    """Match release date against selected windows (OR when both selected).
+
+    - RF passable: at least 12 months old
+    - 10–12 months: at least 10 and strictly under 12 months old
+    """
+    if not selection.active:
+        return True
+    parsed = parse_filter_date(release_date_raw)
+    if parsed is None:
+        return False
+    today_value = today or date.today()
+    cutoff_12 = add_calendar_months(today_value, -IMPORT_AGE_RF_MONTHS)
+    cutoff_10 = add_calendar_months(today_value, -IMPORT_AGE_OVER_10M_MONTHS)
+    if selection.rf_passable and parsed <= cutoff_12:
+        return True
+    if selection.months_10_12 and cutoff_12 < parsed <= cutoff_10:
+        return True
+    return False
 
 
 def listing_has_saved_vin(listing: CarListing) -> bool:
@@ -93,12 +142,17 @@ def paginate_query_with_import_age(
     db: Session,
     query: Query,
     *,
-    min_months: int,
+    selection: ImportAgeFilterSelection,
     page: int,
     page_size: int,
     today: date | None = None,
 ) -> tuple[list[CarListing], int]:
     """Apply VIN + release-date age filter with correct totals/pagination."""
+    if not selection.active:
+        offset = max(page - 1, 0) * page_size
+        rows = query.offset(offset).limit(page_size).all()
+        return rows, query.count()
+
     filtered_query = apply_has_vin_sql_filter(query)
     matched: list[CarListing] = []
     pending: list[CarListing] = []
@@ -113,7 +167,7 @@ def paginate_query_with_import_age(
         for listing in pending:
             vin = (listing.vin or "").strip().upper()
             release = release_by_vin.get(vin)
-            if release and release_date_older_than_months(release, min_months, today=today_value):
+            if release and release_date_matches_import_age(release, selection, today=today_value):
                 matched.append(listing)
         pending = []
         pending_vins = set()

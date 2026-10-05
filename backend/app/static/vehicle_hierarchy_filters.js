@@ -174,11 +174,6 @@
     // and auto-submit — querying form.querySelectorAll would miss them.
     root.querySelectorAll("[data-import-age-filter]").forEach((checkbox) => {
       checkbox.addEventListener("change", () => {
-        if (checkbox.checked) {
-          root.querySelectorAll("[data-import-age-filter]").forEach((other) => {
-            if (other !== checkbox) other.checked = false;
-          });
-        }
         const targetForm = checkbox.form || form;
         if (!targetForm) return;
         if (typeof targetForm.requestSubmit === "function") {
