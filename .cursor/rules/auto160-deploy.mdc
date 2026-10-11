@@ -16,26 +16,34 @@ All production changes must flow through **git `master`** and the **GitHub Actio
 
 Production backend, templates, and deploy scripts live in git — no VM overlay restore.
 
-## Deploy (89.169.178.29, `/home/admin1/auto160`)
+## Deploy (GitHub Actions → VM)
 
 After push to `origin/master`, GitHub Actions runs [`.github/workflows/deploy-vm.yml`](.github/workflows/deploy-vm.yml):
 
-1. SSH as `VM_USER` (prod: `admin1`) → sync code into `VM_APP_DIR` (default `/home/$VM_USER/auto160`)
+1. SSH as `VM_USER` → sync code into `VM_APP_DIR` (default `/home/$VM_USER/auto160`)
 2. Run `scripts/deploy-vm.sh` with `SKIP_GIT_PULL=1` (CI already synced the tree)
 3. `docker compose --env-file .env.vm -f docker-compose.vm.yml up --build -d`
 4. Smoke: `curl http://127.0.0.1:8000/health`
 
 Required Actions secrets: `VM_HOST`, `VM_USER`, `VM_SSH_KEY`. Optional: `VM_APP_DIR`.
 
-Manual re-deploy (same script):
+| Target | Host | User | App dir | Notes |
+|--------|------|------|---------|--------|
+| Legacy Yandex | `89.169.178.29` | `admin1` | `/home/admin1/auto160` | Was prod; may be down |
+| CloudVPS (next) | `62.182.102.93` | `root` | `/root/auto160` | Prep: [docs/cloudvps-cutover.md](docs/cloudvps-cutover.md); bootstrap `scripts/bootstrap-cloudvps.sh`. Flip `VM_*` secrets only at cutover. |
+
+Manual re-deploy (same script; host/user from current secrets):
 
 ```bash
-ssh admin1@89.169.178.29 "cd ~/auto160 && bash scripts/deploy-vm.sh"
+ssh -i ~/.ssh/auto160_cloudvps root@62.182.102.93 "cd /root/auto160 && bash scripts/deploy-vm.sh"
+# legacy:
+# ssh admin1@89.169.178.29 "cd ~/auto160 && bash scripts/deploy-vm.sh"
 ```
 
 - Do **not** use `git reset --hard` on VM unless fixing deliberate drift.
 - Do **not** `scp` Python/templates for routine updates.
 - Canonical site URL is `https://auto160.ru` (`PUBLIC_SITE_URL` + nginx via `scripts/apply-nginx-vm.sh`).
+- CloudVPS: `AUTOPLIUS_SCRAPE_DSN` private `10.129.x` from the old VPC will not work — fix DSN or pause `autoplius-sync` before cutover.
 
 ## If deploy / sync fails on VM
 
