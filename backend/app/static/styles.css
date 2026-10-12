@@ -3391,17 +3391,55 @@ body.vin-enter-modal-open {
   background: rgba(15, 23, 42, 0.02);
 }
 
-/* Column labels: stick under the site header while the page scrolls. */
 .admin-vin-table.admin-ratings-table thead th {
   white-space: normal;
   line-height: 1.2;
   vertical-align: middle;
-  position: sticky;
-  top: var(--admin-ratings-sticky-top, 88px);
-  z-index: 5;
   background: #e8eef8;
   color: #334155;
-  box-shadow: 0 1px 0 var(--border);
+}
+
+/* JS-cloned fixed column header (page scroll; CSS sticky fails with overflow-x:hidden ancestors). */
+.admin-ratings-fixed-head {
+  display: none;
+  position: fixed;
+  z-index: 9;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: #e8eef8;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.12);
+  border-bottom: 1px solid var(--border);
+}
+
+.admin-ratings-fixed-head table {
+  width: 100%;
+  margin: 0;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: #e8eef8;
+}
+
+.admin-ratings-fixed-head th {
+  padding: 8px 8px;
+  background: #e8eef8;
+  color: #334155;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  line-height: 1.2;
+  text-align: left;
+  white-space: normal;
+  vertical-align: middle;
+  border-bottom: none;
+  box-sizing: border-box;
+}
+
+.admin-ratings-fixed-head th.admin-ratings-check-head {
+  text-align: center;
 }
 
 .admin-ratings-check-head {

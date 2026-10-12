@@ -195,22 +195,64 @@
 
 {% include "partials/auth_script.html" %}
 <script>
-  (function syncAdminRatingsStickyTop() {
-    const root = document.documentElement;
-    const header = document.querySelector(".header");
+  (function initAdminRatingsFixedHead() {
     const table = document.querySelector("[data-admin-ratings-table]");
-    if (!header || !table) return;
+    const siteHeader = document.querySelector(".header");
+    if (!table || !table.tHead) return;
 
-    function apply() {
-      const top = Math.ceil(header.getBoundingClientRect().height);
-      root.style.setProperty("--admin-ratings-sticky-top", top + "px");
+    const sourceRow = table.tHead.rows[0];
+    if (!sourceRow) return;
+
+    const wrap = document.createElement("div");
+    wrap.className = "admin-ratings-fixed-head";
+    wrap.setAttribute("aria-hidden", "true");
+    const cloneTable = document.createElement("table");
+    const cloneThead = document.createElement("thead");
+    const cloneRow = sourceRow.cloneNode(true);
+    cloneThead.appendChild(cloneRow);
+    cloneTable.appendChild(cloneThead);
+    wrap.appendChild(cloneTable);
+    document.body.appendChild(wrap);
+
+    const sourceCells = Array.from(sourceRow.cells);
+    const cloneCells = Array.from(cloneRow.cells);
+
+    function sync() {
+      const headerBottom = siteHeader ? Math.ceil(siteHeader.getBoundingClientRect().bottom) : 0;
+      const tableRect = table.getBoundingClientRect();
+      const headRect = table.tHead.getBoundingClientRect();
+      const shouldShow =
+        headRect.bottom <= headerBottom + 1 &&
+        tableRect.bottom > headerBottom + headRect.height;
+
+      if (!shouldShow) {
+        wrap.style.display = "none";
+        return;
+      }
+
+      wrap.style.display = "block";
+      wrap.style.top = headerBottom + "px";
+      wrap.style.left = Math.round(tableRect.left) + "px";
+      wrap.style.width = Math.round(tableRect.width) + "px";
+      cloneTable.style.width = Math.round(tableRect.width) + "px";
+
+      sourceCells.forEach(function (cell, index) {
+        if (!cloneCells[index]) return;
+        const width = Math.round(cell.getBoundingClientRect().width);
+        cloneCells[index].style.width = width + "px";
+        cloneCells[index].style.minWidth = width + "px";
+        cloneCells[index].style.maxWidth = width + "px";
+      });
     }
 
-    apply();
-    window.addEventListener("resize", apply);
+    window.addEventListener("scroll", sync, { passive: true });
+    window.addEventListener("resize", sync);
     if (typeof ResizeObserver !== "undefined") {
-      new ResizeObserver(apply).observe(header);
+      const ro = new ResizeObserver(sync);
+      ro.observe(table);
+      if (siteHeader) ro.observe(siteHeader);
     }
+    sync();
   })();
 
   async function adminFetch(url, options = {}) {
