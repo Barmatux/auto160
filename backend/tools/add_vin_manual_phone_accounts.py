@@ -23,7 +23,7 @@ if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 os.chdir(ROOT_DIR)
 
-from app.avby_accounts import VIN_TEST_DAILY_LIMIT, normalize_avby_phone, upsert_avby_service_account
+from app.avby_accounts import normalize_avby_phone, upsert_avby_service_account
 from app.avby_session import AvbySessionError, get_avby_session
 from app.db import SessionLocal
 
@@ -51,20 +51,19 @@ def add_account(db, *, phone: str, password: str, login: bool) -> None:
         "avby_password": password,
         "name": f"VIN manual +375{phone}",
         "purpose": "vin_test",
-        "daily_vin_limit": VIN_TEST_DAILY_LIMIT,
         "vin_checks_today": 0,
         "is_active": False,
         "status": "phone_verified",
         "notes": (
             "manual VIN validation only; excluded from parser/auto rotation "
-            f"(is_active=false); added {_utc_now()}"
+            f"(is_active=false); unlimited local quota (count only); added {_utc_now()}"
         ),
         "created_at": _utc_now(),
     }
     row = upsert_avby_service_account(db, payload)
     row.purpose = "vin_test"
     row.is_active = False
-    row.daily_vin_limit = row.daily_vin_limit or VIN_TEST_DAILY_LIMIT
+    row.daily_vin_limit = None  # count usage only; no local cut-off
     db.commit()
     db.refresh(row)
 

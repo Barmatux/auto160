@@ -212,7 +212,7 @@ class AvbyServiceAccountCreateRequest(BaseModel):
     refresh_token: str | None = None
     phone_verified: bool = True
     purpose: str = "vin_test"
-    daily_vin_limit: int = 30
+    daily_vin_limit: int | None = None
     is_active: bool | None = None
     login_on_create: bool = True
     notes: str | None = None

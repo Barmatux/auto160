@@ -259,10 +259,10 @@ def consume_vin_check(
 ) -> bool:
     if not can_consume_vin_check(account):
         return False
-    if account.daily_vin_limit is not None:
-        reset_vin_checks_if_needed(account)
-        account.vin_checks_today += 1
-        account.updated_at = datetime.utcnow()
+    # Always count usage; daily_vin_limit=None means unlimited (no cut-off).
+    reset_vin_checks_if_needed(account)
+    account.vin_checks_today += 1
+    account.updated_at = datetime.utcnow()
     from app.models import AvbyVinFetch
 
     db.add(

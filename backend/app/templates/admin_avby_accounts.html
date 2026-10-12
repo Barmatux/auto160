@@ -113,8 +113,8 @@
       <input type="text" name="name" maxlength="120" />
     </label>
     <label>
-      Лимит VIN / сутки
-      <input type="number" name="daily_vin_limit" min="1" max="100" value="30" />
+      Лимит VIN / сутки (пусто = без лимита, только счётчик)
+      <input type="number" name="daily_vin_limit" min="1" max="500" placeholder="без лимита" />
     </label>
     <label class="inline-checkbox">
       <input type="checkbox" name="phone_verified" checked />
@@ -202,7 +202,8 @@
                 <div class="hint">осталось {{ account.vin_checks_remaining }}</div>
               {% endif %}
             {% else %}
-              —
+              {{ account.vin_checks_today or 0 }}
+              <div class="hint">без лимита</div>
             {% endif %}
           </td>
           <td>{{ account.api_key_masked or "—" }}</td>
@@ -423,7 +424,7 @@
       phone: normalizePhoneInput(form.phone.value) || null,
       avby_password: form.avby_password.value,
       name: form.name.value.trim() || null,
-      daily_vin_limit: Number(form.daily_vin_limit.value || 30),
+      daily_vin_limit: form.daily_vin_limit.value ? Number(form.daily_vin_limit.value) : null,
       phone_verified: form.phone_verified.checked,
       is_active: form.is_active.checked,
       login_on_create: form.login_on_create.checked,

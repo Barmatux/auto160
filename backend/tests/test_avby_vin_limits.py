@@ -29,6 +29,30 @@ def test_detects_paywall_error_message():
     assert not is_avby_vin_daily_limit_error_message("auth failed")
 
 
+def test_unlimited_account_still_counts_usage():
+    from app.avby_accounts import consume_vin_check
+
+    account = AvbyServiceAccount(
+        email="unlimited@test.local",
+        status="phone_verified",
+        purpose="vin_test",
+        is_active=False,
+        api_key="test-key",
+        daily_vin_limit=None,
+        vin_checks_today=0,
+        vin_checks_day=date.today(),
+    )
+    db = MagicMock()
+
+    assert can_consume_vin_check(account) is True
+    assert vin_checks_remaining(account) is None
+    assert consume_vin_check(db, account, listing_id=1) is True
+    assert account.vin_checks_today == 1
+    assert can_consume_vin_check(account) is True
+    db.add.assert_called_once()
+    db.commit.assert_called()
+
+
 def test_note_vin_paywall_error_does_not_bump_counter():
     account = AvbyServiceAccount(
         email="vin-limit@test.local",

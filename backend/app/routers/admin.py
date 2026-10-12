@@ -179,7 +179,7 @@ def create_avby_account(
         refresh_token=(payload.refresh_token or "").strip() or None,
         status=status,
         purpose=purpose,
-        daily_vin_limit=payload.daily_vin_limit or VIN_TEST_DAILY_LIMIT,
+        daily_vin_limit=payload.daily_vin_limit if payload.daily_vin_limit is not None else None,
         vin_checks_today=0,
         is_active=is_active,
         notes=(payload.notes or "").strip() or None,
@@ -260,9 +260,10 @@ def update_avby_account(
     if payload.notes is not None:
         account.notes = payload.notes.strip() or None
     if payload.daily_vin_limit is not None:
-        if payload.daily_vin_limit < 1:
-            raise HTTPException(status_code=400, detail="daily_vin_limit must be >= 1")
-        account.daily_vin_limit = payload.daily_vin_limit
+        # 0 clears the local cut-off (usage is still counted).
+        if payload.daily_vin_limit < 0:
+            raise HTTPException(status_code=400, detail="daily_vin_limit must be >= 0")
+        account.daily_vin_limit = payload.daily_vin_limit or None
     if payload.email is not None:
         email_raw = payload.email.strip().lower()
         email = email_raw if email_raw and "@" in email_raw else None
