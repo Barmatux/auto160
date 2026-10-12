@@ -3346,7 +3346,10 @@ def catalog_modifications(
         normalize_fuel_type_label,
     )
     transmission_slugs = parse_transmission_filter_values(request.query_params.getlist("transmission"))
-    query = _apply_hp_filter(db.query(CatalogItem), exact_hp=exact_hp)
+    include_hidden = _is_admin_user(current_user)
+    query = db.query(CatalogItem).filter(CatalogItem.source_site == "av.by")
+    query = apply_visible_catalog_filter(query, include_hidden=include_hidden)
+    query = _apply_hp_filter(query, exact_hp=exact_hp)
     query = _apply_catalog_item_filters(
         query=query,
         db=db,
@@ -3359,23 +3362,6 @@ def catalog_modifications(
         parsed_year_to=parsed_year_to,
         seats_7=seats_7,
     )
-    query = query.filter(CatalogItem.source_site == "av.by")
-    # If enriched source exists for selected generation, hide legacy duplicates.
-    if make and model and generation:
-        canonical_model = _canonical_model_name(model)
-        has_enriched = (
-            db.query(CatalogItem.id)
-            .filter(
-                CatalogItem.make == make,
-                CatalogItem.model == canonical_model,
-                CatalogItem.generation == generation,
-                CatalogItem.source_site == "av.by",
-            )
-            .first()
-            is not None
-        )
-        if has_enriched:
-            query = query.filter(CatalogItem.source_site == "av.by")
 
     avby_first = case((CatalogItem.source_site == "av.by", 0), else_=1)
     if sort == "price_asc":
