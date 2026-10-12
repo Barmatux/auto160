@@ -18,6 +18,9 @@ DEFAULT_PAGE_SIZE = 50
 MAX_PAGE_SIZE = 200
 
 
+VIN_CHECK_RATING = 1.0
+
+
 @dataclass(frozen=True)
 class CatalogRatingRow:
     make: str
@@ -28,6 +31,7 @@ class CatalogRatingRow:
     rated_count: int
     rating: float | None
     mixed: bool
+    vin_check: bool
     hidden: bool
     mods_url: str
     production_years: str
@@ -244,6 +248,13 @@ def list_catalog_makes(db: Session) -> list[str]:
     return [row[0] for row in rows if (row[0] or "").strip()]
 
 
+def generation_has_vin_check(rating: float | None, *, mixed: bool) -> bool:
+    """VIN CHECK flag is the former rating=1 marker (uniform across the generation)."""
+    if mixed or rating is None:
+        return False
+    return float(rating) == VIN_CHECK_RATING
+
+
 def _row_from_group(row) -> CatalogRatingRow:
     rating_min = float(row.rating_min) if row.rating_min is not None else None
     rating_max = float(row.rating_max) if row.rating_max is not None else None
@@ -271,6 +282,7 @@ def _row_from_group(row) -> CatalogRatingRow:
         rated_count=int(row.rated_count or 0),
         rating=rating,
         mixed=mixed,
+        vin_check=generation_has_vin_check(rating, mixed=mixed),
         hidden=item_count > 0 and hidden_count >= item_count,
         mods_url="/catalog/modifications?" + urlencode(params),
         production_years=format_production_years(year_from, year_to),

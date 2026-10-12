@@ -188,13 +188,8 @@ from app.seller_analytics import (
 )
 from app.catalog_ratings import (
     DEFAULT_PAGE_SIZE,
-    RATING_CHOICES,
-    RATING_FILTER_UNRATED,
-    format_rating,
     list_catalog_makes,
     list_generation_ratings,
-    parse_rating_filter_values,
-    rating_filter_tokens,
 )
 
 router = APIRouter(tags=["pages"])
@@ -4272,10 +4267,6 @@ def admin_ratings_page(
     if current_user.role != UserRole.admin:
         return RedirectResponse(url="/", status_code=302)
 
-    status_filter = "all"
-    selected_rating_filters, include_unrated_rating = parse_rating_filter_values(
-        request.query_params.getlist("filter_rating")
-    )
     # Select sends "" for "Любая" or "160" for the product filter.
     hp_filter = 160 if (max_hp or "").strip() == "160" else None
     year_min = None
@@ -4292,9 +4283,7 @@ def admin_ratings_page(
         db,
         make=make,
         q=q,
-        status=status_filter,
-        rating_filters=selected_rating_filters,
-        include_unrated_rating=include_unrated_rating,
+        status="all",
         max_hp=hp_filter,
         year_min=year_min,
         page=page,
@@ -4307,19 +4296,12 @@ def admin_ratings_page(
             db,
             make=make,
             q=q,
-            status=status_filter,
-            rating_filters=selected_rating_filters,
-            include_unrated_rating=include_unrated_rating,
+            status="all",
             max_hp=hp_filter,
             year_min=year_min,
             page=page,
             per_page=per_page,
         )
-
-    active_rating_filter_tokens = rating_filter_tokens(
-        selected_rating_filters,
-        include_unrated=include_unrated_rating,
-    )
 
     def _ratings_url(**overrides) -> str:
         params = {
@@ -4328,7 +4310,6 @@ def admin_ratings_page(
             "max_hp": hp_filter,
             "year_from": year_min,
             "page": page,
-            "filter_rating": overrides.pop("filter_rating", active_rating_filter_tokens),
         }
         params.update(overrides)
         pairs = []
@@ -4340,8 +4321,6 @@ def admin_ratings_page(
             pairs.append(("max_hp", str(params["max_hp"])))
         if params.get("year_from"):
             pairs.append(("year_from", str(params["year_from"])))
-        for token in params["filter_rating"] or []:
-            pairs.append(("filter_rating", token))
         if int(params["page"] or 1) > 1:
             pairs.append(("page", str(params["page"])))
         query = urlencode(pairs)
@@ -4367,11 +4346,6 @@ def admin_ratings_page(
             "rating_max_hp": hp_filter,
             "rating_year_from": year_min,
             "rating_makes": list_catalog_makes(db),
-            "rating_choices": RATING_CHOICES,
-            "format_rating": format_rating,
-            "rating_filter_tokens": active_rating_filter_tokens,
-            "rating_filter_unrated_value": RATING_FILTER_UNRATED,
-            "rating_filters_active": bool(active_rating_filter_tokens),
         }
     )
     return templates.TemplateResponse(request, "admin_ratings.html", context)

@@ -5,6 +5,7 @@ from app.catalog_ratings import (
     format_engine_power_hp,
     format_production_years,
     format_rating,
+    generation_has_vin_check,
     generation_key,
     generation_label,
     parse_rating,
@@ -77,3 +78,11 @@ def test_parse_rating_filter_values():
 def test_rating_filter_tokens():
     assert rating_filter_tokens(frozenset({3, 1}), include_unrated=False) == ["1", "3"]
     assert rating_filter_tokens(frozenset({2}), include_unrated=True) == ["2", RATING_FILTER_UNRATED]
+
+
+def test_generation_has_vin_check_maps_former_rating_one():
+    assert generation_has_vin_check(1, mixed=False) is True
+    assert generation_has_vin_check(1.0, mixed=False) is True
+    assert generation_has_vin_check(2, mixed=False) is False
+    assert generation_has_vin_check(None, mixed=False) is False
+    assert generation_has_vin_check(1, mixed=True) is False

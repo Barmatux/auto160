@@ -357,6 +357,10 @@ body.theme-admin thead th {
   border-color: var(--border);
 }
 
+body.theme-admin .admin-vin-table.admin-ratings-table th {
+  background: #0e131b;
+}
+
 body.theme-admin .users-table td,
 body.theme-admin .admin-vin-table td,
 body.theme-admin tbody td {
