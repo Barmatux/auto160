@@ -29,21 +29,20 @@ Required Actions secrets: `VM_HOST`, `VM_USER`, `VM_SSH_KEY`. Optional: `VM_APP_
 
 | Target | Host | User | App dir | Notes |
 |--------|------|------|---------|--------|
-| Legacy Yandex | `89.169.178.29` | `admin1` | `/home/admin1/auto160` | Was prod; may be down |
-| CloudVPS (next) | `62.182.102.93` | `root` | `/root/auto160` | Prep: [docs/cloudvps-cutover.md](docs/cloudvps-cutover.md); bootstrap `scripts/bootstrap-cloudvps.sh`. Flip `VM_*` secrets only at cutover. |
+| **CloudVPS (prod)** | `93.125.82.184` | `root` | `/root/auto160` | Current Actions target. See [docs/cloudvps-cutover.md](docs/cloudvps-cutover.md). |
+| Legacy probe | `62.182.102.93` | `root` | — | RF test only |
+| Legacy Yandex | `89.169.178.29` | `admin1` | `/home/admin1/auto160` | Unreachable |
 
-Manual re-deploy (same script; host/user from current secrets):
+Manual re-deploy:
 
 ```bash
-ssh -i ~/.ssh/auto160_cloudvps root@62.182.102.93 "cd /root/auto160 && bash scripts/deploy-vm.sh"
-# legacy:
-# ssh admin1@89.169.178.29 "cd ~/auto160 && bash scripts/deploy-vm.sh"
+ssh -i ~/.ssh/auto160_cloudvps root@93.125.82.184 "cd /root/auto160 && bash scripts/deploy-vm.sh"
 ```
 
 - Do **not** use `git reset --hard` on VM unless fixing deliberate drift.
 - Do **not** `scp` Python/templates for routine updates.
-- Canonical site URL is `https://auto160.ru` (`PUBLIC_SITE_URL` + nginx via `scripts/apply-nginx-vm.sh`).
-- CloudVPS: `AUTOPLIUS_SCRAPE_DSN` private `10.129.x` from the old VPC will not work — fix DSN or pause `autoplius-sync` before cutover.
+- Canonical site URL is `https://auto160.ru` once LE certs exist; until then HTTP bootstrap on the VPS IP.
+- `AUTOPLIUS_SCRAPE_DSN` private `10.129.x` from the old VPC will not work from CloudVPS.
 
 ## If deploy / sync fails on VM
 

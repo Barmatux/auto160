@@ -46,12 +46,18 @@ if [[ ! -f "$ENV_FILE" ]]; then
   exit 1
 fi
 
-echo "==> Ensure PUBLIC_SITE_URL canonical host"
-CANONICAL_SITE_URL="https://auto160.ru"
-if grep -qE '^[[:space:]]*PUBLIC_SITE_URL=' "$ENV_FILE"; then
-  sed -i "s|^[[:space:]]*PUBLIC_SITE_URL=.*|PUBLIC_SITE_URL=${CANONICAL_SITE_URL}|" "$ENV_FILE"
-else
-  printf '\nPUBLIC_SITE_URL=%s\n' "$CANONICAL_SITE_URL" >> "$ENV_FILE"
+echo "==> Ensure PUBLIC_SITE_URL"
+# Force canonical HTTPS only when LE cert for auto160.ru is present (DNS cutover done).
+# Otherwise keep .env.vm value (e.g. http://NEW_IP for pre-DNS bring-up).
+if [[ -f /etc/letsencrypt/live/auto160.ru/fullchain.pem ]]; then
+  CANONICAL_SITE_URL="https://auto160.ru"
+  if grep -qE '^[[:space:]]*PUBLIC_SITE_URL=' "$ENV_FILE"; then
+    sed -i "s|^[[:space:]]*PUBLIC_SITE_URL=.*|PUBLIC_SITE_URL=${CANONICAL_SITE_URL}|" "$ENV_FILE"
+  else
+    printf '\nPUBLIC_SITE_URL=%s\n' "$CANONICAL_SITE_URL" >> "$ENV_FILE"
+  fi
+elif ! grep -qE '^[[:space:]]*PUBLIC_SITE_URL=' "$ENV_FILE"; then
+  printf '\nPUBLIC_SITE_URL=https://auto160.ru\n' >> "$ENV_FILE"
 fi
 grep -E '^PUBLIC_SITE_URL=' "$ENV_FILE"
 

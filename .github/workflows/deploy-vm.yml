@@ -53,7 +53,7 @@ jobs:
             -C . . \
             | ssh $SSH_OPTS \
               "${VM_USER}@${VM_HOST}" \
-              "rm -rf '${SYNC_DIR}' && mkdir -p '${SYNC_DIR}' && tar xzf - -C '${SYNC_DIR}' && sudo rsync -a --exclude='.git' --exclude='backend/.env.vm' --exclude='logs' --exclude='backend/docker-compose.override.yml' '${SYNC_DIR}/' '${APP_DIR}/' && sudo chown -R '${VM_USER}:${VM_USER}' '${APP_DIR}' && rm -rf '${SYNC_DIR}'"
+              "set -euo pipefail; rm -rf '${SYNC_DIR}' && mkdir -p '${SYNC_DIR}' '${APP_DIR}' && tar xzf - -C '${SYNC_DIR}'; if [ \"\$(id -u)\" -eq 0 ]; then rsync -a --exclude='.git' --exclude='backend/.env.vm' --exclude='logs' --exclude='backend/docker-compose.override.yml' '${SYNC_DIR}/' '${APP_DIR}/'; else sudo rsync -a --exclude='.git' --exclude='backend/.env.vm' --exclude='logs' --exclude='backend/docker-compose.override.yml' '${SYNC_DIR}/' '${APP_DIR}/' && sudo chown -R '${VM_USER}:${VM_USER}' '${APP_DIR}'; fi; rm -rf '${SYNC_DIR}'"
 
       - name: Run deploy-vm.sh on VM
         env:
