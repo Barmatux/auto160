@@ -17,7 +17,7 @@ Previous probe host `62.182.102.93` and legacy Yandex `89.169.178.29` are not th
 
 - Until DNS A records point here and certbot issues certs, nginx uses `scripts/nginx-auto160-http.conf` (HTTP :80 → API).
 - `PUBLIC_SITE_URL` stays as in `.env.vm` until `/etc/letsencrypt/live/auto160.ru/fullchain.pem` exists; then deploy forces `https://auto160.ru`.
-- `AUTOPLIUS_SCRAPE_DSN` private `10.129.x` from the old VPC will not work — fix DSN or expect `autoplius-sync` errors.
+- `AUTOPLIUS_SCRAPE_DSN=postgresql://scrape:scrape@93.125.82.254:5433/scrape` (new scrape host on same LAN; HTTP API `http://93.125.82.254:8000`).
 - Old prod `.env.vm` was unreachable at cutover; new host got a fresh `.env.vm` (rotate S3/SMTP/API keys from backups when available).
 
 ## After DNS
