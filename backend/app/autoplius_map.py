@@ -19,7 +19,7 @@ NBRB_EUR_URL = "https://api.nbrb.by/exrates/rates/EUR?parammode=2"
 DEFAULT_MEDIA_BUCKET = "autoplius-media"
 DEFAULT_MEDIA_ENDPOINT = "https://storage.yandexcloud.net"
 APP_MEDIA_BUCKET = "auto160-media"
-_SCRAPE_PLATFORM_KEY_PREFIXES = ("auto24/", "autoplius/", "mobile_de/")
+_SCRAPE_PLATFORM_KEY_PREFIXES = ("auto24/", "autoplius/", "mobile_de/", "avby/")
 _LEGACY_AUTOPLIUS_KEY_PREFIXES = ("listings/",)
 _KNOWN_STORAGE_KEY_PREFIXES = _SCRAPE_PLATFORM_KEY_PREFIXES + _LEGACY_AUTOPLIUS_KEY_PREFIXES
 

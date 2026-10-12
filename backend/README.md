@@ -256,32 +256,22 @@ docker compose --env-file .env.vm -f docker-compose.vm.yml exec -T api \
 
 ### Импорт объявлений с AV.BY под наши модели
 
-- Скрипт: `tools/import_avby_listings.py`
-- Источник моделей: **активные** `catalog_items` (`hidden_from_catalog=False`), далее скрипт ходит в `web-api.av.by` с пагинацией по страницам и отбирает объявления под эти модели.
-- Ограничение по мощности: импортируются только объявления с `engine_power_hp <= 160` (по умолчанию).
-- Дедупликация: по `avby_id` (уникальный индекс в БД), fallback на `AVBY_ID` в `description` для старых записей.
+- Основной путь: scrape-platform adapter `avby` → Postgres `listings` → Auto160 `tools/import_avby_scrape_listings.py` (`AUTOPLIUS_SCRAPE_DSN`). См. `integrations/avby/README.md`.
+- Фильтры каталога / generation / util-sbor применяются на стороне Auto160 после чтения scrape.
+- Дедупликация: по `avby_id` (уникальный индекс в БД).
 - Запуск:
-  - `python tools/import_avby_listings.py --archive-overpowered`
-- Полезные флаги:
-  - `--make BMW --model X1` — ограничить импорт по марке/модели.
-  - `--limit-models 10` — обработать только часть моделей.
-  - `--per-model-limit 30` — ограничить число объявлений на модель.
-  - `--max-pages 30` — лимит страниц пагинации на марку (чем выше, тем полнее импорт).
-  - `--max-hp 160` — лимит мощности по л.с.
-  - `--no-update-existing` — не обновлять уже импортированные объявления.
-  - `--archive-overpowered` — архивировать существующие объявления, если текущая мощность на источнике выше лимита.
-  - `--dry-run` — проверить импорт без записи в БД.
-  - `--vin-metadata-limit 100` — для затронутых объявлений запросить `GET /offers/{id}` под сервисным аккаунтом и сохранить VIN-метаданные (`0` — выкл., `-1` — без лимита).
-  - `--vin-enrich-limit 20` — для rating=1: VIN через платный `/offers/{id}/vin` + таможня (если metadata не дала полный VIN).
+  - `python tools/import_avby_scrape_listings.py --archive-overpowered`
+  - `python tools/import_avby_scrape_listings.py --dry-run --limit 20`
+- Legacy HTTP crawler `tools/import_avby_listings.py` оставлен для helpers / business-org tooling (не для `avby-sync`).
 
 ### Scheduler импорта объявлений (каждые 20 минут)
 
-- Скрипт: `tools/schedule_avby_listings_sync.py`
+- Скрипт: `tools/schedule_avby_listings_sync.py` → scrape DSN importer (без crawl `web-api.av.by` для объявлений).
 - Разовый запуск:
   - `python tools/schedule_avby_listings_sync.py --run-once --archive-overpowered`
 - Постоянный цикл:
   - `python tools/schedule_avby_listings_sync.py --interval-minutes 20 --archive-overpowered`
-- В Docker Compose уже добавлен сервис `avby-sync`, который запускает импорт каждые 20 минут.
+- В Docker Compose сервис `avby-sync` запускает этот цикл.
 
 ### Актуальность объявлений (снятые с av.by)
 

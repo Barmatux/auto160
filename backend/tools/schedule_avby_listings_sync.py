@@ -15,7 +15,7 @@ from app.listing_avg_prices import recompute_listing_avg_prices
 from app.logging_setup import setup_logging
 from app.models import AvbySyncRun
 
-IMPORTER_PATH = ROOT_DIR / "tools" / "import_avby_listings.py"
+IMPORTER_PATH = ROOT_DIR / "tools" / "import_avby_scrape_listings.py"
 REFRESH_PRICES_PATH = ROOT_DIR / "tools" / "refresh_listing_prices_from_avby.py"
 REINDEX_PATH = ROOT_DIR / "tools" / "reindex_listing_embeddings.py"
 logger = logging.getLogger(__name__)
@@ -90,7 +90,6 @@ def run_embedding_reindex() -> int:
         for line in result.stderr.splitlines()[-10:]:
             logger.warning("embeddings ! %s", line)
     if result.returncode != 0:
-        # Missing API key must not break the av.by sync loop.
         logger.warning("embeddings failed exit_code=%s; continuing", result.returncode)
         return 0
     logger.info("embeddings-finish: exit_code=%s", result.returncode)
@@ -99,14 +98,10 @@ def run_embedding_reindex() -> int:
 
 def run_once(
     max_hp: int,
-    max_pages: int,
-    per_model_limit: int,
-    update_existing: bool,
-    archive_overpowered: bool,
     year_min: int,
     price_usd_min: int,
-    creation_date: int,
-    sort: int,
+    update_existing: bool,
+    archive_overpowered: bool,
     trigger: str = "scheduler",
     refresh_prices: bool = True,
     price_refresh_delay: float = 0.12,
@@ -122,19 +117,11 @@ def run_once(
         str(year_min),
         "--price-usd-min",
         str(price_usd_min),
-        "--creation-date",
-        str(creation_date),
-        "--sort",
-        str(sort),
-        "--max-pages",
-        str(max_pages),
-        "--per-model-limit",
-        str(per_model_limit),
         "--trigger",
         trigger,
     ]
     if not update_existing:
-        cmd.append("--no-update-existing")
+        cmd.append("--no-update")
     if archive_overpowered:
         cmd.append("--archive-overpowered")
 
@@ -165,20 +152,18 @@ def run_once(
 def main() -> None:
     setup_logging("avby-sync")
     _fail_stale_running_runs()
-    parser = argparse.ArgumentParser(description="Run AV.BY listings sync on a fixed interval")
+    parser = argparse.ArgumentParser(
+        description="Import av.by listings from scrape-platform DSN on a fixed interval"
+    )
     parser.add_argument("--interval-minutes", type=int, default=20, help="Sync interval in minutes")
-    parser.add_argument("--max-hp", type=int, default=160, help="engine_power_hp[max] filter")
-    parser.add_argument("--year-min", type=int, default=2010, help="year[min] filter")
-    parser.add_argument("--price-usd-min", type=int, default=10000, help="price_usd[min] filter")
-    parser.add_argument("--creation-date", type=int, default=10, help="creation_date filter (0 = disable)")
-    parser.add_argument("--sort", type=int, default=4, help="av.by sorting id")
-    parser.add_argument("--max-pages", type=int, default=30, help="Max paginated pages per brand")
-    parser.add_argument("--per-model-limit", type=int, default=30, help="Max adverts per model per sync run")
+    parser.add_argument("--max-hp", type=int, default=160, help="Max engine power filter")
+    parser.add_argument("--year-min", type=int, default=2010, help="Minimum year filter")
+    parser.add_argument("--price-usd-min", type=int, default=10000, help="Minimum USD price filter")
     parser.add_argument("--no-update-existing", action="store_true", help="Do not update existing AV.BY adverts")
     parser.add_argument(
         "--archive-overpowered",
         action="store_true",
-        help="Archive existing listing if AVBY advert power is above max-hp",
+        help="Archive existing listing if power is above max-hp",
     )
     parser.add_argument("--run-once", action="store_true", help="Run sync once and exit")
     parser.add_argument(
@@ -202,6 +187,11 @@ def main() -> None:
         action="store_true",
         help="Reindex listing embeddings after sync (default: skip; use nightly listing-embeddings)",
     )
+    # Legacy crawl flags kept for compose compatibility (ignored).
+    parser.add_argument("--creation-date", type=int, default=10, help=argparse.SUPPRESS)
+    parser.add_argument("--sort", type=int, default=4, help=argparse.SUPPRESS)
+    parser.add_argument("--max-pages", type=int, default=30, help=argparse.SUPPRESS)
+    parser.add_argument("--per-model-limit", type=int, default=30, help=argparse.SUPPRESS)
     args = parser.parse_args()
 
     update_existing = not args.no_update_existing
@@ -212,14 +202,10 @@ def main() -> None:
         raise SystemExit(
             run_once(
                 max_hp=args.max_hp,
-                max_pages=args.max_pages,
-                per_model_limit=args.per_model_limit,
-                update_existing=update_existing,
-                archive_overpowered=args.archive_overpowered,
                 year_min=args.year_min,
                 price_usd_min=args.price_usd_min,
-                creation_date=args.creation_date,
-                sort=args.sort,
+                update_existing=update_existing,
+                archive_overpowered=args.archive_overpowered,
                 refresh_prices=refresh_prices,
                 price_refresh_delay=args.price_refresh_delay,
                 recompute_avg_prices=recompute_avg_prices,
@@ -231,14 +217,10 @@ def main() -> None:
     while True:
         run_once(
             max_hp=args.max_hp,
-            max_pages=args.max_pages,
-            per_model_limit=args.per_model_limit,
-            update_existing=update_existing,
-            archive_overpowered=args.archive_overpowered,
             year_min=args.year_min,
             price_usd_min=args.price_usd_min,
-            creation_date=args.creation_date,
-            sort=args.sort,
+            update_existing=update_existing,
+            archive_overpowered=args.archive_overpowered,
             refresh_prices=refresh_prices,
             price_refresh_delay=args.price_refresh_delay,
             recompute_avg_prices=recompute_avg_prices,

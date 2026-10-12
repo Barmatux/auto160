@@ -34,7 +34,14 @@ def is_avby_s3_media_url(url: str | None) -> bool:
     if not url:
         return False
     text = url.strip()
-    return text.startswith("/media/autoplius?key=avby%") or "key=avby%2F" in text or "/media/autoplius?key=avby/" in text
+    if "key=avby%2F" in text or "key=avby/" in text:
+        return True
+    return (
+        text.startswith("/media/object?key=avby%")
+        or text.startswith("/media/object?key=avby/")
+        or text.startswith("/media/autoplius?key=avby%")
+        or text.startswith("/media/autoplius?key=avby/")
+    )
 
 
 def _guess_ext_and_content_type(url: str, content_type_header: str | None) -> tuple[str, str]:
