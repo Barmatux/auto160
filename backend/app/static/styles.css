@@ -3372,6 +3372,8 @@ body.vin-enter-modal-open {
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
+  /* .users-table sets overflow:hidden which breaks sticky thead */
+  overflow: visible;
 }
 
 .admin-vin-table.admin-ratings-table th,
