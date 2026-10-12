@@ -202,7 +202,7 @@ def safe_bootstrap_admin(session_factory, engine) -> None:
     db = session_factory()
     try:
         ensure_admin_user(db)
-        if inspect(engine).has_table("car_listings"):
+        if settings.seed_mock_listings and inspect(engine).has_table("car_listings"):
             seed_mock_listings(db)
         if inspect(engine).has_table("catalog_items"):
             seed_catalog_from_csv(db)

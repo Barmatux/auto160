@@ -92,11 +92,15 @@ def build_autoplius_media_url(storage_key: str) -> str:
 
 @lru_cache(maxsize=1)
 def get_autoplius_s3_client():
-    endpoint = (settings.autoplius_s3_endpoint_url or "").strip() or None
+    """Client for listing media (`/media/autoplius`). Falls back to main S3_* if AUTOPLIUS_S3_* unset."""
     access = (settings.autoplius_s3_access_key or "").strip()
     secret = (settings.autoplius_s3_secret_key or "").strip()
     if not access or not secret:
-        raise RuntimeError("Autoplius S3 credentials are not configured")
+        # Same Yandex keys/bucket as catalog media — used for avby/ + europe listing photos.
+        if not (settings.s3_access_key or "").strip() or not (settings.s3_secret_key or "").strip():
+            raise RuntimeError("Autoplius S3 credentials are not configured")
+        return get_s3_client()
+    endpoint = (settings.autoplius_s3_endpoint_url or "").strip() or None
     return boto3.client(
         "s3",
         endpoint_url=endpoint,
@@ -108,6 +112,10 @@ def get_autoplius_s3_client():
 
 
 def autoplius_bucket() -> str:
+    access = (settings.autoplius_s3_access_key or "").strip()
+    secret = (settings.autoplius_s3_secret_key or "").strip()
+    if not access or not secret:
+        return (settings.s3_bucket or "auto160-media").strip()
     return (settings.autoplius_s3_bucket or "autoplius-media").strip()
 
 

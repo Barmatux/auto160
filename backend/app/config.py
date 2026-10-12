@@ -10,6 +10,8 @@ class Settings(BaseSettings):
     bootstrap_admin_login: str = "admin"
     bootstrap_admin_name: str = "Auto160 Admin"
     bootstrap_admin_password: str = "admin12345"
+    # Demo cards for empty local DB only. Keep false in production.
+    seed_mock_listings: bool = False
     catalog_seed_csv_path: str = "app/data/catalog_u160_audi_bmw_mini.csv"
     avby_accounts_json_path: str = "data/avby_service_accounts.json"
     s3_endpoint_url: str = "http://minio:9000"
