@@ -15,7 +15,7 @@ from __future__ import annotations
 import argparse
 import os
 import sys
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -39,10 +39,10 @@ from app.catalog_visibility import listing_generation_allowed_for_model
 from app.config import settings
 from app.db import SessionLocal
 from app.listing_archive_scope import (
-    build_catalog_generation_index,
+    generation_key,
     normalize_catalog_match_name as _normalize_name,
 )
-from app.listing_catalog_link import link_listing_to_catalog
+from app.listing_catalog_link import canonical_model_name, link_listing_to_catalog
 from app.listing_missing_byn import apply_import_byn_price_state
 from app.listing_source_time import apply_scrape_source_timestamps, detect_bulk_first_seen
 from app.models import AvbySyncRun, CarListing, CatalogItem, ListingStatus, User, UserRole
@@ -112,23 +112,56 @@ def _ensure_importer_user(db) -> User:
     return created
 
 
-def _collect_catalog_brand_models() -> dict[str, set[str]]:
+def _model_match_key(model: str | None) -> str:
+    """Normalize model so English '1 Series' and av.by '1 серия' share a key."""
+    return _normalize_name(canonical_model_name(model) or model)
+
+
+def _collect_visible_catalog_rows() -> list[CatalogItem]:
     from app.catalog_visibility import apply_visible_catalog_filter
 
     db = SessionLocal()
     try:
-        query = apply_visible_catalog_filter(db.query(CatalogItem))
-        rows = query.order_by(CatalogItem.make.asc(), CatalogItem.model.asc(), CatalogItem.id.desc()).all()
-        brand_to_models: dict[str, set[str]] = {}
-        for item in rows:
-            make = (item.make or "").strip()
-            model = (item.model or "").strip()
-            if not make or not model:
-                continue
-            brand_to_models.setdefault(_normalize_name(make), set()).add(_normalize_name(model))
-        return brand_to_models
+        return (
+            apply_visible_catalog_filter(db.query(CatalogItem))
+            .order_by(CatalogItem.make.asc(), CatalogItem.model.asc(), CatalogItem.id.desc())
+            .all()
+        )
     finally:
         db.close()
+
+
+def _collect_catalog_brand_models(rows: list[CatalogItem] | None = None) -> dict[str, set[str]]:
+    items = rows if rows is not None else _collect_visible_catalog_rows()
+    brand_to_models: dict[str, set[str]] = {}
+    for item in items:
+        make = (item.make or "").strip()
+        model = (item.model or "").strip()
+        if not make or not model:
+            continue
+        brand_to_models.setdefault(_normalize_name(make), set()).add(_model_match_key(model))
+    return brand_to_models
+
+
+def _build_generation_index(rows: list[CatalogItem]) -> dict[tuple[str, str], tuple[frozenset[str], bool]]:
+    index: dict[tuple[str, str], tuple[set[str], bool]] = {}
+    for item in rows:
+        make = (item.make or "").strip()
+        model = (item.model or "").strip()
+        if not make or not model:
+            continue
+        key = (_normalize_name(make), _model_match_key(model))
+        generations, allows_unrated = index.get(key, (set(), False))
+        gen = generation_key(item.generation)
+        if gen:
+            generations.add(gen)
+        else:
+            allows_unrated = True
+        index[key] = (generations, allows_unrated)
+    return {
+        key: (frozenset(gens), allows_unrated)
+        for key, (gens, allows_unrated) in index.items()
+    }
 
 
 def _is_in_catalog(brand_n: str, model_n: str, brand_to_models: dict[str, set[str]]) -> bool:
@@ -171,7 +204,7 @@ def _finish_sync_run(
 ) -> None:
     if run is None:
         return
-    run.finished_at = datetime.utcnow()
+    run.finished_at = datetime.now(UTC).replace(tzinfo=None)
     run.status = status
     run.models_count = models_count
     run.brands_count = brands_count
@@ -263,7 +296,7 @@ def _archive_non_catalog(brand_to_models: dict[str, set[str]], *, dry_run: bool)
             .all()
         )
         for listing in rows:
-            if _is_in_catalog(_normalize_name(listing.brand), _normalize_name(listing.model), brand_to_models):
+            if _is_in_catalog(_normalize_name(listing.brand), _model_match_key(listing.model), brand_to_models):
                 continue
             archived += 1
             if not dry_run:
@@ -293,7 +326,7 @@ def _archive_wrong_generation(
             .all()
         )
         for listing in rows:
-            key = (_normalize_name(listing.brand), _normalize_name(listing.model))
+            key = (_normalize_name(listing.brand), _model_match_key(listing.model))
             catalog_generations, catalog_allows_unrated = catalog_generation_index.get(
                 key,
                 (frozenset(), False),
@@ -339,7 +372,8 @@ def main() -> int:
     parser.add_argument("--vin-enrich-limit", type=int, default=20)
     args = parser.parse_args()
 
-    catalog_brand_models = _collect_catalog_brand_models()
+    catalog_rows = _collect_visible_catalog_rows()
+    catalog_brand_models = _collect_catalog_brand_models(catalog_rows)
     if not catalog_brand_models:
         print("No target models found in catalog_items.")
         return 1
@@ -369,7 +403,7 @@ def main() -> int:
         seller = _ensure_importer_user(db)
         run = _start_sync_run(db, trigger=args.trigger, max_hp=args.max_hp, dry_run=args.dry_run)
         existing_map = _load_existing_avby_map(db)
-        catalog_generation_index = build_catalog_generation_index(db)
+        catalog_generation_index = _build_generation_index(catalog_rows)
         rating_one_targets = build_rating_one_targets(db) if args.vin_enrich_limit != 0 else set()
 
         for row in rows:
@@ -399,7 +433,7 @@ def main() -> int:
                 continue
 
             brand_n = _normalize_name(mapped.brand)
-            model_n = _normalize_name(mapped.model)
+            model_n = _model_match_key(mapped.model)
             if not _is_in_catalog(brand_n, model_n, catalog_brand_models):
                 skipped += 1
                 skipped_by_catalog += 1
