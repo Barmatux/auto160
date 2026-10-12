@@ -267,11 +267,18 @@ def _apply_mapped(
     listing.organization_id = mapped.organization_id
     listing.vin_indicated = bool(mapped.vin_indicated)
     listing.description = mapped.description or ""
+    price_byn = float(mapped.price_byn) if mapped.price_byn is not None else None
     apply_import_byn_price_state(
         listing,
-        price_byn=float(mapped.price_byn) if mapped.price_byn is not None else None,
+        price_byn=price_byn,
         price_byn_missing=mapped.price_byn_missing,
     )
+    # apply_import_byn_price_state only auto-publishes when leaving price_byn_missing=True;
+    # new rows default to False, so set status explicitly (same as auto24/autoplius importers).
+    if mapped.price_byn_missing or price_byn is None:
+        listing.status = ListingStatus.draft
+    elif listing.status != ListingStatus.archived:
+        listing.status = ListingStatus.published
     if mapped.avby_published_at is not None:
         listing.avby_published_at = mapped.avby_published_at
     if mapped.avby_renewed_at is not None:
