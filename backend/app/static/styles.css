@@ -979,6 +979,48 @@ body.theme-admin.theme-admin-light .header-theme-toggle:focus-visible {
   font-size: 14px;
 }
 
+.admin-vin-check-price-range {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 14px;
+  color: #334155;
+  white-space: nowrap;
+}
+
+.admin-vin-check-price-label {
+  font-weight: 500;
+}
+
+.admin-vin-check-price-sep {
+  color: #94a3b8;
+}
+
+.admin-vin-check-price-field {
+  display: inline-flex;
+  margin: 0;
+}
+
+.admin-vin-check-price-field input {
+  width: 96px;
+  min-height: 34px;
+  padding: 4px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #fff;
+  color: #0f172a;
+  font: inherit;
+  font-size: 14px;
+  -moz-appearance: textfield;
+}
+
+.admin-vin-check-price-field input::-webkit-outer-spin-button,
+.admin-vin-check-price-field input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
 .admin-vin-found-link {
   display: inline-block;
   margin-left: auto;

@@ -66,6 +66,8 @@ class VinCheckListingFilters:
     mileage_to_200k: bool = False
     brand: str | None = None
     model: str | None = None
+    price_from: int | None = None
+    price_to: int | None = None
     sort: str = "added"
 
 
@@ -108,6 +110,39 @@ def normalize_vin_check_sort(value: str | None) -> str:
     if cleaned in VIN_CHECK_SORT_VALUES:
         return cleaned
     return VIN_CHECK_SORT_ADDED
+
+
+def parse_vin_check_price(value: str | int | float | None) -> int | None:
+    """Parse a typed price filter (BYN). Empty / invalid → None."""
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value if value >= 0 else None
+    if isinstance(value, float):
+        if value != value or value < 0:  # NaN / negative
+            return None
+        return int(value)
+    cleaned = str(value).strip().replace(" ", "").replace("\u00a0", "").replace(",", ".")
+    if not cleaned:
+        return None
+    try:
+        number = float(cleaned)
+    except (TypeError, ValueError):
+        return None
+    if number < 0:
+        return None
+    return int(number)
+
+
+def normalize_vin_check_price_range(
+    price_from: int | None,
+    price_to: int | None,
+) -> tuple[int | None, int | None]:
+    if price_from is not None and price_to is not None and price_from > price_to:
+        return price_to, price_from
+    return price_from, price_to
 
 
 def _listing_created_at_sort_value(listing: CarListing) -> float:
@@ -1060,6 +1095,18 @@ def listing_matches_vin_check_filters(
             mileage_int = 0
         max_km = 100_000 if filters.mileage_to_100k else 200_000
         if mileage_int > max_km:
+            return False
+    if filters.price_from is not None or filters.price_to is not None:
+        raw_price = getattr(listing, "price", None)
+        if raw_price is None:
+            return False
+        try:
+            price_value = float(raw_price)
+        except (TypeError, ValueError):
+            return False
+        if filters.price_from is not None and price_value < filters.price_from:
+            return False
+        if filters.price_to is not None and price_value > filters.price_to:
             return False
     return True
 

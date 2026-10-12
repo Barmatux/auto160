@@ -103,8 +103,10 @@ from app.listing_enrichment import (
     count_rating_one_listings_with_vin,
     paginate_rating_one_listings_with_vin,
     listing_vin_check_was_launched,
+    normalize_vin_check_price_range,
     normalize_vin_check_sort,
     paginate_rating_one_listings,
+    parse_vin_check_price,
     VinCheckListingFilters,
     VinFoundDateFilter,
     VinFoundImportFilter,
@@ -4134,6 +4136,10 @@ def _build_admin_vin_check_url(
             params["km100"] = "1"
         elif filters.mileage_to_200k:
             params["km200"] = "1"
+        if filters.price_from is not None:
+            params["price_from"] = filters.price_from
+        if filters.price_to is not None:
+            params["price_to"] = filters.price_to
         sort = normalize_vin_check_sort(filters.sort)
         if sort != VIN_CHECK_SORT_ADDED:
             params["sort"] = sort
@@ -4153,6 +4159,8 @@ def admin_vin_check_page(
     from2020: str | None = Query(default=None),
     km100: str | None = Query(default=None),
     km200: str | None = Query(default=None),
+    price_from: str | None = Query(default=None),
+    price_to: str | None = Query(default=None),
     sort: str | None = Query(default=None),
     db: Session = Depends(get_db),
 ):
@@ -4175,6 +4183,11 @@ def admin_vin_check_page(
     if mileage_to_100k:
         mileage_to_200k = False
 
+    parsed_price_from, parsed_price_to = normalize_vin_check_price_range(
+        parse_vin_check_price(price_from),
+        parse_vin_check_price(price_to),
+    )
+
     vin_check_filters = VinCheckListingFilters(
         only_automatic=_parse_vin_check_bool_param(auto),
         only_diesel=_parse_vin_check_bool_param(diesel),
@@ -4183,6 +4196,8 @@ def admin_vin_check_page(
         mileage_to_200k=mileage_to_200k,
         brand=brand_value,
         model=model_value,
+        price_from=parsed_price_from,
+        price_to=parsed_price_to,
         sort=normalize_vin_check_sort(sort),
     )
     page_size = LISTINGS_PAGE_SIZE

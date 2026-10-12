@@ -217,6 +217,45 @@ def test_listing_matches_vin_check_filters():
         mid_mileage,
         VinCheckListingFilters(mileage_to_100k=True, mileage_to_200k=True),
     ) is False
+    priced = SimpleNamespace(
+        transmission_type="Автомат",
+        engine_type="бензин",
+        year=2018,
+        brand="BMW",
+        model="X1",
+        price=25000,
+    )
+    assert listing_matches_vin_check_filters(priced, VinCheckListingFilters(price_from=20000)) is True
+    assert listing_matches_vin_check_filters(priced, VinCheckListingFilters(price_from=30000)) is False
+    assert listing_matches_vin_check_filters(priced, VinCheckListingFilters(price_to=30000)) is True
+    assert listing_matches_vin_check_filters(priced, VinCheckListingFilters(price_to=20000)) is False
+    assert listing_matches_vin_check_filters(
+        priced,
+        VinCheckListingFilters(price_from=20000, price_to=30000),
+    ) is True
+    assert listing_matches_vin_check_filters(
+        SimpleNamespace(
+            transmission_type="Автомат",
+            engine_type="бензин",
+            year=2018,
+            brand="BMW",
+            model="X1",
+            price=None,
+        ),
+        VinCheckListingFilters(price_from=1),
+    ) is False
+
+
+def test_parse_vin_check_price_range():
+    from app.listing_enrichment import normalize_vin_check_price_range, parse_vin_check_price
+
+    assert parse_vin_check_price(None) is None
+    assert parse_vin_check_price("") is None
+    assert parse_vin_check_price(" 12 500 ") == 12500
+    assert parse_vin_check_price("12500.9") == 12500
+    assert parse_vin_check_price("-1") is None
+    assert normalize_vin_check_price_range(30000, 20000) == (20000, 30000)
+    assert normalize_vin_check_price_range(10000, None) == (10000, None)
 
 
 def test_normalize_vin_check_sort():

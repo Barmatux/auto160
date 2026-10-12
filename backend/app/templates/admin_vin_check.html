@@ -87,6 +87,36 @@
             />
             пробег до 200т.км.
           </label>
+          <div class="admin-vin-check-price-range" role="group" aria-label="Цена, BYN">
+            <span class="admin-vin-check-price-label">Цена</span>
+            <label class="admin-vin-check-price-field">
+              <span class="visually-hidden">Цена от</span>
+              <input
+                type="number"
+                name="price_from"
+                inputmode="numeric"
+                min="0"
+                step="1"
+                placeholder="от"
+                data-vin-check-price
+                value="{{ vin_check_filters.price_from if vin_check_filters.price_from is not none else '' }}"
+              />
+            </label>
+            <span class="admin-vin-check-price-sep" aria-hidden="true">–</span>
+            <label class="admin-vin-check-price-field">
+              <span class="visually-hidden">Цена до</span>
+              <input
+                type="number"
+                name="price_to"
+                inputmode="numeric"
+                min="0"
+                step="1"
+                placeholder="до"
+                data-vin-check-price
+                value="{{ vin_check_filters.price_to if vin_check_filters.price_to is not none else '' }}"
+              />
+            </label>
+          </div>
           <label class="admin-vin-check-sort-field">
             <span>Сортировка</span>
             <select name="sort" data-vin-check-sort onchange="this.form.submit()">
@@ -175,6 +205,16 @@
       }
       form.submit();
     });
+  });
+
+  form.querySelectorAll("[data-vin-check-price]").forEach((input) => {
+    input.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        form.submit();
+      }
+    });
+    input.addEventListener("change", () => form.submit());
   });
 })();
 </script>
