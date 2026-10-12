@@ -38,10 +38,8 @@ from app.body_type_labels import is_hidden_body_type
 from app.catalog_visibility import listing_generation_allowed_for_model
 from app.config import settings
 from app.db import SessionLocal
-from app.listing_archive_scope import (
-    generation_key,
-    normalize_catalog_match_name as _normalize_name,
-)
+from app.catalog_ratings import generation_key
+from app.listing_archive_scope import normalize_catalog_match_name as _normalize_name
 from app.listing_catalog_link import canonical_model_name, link_listing_to_catalog
 from app.listing_missing_byn import apply_import_byn_price_state
 from app.listing_source_time import apply_scrape_source_timestamps, detect_bulk_first_seen
