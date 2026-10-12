@@ -745,16 +745,16 @@ def _listing_ids_for_catalog_item(db: Session, item: CatalogItem, *, published_o
     return [row.id for row in listings]
 
 
-def _catalog_filter_option_items_query(db: Session):
-    """Same visibility + ≤160 hp scope as public catalog pages."""
+def _catalog_filter_option_items_query(db: Session, *, include_hidden: bool = False):
+    """Same visibility + ≤160 hp scope as public catalog pages (admins may include hidden)."""
     query = db.query(CatalogItem).filter(CatalogItem.source_site == "av.by")
-    query = apply_visible_catalog_filter(query)
+    query = apply_visible_catalog_filter(query, include_hidden=include_hidden)
     return _apply_max_hp_filter(query)
 
 
-def _make_model_map(db: Session) -> dict[str, list[str]]:
+def _make_model_map(db: Session, *, include_hidden: bool = False) -> dict[str, list[str]]:
     rows = (
-        _catalog_filter_option_items_query(db)
+        _catalog_filter_option_items_query(db, include_hidden=include_hidden)
         .with_entities(CatalogItem.make, CatalogItem.model)
         .filter(
             CatalogItem.make.isnot(None),
@@ -774,9 +774,9 @@ def _make_model_map(db: Session) -> dict[str, list[str]]:
     return mapping
 
 
-def _make_model_generation_map(db: Session) -> dict[str, dict[str, list[str]]]:
+def _make_model_generation_map(db: Session, *, include_hidden: bool = False) -> dict[str, dict[str, list[str]]]:
     rows = (
-        _catalog_filter_option_items_query(db)
+        _catalog_filter_option_items_query(db, include_hidden=include_hidden)
         .with_entities(CatalogItem.make, CatalogItem.model, CatalogItem.generation)
         .filter(
             CatalogItem.make.isnot(None),
@@ -1533,8 +1533,9 @@ def _catalog_sidebar_payload(request: Request, db: Session, current_user=None) -
     model = _canonical_model_name(query.get("model") or "")
     generation = (query.get("generation") or "").strip()
     vehicle_rows = _parse_vehicle_filter_rows(query, make_key="make", model_key="model", generation_key="generation")
-    make_model_map = _make_model_map(db)
-    make_model_generation_map = _make_model_generation_map(db)
+    include_hidden = _is_admin_user(current_user)
+    make_model_map = _make_model_map(db, include_hidden=include_hidden)
+    make_model_generation_map = _make_model_generation_map(db, include_hidden=include_hidden)
     model_options = make_model_map.get(make, []) if make else []
     generation_options = make_model_generation_map.get(make, {}).get(model, []) if make and model else []
     body_type_raw = _catalog_body_type_values(db)
@@ -1702,8 +1703,9 @@ def _home_catalog_quick_links() -> list[dict[str, str]]:
 
 def _catalog_items_base_query(db: Session, request: Request, current_user=None) -> tuple:
     filter_kwargs, exact_hp, with_listings = _parse_catalog_sidebar_filter_kwargs(request, current_user)
+    include_hidden = _is_admin_user(current_user)
     query = db.query(CatalogItem).filter(CatalogItem.source_site == "av.by")
-    query = apply_visible_catalog_filter(query)
+    query = apply_visible_catalog_filter(query, include_hidden=include_hidden)
     query = _apply_hp_filter(query, exact_hp=exact_hp)
     query = _apply_catalog_item_filters(query, db=db, **filter_kwargs)
     return query, exact_hp, with_listings
@@ -1851,15 +1853,15 @@ def _admin_page_redirect(current_user) -> RedirectResponse | None:
     return None
 
 
-def _catalog_beta_base_query(db: Session):
+def _catalog_beta_base_query(db: Session, *, include_hidden: bool = False):
     query = db.query(CatalogItem).filter(CatalogItem.source_site == "av.by")
-    query = apply_visible_catalog_filter(query)
+    query = apply_visible_catalog_filter(query, include_hidden=include_hidden)
     return _apply_hp_filter(query, exact_hp=False)
 
 
-def _load_catalog_makes(db: Session) -> list[dict]:
+def _load_catalog_makes(db: Session, *, include_hidden: bool = False) -> list[dict]:
     rows = (
-        _catalog_beta_base_query(db)
+        _catalog_beta_base_query(db, include_hidden=include_hidden)
         .filter(CatalogItem.make.isnot(None))
         .order_by(CatalogItem.make.asc(), CatalogItem.created_at.desc())
         .all()
@@ -1878,8 +1880,8 @@ def _load_catalog_makes(db: Session) -> list[dict]:
     return makes
 
 
-def _load_catalog_beta_models(db: Session, selected_makes: list[str]) -> list[dict]:
-    query = _catalog_beta_base_query(db).filter(CatalogItem.model.isnot(None))
+def _load_catalog_beta_models(db: Session, selected_makes: list[str], *, include_hidden: bool = False) -> list[dict]:
+    query = _catalog_beta_base_query(db, include_hidden=include_hidden).filter(CatalogItem.model.isnot(None))
     if selected_makes:
         query = query.filter(CatalogItem.make.in_(selected_makes))
     rows = query.order_by(CatalogItem.make.asc(), CatalogItem.model.asc(), CatalogItem.created_at.desc()).all()
@@ -3573,15 +3575,16 @@ def catalog_modifications(
 def catalog_item_detail(request: Request, item_id: int, db: Session = Depends(get_db)):
     current_user = _resolve_user_from_request(request, db)
     item = db.query(CatalogItem).filter(CatalogItem.id == item_id).first()
+    hide_from_public = bool(item and item.hidden_from_catalog and not _is_admin_user(current_user))
     if (
         not item
         or (item.engine_power_hp is not None and item.engine_power_hp > 160)
         or is_hidden_body_type(item.body_type)
-        or item.hidden_from_catalog
+        or hide_from_public
     ):
         context = _template_context(
             request,
-            _resolve_user_from_request(request, db),
+            current_user,
             SeoMeta(
                 title="Комплектация не найдена — Auto160",
                 description="Позиция каталога не найдена или не подходит под фильтр до 160 л.с.",
@@ -3661,10 +3664,13 @@ def catalog_compare(
 
     found_items = db.query(CatalogItem).filter(CatalogItem.id.in_(unique_ids)).all()
     by_id = {item.id: item for item in found_items}
+    include_hidden = _is_admin_user(current_user)
     items = [
         by_id[item_id]
         for item_id in unique_ids
-        if item_id in by_id and (by_id[item_id].engine_power_hp is None or by_id[item_id].engine_power_hp <= 160)
+        if item_id in by_id
+        and (by_id[item_id].engine_power_hp is None or by_id[item_id].engine_power_hp <= 160)
+        and (include_hidden or not by_id[item_id].hidden_from_catalog)
     ]
 
     compare_maps = [_build_compare_value_map(item, db) for item in items]
@@ -3761,7 +3767,7 @@ def catalog_beta_makes(request: Request, db: Session = Depends(get_db)):
     if redirect:
         return redirect
 
-    makes = _load_catalog_makes(db)
+    makes = _load_catalog_makes(db, include_hidden=True)
     context = _template_context(
         request,
         current_user,
@@ -3785,7 +3791,7 @@ def catalog_beta_models(request: Request, db: Session = Depends(get_db)):
         return redirect
 
     selected_makes = [make.strip() for make in request.query_params.getlist("make") if make.strip()]
-    models = _load_catalog_beta_models(db, selected_makes)
+    models = _load_catalog_beta_models(db, selected_makes, include_hidden=True)
     for model_row in models:
         model_row["step_url"] = _catalog_beta_step_url(3, selected_makes, model=model_row["model"])
 

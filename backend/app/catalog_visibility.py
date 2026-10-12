@@ -18,7 +18,10 @@ class GenerationVisibilityResult:
     archived_listings: int
 
 
-def apply_visible_catalog_filter(query):
+def apply_visible_catalog_filter(query, *, include_hidden: bool = False):
+    """Public catalog: only non-hidden rows. Admins may pass include_hidden=True."""
+    if include_hidden:
+        return query
     return query.filter(CatalogItem.hidden_from_catalog.is_(False))
 
 
