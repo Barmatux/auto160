@@ -26,6 +26,18 @@ def test_parse_engine_from_title():
     assert hp == 97
 
 
+def test_parse_engine_cyrillic_kw_with_mid_token():
+    liters, hp = parse_engine_field("2.0 TDI 140кВ")
+    assert liters == 2.0
+    assert hp == 190  # round(140 * 1.35962)
+
+
+def test_parse_engine_cyrillic_kwt():
+    liters, hp = parse_engine_field("1.6 55кВт")
+    assert liters == 1.6
+    assert hp == 75
+
+
 def test_parse_registration_ym_formats():
     assert parse_registration_ym("2023-01") == "2023-01"
     assert parse_registration_ym("2023/1") == "2023-01"

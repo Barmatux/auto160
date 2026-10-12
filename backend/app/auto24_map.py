@@ -33,13 +33,17 @@ __all__ = [
 
 KW_TO_HP = 1.35962
 
-# "1.5 71kW", "2.0 173kW" — liters then kW (no unit on liters).
+# Auto24 RU UI writes power as Cyrillic "кВт" / truncated "кВ" instead of Latin "kW".
+_KW_UNIT = r"(?:k\s*w|к\s*в(?:\s*т)?)"
+# "1.5 71kW", "2.0 TDI 140кВ" — liters, optional tokens (TDI/…), then kW.
 _ENGINE_L_KW_RE = re.compile(
-    r"(?P<liters>\d+(?:[.,]\d+)?)\s+(?P<kw>\d+)\s*k\s*w\b",
+    rf"(?P<liters>\d+(?:[.,]\d+)?)\s+(?:[^\d\s]+(?:\s+[^\d\s]+)*)?\s*(?P<kw>\d+)\s*{_KW_UNIT}\b",
     re.IGNORECASE,
 )
-# Bare "71kW" / "110 kW" (EVs etc.) — no liters.
-_ENGINE_KW_ONLY_RE = re.compile(r"(?<![\d.,])(?P<kw>\d+)\s*k\s*w\b", re.IGNORECASE)
+# Bare "71kW" / "110 кВт" (EVs etc.) — no liters.
+_ENGINE_KW_ONLY_RE = re.compile(rf"(?<![\d.,])(?P<kw>\d+)\s*{_KW_UNIT}\b", re.IGNORECASE)
+_DISPLACEMENT_L_RE = re.compile(r"(?P<liters>\d+(?:[.,]\d+)?)\s*л\b", re.IGNORECASE)
+_DISPLACEMENT_CC_RE = re.compile(r"(?P<cc>\d{3,4})\s*(?:см|cm)\s*[³3]?", re.IGNORECASE)
 
 FUEL_MAP = {
     "bensiin": "Бензин",
@@ -177,6 +181,37 @@ def parse_engine_field(*texts: str | None) -> tuple[float | None, int | None]:
             if 1 <= hp <= 2000:
                 return None, hp
     return None, None
+
+
+def parse_displacement_liters(*texts: str | None) -> float | None:
+    """Parse liters from Auto24 ``engine_displacement`` like ``2.0 л`` / ``1997 см³``."""
+    for text in texts:
+        if not text:
+            continue
+        cleaned = str(text).strip()
+        if not cleaned:
+            continue
+        match = _DISPLACEMENT_L_RE.search(cleaned)
+        if match:
+            liters = float(match.group("liters").replace(",", "."))
+            if 0.5 <= liters <= 10:
+                return liters
+        match = _DISPLACEMENT_CC_RE.search(cleaned)
+        if match:
+            liters = round(int(match.group("cc")) / 1000.0, 3)
+            if 0.5 <= liters <= 10:
+                return liters
+    return None
+
+
+def _displacement_texts(row: dict[str, Any]) -> list[str]:
+    texts: list[str] = []
+    for params in _param_maps(row):
+        for key in ("engine_displacement", "displacement", "engine_capacity"):
+            value = params.get(key)
+            if value is not None and str(value).strip():
+                texts.append(str(value).strip())
+    return texts
 
 
 def _brand_model(row: dict[str, Any]) -> tuple[str | None, str | None]:
@@ -459,6 +494,8 @@ def map_auto24_row(
             engine_l = float(row["engine_liters"])
         except (TypeError, ValueError):
             engine_l = None
+    if engine_l is None:
+        engine_l = parse_displacement_liters(*_displacement_texts(row))
 
     # Prefer uploaded S3 keys from scrape-platform; CDN only if keys are absent.
     photo_urls_raw = row.get("photo_urls") or []
