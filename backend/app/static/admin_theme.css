@@ -357,7 +357,7 @@ body.theme-admin thead th {
   border-color: var(--border);
 }
 
-body.theme-admin .admin-vin-table.admin-ratings-table th {
+body.theme-admin .admin-vin-table.admin-ratings-table thead th {
   background: #121821;
   color: #d7dee9;
   box-shadow: 0 1px 0 var(--border);
@@ -371,7 +371,7 @@ body.theme-admin .admin-vin-table.admin-ratings-table tbody tr:nth-child(even) t
   background: var(--surface-soft);
 }
 
-body.theme-admin.theme-admin-light .admin-vin-table.admin-ratings-table th {
+body.theme-admin.theme-admin-light .admin-vin-table.admin-ratings-table thead th {
   background: #e8eef8;
   color: #334155;
 }

@@ -53,8 +53,7 @@
 </form>
 
 <section class="admin-vin-table-wrap admin-ratings-table-wrap">
-  <div class="admin-ratings-table-scroll">
-  <table class="users-table admin-vin-table admin-ratings-table">
+  <table class="users-table admin-vin-table admin-ratings-table" data-admin-ratings-table>
     <thead>
       <tr>
         <th>Марка</th>
@@ -180,7 +179,6 @@
       {% endfor %}
     </tbody>
   </table>
-  </div>
 </section>
 
 {% if rating_total_pages > 1 %}
@@ -197,6 +195,24 @@
 
 {% include "partials/auth_script.html" %}
 <script>
+  (function syncAdminRatingsStickyTop() {
+    const root = document.documentElement;
+    const header = document.querySelector(".header");
+    const table = document.querySelector("[data-admin-ratings-table]");
+    if (!header || !table) return;
+
+    function apply() {
+      const top = Math.ceil(header.getBoundingClientRect().height);
+      root.style.setProperty("--admin-ratings-sticky-top", top + "px");
+    }
+
+    apply();
+    window.addEventListener("resize", apply);
+    if (typeof ResizeObserver !== "undefined") {
+      new ResizeObserver(apply).observe(header);
+    }
+  })();
+
   async function adminFetch(url, options = {}) {
     let token = getCookie("access_token");
     if (!token) {

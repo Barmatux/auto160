@@ -3337,15 +3337,10 @@ body.vin-enter-modal-open {
   box-shadow: var(--shadow);
 }
 
-.admin-ratings-table-wrap {
-  overflow: hidden;
+/* Must stay overflow:visible so page-level sticky thead works. */
+.admin-vin-table-wrap.admin-ratings-table-wrap {
+  overflow: visible;
   padding: 0;
-}
-
-.admin-ratings-table-scroll {
-  max-height: calc(100vh - 240px);
-  overflow: auto;
-  overscroll-behavior: contain;
 }
 
 .admin-vin-table {
@@ -3394,13 +3389,14 @@ body.vin-enter-modal-open {
   background: rgba(15, 23, 42, 0.02);
 }
 
-.admin-vin-table.admin-ratings-table th {
+/* Column labels: stick under the site header while the page scrolls. */
+.admin-vin-table.admin-ratings-table thead th {
   white-space: normal;
   line-height: 1.2;
   vertical-align: middle;
   position: sticky;
-  top: 0;
-  z-index: 3;
+  top: var(--admin-ratings-sticky-top, 88px);
+  z-index: 5;
   background: #e8eef8;
   color: #334155;
   box-shadow: 0 1px 0 var(--border);
