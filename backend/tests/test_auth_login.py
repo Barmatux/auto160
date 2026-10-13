@@ -8,14 +8,18 @@ import pytest
 from fastapi import HTTPException
 
 from app.routers.auth import (
+    EMAIL_ALREADY_UNVERIFIED_DETAIL,
+    EMAIL_ALREADY_VERIFIED_DETAIL,
     UNVERIFIED_DETAIL,
     _find_user_by_login,
     _hash_verify_token,
     _require_verified,
     _token_expired,
     login,
+    register,
     verify_email,
 )
+from app.schemas import RegisterRequest
 from app.schemas import LoginRequest
 
 
@@ -65,6 +69,50 @@ def test_token_expired_uses_sent_at():
     assert _token_expired(user) is False
     user.email_verify_sent_at = None
     assert _token_expired(user) is True
+
+
+def test_register_rejects_existing_verified_email_with_ru_message():
+    db = MagicMock()
+    existing = SimpleNamespace(email="user@example.com", email_verified_at=datetime.utcnow())
+    query = MagicMock()
+    query.filter.return_value.first.return_value = existing
+    db.query.return_value = query
+
+    with pytest.raises(HTTPException) as exc:
+        register(
+            RegisterRequest(
+                email="User@Example.com",
+                name="Test User",
+                password="secret1",
+                password_confirm="secret1",
+            ),
+            request=MagicMock(),
+            db=db,
+        )
+    assert exc.value.status_code == 400
+    assert exc.value.detail == EMAIL_ALREADY_VERIFIED_DETAIL
+
+
+def test_register_rejects_existing_unverified_email_with_ru_message():
+    db = MagicMock()
+    existing = SimpleNamespace(email="user@example.com", email_verified_at=None)
+    query = MagicMock()
+    query.filter.return_value.first.return_value = existing
+    db.query.return_value = query
+
+    with pytest.raises(HTTPException) as exc:
+        register(
+            RegisterRequest(
+                email="user@example.com",
+                name="Test User",
+                password="secret1",
+                password_confirm="secret1",
+            ),
+            request=MagicMock(),
+            db=db,
+        )
+    assert exc.value.status_code == 400
+    assert exc.value.detail == EMAIL_ALREADY_UNVERIFIED_DETAIL
 
 
 def test_require_verified_blocks_unverified():

@@ -20,21 +20,36 @@
 </div>
 
 <p id="form-error" class="hint" hidden role="alert"></p>
+<p id="form-error-actions" class="hint" hidden>
+  <a href="/login">Перейти ко входу</a>
+  <button type="button" class="btn-secondary" id="error-resend-btn" onclick="resendVerification()">Отправить письмо ещё раз</button>
+</p>
 
 {% include "partials/auth_script.html" %}
 <script>
   let lastEmail = "";
 
-  function showError(text) {
+  function hideErrorActions() {
+    const actions = document.getElementById("form-error-actions");
+    actions.hidden = true;
+    document.getElementById("error-resend-btn").hidden = true;
+  }
+
+  function showError(text, { showLogin = false, showResend = false } = {}) {
     const el = document.getElementById("form-error");
     el.textContent = text;
     el.hidden = false;
+    const actions = document.getElementById("form-error-actions");
+    const resendBtn = document.getElementById("error-resend-btn");
+    actions.hidden = !(showLogin || showResend);
+    resendBtn.hidden = !showResend;
   }
 
   async function registerByApi() {
     const errorEl = document.getElementById("form-error");
     errorEl.hidden = true;
     errorEl.textContent = "";
+    hideErrorActions();
 
     const password = document.getElementById("password").value;
     const passwordConfirm = document.getElementById("password_confirm").value;
@@ -62,7 +77,10 @@
       if (Array.isArray(detail)) {
         detail = detail.map((item) => item.msg || JSON.stringify(item)).join("; ");
       }
-      showError(detail);
+      const text = String(detail);
+      const unverified = text.includes("не подтвержд");
+      const exists = text.includes("уже использует") || text.includes("уже зарегистрирован");
+      showError(text, { showLogin: exists, showResend: unverified });
       return;
     }
 

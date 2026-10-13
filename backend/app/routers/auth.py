@@ -46,6 +46,16 @@ _RESEND_WINDOW = 3600.0
 _resend_lock = Lock()
 _resend_buckets: dict[str, deque[float]] = defaultdict(deque)
 
+EMAIL_ALREADY_VERIFIED_DETAIL = (
+    "Этот email уже используется — аккаунт с таким адресом уже есть. "
+    "Войдите на странице «Вход» с этим email (или логином) и паролем."
+)
+EMAIL_ALREADY_UNVERIFIED_DETAIL = (
+    "Этот email уже зарегистрирован, но ещё не подтверждён. "
+    "Проверьте письмо со ссылкой (в том числе папку «Спам») "
+    "или нажмите «Отправить ещё раз» на этой странице / на странице входа."
+)
+
 UNVERIFIED_DETAIL = (
     "Подтвердите email: мы отправили письмо со ссылкой. "
     "Если письма нет — запросите повторную отправку."
@@ -140,13 +150,19 @@ def register(payload: RegisterRequest, request: Request, db: Session = Depends(g
     if payload.role == UserRole.admin:
         raise HTTPException(status_code=403, detail="Admin registration is not allowed")
 
-    existing = db.query(User).filter(User.email == payload.email).first()
+    email_normalized = str(payload.email).strip().lower()
+    existing = db.query(User).filter(func.lower(User.email) == email_normalized).first()
     if existing:
-        raise HTTPException(status_code=400, detail="Email already registered")
+        detail = (
+            EMAIL_ALREADY_VERIFIED_DETAIL
+            if existing.email_verified_at is not None
+            else EMAIL_ALREADY_UNVERIFIED_DETAIL
+        )
+        raise HTTPException(status_code=400, detail=detail)
 
     user = User(
-        username=_generate_unique_username(db, payload.email),
-        email=str(payload.email).strip().lower(),
+        username=_generate_unique_username(db, email_normalized),
+        email=email_normalized,
         name=payload.name,
         role=payload.role,
         password_hash=hash_password(payload.password),
