@@ -922,6 +922,49 @@ body.theme-admin.theme-admin-light .header-theme-toggle:focus-visible {
   margin-top: 10px;
 }
 
+.admin-manual-vin-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 10px 12px;
+  margin-top: 14px;
+  max-width: 960px;
+}
+
+.admin-manual-vin-url-field {
+  flex: 1 1 280px;
+  margin: 0;
+  min-width: 0;
+}
+
+.admin-manual-vin-url-field input {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 42px;
+  padding: 8px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #fff;
+  color: #0f172a;
+  font: inherit;
+  font-size: 15px;
+}
+
+.admin-manual-vin-form .btn {
+  flex: 0 0 auto;
+  min-height: 42px;
+  white-space: nowrap;
+}
+
+.admin-manual-vin-status,
+.admin-manual-vin-error {
+  margin: 10px 0 0;
+}
+
+.header-vin-check-dropdown .header-vin-check-link {
+  font: inherit;
+}
+
 .admin-vin-check-filters {
   display: flex;
   flex-wrap: wrap;

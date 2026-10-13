@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% block title %}Ручная проверка — Auto160{% endblock %}
+{% block content %}
+<div class="catalog-page admin-vin-check-page admin-vin-check-manual-page" data-admin-vin-check-manual-page>
+  <section class="catalog-main admin-vin-check-main">
+    <div class="catalog-main-head">
+      <h1>Ручная проверка</h1>
+      <p class="hint">Вставьте ссылку на объявление или поиск av.by — извлечём VIN и проверим дату ввоза на сайте таможни. Для поиска проверка идёт по всем объявлениям текущей страницы, от новых к старым.</p>
+
+      <form class="admin-manual-vin-form" data-manual-vin-form>
+        <label class="admin-manual-vin-url-field">
+          <span class="visually-hidden">Ссылка av.by</span>
+          <input
+            type="url"
+            name="url"
+            inputmode="url"
+            autocomplete="off"
+            spellcheck="false"
+            placeholder="https://cars.av.by/…"
+            data-manual-vin-url
+            required
+          />
+        </label>
+        <button type="submit" class="btn" data-manual-vin-submit>Запуск проверки</button>
+      </form>
+      <p class="admin-manual-vin-status hint" data-manual-vin-status hidden></p>
+      <p class="admin-manual-vin-error sync-error" data-manual-vin-error hidden></p>
+    </div>
+
+    {% if listings %}
+      <div class="catalog listings-feed admin-vin-check-feed">
+        {% for listing in listings %}
+          {% include "partials/listing_vin_check_card.html" %}
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="hint">Пока нет запусков ручной проверки.</p>
+    {% endif %}
+
+    <div class="pager">
+      <div class="pager-nav pager-nav-prev">
+        {% if has_prev %}
+          <a class="page-link" href="{{ prev_url }}">← Назад</a>
+        {% else %}
+          <span class="page-link disabled">← Назад</span>
+        {% endif %}
+      </div>
+      <p class="pager-summary hint">Найдено объявлений: {{ total }} · Страница {{ page }} из {{ total_pages }}</p>
+      <div class="pager-nav pager-nav-next">
+        {% if has_next %}
+          <a class="page-link" href="{{ next_url }}">Вперед →</a>
+        {% else %}
+          <span class="page-link disabled">Вперед →</span>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+</div>
+<div class="listing-description-backdrop" data-description-backdrop hidden></div>
+{% include "partials/listing_vin_check_script.html" %}
+<script>
+(function () {
+  const form = document.querySelector("[data-manual-vin-form]");
+  if (!form) return;
+  const urlInput = form.querySelector("[data-manual-vin-url]");
+  const submitBtn = form.querySelector("[data-manual-vin-submit]");
+  const statusEl = document.querySelector("[data-manual-vin-status]");
+  const errorEl = document.querySelector("[data-manual-vin-error]");
+
+  function setStatus(text) {
+    if (!statusEl) return;
+    if (!text) {
+      statusEl.hidden = true;
+      statusEl.textContent = "";
+      return;
+    }
+    statusEl.hidden = false;
+    statusEl.textContent = text;
+  }
+
+  function setError(text) {
+    if (!errorEl) return;
+    if (!text) {
+      errorEl.hidden = true;
+      errorEl.textContent = "";
+      return;
+    }
+    errorEl.hidden = false;
+    errorEl.textContent = text;
+  }
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const url = (urlInput?.value || "").trim();
+    if (!url) {
+      setError("Введите ссылку av.by");
+      return;
+    }
+    setError("");
+    submitBtn.disabled = true;
+    setStatus("Загрузка объявлений с av.by…");
+
+    try {
+      const ingestResponse = await adminFetch("/api/v1/admin/vin-check/manual/run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url }),
+      });
+      if (!ingestResponse) return;
+      const ingestPayload = await ingestResponse.json().catch(() => ({}));
+      if (!ingestResponse.ok) {
+        const detail = ingestPayload.detail;
+        setError(typeof detail === "string" ? detail : "Не удалось запустить проверку");
+        setStatus("");
+        return;
+      }
+      if (ingestPayload.error && !(ingestPayload.listing_ids || []).length) {
+        setError(ingestPayload.error);
+        setStatus("");
+        return;
+      }
+
+      const listingIds = ingestPayload.listing_ids || [];
+      const total = listingIds.length;
+      if (!total) {
+        setError(ingestPayload.error || "Объявления не найдены");
+        setStatus("");
+        return;
+      }
+
+      for (let index = 0; index < listingIds.length; index += 1) {
+        const listingId = listingIds[index];
+        setStatus(`VIN CHECK ${index + 1} из ${total}…`);
+        const checkResponse = await adminFetch(`/api/v1/admin/listings/${listingId}/vin-check`, {
+          method: "POST",
+        });
+        if (!checkResponse) return;
+        // Continue even if one listing fails — surface final reload with cards.
+        await checkResponse.json().catch(() => ({}));
+      }
+
+      setStatus("Готово, обновляем список…");
+      window.location.href = "/admin/vin-check/manual";
+    } catch (err) {
+      setError("Ошибка сети при запуске проверки");
+      setStatus("");
+    } finally {
+      submitBtn.disabled = false;
+    }
+  });
+})();
+</script>
+<script src="/static/listings_feed_gallery.js?v=20260924-02" defer></script>
+{% endblock %}

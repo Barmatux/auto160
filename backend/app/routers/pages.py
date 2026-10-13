@@ -114,6 +114,7 @@ from app.listing_enrichment import (
     VIN_CHECK_SORT_LABELS,
     VIN_FOUND_IMPORT_FILTER_LABELS,
 )
+from app.manual_vin_check import paginate_manual_vin_check_listings
 from app.listing_catalog_link import (
     canonical_model_name as _canonical_model_name,
     fetch_listings_for_catalog_items,
@@ -4249,6 +4250,50 @@ def admin_vin_check_page(
         _build_admin_vin_check_url(page=page + 1, filters=vin_check_filters) if context["has_next"] else None
     )
     return templates.TemplateResponse(request, "admin_vin_check.html", context)
+
+
+@router.get("/admin/vin-check/manual")
+def admin_vin_check_manual_page(
+    request: Request,
+    page: int = Query(default=1, ge=1),
+    db: Session = Depends(get_db),
+):
+    current_user = _resolve_user_from_request(request, db)
+    redirect = _admin_page_redirect(current_user)
+    if redirect:
+        return redirect
+
+    page_size = LISTINGS_PAGE_SIZE
+    listings, total = paginate_manual_vin_check_listings(db, page=page, page_size=page_size)
+    total_pages = max(1, (total + page_size - 1) // page_size)
+    if page > total_pages and total > 0:
+        page = total_pages
+        listings, total = paginate_manual_vin_check_listings(db, page=page, page_size=page_size)
+
+    context = _template_context(
+        request,
+        current_user,
+        SeoMeta(
+            title="Ручная проверка — Auto160",
+            description="Ручной запуск VIN CHECK по ссылке объявления или поиска av.by.",
+            path="/admin/vin-check/manual",
+            noindex=True,
+        ),
+    )
+    context["listings"] = listings
+    context["listing_gallery_urls"] = resolve_listing_gallery_urls_map(listings, limit=5)
+    context["listing_customs_map"] = build_listing_customs_map(db, listings) if listings else {}
+    context["listing_vin_check_launched"] = {
+        listing.id: listing_vin_check_was_launched(listing) for listing in listings
+    }
+    context["total"] = total
+    context["page"] = page
+    context["total_pages"] = total_pages
+    context["has_prev"] = page > 1
+    context["has_next"] = page < total_pages
+    context["prev_url"] = f"/admin/vin-check/manual?page={page - 1}" if context["has_prev"] else None
+    context["next_url"] = f"/admin/vin-check/manual?page={page + 1}" if context["has_next"] else None
+    return templates.TemplateResponse(request, "admin_vin_check_manual.html", context)
 
 
 @router.get("/admin/ratings")

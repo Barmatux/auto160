@@ -70,6 +70,8 @@ class CarListing(Base):
     vin_indicated: Mapped[bool | None] = mapped_column(nullable=True)
     vin: Mapped[str | None] = mapped_column(String(17), nullable=True, index=True)
     vin_fetched_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    # Set when admin launches «Ручная проверка» for this listing (history feed).
+    manual_vin_checked_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True, index=True)
     seller_name: Mapped[str | None] = mapped_column(String(120), nullable=True)
     organization_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     source_url: Mapped[str | None] = mapped_column(String(500), nullable=True)

@@ -19,6 +19,7 @@ from app.listing_enrichment import (
     perform_listing_vin_check,
     recheck_listing_customs_import_date,
 )
+from app.manual_vin_check import ManualVinCheckError, run_manual_vin_check_from_url
 from app.catalog_generation_years import apply_generation_years, sync_generation_years_from_sources
 from app.catalog_ratings import apply_generation_rating, format_production_years, generation_label
 from app.catalog_visibility import apply_generation_catalog_visibility
@@ -44,6 +45,9 @@ from app.schemas import (
     ListingManualVinRequest,
     ListingVinCheckResponse,
     ListingVinResponse,
+    ManualVinCheckRunRequest,
+    ManualVinCheckRunItem,
+    ManualVinCheckRunResponse,
     UserPublic,
     UserRoleUpdateRequest,
 )
@@ -450,6 +454,34 @@ def fetch_listing_vin_check(
         release_date=result.release_date,
         customs_found=result.customs_found,
         customs_error=result.customs_error,
+    )
+
+
+@router.post("/vin-check/manual/run", response_model=ManualVinCheckRunResponse)
+def run_manual_vin_check(
+    payload: ManualVinCheckRunRequest,
+    _: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Ingest av.by listing/search URL into DB; client then runs per-listing VIN CHECK."""
+    try:
+        result = run_manual_vin_check_from_url(db, payload.url, run_vin_checks=False)
+    except ManualVinCheckError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
+    return ManualVinCheckRunResponse(
+        kind=result.kind,
+        url=result.url,
+        advert_count=result.advert_count,
+        listing_ids=[item.listing_id for item in result.items],
+        items=[
+            ManualVinCheckRunItem(
+                listing_id=item.listing_id,
+                avby_id=item.avby_id,
+                created=item.created,
+            )
+            for item in result.items
+        ],
+        error=result.error,
     )
 
 

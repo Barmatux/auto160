@@ -264,6 +264,25 @@ class ListingManualVinRequest(BaseModel):
     vin: str
 
 
+class ManualVinCheckRunRequest(BaseModel):
+    url: str = Field(min_length=8, max_length=2000)
+
+
+class ManualVinCheckRunItem(BaseModel):
+    listing_id: int
+    avby_id: int | None = None
+    created: bool = False
+
+
+class ManualVinCheckRunResponse(BaseModel):
+    kind: str
+    url: str
+    advert_count: int
+    listing_ids: list[int]
+    items: list[ManualVinCheckRunItem]
+    error: str | None = None
+
+
 class ListingCustomsRecheckResponse(BaseModel):
     listing_id: int
     release_date: str | None = None

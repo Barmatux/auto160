@@ -98,8 +98,21 @@ body.theme-admin .header-nav .user-badge {
   border: 1px solid rgba(0, 226, 138, 0.28);
 }
 
-body.theme-admin .header-vin-check-link {
+body.theme-admin .header-vin-check-link,
+body.theme-admin .header-vin-check-dropdown .header-vin-check-link {
   color: #00e28a;
+}
+
+body.theme-admin .admin-manual-vin-url-field input {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(0, 168, 255, 0.28);
+  color: #e8eef8;
+}
+
+body.theme-admin.theme-admin-light .admin-manual-vin-url-field input {
+  background: #fff;
+  border-color: #cbd5e1;
+  color: #0f172a;
 }
 
 body.theme-admin .header-beta-link {

@@ -123,7 +123,19 @@
                 <a href="/admin/listings-without-byn">Без цены BYN</a>
               </div>
             </div>
-            <a href="/admin/vin-check" class="header-vin-check-link">VIN CHECK</a>
+            <div class="header-nav-dropdown header-vin-check-dropdown" data-header-dropdown>
+              <button
+                type="button"
+                class="header-nav-dropdown-toggle header-vin-check-link"
+                data-header-dropdown-toggle
+                aria-expanded="false"
+                aria-haspopup="true"
+              >VIN CHECK</button>
+              <div class="header-nav-dropdown-menu" data-header-dropdown-menu hidden>
+                <a href="/admin/vin-check">VIN CHECK</a>
+                <a href="/admin/vin-check/manual">Ручная проверка</a>
+              </div>
+            </div>
             <a href="/admin/analytics">Аналитика</a>
             <a href="/admin/messages">Сообщения <span class="admin-msg-unread-badge" data-admin-msg-badge hidden>0</span></a>
             <a href="/admin/business-sellers">Бизнес-аккаунты</a>
