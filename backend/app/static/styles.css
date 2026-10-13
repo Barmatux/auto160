@@ -922,6 +922,14 @@ body.theme-admin.theme-admin-light .header-theme-toggle:focus-visible {
   margin-top: 10px;
 }
 
+.admin-vin-check-subnav {
+  margin: 6px 0 0;
+}
+
+.admin-vin-check-subnav a {
+  font-weight: 600;
+}
+
 .admin-manual-vin-form {
   display: flex;
   flex-wrap: wrap;

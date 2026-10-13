@@ -339,7 +339,13 @@
     }
 
     if (!response.ok) {
-      renderVinCheckBlock(block, { vin_error: data.detail || "Не удалось выполнить проверку" });
+      const message = data.detail || "Не удалось выполнить проверку";
+      // VIN already known → treat as customs/data failure so 🔄 retry is available.
+      if (block.dataset.vin) {
+        renderVinCheckBlock(block, { vin: block.dataset.vin, customs_error: message });
+      } else {
+        renderVinCheckBlock(block, { vin_error: message });
+      }
       return;
     }
 
@@ -486,13 +492,18 @@
     btn.addEventListener("click", () => runVinCheck(btn.closest(".listing-vin-check-block")));
   });
 
-  document.querySelectorAll(".listing-vin-check-block .vin-enter-btn").forEach((btn) => {
-    btn.addEventListener("click", (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      openVinEnterModal(btn.closest(".listing-vin-check-block"));
+  const hideVinEnter = Boolean(document.querySelector("[data-admin-vin-check-manual-page]"));
+  if (hideVinEnter) {
+    document.querySelectorAll(".listing-vin-check-block .vin-enter-btn").forEach((btn) => btn.remove());
+  } else {
+    document.querySelectorAll(".listing-vin-check-block .vin-enter-btn").forEach((btn) => {
+      btn.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        openVinEnterModal(btn.closest(".listing-vin-check-block"));
+      });
     });
-  });
+  }
 
   document.querySelectorAll("[data-vin-enter-dismiss]").forEach((el) => {
     el.addEventListener("click", closeVinEnterModal);

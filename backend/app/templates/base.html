@@ -36,7 +36,7 @@
     {% if seo_json_ld_script %}
       <script type="application/ld+json">{{ seo_json_ld_script | safe }}</script>
     {% endif %}
-    <link rel="stylesheet" href="/static/styles.css?v=20261013-06" />
+    <link rel="stylesheet" href="/static/styles.css?v=20261013-07" />
     {% if site_theme_uses_logo %}
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -123,19 +123,8 @@
                 <a href="/admin/listings-without-byn">Без цены BYN</a>
               </div>
             </div>
-            <div class="header-nav-dropdown header-vin-check-dropdown" data-header-dropdown>
-              <button
-                type="button"
-                class="header-nav-dropdown-toggle header-vin-check-link"
-                data-header-dropdown-toggle
-                aria-expanded="false"
-                aria-haspopup="true"
-              >VIN CHECK</button>
-              <div class="header-nav-dropdown-menu" data-header-dropdown-menu hidden>
-                <a href="/admin/vin-check">VIN CHECK</a>
-                <a href="/admin/vin-check/manual">Ручная проверка</a>
-              </div>
-            </div>
+            <a href="/admin/vin-check" class="header-vin-check-link">VIN CHECK</a>
+            <a href="/admin/vin-check/manual" class="header-vin-check-link">Ручная проверка</a>
             <a href="/admin/analytics">Аналитика</a>
             <a href="/admin/messages">Сообщения <span class="admin-msg-unread-badge" data-admin-msg-badge hidden>0</span></a>
             <a href="/admin/business-sellers">Бизнес-аккаунты</a>

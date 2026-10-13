@@ -72,7 +72,9 @@
         {% else %}
           <button type="button" class="btn-link-like vin-check-btn">VIN CHECK</button>
         {% endif %}
-        <button type="button" class="btn-link-like vin-check-btn vin-enter-btn">Enter VIN</button>
+        {% if not hide_vin_enter %}
+          <button type="button" class="btn-link-like vin-check-btn vin-enter-btn">Enter VIN</button>
+        {% endif %}
         <span class="vin-check-error-label" hidden>
           <button type="button" class="vin-check-error-btn">ERROR VIN</button>
           <span class="vin-check-error-popover" hidden></span>

@@ -5,6 +5,9 @@
   <section class="catalog-main admin-vin-check-main">
     <div class="catalog-main-head">
       <h1>Ручная проверка</h1>
+      <p class="admin-vin-check-subnav hint">
+        <a href="/admin/vin-check">← VIN CHECK</a>
+      </p>
       <p class="hint">Вставьте ссылку на объявление или поиск av.by — извлечём VIN и проверим дату ввоза на сайте таможни. Для поиска проверка идёт по всем объявлениям текущей страницы, от новых к старым.</p>
 
       <form class="admin-manual-vin-form" data-manual-vin-form>
@@ -29,6 +32,7 @@
 
     {% if listings %}
       <div class="catalog listings-feed admin-vin-check-feed">
+        {% set hide_vin_enter = true %}
         {% for listing in listings %}
           {% include "partials/listing_vin_check_card.html" %}
         {% endfor %}
