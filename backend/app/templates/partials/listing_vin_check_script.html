@@ -189,14 +189,19 @@
 
     if (data.vin && data.customs_error) {
       block.dataset.customsError = data.customs_error;
-      const wrap = document.createElement("span");
-      wrap.className = "vin-check-data-error-wrap";
-      wrap.innerHTML =
-        '<button type="button" class="vin-check-data-error-btn">DATA ERROR</button>' +
-        '<span class="vin-check-data-error-popover" hidden></span>';
-      dateWrap.appendChild(wrap);
-      bindDataErrorControls(wrap);
+      dateWrap.appendChild(buildDataErrorWrap());
     }
+  }
+
+  function buildDataErrorWrap() {
+    const wrap = document.createElement("span");
+    wrap.className = "vin-check-data-error-wrap";
+    wrap.innerHTML =
+      '<button type="button" class="vin-check-data-error-btn">DATA ERROR</button>' +
+      '<button type="button" class="vin-check-customs-retry" title="Повторить проверку таможни" aria-label="Повторить проверку таможни">🔄</button>' +
+      '<span class="vin-check-data-error-popover" hidden></span>';
+    bindDataErrorControls(wrap);
+    return wrap;
   }
 
   function bindVinErrorControls(wrap) {
@@ -214,18 +219,93 @@
   }
 
   function bindDataErrorControls(wrap) {
+    if (!wrap || wrap.dataset.bound === "1") return;
+    wrap.dataset.bound = "1";
     const btn = wrap.querySelector(".vin-check-data-error-btn");
     const popover = wrap.querySelector(".vin-check-data-error-popover");
+    const retryBtn = wrap.querySelector(".vin-check-customs-retry");
     if (!btn || !popover) return;
     const block = wrap.closest(".listing-vin-check-block");
-    const message = block?.dataset.customsError || "Не удалось получить дату ввоза";
-    btn.addEventListener("mouseenter", () => showPopover(btn, popover, message));
-    btn.addEventListener("focus", () => showPopover(btn, popover, message));
+    const messageFor = () => block?.dataset.customsError || "Не удалось получить дату ввоза";
+    btn.addEventListener("mouseenter", () => showPopover(btn, popover, messageFor()));
+    btn.addEventListener("focus", () => showPopover(btn, popover, messageFor()));
     btn.addEventListener("click", (event) => {
       event.stopPropagation();
       popover.hidden = !popover.hidden;
-      if (!popover.hidden) popover.textContent = message;
+      if (!popover.hidden) popover.textContent = messageFor();
     });
+    retryBtn?.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      runCustomsRecheck(block, retryBtn);
+    });
+  }
+
+  async function runCustomsRecheck(block, retryBtn) {
+    if (!block || block.dataset.customsLoading === "1") return;
+    const listingId = block.dataset.listingId;
+    if (!listingId || !block.dataset.vin) return;
+
+    const dateWrap = block.querySelector(".listing-vin-check-date");
+    const popover = block.querySelector(".vin-check-data-error-popover");
+    if (popover) popover.hidden = true;
+
+    block.dataset.customsLoading = "1";
+    if (retryBtn) {
+      retryBtn.disabled = true;
+      retryBtn.classList.add("is-loading");
+    }
+
+    const response = await adminFetch(`/api/v1/admin/listings/${listingId}/customs-recheck`, {
+      method: "POST",
+    });
+    block.dataset.customsLoading = "0";
+    if (retryBtn) {
+      retryBtn.disabled = false;
+      retryBtn.classList.remove("is-loading");
+    }
+    if (!response) return;
+
+    let data = {};
+    try {
+      data = await response.json();
+    } catch (_) {
+      data = {};
+    }
+
+    if (!response.ok) {
+      const message = data.detail || "Не удалось выполнить повторную проверку";
+      block.dataset.customsError = message;
+      if (popover) {
+        popover.hidden = false;
+        popover.textContent = message;
+      }
+      return;
+    }
+
+    if (!dateWrap) return;
+
+    if (data.release_date) {
+      block.dataset.releaseDate = data.release_date;
+      delete block.dataset.customsError;
+      dateWrap.innerHTML = "";
+      const span = document.createElement("span");
+      span.className = "listing-vin-check-date-value";
+      span.textContent = data.release_date;
+      dateWrap.appendChild(span);
+      return;
+    }
+
+    const message = data.customs_error || "Не удалось получить дату ввоза";
+    block.dataset.customsError = message;
+    delete block.dataset.releaseDate;
+    dateWrap.innerHTML = "";
+    dateWrap.appendChild(buildDataErrorWrap());
+    const nextPopover = dateWrap.querySelector(".vin-check-data-error-popover");
+    if (nextPopover) {
+      nextPopover.hidden = false;
+      nextPopover.textContent = message;
+    }
   }
 
   async function runVinCheck(block, { auto = false } = {}) {
@@ -450,6 +530,7 @@
       event.target.closest(".listing-description-wrap") ||
       event.target.closest(".vin-check-error-btn") ||
       event.target.closest(".vin-check-data-error-btn") ||
+      event.target.closest(".vin-check-customs-retry") ||
       event.target.closest("[data-vin-enter-modal]")
     ) {
       return;

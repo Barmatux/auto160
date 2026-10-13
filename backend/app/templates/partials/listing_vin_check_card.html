@@ -84,6 +84,12 @@
         {% elif listing.vin and customs %}
           <span class="vin-check-data-error-wrap">
             <button type="button" class="vin-check-data-error-btn">DATA ERROR</button>
+            <button
+              type="button"
+              class="vin-check-customs-retry"
+              title="Повторить проверку таможни"
+              aria-label="Повторить проверку таможни"
+            >🔄</button>
             <span class="vin-check-data-error-popover" hidden></span>
           </span>
         {% endif %}
