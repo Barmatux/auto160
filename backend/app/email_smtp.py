@@ -3,12 +3,16 @@
 from __future__ import annotations
 
 import logging
+import re
 import smtplib
 from email.message import EmailMessage
+from email.utils import formatdate, make_msgid, parseaddr
 
 from app.config import settings
 
 logger = logging.getLogger(__name__)
+
+_EMAIL_DOMAIN_RE = re.compile(r"^[^@\s]+@(?P<domain>[^@\s>]+)$")
 
 
 class EmailSendError(RuntimeError):
@@ -19,14 +23,26 @@ def smtp_configured() -> bool:
     return bool((settings.smtp_host or "").strip())
 
 
+def _message_id_domain(from_header: str) -> str:
+    _, addr = parseaddr(from_header)
+    match = _EMAIL_DOMAIN_RE.match((addr or "").strip())
+    if match:
+        return match.group("domain").lower()
+    return "auto160.ru"
+
+
 def send_email(*, to: str, subject: str, text_body: str, html_body: str | None = None) -> None:
     if not smtp_configured():
         raise EmailSendError("SMTP не настроен (SMTP_HOST пустой)")
 
+    from_header = (settings.smtp_from or "noreply@auto160.ru").strip()
     msg = EmailMessage()
     msg["Subject"] = subject
-    msg["From"] = (settings.smtp_from or "noreply@auto160.ru").strip()
+    msg["From"] = from_header
     msg["To"] = to.strip()
+    # Gmail rejects mail without Message-ID (RFC 5322 / 550 5.7.1).
+    msg["Message-ID"] = make_msgid(domain=_message_id_domain(from_header))
+    msg["Date"] = formatdate(localtime=True)
     msg.set_content(text_body)
     if html_body:
         msg.add_alternative(html_body, subtype="html")
