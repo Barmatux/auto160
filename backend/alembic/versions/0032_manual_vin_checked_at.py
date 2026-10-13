@@ -1,6 +1,6 @@
 """Add manual_vin_checked_at for admin manual VIN checks.
 
-Revision ID: 0032_listing_manual_vin_checked_at
+Revision ID: 0032_manual_vin_checked_at
 Revises: 0031_user_email_verification
 """
 
@@ -9,7 +9,7 @@ from typing import Sequence, Union
 import sqlalchemy as sa
 from alembic import op
 
-revision: str = "0032_listing_manual_vin_checked_at"
+revision: str = "0032_manual_vin_checked_at"
 down_revision: Union[str, None] = "0031_user_email_verification"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
