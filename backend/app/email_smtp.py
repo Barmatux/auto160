@@ -35,9 +35,18 @@ def send_email(*, to: str, subject: str, text_body: str, html_body: str | None =
     port = int(settings.smtp_port or 587)
     user = (settings.smtp_user or "").strip()
     password = settings.smtp_password or ""
+    # Port 465 ⇒ implicit SSL even if smtp_use_ssl was left false in env.
+    use_ssl = bool(settings.smtp_use_ssl) or port == 465
+    use_starttls = bool(settings.smtp_use_tls) and not use_ssl
 
     try:
-        if settings.smtp_use_tls:
+        if use_ssl:
+            with smtplib.SMTP_SSL(host, port, timeout=30) as smtp:
+                smtp.ehlo()
+                if user:
+                    smtp.login(user, password)
+                smtp.send_message(msg)
+        elif use_starttls:
             with smtplib.SMTP(host, port, timeout=30) as smtp:
                 smtp.ehlo()
                 smtp.starttls()

@@ -56,7 +56,9 @@ class Settings(BaseSettings):
     smtp_user: str = ""
     smtp_password: str = ""
     smtp_from: str = "Auto160 <noreply@auto160.ru>"
+    # STARTTLS (typical :587). For implicit SSL (:465, e.g. hoster.by) set smtp_use_ssl=true.
     smtp_use_tls: bool = True
+    smtp_use_ssl: bool = False
     email_verify_token_hours: int = 24
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
