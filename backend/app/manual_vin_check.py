@@ -4,20 +4,20 @@ from __future__ import annotations
 
 import json
 import re
+import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Literal
 from urllib.parse import parse_qsl, unquote, urlparse
 
 from curl_cffi import requests
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.avby_price import extract_price_byn_from_advert
 from app.listing_catalog_link import link_listing_to_catalog
 from app.listing_enrichment import perform_listing_vin_check
 from app.listing_missing_byn import apply_import_byn_price_state
-from sqlalchemy import func
-
 from app.models import CarListing, ListingStatus, ManualVinCheckLaunch, User, UserRole
 from app.security import hash_password  # used by importer fallback user
 
@@ -268,22 +268,41 @@ def _request_headers(referer: str) -> dict[str, str]:
     }
 
 
-def _fetch_html(url: str) -> str:
-    response = requests.get(
-        url,
-        impersonate="chrome124",
-        timeout=45,
-        headers={
-            "User-Agent": _request_headers(url)["User-Agent"],
-            "Accept-Language": "ru-RU,ru;q=0.9",
-        },
-    )
-    if response.status_code >= 400:
-        raise ManualVinCheckError(
-            f"Не удалось открыть страницу av.by (HTTP {response.status_code})",
-            status_code=502,
+def _http_error_message(prefix: str, status_code: int) -> str:
+    if status_code == 429:
+        return (
+            f"{prefix}: av.by временно ограничивает запросы (429). "
+            "Повторите через несколько минут."
         )
-    return response.text
+    return f"{prefix} (HTTP {status_code})"
+
+
+def _fetch_html(url: str, *, retries: int = 3) -> str:
+    last_status: int | None = None
+    for attempt in range(max(1, retries)):
+        response = requests.get(
+            url,
+            impersonate="chrome124",
+            timeout=45,
+            headers={
+                "User-Agent": _request_headers(url)["User-Agent"],
+                "Accept-Language": "ru-RU,ru;q=0.9",
+            },
+        )
+        last_status = response.status_code
+        if response.status_code == 429 and attempt + 1 < retries:
+            time.sleep(1.5 * (attempt + 1))
+            continue
+        if response.status_code >= 400:
+            raise ManualVinCheckError(
+                _http_error_message("Не удалось открыть страницу av.by", response.status_code),
+                status_code=502,
+            )
+        return response.text
+    raise ManualVinCheckError(
+        _http_error_message("Не удалось открыть страницу av.by", last_status or 502),
+        status_code=502,
+    )
 
 
 def _extract_json_object_at(text: str, start: int) -> dict[str, Any] | None:
@@ -351,6 +370,23 @@ def extract_initial_value_from_html(html: str) -> str | None:
         return raw.replace("\\u0026", "&").replace("\\/", "/")
 
 
+def find_listing_by_avby_id(db: Session, avby_id: int) -> CarListing | None:
+    existing = (
+        db.query(CarListing)
+        .filter(CarListing.avby_id == avby_id)
+        .order_by(CarListing.id.asc())
+        .first()
+    )
+    if existing is not None:
+        return existing
+    return (
+        db.query(CarListing)
+        .filter(CarListing.source == "av.by", CarListing.external_id == str(avby_id))
+        .order_by(CarListing.id.asc())
+        .first()
+    )
+
+
 def fetch_listing_advert(avby_id: int, *, page_url: str | None = None) -> dict[str, Any]:
     candidates: list[str] = []
     primary = (page_url or "").strip()
@@ -388,7 +424,7 @@ def resolve_search_filter_query(parsed: ParsedAvbyUrl) -> str:
     return initial
 
 
-def fetch_search_adverts(parsed: ParsedAvbyUrl) -> list[dict[str, Any]]:
+def fetch_search_adverts(parsed: ParsedAvbyUrl, *, retries: int = 3) -> list[dict[str, Any]]:
     query = resolve_search_filter_query(parsed)
     properties, sorting = parse_filter_query_to_properties(query)
     # Prefer newest→oldest unless user explicitly chose another sort in the URL.
@@ -399,26 +435,36 @@ def fetch_search_adverts(parsed: ParsedAvbyUrl) -> list[dict[str, Any]]:
         "sorting": sorting,
         "properties": properties,
     }
-    response = requests.post(
-        APPLY_URL,
-        impersonate="chrome124",
-        timeout=45,
-        headers={
-            **_request_headers(parsed.normalized_url),
-            "Content-Type": "application/json",
-        },
-        json=payload,
-    )
-    if response.status_code >= 400:
-        raise ManualVinCheckError(
-            f"Ошибка API поиска av.by (HTTP {response.status_code})",
-            status_code=502,
+    last_status: int | None = None
+    for attempt in range(max(1, retries)):
+        response = requests.post(
+            APPLY_URL,
+            impersonate="chrome124",
+            timeout=45,
+            headers={
+                **_request_headers(parsed.normalized_url),
+                "Content-Type": "application/json",
+            },
+            json=payload,
         )
-    data = response.json()
-    adverts = data.get("adverts") if isinstance(data, dict) else None
-    if not isinstance(adverts, list):
-        raise ManualVinCheckError("Пустой ответ поиска av.by", status_code=502)
-    return [item for item in adverts if isinstance(item, dict)]
+        last_status = response.status_code
+        if response.status_code == 429 and attempt + 1 < retries:
+            time.sleep(1.5 * (attempt + 1))
+            continue
+        if response.status_code >= 400:
+            raise ManualVinCheckError(
+                _http_error_message("Ошибка API поиска av.by", response.status_code),
+                status_code=502,
+            )
+        data = response.json()
+        adverts = data.get("adverts") if isinstance(data, dict) else None
+        if not isinstance(adverts, list):
+            raise ManualVinCheckError("Пустой ответ поиска av.by", status_code=502)
+        return [item for item in adverts if isinstance(item, dict)]
+    raise ManualVinCheckError(
+        _http_error_message("Ошибка API поиска av.by", last_status or 502),
+        status_code=502,
+    )
 
 
 def _extract_properties_map(advert: dict[str, Any]) -> dict[str, Any]:
@@ -683,12 +729,38 @@ def run_manual_vin_check_from_url(
     launched_by: User,
     run_vin_checks: bool = True,
 ) -> ManualVinCheckRunResult:
-    parsed, adverts = collect_adverts_for_url(raw_url)
-    result = ManualVinCheckRunResult(
-        kind=parsed.kind,
-        url=parsed.normalized_url,
-        advert_count=len(adverts),
-    )
+    parsed = parse_avby_url(raw_url)
+    result = ManualVinCheckRunResult(kind=parsed.kind, url=parsed.normalized_url)
+
+    # Listing URL already in our DB → do not hit av.by HTML (often 429 from VPS IP).
+    if parsed.kind == "listing" and parsed.listing_id is not None:
+        existing = find_listing_by_avby_id(db, parsed.listing_id)
+        if existing is not None:
+            record_manual_vin_check_launch(db, existing, launched_by)
+            result.advert_count = 1
+            item = ManualVinCheckItemResult(
+                listing_id=existing.id,
+                avby_id=existing.avby_id,
+                created=False,
+            )
+            if run_vin_checks:
+                check = perform_listing_vin_check(db, existing, allow_inactive=True)
+                item.vin = check.vin
+                item.vin_error = check.vin_error
+                item.release_date = check.release_date
+                item.customs_found = check.customs_found
+                item.customs_error = check.customs_error
+            result.items.append(item)
+            return result
+
+    if parsed.kind == "listing":
+        assert parsed.listing_id is not None
+        advert = fetch_listing_advert(parsed.listing_id, page_url=parsed.normalized_url)
+        adverts = [advert]
+    else:
+        adverts = fetch_search_adverts(parsed)
+
+    result.advert_count = len(adverts)
     if not adverts:
         result.error = "На странице не найдено объявлений"
         return result

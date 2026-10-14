@@ -1000,6 +1000,10 @@ body.theme-admin.theme-admin-light .header-theme-toggle:focus-visible {
 .admin-manual-vin-status,
 .admin-manual-vin-error {
   margin: 10px 0 0;
+  max-width: 960px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .header-vin-check-dropdown .header-vin-check-link {
