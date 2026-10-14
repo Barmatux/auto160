@@ -5091,6 +5091,7 @@ def admin_price_stats_page(
 def admin_price_stats_detail_page(
     request: Request,
     target_id: int,
+    year: int | None = Query(default=None),
     db: Session = Depends(get_db),
 ):
     current_user = _resolve_user_from_request(request, db)
@@ -5099,7 +5100,7 @@ def admin_price_stats_detail_page(
     if current_user.role != UserRole.admin:
         return RedirectResponse(url="/", status_code=302)
 
-    detail = build_target_detail(db, target_id)
+    detail = build_target_detail(db, target_id, selected_year=year)
     if detail is None:
         return RedirectResponse(url="/admin/price-stats", status_code=302)
 

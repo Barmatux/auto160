@@ -26,12 +26,63 @@
 
 {% if detail.history_svg %}
   <section class="price-stats-chart-wrap">
-    <h2>История медианной цены (USD)</h2>
+    <div class="price-stats-chart-head">
+      <h2>История медианной цены</h2>
+      <p class="hint">USD по месяцам (как на av.by). Наведите на точку — точное значение.</p>
+    </div>
     <div class="price-stats-chart-card">
       {{ detail.history_svg | safe }}
     </div>
   </section>
 {% endif %}
+
+<section class="price-stats-chart-wrap">
+  <div class="price-stats-chart-head">
+    <h2>Статистика продаж по месяцам</h2>
+    <p class="hint">
+      Новые и снятые объявления (как блок активности на av.by).
+      {% if detail.activity.activity_days %}Окно: {{ detail.activity.activity_days }} дн.{% endif %}
+      {% if detail.activity.new_60d is not none %}
+        · за период +{{ detail.activity.new_60d }} / −{{ detail.activity.removed_60d }}
+      {% endif %}
+    </p>
+  </div>
+
+  {% if detail.activity.year_links %}
+    <nav class="price-stats-year-tabs">
+      {% for link in detail.activity.year_links %}
+        <a href="{{ link.url }}"{% if link.active %} class="active"{% endif %}>{{ link.year }}</a>
+      {% endfor %}
+    </nav>
+  {% endif %}
+
+  {% if detail.activity_chart %}
+    <div class="price-stats-chart-card">
+      <div class="price-stats-activity-legend">
+        <span><i class="swatch new"></i> Новые · {{ detail.activity_chart.total_new }}</span>
+        <span><i class="swatch removed"></i> Снятые · {{ detail.activity_chart.total_removed }}</span>
+        {% if detail.selected_year %}<span>Год выпуска: {{ detail.selected_year }}</span>{% endif %}
+      </div>
+      <div class="price-stats-activity-bars" style="--bar-count: {{ detail.activity_chart.bars|length }};">
+        {% for bar in detail.activity_chart.bars %}
+          <div class="price-stats-activity-col" title="{{ bar.label }}: +{{ bar.new }} / −{{ bar.removed }}">
+            <div class="price-stats-activity-pair">
+              <div class="price-stats-activity-bar new" style="height: {{ bar.new_pct }}%;">
+                {% if bar.new %}<span>{{ bar.new }}</span>{% endif %}
+              </div>
+              <div class="price-stats-activity-bar removed" style="height: {{ bar.removed_pct }}%;">
+                {% if bar.removed %}<span>{{ bar.removed }}</span>{% endif %}
+              </div>
+            </div>
+            <div class="price-stats-activity-label">{{ bar.label }}</div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  {% else %}
+    <p class="hint">Помесячная активность ещё не загружена для этого поколения.</p>
+  {% endif %}
+</section>
 
 <section class="admin-vin-table-wrap">
   <h2>Срезы по годам</h2>
@@ -51,9 +102,15 @@
     </thead>
     <tbody>
       {% for row in detail.years %}
-        <tr>
+        <tr{% if row.is_selected %} class="is-selected"{% endif %}>
           <td>
-            <strong>{{ row.year }}</strong>
+            <strong>
+              {% if detail.activity.year_links %}
+                <a href="/admin/price-stats/{{ detail.target.id }}?year={{ row.year }}">{{ row.year }}</a>
+              {% else %}
+                {{ row.year }}
+              {% endif %}
+            </strong>
             {% if row.main_filter_url %}
               <div class="admin-vin-listing-meta">
                 <a href="{{ row.main_filter_url }}" target="_blank" rel="noopener">фильтр av.by</a>

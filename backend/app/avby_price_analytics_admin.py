@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
@@ -242,7 +243,29 @@ def list_price_stat_targets(
     return result, total
 
 
-def build_target_detail(db: Session, target_id: int) -> dict[str, Any] | None:
+_MONTH_SHORT_RU = (
+    "",
+    "янв",
+    "фев",
+    "мар",
+    "апр",
+    "май",
+    "июн",
+    "июл",
+    "авг",
+    "сен",
+    "окт",
+    "ноя",
+    "дек",
+)
+
+
+def build_target_detail(
+    db: Session,
+    target_id: int,
+    *,
+    selected_year: int | None = None,
+) -> dict[str, Any] | None:
     target = (
         db.query(AvbyPriceStatTarget)
         .options(
@@ -261,6 +284,7 @@ def build_target_detail(db: Session, target_id: int) -> dict[str, Any] | None:
     years: list[dict[str, Any]] = []
     history_chart: list[dict[str, Any]] = []
     sold_rows: list[dict[str, Any]] = []
+    year_activity: dict[int, list[dict[str, Any]]] = {}
 
     for row in year_rows:
         years.append(
@@ -284,8 +308,12 @@ def build_target_detail(db: Session, target_id: int) -> dict[str, Any] | None:
                 "fetched_at": row.fetched_at,
                 "main_filter_url": row.main_filter_url,
                 "image_url": row.image_url,
+                "is_selected": False,
             }
         )
+        activity_points = _parse_activity_by_month(row.activity_by_month)
+        if activity_points:
+            year_activity[row.year] = activity_points
         for point in sorted(row.history_points, key=lambda p: (p.year, p.month)):
             amount = _num(point.median_price_usd)
             if amount is None:
@@ -293,6 +321,7 @@ def build_target_detail(db: Session, target_id: int) -> dict[str, Any] | None:
             history_chart.append(
                 {
                     "label": f"{point.month:02d}.{point.year}",
+                    "short_label": _month_label(point.year, point.month),
                     "year": point.year,
                     "month": point.month,
                     "value": amount,
@@ -318,9 +347,33 @@ def build_target_detail(db: Session, target_id: int) -> dict[str, Any] | None:
                 }
             )
 
-    # Prefer history from the middle priced year for the sparkline; else merge unique months.
     chart_points = _dedupe_history_chart(history_chart)
     chart_svg = _history_svg(chart_points)
+
+    activity_years = sorted(year_activity.keys())
+    chosen_year = _pick_activity_year(year_rows, activity_years, selected_year)
+    activity_months = year_activity.get(chosen_year, []) if chosen_year else []
+    activity_chart = _activity_bars(activity_months)
+    for item in years:
+        item["is_selected"] = item["year"] == chosen_year
+
+    selected_row = next((r for r in year_rows if r.year == chosen_year), None)
+    activity_summary = {
+        "year": chosen_year,
+        "new_60d": selected_row.activity_new_60d if selected_row else None,
+        "removed_60d": selected_row.activity_removed_60d if selected_row else None,
+        "activity_days": selected_row.activity_days if selected_row else None,
+        "months": activity_months,
+        "has_data": bool(activity_months),
+        "year_links": [
+            {
+                "year": y,
+                "url": f"/admin/price-stats/{target.id}?year={y}",
+                "active": y == chosen_year,
+            }
+            for y in activity_years
+        ],
+    }
 
     return {
         "target": target,
@@ -340,11 +393,99 @@ def build_target_detail(db: Session, target_id: int) -> dict[str, Any] | None:
         "sold_total": len(sold_rows),
         "history_points": chart_points,
         "history_svg": chart_svg,
+        "activity": activity_summary,
+        "activity_chart": activity_chart,
+        "selected_year": chosen_year,
         "ocenka_url": (
-            f"https://av.by/ocenka-avto/{target.catalog_slug}_{target.year_from}"
-            if target.year_from
+            f"https://av.by/ocenka-avto/{target.catalog_slug}_{chosen_year or target.year_from}"
+            if (chosen_year or target.year_from)
             else f"https://av.by/ocenka-avto/{target.catalog_slug}"
         ),
+    }
+
+
+def _month_label(year: int, month: int) -> str:
+    name = _MONTH_SHORT_RU[month] if 1 <= month <= 12 else f"{month:02d}"
+    return f"{name} {year % 100:02d}"
+
+
+def _parse_activity_by_month(payload: Any) -> list[dict[str, Any]]:
+    if not isinstance(payload, list):
+        return []
+    rows: list[dict[str, Any]] = []
+    for item in payload:
+        if not isinstance(item, dict):
+            continue
+        date_text = str(item.get("date") or "")
+        year = month = None
+        if len(date_text) >= 7 and date_text[4] == "-":
+            try:
+                year = int(date_text[0:4])
+                month = int(date_text[5:7])
+            except ValueError:
+                year = month = None
+        if year is None:
+            year = int(item["year"]) if item.get("year") is not None else None
+            month = int(item["month"]) if item.get("month") is not None else None
+        if not year or not month:
+            continue
+        new_count = int(item.get("new") or 0)
+        removed_count = int(item.get("removed") or 0)
+        rows.append(
+            {
+                "year": year,
+                "month": month,
+                "date": date_text or f"{year:04d}-{month:02d}-01",
+                "label": _month_label(year, month),
+                "new": new_count,
+                "removed": removed_count,
+                "new_label": str(new_count),
+                "removed_label": str(removed_count),
+            }
+        )
+    rows.sort(key=lambda r: (r["year"], r["month"]))
+    return rows
+
+
+def _pick_activity_year(
+    year_rows: list[AvbyPriceYearStat],
+    activity_years: list[int],
+    selected_year: int | None,
+) -> int | None:
+    if selected_year and selected_year in activity_years:
+        return selected_year
+    if not activity_years:
+        return None
+    best = None
+    best_score = -1
+    for row in year_rows:
+        if row.year not in activity_years:
+            continue
+        score = int(row.advert_count or 0) + int(row.activity_removed_60d or 0) * 2
+        if score > best_score:
+            best_score = score
+            best = row.year
+    return best if best is not None else activity_years[len(activity_years) // 2]
+
+
+def _activity_bars(months: list[dict[str, Any]]) -> dict[str, Any] | None:
+    if not months:
+        return None
+    peak = max(max(m["new"], m["removed"]) for m in months) or 1
+    bars = []
+    for item in months:
+        bars.append(
+            {
+                **item,
+                "new_pct": round(100.0 * item["new"] / peak, 1),
+                "removed_pct": round(100.0 * item["removed"] / peak, 1),
+            }
+        )
+    return {
+        "bars": bars,
+        "peak": peak,
+        "total_new": sum(m["new"] for m in months),
+        "total_removed": sum(m["removed"] for m in months),
     }
 
 
@@ -365,34 +506,113 @@ def _dedupe_history_chart(points: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return [best[k] for k in sorted(best.keys())]
 
 
-def _history_svg(points: list[dict[str, Any]], *, width: int = 640, height: int = 160) -> str | None:
-    values = [p["value"] for p in points if p["value"] is not None]
+def _nice_ticks(lo: float, hi: float, count: int = 5) -> list[float]:
+    if hi <= lo:
+        return [float(lo)]
+    raw = (hi - lo) / max(count - 1, 1)
+    exp = math.floor(math.log10(raw)) if raw > 0 else 0
+    base = 10 ** exp
+    fraction = raw / base
+    if fraction <= 1:
+        nice = 1
+    elif fraction <= 2:
+        nice = 2
+    elif fraction <= 5:
+        nice = 5
+    else:
+        nice = 10
+    step = nice * base
+    start = math.floor(lo / step) * step
+    ticks: list[float] = []
+    value = start
+    guard = 0
+    while value <= hi + step * 0.001 and guard < 20:
+        if value >= lo - step * 0.001:
+            ticks.append(float(value))
+        value += step
+        guard += 1
+    return ticks or [float(lo), float(hi)]
+
+
+def _history_svg(points: list[dict[str, Any]], *, width: int = 760, height: int = 280) -> str | None:
+    values = [p["value"] for p in points if p.get("value") is not None]
     if len(values) < 2:
         return None
+
     lo = min(values)
     hi = max(values)
-    span = (hi - lo) or 1.0
-    pad_x = 12.0
-    pad_y = 14.0
-    usable_w = width - 2 * pad_x
-    usable_h = height - 2 * pad_y
-    coords: list[str] = []
+    # Add headroom so the line isn't glued to edges.
+    pad_value = (hi - lo) * 0.08 if hi > lo else max(hi * 0.05, 100)
+    y_min = max(0.0, lo - pad_value)
+    y_max = hi + pad_value
+    span = (y_max - y_min) or 1.0
+
+    left = 64.0
+    right = 18.0
+    top = 22.0
+    bottom = 46.0
+    usable_w = width - left - right
+    usable_h = height - top - bottom
+
+    def x_at(idx: int) -> float:
+        if len(points) == 1:
+            return left + usable_w / 2
+        return left + usable_w * idx / (len(points) - 1)
+
+    def y_at(value: float) -> float:
+        return top + usable_h * (1 - (value - y_min) / span)
+
+    coords = [(x_at(i), y_at(p["value"])) for i, p in enumerate(points)]
+    line_points = " ".join(f"{x:.1f},{y:.1f}" for x, y in coords)
+    area_points = (
+        f"{coords[0][0]:.1f},{top + usable_h:.1f} "
+        + line_points
+        + f" {coords[-1][0]:.1f},{top + usable_h:.1f}"
+    )
+
+    ticks = _nice_ticks(y_min, y_max, count=5)
+    grid_parts: list[str] = []
+    for tick in ticks:
+        y = y_at(tick)
+        grid_parts.append(
+            f'<line class="price-stats-grid" x1="{left}" y1="{y:.1f}" '
+            f'x2="{width - right}" y2="{y:.1f}" />'
+            f'<text class="price-stats-axis" x="{left - 8}" y="{y + 4:.1f}" '
+            f'text-anchor="end">{format_money_amount(tick)}</text>'
+        )
+
+    label_step = max(1, len(points) // 8)
+    label_parts: list[str] = []
     for idx, point in enumerate(points):
-        x = pad_x + (usable_w * idx / (len(points) - 1))
-        y = pad_y + usable_h * (1 - (point["value"] - lo) / span)
-        coords.append(f"{x:.1f},{y:.1f}")
-    polyline = " ".join(coords)
-    first_label = points[0]["label"]
-    last_label = points[-1]["label"]
+        if idx % label_step != 0 and idx != len(points) - 1:
+            continue
+        x = coords[idx][0]
+        label_parts.append(
+            f'<text class="price-stats-axis" x="{x:.1f}" y="{height - 14}" '
+            f'text-anchor="middle">{point.get("short_label") or point["label"]}</text>'
+        )
+
+    dot_parts: list[str] = []
+    for (x, y), point in zip(coords, points):
+        tip = f'{point.get("short_label") or point["label"]}: {point["value_label"]}'
+        dot_parts.append(
+            f'<circle class="price-stats-dot" cx="{x:.1f}" cy="{y:.1f}" r="3.5">'
+            f"<title>{tip}</title></circle>"
+        )
+
     return (
         f'<svg class="price-stats-chart" viewBox="0 0 {width} {height}" '
         f'role="img" aria-label="История медианной цены USD">'
-        f'<polyline fill="none" stroke="currentColor" stroke-width="2" points="{polyline}" />'
-        f'<text x="{pad_x}" y="{height - 2}" font-size="11">{first_label}</text>'
-        f'<text x="{width - pad_x}" y="{height - 2}" font-size="11" text-anchor="end">{last_label}</text>'
-        f'<text x="{pad_x}" y="12" font-size="11">{format_money_amount(hi)} $</text>'
-        f'<text x="{pad_x}" y="{height - 18}" font-size="11">{format_money_amount(lo)} $</text>'
-        f"</svg>"
+        f'<rect class="price-stats-plot" x="{left}" y="{top}" '
+        f'width="{usable_w}" height="{usable_h}" rx="8" />'
+        + "".join(grid_parts)
+        + f'<polygon class="price-stats-area" points="{area_points}" />'
+        + f'<polyline class="price-stats-line" fill="none" stroke-width="2.5" '
+        f'points="{line_points}" />'
+        + "".join(dot_parts)
+        + "".join(label_parts)
+        + f'<text class="price-stats-axis price-stats-axis-title" x="12" y="16">USD</text>'
+        + "</svg>"
     )
 
 
