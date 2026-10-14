@@ -114,7 +114,11 @@ from app.listing_enrichment import (
     VIN_CHECK_SORT_LABELS,
     VIN_FOUND_IMPORT_FILTER_LABELS,
 )
-from app.manual_vin_check import paginate_manual_vin_check_listings
+from app.manual_vin_check import (
+    build_manual_vin_check_account_labels,
+    list_manual_vin_check_account_options,
+    paginate_manual_vin_check_listings,
+)
 from app.listing_catalog_link import (
     canonical_model_name as _canonical_model_name,
     fetch_listings_for_catalog_items,
@@ -4252,10 +4256,44 @@ def admin_vin_check_page(
     return templates.TemplateResponse(request, "admin_vin_check.html", context)
 
 
+def _parse_manual_account_filter(account: str | None) -> tuple[int | None, bool]:
+    """Return (launched_by_user_id, admins_only)."""
+    raw = (account or "").strip().lower()
+    if not raw:
+        return None, False
+    if raw == "admin":
+        return None, True
+    try:
+        user_id = int(raw)
+    except ValueError:
+        return None, False
+    if user_id <= 0:
+        return None, False
+    return user_id, False
+
+
+def _build_manual_vin_check_url(
+    *,
+    base_path: str,
+    page: int = 1,
+    account: str | None = None,
+) -> str:
+    params: dict[str, str | int] = {}
+    if page > 1:
+        params["page"] = page
+    account_value = (account or "").strip()
+    if account_value:
+        params["account"] = account_value
+    if not params:
+        return base_path
+    return f"{base_path}?{urlencode(params)}"
+
+
 @router.get("/admin/vin-check/manual")
 def admin_vin_check_manual_page(
     request: Request,
     page: int = Query(default=1, ge=1),
+    account: str | None = Query(default=None),
     db: Session = Depends(get_db),
 ):
     current_user = _resolve_user_from_request(request, db)
@@ -4263,12 +4301,26 @@ def admin_vin_check_manual_page(
     if redirect:
         return redirect
 
+    account_raw = (account or "").strip()
+    launched_by_user_id, admins_only = _parse_manual_account_filter(account_raw)
     page_size = LISTINGS_PAGE_SIZE
-    listings, total = paginate_manual_vin_check_listings(db, page=page, page_size=page_size)
+    listings, total = paginate_manual_vin_check_listings(
+        db,
+        page=page,
+        page_size=page_size,
+        launched_by_user_id=launched_by_user_id,
+        admins_only=admins_only,
+    )
     total_pages = max(1, (total + page_size - 1) // page_size)
     if page > total_pages and total > 0:
         page = total_pages
-        listings, total = paginate_manual_vin_check_listings(db, page=page, page_size=page_size)
+        listings, total = paginate_manual_vin_check_listings(
+            db,
+            page=page,
+            page_size=page_size,
+            launched_by_user_id=launched_by_user_id,
+            admins_only=admins_only,
+        )
 
     context = _template_context(
         request,
@@ -4286,13 +4338,105 @@ def admin_vin_check_manual_page(
     context["listing_vin_check_launched"] = {
         listing.id: listing_vin_check_was_launched(listing) for listing in listings
     }
+    context["manual_check_account_labels"] = build_manual_vin_check_account_labels(db, listings)
+    context["manual_check_account_options"] = list_manual_vin_check_account_options(db)
+    context["manual_check_account"] = account_raw
+    context["show_manual_account_filter"] = True
+    context["show_manual_account_labels"] = True
+    context["manual_vin_run_api"] = "/api/v1/admin/vin-check/manual/run"
+    context["manual_vin_check_api_prefix"] = "/api/v1/admin/listings"
+    context["manual_vin_reload_url"] = _build_manual_vin_check_url(
+        base_path="/admin/vin-check/manual",
+        account=account_raw,
+    )
+    context["manual_vin_page_base"] = "/admin/vin-check/manual"
     context["total"] = total
     context["page"] = page
     context["total_pages"] = total_pages
     context["has_prev"] = page > 1
     context["has_next"] = page < total_pages
-    context["prev_url"] = f"/admin/vin-check/manual?page={page - 1}" if context["has_prev"] else None
-    context["next_url"] = f"/admin/vin-check/manual?page={page + 1}" if context["has_next"] else None
+    context["prev_url"] = (
+        _build_manual_vin_check_url(
+            base_path="/admin/vin-check/manual",
+            page=page - 1,
+            account=account_raw,
+        )
+        if context["has_prev"]
+        else None
+    )
+    context["next_url"] = (
+        _build_manual_vin_check_url(
+            base_path="/admin/vin-check/manual",
+            page=page + 1,
+            account=account_raw,
+        )
+        if context["has_next"]
+        else None
+    )
+    return templates.TemplateResponse(request, "admin_vin_check_manual.html", context)
+
+
+@router.get("/vin-check/manual")
+def user_vin_check_manual_page(
+    request: Request,
+    page: int = Query(default=1, ge=1),
+    db: Session = Depends(get_db),
+):
+    current_user = _resolve_user_from_request(request, db)
+    if current_user is None:
+        return RedirectResponse(url="/login", status_code=302)
+    if current_user.role == UserRole.admin:
+        return RedirectResponse(url="/admin/vin-check/manual", status_code=302)
+
+    page_size = LISTINGS_PAGE_SIZE
+    listings, total = paginate_manual_vin_check_listings(
+        db,
+        page=page,
+        page_size=page_size,
+        launched_by_user_id=current_user.id,
+    )
+    total_pages = max(1, (total + page_size - 1) // page_size)
+    if page > total_pages and total > 0:
+        page = total_pages
+        listings, total = paginate_manual_vin_check_listings(
+            db,
+            page=page,
+            page_size=page_size,
+            launched_by_user_id=current_user.id,
+        )
+
+    context = _template_context(
+        request,
+        current_user,
+        SeoMeta(
+            title="Ручная проверка — Auto160",
+            description="Ручной запуск VIN CHECK по ссылке объявления или поиска av.by.",
+            path="/vin-check/manual",
+            noindex=True,
+        ),
+    )
+    context["listings"] = listings
+    context["listing_gallery_urls"] = resolve_listing_gallery_urls_map(listings, limit=5)
+    context["listing_customs_map"] = build_listing_customs_map(db, listings) if listings else {}
+    context["listing_vin_check_launched"] = {
+        listing.id: listing_vin_check_was_launched(listing) for listing in listings
+    }
+    context["manual_check_account_labels"] = {}
+    context["manual_check_account_options"] = []
+    context["manual_check_account"] = ""
+    context["show_manual_account_filter"] = False
+    context["show_manual_account_labels"] = False
+    context["manual_vin_run_api"] = "/api/v1/vin-check/manual/run"
+    context["manual_vin_check_api_prefix"] = "/api/v1/vin-check/listings"
+    context["manual_vin_reload_url"] = "/vin-check/manual"
+    context["manual_vin_page_base"] = "/vin-check/manual"
+    context["total"] = total
+    context["page"] = page
+    context["total_pages"] = total_pages
+    context["has_prev"] = page > 1
+    context["has_next"] = page < total_pages
+    context["prev_url"] = f"/vin-check/manual?page={page - 1}" if context["has_prev"] else None
+    context["next_url"] = f"/vin-check/manual?page={page + 1}" if context["has_next"] else None
     return templates.TemplateResponse(request, "admin_vin_check_manual.html", context)
 
 

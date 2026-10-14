@@ -226,6 +226,26 @@ class AvbySyncRun(Base):
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
 
 
+class ManualVinCheckLaunch(Base):
+    """Which registered user launched «Ручная проверка» for a listing."""
+
+    __tablename__ = "manual_vin_check_launches"
+    __table_args__ = (
+        UniqueConstraint("listing_id", "user_id", name="uq_manual_vin_check_launches_listing_user"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    listing_id: Mapped[int] = mapped_column(
+        ForeignKey("car_listings.id", ondelete="CASCADE"),
+        index=True,
+    )
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    launched_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+
+    listing: Mapped["CarListing"] = relationship()
+    user: Mapped["User"] = relationship()
+
+
 class AvbySyncRunVinCheck(Base):
     __tablename__ = "avby_sync_run_vin_checks"
 

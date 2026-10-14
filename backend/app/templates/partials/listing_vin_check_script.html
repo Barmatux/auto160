@@ -256,7 +256,14 @@
       retryBtn.classList.add("is-loading");
     }
 
-    const response = await adminFetch(`/api/v1/admin/listings/${listingId}/customs-recheck`, {
+    const pageRoot = document.querySelector("[data-admin-vin-check-manual-page]");
+    const customsMode = pageRoot?.dataset.manualVinCustomsApiMode || "admin";
+    const checkPrefix = pageRoot?.dataset.manualVinCheckApiPrefix || "/api/v1/admin/listings";
+    const customsUrl =
+      customsMode === "user"
+        ? `${checkPrefix}/${listingId}/customs-recheck`
+        : `/api/v1/admin/listings/${listingId}/customs-recheck`;
+    const response = await adminFetch(customsUrl, {
       method: "POST",
     });
     block.dataset.customsLoading = "0";
@@ -327,7 +334,14 @@
       vinBtn.textContent = "Проверка…";
     }
 
-    const response = await adminFetch(`/api/v1/admin/listings/${listingId}/vin-check`, { method: "POST" });
+    const pageRoot = document.querySelector("[data-admin-vin-check-manual-page]");
+    const customsMode = pageRoot?.dataset.manualVinCustomsApiMode || "admin";
+    const checkPrefix = pageRoot?.dataset.manualVinCheckApiPrefix || "/api/v1/admin/listings";
+    const vinCheckUrl =
+      customsMode === "user"
+        ? `${checkPrefix}/${listingId}/check`
+        : `/api/v1/admin/listings/${listingId}/vin-check`;
+    const response = await adminFetch(vinCheckUrl, { method: "POST" });
     block.dataset.loading = "0";
     if (!response) return;
 
@@ -479,6 +493,15 @@
       if (popup.hidden) open();
       else closeAllDescriptionPopups();
     });
+  });
+
+  document.querySelectorAll(".listing-vin-check-block").forEach((block) => {
+    const errorWrap = block.querySelector(".vin-check-error-label");
+    if (!errorWrap) return;
+    // VIN already on the card → never keep a stale ERROR VIN visible.
+    if (block.dataset.vin || block.querySelector(".listing-vin-code")) {
+      errorWrap.hidden = true;
+    }
   });
 
   document.querySelectorAll(".vin-check-error-label").forEach(bindVinErrorControls);

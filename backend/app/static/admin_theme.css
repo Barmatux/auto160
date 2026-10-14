@@ -109,7 +109,27 @@ body.theme-admin .admin-manual-vin-url-field input {
   color: #e8eef8;
 }
 
+body.theme-admin .admin-manual-vin-account-field {
+  color: #c5cedc;
+}
+
+body.theme-admin .admin-manual-vin-account-field select {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(0, 168, 255, 0.28);
+  color: #e8eef8;
+}
+
 body.theme-admin.theme-admin-light .admin-manual-vin-url-field input {
+  background: #fff;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+body.theme-admin.theme-admin-light .admin-manual-vin-account-field {
+  color: #334155;
+}
+
+body.theme-admin.theme-admin-light .admin-manual-vin-account-field select {
   background: #fff;
   border-color: #cbd5e1;
   color: #0f172a;

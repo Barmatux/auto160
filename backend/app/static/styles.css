@@ -930,6 +930,39 @@ body.theme-admin.theme-admin-light .header-theme-toggle:focus-visible {
   font-weight: 600;
 }
 
+.admin-manual-vin-account-filter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+  margin-top: 12px;
+}
+
+.admin-manual-vin-account-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 14px;
+  color: #334155;
+}
+
+.admin-manual-vin-account-field select {
+  min-width: 220px;
+  min-height: 36px;
+  padding: 4px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #fff;
+  color: #0f172a;
+  font: inherit;
+  font-size: 14px;
+}
+
+.listing-vin-check-account {
+  margin: 4px 0 0;
+}
+
 .admin-manual-vin-form {
   display: flex;
   flex-wrap: wrap;
@@ -1881,6 +1914,13 @@ body.vin-enter-modal-open {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+}
+
+.vin-check-error-label[hidden],
+.vin-check-data-error-wrap[hidden],
+.vin-check-error-popover[hidden],
+.vin-check-data-error-popover[hidden] {
+  display: none !important;
 }
 
 .vin-check-customs-retry {

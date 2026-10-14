@@ -19,14 +19,18 @@ from app.listing_enrichment import (
     perform_listing_vin_check,
     recheck_listing_customs_import_date,
 )
-from app.manual_vin_check import ManualVinCheckError, run_manual_vin_check_from_url
+from app.manual_vin_check import (
+    ManualVinCheckError,
+    run_manual_vin_check_from_url,
+    user_has_manual_vin_check_launch,
+)
 from app.catalog_generation_years import apply_generation_years, sync_generation_years_from_sources
 from app.catalog_ratings import apply_generation_rating, format_production_years, generation_label
 from app.catalog_visibility import apply_generation_catalog_visibility
 from app.db import get_db
 from app.deps import require_admin, require_admin_flexible
 from app.logging_setup import LOG_SERVICES, format_log_time, log_dir, log_timezone, tail_log
-from app.models import AvbyServiceAccount, CarListing, User
+from app.models import AvbyServiceAccount, CarListing, User, UserRole
 from app.schemas import (
     AnalyticsSummaryResponse,
     AvbyAccountsImportResult,
@@ -419,15 +423,24 @@ def sync_catalog_generation_years_from_avby(
     )
 
 
-@router.post("/listings/{listing_id}/customs-recheck", response_model=ListingCustomsRecheckResponse)
-def recheck_listing_customs(
-    listing_id: int,
-    _: User = Depends(require_admin),
-    db: Session = Depends(get_db),
-):
+def _require_manual_vin_listing_access(db: Session, user: User, listing_id: int) -> CarListing:
     listing = db.query(CarListing).filter(CarListing.id == listing_id).first()
     if not listing:
         raise HTTPException(status_code=404, detail="Listing not found")
+    if user.role == UserRole.admin:
+        return listing
+    if user_has_manual_vin_check_launch(db, user_id=user.id, listing_id=listing_id):
+        return listing
+    raise HTTPException(status_code=403, detail="Недостаточно прав для проверки этого объявления")
+
+
+@router.post("/listings/{listing_id}/customs-recheck", response_model=ListingCustomsRecheckResponse)
+def recheck_listing_customs(
+    listing_id: int,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    listing = _require_manual_vin_listing_access(db, current_user, listing_id)
     release_date, customs_error = recheck_listing_customs_import_date(db, listing)
     return ListingCustomsRecheckResponse(
         listing_id=listing.id,
@@ -440,12 +453,10 @@ def recheck_listing_customs(
 @router.post("/listings/{listing_id}/vin-check", response_model=ListingVinCheckResponse)
 def fetch_listing_vin_check(
     listing_id: int,
-    _: User = Depends(require_admin),
+    current_user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    listing = db.query(CarListing).filter(CarListing.id == listing_id).first()
-    if not listing:
-        raise HTTPException(status_code=404, detail="Listing not found")
+    listing = _require_manual_vin_listing_access(db, current_user, listing_id)
     result = perform_listing_vin_check(db, listing, allow_inactive=True)
     return ListingVinCheckResponse(
         listing_id=listing.id,
@@ -460,12 +471,17 @@ def fetch_listing_vin_check(
 @router.post("/vin-check/manual/run", response_model=ManualVinCheckRunResponse)
 def run_manual_vin_check(
     payload: ManualVinCheckRunRequest,
-    _: User = Depends(require_admin),
+    current_user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
     """Ingest av.by listing/search URL into DB; client then runs per-listing VIN CHECK."""
     try:
-        result = run_manual_vin_check_from_url(db, payload.url, run_vin_checks=False)
+        result = run_manual_vin_check_from_url(
+            db,
+            payload.url,
+            launched_by=current_user,
+            run_vin_checks=False,
+        )
     except ManualVinCheckError as exc:
         raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
     return ManualVinCheckRunResponse(

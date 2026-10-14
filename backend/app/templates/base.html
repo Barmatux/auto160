@@ -36,7 +36,7 @@
     {% if seo_json_ld_script %}
       <script type="application/ld+json">{{ seo_json_ld_script | safe }}</script>
     {% endif %}
-    <link rel="stylesheet" href="/static/styles.css?v=20261013-07" />
+    <link rel="stylesheet" href="/static/styles.css?v=20261014-01" />
     {% if site_theme_uses_logo %}
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -84,6 +84,9 @@
             </div>
           </div>
           <a href="/inspection">Проверка</a>
+          {% if is_authenticated and not is_admin %}
+            <a href="/vin-check/manual" class="header-vin-check-link">Ручная проверка</a>
+          {% endif %}
           {% if is_admin %}
             <a href="/admin/users">Пользователи</a>
             <a href="/admin/avby-accounts">Аккаунты</a>

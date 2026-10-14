@@ -16,8 +16,10 @@ from app.avby_price import extract_price_byn_from_advert
 from app.listing_catalog_link import link_listing_to_catalog
 from app.listing_enrichment import perform_listing_vin_check
 from app.listing_missing_byn import apply_import_byn_price_state
-from app.models import CarListing, ListingStatus, User, UserRole
-from app.security import hash_password
+from sqlalchemy import func
+
+from app.models import CarListing, ListingStatus, ManualVinCheckLaunch, User, UserRole
+from app.security import hash_password  # used by importer fallback user
 
 
 def _is_avby_s3_media_url(url: str | None) -> bool:
@@ -618,6 +620,52 @@ def upsert_advert_listing(db: Session, advert: dict[str, Any]) -> tuple[CarListi
     return listing, True
 
 
+def format_manual_check_account_label(user: User | None) -> str:
+    if user is None:
+        return "Неизвестно"
+    email = (user.email or "").strip()
+    username = (user.username or "").strip()
+    base = email or username or f"user#{user.id}"
+    if user.role == UserRole.admin:
+        return f"Админ · {base}"
+    return base
+
+
+def record_manual_vin_check_launch(db: Session, listing: CarListing, user: User) -> ManualVinCheckLaunch:
+    now = _utc_now()
+    row = (
+        db.query(ManualVinCheckLaunch)
+        .filter(
+            ManualVinCheckLaunch.listing_id == listing.id,
+            ManualVinCheckLaunch.user_id == user.id,
+        )
+        .first()
+    )
+    if row is None:
+        row = ManualVinCheckLaunch(listing_id=listing.id, user_id=user.id, launched_at=now)
+        db.add(row)
+    else:
+        row.launched_at = now
+    listing.manual_vin_checked_at = now
+    db.add(listing)
+    db.commit()
+    db.refresh(row)
+    db.refresh(listing)
+    return row
+
+
+def user_has_manual_vin_check_launch(db: Session, *, user_id: int, listing_id: int) -> bool:
+    return (
+        db.query(ManualVinCheckLaunch.id)
+        .filter(
+            ManualVinCheckLaunch.user_id == user_id,
+            ManualVinCheckLaunch.listing_id == listing_id,
+        )
+        .first()
+        is not None
+    )
+
+
 def collect_adverts_for_url(raw_url: str) -> tuple[ParsedAvbyUrl, list[dict[str, Any]]]:
     parsed = parse_avby_url(raw_url)
     if parsed.kind == "listing":
@@ -632,6 +680,7 @@ def run_manual_vin_check_from_url(
     db: Session,
     raw_url: str,
     *,
+    launched_by: User,
     run_vin_checks: bool = True,
 ) -> ManualVinCheckRunResult:
     parsed, adverts = collect_adverts_for_url(raw_url)
@@ -646,6 +695,7 @@ def run_manual_vin_check_from_url(
 
     for advert in adverts:
         listing, created = upsert_advert_listing(db, advert)
+        record_manual_vin_check_launch(db, listing, launched_by)
         item = ManualVinCheckItemResult(
             listing_id=listing.id,
             avby_id=listing.avby_id,
@@ -662,17 +712,90 @@ def run_manual_vin_check_from_url(
     return result
 
 
+def list_manual_vin_check_account_options(db: Session) -> list[dict[str, str]]:
+    """Dropdown options for admin filter: all / admins / each user who launched a check."""
+    rows = (
+        db.query(User)
+        .join(ManualVinCheckLaunch, ManualVinCheckLaunch.user_id == User.id)
+        .distinct()
+        .order_by(User.role.asc(), User.email.asc(), User.id.asc())
+        .all()
+    )
+    options = [
+        {"value": "", "label": "Все"},
+        {"value": "admin", "label": "Админы"},
+    ]
+    for user in rows:
+        if user.role == UserRole.admin:
+            continue
+        options.append({"value": str(user.id), "label": format_manual_check_account_label(user)})
+    # Also include admins as individual rows after the group filter.
+    for user in rows:
+        if user.role != UserRole.admin:
+            continue
+        options.append({"value": str(user.id), "label": format_manual_check_account_label(user)})
+    return options
+
+
+def build_manual_vin_check_account_labels(
+    db: Session,
+    listings: list[CarListing],
+) -> dict[int, str]:
+    if not listings:
+        return {}
+    listing_ids = [listing.id for listing in listings]
+    rows = (
+        db.query(ManualVinCheckLaunch)
+        .filter(ManualVinCheckLaunch.listing_id.in_(listing_ids))
+        .order_by(ManualVinCheckLaunch.launched_at.desc(), ManualVinCheckLaunch.id.desc())
+        .all()
+    )
+    latest: dict[int, ManualVinCheckLaunch] = {}
+    for row in rows:
+        if row.listing_id not in latest:
+            latest[row.listing_id] = row
+    user_ids = {row.user_id for row in latest.values()}
+    users = {
+        user.id: user
+        for user in db.query(User).filter(User.id.in_(user_ids)).all()
+    } if user_ids else {}
+    return {
+        listing_id: format_manual_check_account_label(users.get(row.user_id))
+        for listing_id, row in latest.items()
+    }
+
+
 def paginate_manual_vin_check_listings(
     db: Session,
     *,
     page: int = 1,
     page_size: int = 21,
+    launched_by_user_id: int | None = None,
+    admins_only: bool = False,
 ) -> tuple[list[CarListing], int]:
-    query = (
-        db.query(CarListing)
-        .filter(CarListing.manual_vin_checked_at.isnot(None))
-        .order_by(CarListing.manual_vin_checked_at.desc(), CarListing.id.desc())
-    )
+    if launched_by_user_id is not None or admins_only:
+        launch_q = db.query(
+            ManualVinCheckLaunch.listing_id.label("listing_id"),
+            func.max(ManualVinCheckLaunch.launched_at).label("launched_at"),
+        )
+        if launched_by_user_id is not None:
+            launch_q = launch_q.filter(ManualVinCheckLaunch.user_id == launched_by_user_id)
+        else:
+            launch_q = launch_q.join(User, User.id == ManualVinCheckLaunch.user_id).filter(
+                User.role == UserRole.admin
+            )
+        launch_subq = launch_q.group_by(ManualVinCheckLaunch.listing_id).subquery()
+        query = (
+            db.query(CarListing)
+            .join(launch_subq, launch_subq.c.listing_id == CarListing.id)
+            .order_by(launch_subq.c.launched_at.desc(), CarListing.id.desc())
+        )
+    else:
+        query = db.query(CarListing).filter(CarListing.manual_vin_checked_at.isnot(None)).order_by(
+            CarListing.manual_vin_checked_at.desc(),
+            CarListing.id.desc(),
+        )
+
     total = query.count()
     offset = max(0, (page - 1) * page_size)
     rows = query.offset(offset).limit(page_size).all()
