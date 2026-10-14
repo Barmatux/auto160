@@ -3897,6 +3897,40 @@ body.vin-enter-modal-open {
   letter-spacing: 0.04em;
 }
 
+.price-stats-chart-wrap {
+  margin: 24px 0 28px;
+}
+
+.price-stats-chart-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px 18px;
+  color: var(--accent, #1d4ed8);
+  overflow: auto;
+}
+
+.price-stats-chart {
+  display: block;
+  width: 100%;
+  max-width: 720px;
+  height: auto;
+}
+
+.price-stats-table td.num,
+.price-stats-table th.num {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.admin-pagination {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 18px 0 8px;
+  flex-wrap: wrap;
+}
+
 .admin-stats-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));

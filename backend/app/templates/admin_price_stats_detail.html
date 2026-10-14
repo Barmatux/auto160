@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}Админка — {{ detail.title }}{% endblock %}
+{% block content %}
+{% set admin_section = "price-stats" %}
+{% include "partials/admin_nav.html" %}
+
+<p><a class="page-link" href="/admin/price-stats">← К списку оценок</a></p>
+
+<h1>{{ detail.title }}</h1>
+<p class="hint">
+  Годы каталога: {{ detail.years_label }} · статус
+  <span class="status-pill {% if detail.target.resolve_status == 'ready' %}success{% elif detail.target.resolve_status == 'error' %}failed{% else %}pending{% endif %}">{{ detail.resolve_status_label }}</span>
+  · year-stats OK: {{ detail.years_ok }}
+  · slug <code>{{ detail.target.catalog_slug }}</code>
+  {% if detail.target.brand_id %}
+    · IDs {{ detail.target.brand_id }}/{{ detail.target.model_id }}/{{ detail.target.generation_id }}
+  {% endif %}
+</p>
+<p class="hint">
+  {% if detail.target.source_url %}
+    <a href="{{ detail.target.source_url }}" target="_blank" rel="noopener">Каталог av.by</a>
+    ·
+  {% endif %}
+  <a href="{{ detail.ocenka_url }}" target="_blank" rel="noopener">Страница оценки</a>
+</p>
+
+{% if detail.history_svg %}
+  <section class="price-stats-chart-wrap">
+    <h2>История медианной цены (USD)</h2>
+    <div class="price-stats-chart-card">
+      {{ detail.history_svg | safe }}
+    </div>
+  </section>
+{% endif %}
+
+<section class="admin-vin-table-wrap">
+  <h2>Срезы по годам</h2>
+  <table class="users-table admin-vin-table price-stats-table">
+    <thead>
+      <tr>
+        <th>Год</th>
+        <th>Медиана USD</th>
+        <th>Медиана BYN</th>
+        <th>Min–Max USD</th>
+        <th>Продано*</th>
+        <th>Активных</th>
+        <th>+/− 60д</th>
+        <th>Статус</th>
+        <th>Обновлено</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in detail.years %}
+        <tr>
+          <td>
+            <strong>{{ row.year }}</strong>
+            {% if row.main_filter_url %}
+              <div class="admin-vin-listing-meta">
+                <a href="{{ row.main_filter_url }}" target="_blank" rel="noopener">фильтр av.by</a>
+              </div>
+            {% endif %}
+          </td>
+          <td>{{ row.price_usd }}</td>
+          <td>{{ row.price_byn }}</td>
+          <td>{{ row.min_price_usd }} – {{ row.max_price_usd }}</td>
+          <td class="num">{{ row.advert_count }}</td>
+          <td class="num">{{ row.active_advert_count }}</td>
+          <td class="num">{{ row.activity_new_60d }} / {{ row.activity_removed_60d }}</td>
+          <td><span class="status-pill {{ 'success' if row.fetch_status == 'ok' else 'failed' }}">{{ row.fetch_status_label }}</span></td>
+          <td>{{ row.fetched_at.strftime('%d.%m.%Y %H:%M') if row.fetched_at else '—' }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="9">Срезы ещё не загружены.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <p class="hint">* «Продано» — advertCount из mediumPrice (база оценки), не обязательно текущие активные.</p>
+</section>
+
+<section class="admin-vin-table-wrap">
+  <h2>Примеры проданных объявлений</h2>
+  <p class="hint">Показано {{ detail.sold_rows|length }} из {{ detail.sold_total }} в снимках.</p>
+  <table class="users-table admin-vin-table price-stats-table">
+    <thead>
+      <tr>
+        <th>Год среза</th>
+        <th>Объявление</th>
+        <th>Цена USD</th>
+        <th>Цена BYN</th>
+        <th>Дней в продаже</th>
+        <th>Опубликовано</th>
+        <th>Статус</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in detail.sold_rows %}
+        <tr>
+          <td>{{ row.year }}</td>
+          <td>
+            <a href="{{ row.url }}" target="_blank" rel="noopener">#{{ row.avby_id }}</a>
+          </td>
+          <td>{{ row.price_usd }}</td>
+          <td>{{ row.price_byn }}</td>
+          <td class="num">{{ row.days_on_sale }}</td>
+          <td>{{ row.published_at.strftime('%d.%m.%Y') if row.published_at else '—' }}</td>
+          <td>{{ row.public_status }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="7">Нет примеров продаж в загруженных снимках.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

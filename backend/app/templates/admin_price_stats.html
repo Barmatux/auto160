@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% block title %}Админка — Оценка av.by{% endblock %}
+{% block content %}
+{% set admin_section = "price-stats" %}
+{% include "partials/admin_nav.html" %}
+
+<h1>Оценка av.by</h1>
+<p class="hint">
+  Снапшоты online-оценки для поколений каталога с рейтингом 1:
+  медианная цена, диапазон, история и примеры проданных объявлений.
+  Покрытие загрузки: <strong>{{ summary.year_ok }}</strong> из
+  <strong>{{ summary.years_planned }}</strong> год-срезов ({{ summary.coverage_label }}).
+  Последнее обновление: {{ summary.last_fetched_label }}.
+</p>
+
+<section class="admin-stats-grid">
+  <article class="admin-stat-card">
+    <div class="label">Поколений</div>
+    <div class="value">{{ summary.targets_total }}</div>
+    <div class="sub">ready {{ summary.targets_ready }} · pending {{ summary.targets_pending }} · err {{ summary.targets_error }}</div>
+  </article>
+  <article class="admin-stat-card">
+    <div class="label">Year-stats OK</div>
+    <div class="value">{{ summary.year_ok }}</div>
+    <div class="sub">ошибок {{ summary.year_error }}</div>
+  </article>
+  <article class="admin-stat-card">
+    <div class="label">Точки истории</div>
+    <div class="value">{{ summary.history_points }}</div>
+  </article>
+  <article class="admin-stat-card">
+    <div class="label">Продажи в снимках</div>
+    <div class="value">{{ summary.sold_adverts }}</div>
+  </article>
+</section>
+
+<form class="filters filters-inline admin-log-toolbar" method="get" action="/admin/price-stats">
+  <label>
+    Поиск
+    <input type="search" name="q" value="{{ q }}" placeholder="BMW X5, slug…" />
+  </label>
+  <label>
+    Марка
+    <select name="make">
+      <option value="">Все</option>
+      {% for item in makes %}
+        <option value="{{ item }}"{% if make == item %} selected{% endif %}>{{ item }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>
+    Статус
+    <select name="status">
+      <option value="">Все</option>
+      {% for key, label in status_labels.items() %}
+        <option value="{{ key }}"{% if status == key %} selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <button type="submit">Показать</button>
+  <a class="page-link" href="/admin/price-stats">Сбросить</a>
+</form>
+
+<section class="admin-vin-table-wrap">
+  <table class="users-table admin-vin-table price-stats-table">
+    <thead>
+      <tr>
+        <th>Поколение</th>
+        <th>Годы</th>
+        <th>Статус</th>
+        <th>Покрытие</th>
+        <th>Пример медианы</th>
+        <th>Объявлений</th>
+        <th>Обновлено</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+        <tr>
+          <td class="admin-vin-listing">
+            <a class="admin-vin-listing-title" href="{{ row.detail_url }}">
+              {{ row.make }} {{ row.model }}
+            </a>
+            <div class="admin-vin-listing-meta">
+              {{ row.generation }} · {{ row.catalog_slug }}
+            </div>
+          </td>
+          <td>{{ row.years_label }}</td>
+          <td>
+            <span class="status-pill {% if row.resolve_status == 'ready' %}success{% elif row.resolve_status == 'error' %}failed{% else %}pending{% endif %}">{{ row.resolve_status_label }}</span>
+          </td>
+          <td>{{ row.coverage_label }}</td>
+          <td>
+            {% if row.sample_year %}
+              <strong>{{ row.sample_price_usd }}</strong>
+              <div class="admin-vin-listing-meta">{{ row.sample_year }} г.</div>
+            {% else %}
+              —
+            {% endif %}
+          </td>
+          <td class="num">{{ row.adverts_sum or "—" }}</td>
+          <td>
+            {% if row.last_fetched_at %}
+              {{ row.last_fetched_at.strftime('%d.%m.%Y %H:%M') }}
+            {% else %}
+              —
+            {% endif %}
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="7">Пока нет данных — дождитесь прогона коллектора.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+{% if total_pages > 1 %}
+  <nav class="admin-pagination">
+    {% if has_prev %}
+      <a class="page-link" href="{{ prev_url }}">← Назад</a>
+    {% endif %}
+    <span class="hint">Страница {{ page }} из {{ total_pages }} ({{ total }} поколений)</span>
+    {% if has_next %}
+      <a class="page-link" href="{{ next_url }}">Вперёд →</a>
+    {% endif %}
+  </nav>
+{% endif %}
+{% endblock %}

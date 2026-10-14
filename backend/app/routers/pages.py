@@ -127,6 +127,14 @@ from app.listing_catalog_link import (
     resolve_catalog_items_for_listings,
     score_listing_catalog_match,
 )
+from app.avby_price_analytics_admin import (
+    RESOLVE_STATUS_LABELS,
+    build_price_stats_summary,
+    build_target_detail,
+    list_makes,
+    list_price_stat_targets,
+    list_query_string,
+)
 from app.models import AvbyServiceAccount, AvbySyncRun, AvbySyncRunVinCheck, CarListing, CatalogItem, CatalogItemPhoto, ListingStatus, User, UserRole
 from app.security import decode_token, is_token_revoked
 from app.seo import (
@@ -5009,6 +5017,95 @@ def admin_messages_page(request: Request, db: Session = Depends(get_db)):
         return redirect
     context = _template_context(request, current_user)
     return templates.TemplateResponse(request, "admin_messages.html", context)
+
+
+@router.get("/admin/price-stats")
+def admin_price_stats_page(
+    request: Request,
+    q: str | None = Query(default=None),
+    make: str | None = Query(default=None),
+    status: str | None = Query(default=None),
+    page: int = Query(default=1, ge=1),
+    db: Session = Depends(get_db),
+):
+    current_user = _resolve_user_from_request(request, db)
+    if not current_user:
+        return RedirectResponse(url="/login", status_code=302)
+    if current_user.role != UserRole.admin:
+        return RedirectResponse(url="/", status_code=302)
+
+    q_clean = (q or "").strip() or None
+    make_clean = (make or "").strip() or None
+    status_clean = (status or "").strip() or None
+    if status_clean and status_clean not in RESOLVE_STATUS_LABELS:
+        status_clean = None
+
+    per_page = 50
+    rows, total = list_price_stat_targets(
+        db,
+        q=q_clean,
+        make=make_clean,
+        status=status_clean,
+        page=page,
+        per_page=per_page,
+    )
+    total_pages = max((total + per_page - 1) // per_page, 1)
+    if page > total_pages:
+        page = total_pages
+        rows, total = list_price_stat_targets(
+            db,
+            q=q_clean,
+            make=make_clean,
+            status=status_clean,
+            page=page,
+            per_page=per_page,
+        )
+
+    base_qs = list_query_string(q=q_clean, make=make_clean, status=status_clean)
+    prev_qs = list_query_string(q=q_clean, make=make_clean, status=status_clean, page=page - 1)
+    next_qs = list_query_string(q=q_clean, make=make_clean, status=status_clean, page=page + 1)
+    context = _template_context(request, current_user)
+    context.update(
+        {
+            "summary": build_price_stats_summary(db),
+            "rows": rows,
+            "makes": list_makes(db),
+            "q": q_clean or "",
+            "make": make_clean or "",
+            "status": status_clean or "",
+            "status_labels": RESOLVE_STATUS_LABELS,
+            "page": page,
+            "total": total,
+            "total_pages": total_pages,
+            "has_prev": page > 1,
+            "has_next": page < total_pages,
+            "prev_url": f"/admin/price-stats?{prev_qs}" if page > 1 else None,
+            "next_url": f"/admin/price-stats?{next_qs}" if page < total_pages else None,
+            "list_base_qs": base_qs,
+        }
+    )
+    return templates.TemplateResponse(request, "admin_price_stats.html", context)
+
+
+@router.get("/admin/price-stats/{target_id}")
+def admin_price_stats_detail_page(
+    request: Request,
+    target_id: int,
+    db: Session = Depends(get_db),
+):
+    current_user = _resolve_user_from_request(request, db)
+    if not current_user:
+        return RedirectResponse(url="/login", status_code=302)
+    if current_user.role != UserRole.admin:
+        return RedirectResponse(url="/", status_code=302)
+
+    detail = build_target_detail(db, target_id)
+    if detail is None:
+        return RedirectResponse(url="/admin/price-stats", status_code=302)
+
+    context = _template_context(request, current_user)
+    context["detail"] = detail
+    return templates.TemplateResponse(request, "admin_price_stats_detail.html", context)
 
 
 @router.get("/admin/analytics")
