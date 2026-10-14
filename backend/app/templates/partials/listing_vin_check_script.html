@@ -169,7 +169,11 @@
       if (vinCode && !keepVinCheck) vinCode.remove();
       if (vinErrorWrap) {
         vinErrorWrap.hidden = false;
-        if (vinErrorBtn) vinErrorBtn.dataset.error = data.vin_error;
+        block.dataset.vinError = data.vin_error;
+        if (vinErrorBtn) {
+          vinErrorBtn.dataset.error = data.vin_error;
+          vinErrorBtn.title = "Нажмите, чтобы скопировать текст ошибки";
+        }
         bindVinErrorControls(vinErrorWrap);
       }
     }
@@ -204,17 +208,56 @@
     return wrap;
   }
 
+  async function copyTextToClipboard(text) {
+    const value = String(text || "");
+    if (!value) return false;
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(value);
+        return true;
+      }
+    } catch (_) {
+      /* fallback below */
+    }
+    const textarea = document.createElement("textarea");
+    textarea.value = value;
+    textarea.setAttribute("readonly", "");
+    textarea.style.position = "fixed";
+    textarea.style.left = "-9999px";
+    document.body.appendChild(textarea);
+    textarea.select();
+    let copied = false;
+    try {
+      copied = document.execCommand("copy");
+    } catch (_) {
+      copied = false;
+    }
+    textarea.remove();
+    return copied;
+  }
+
   function bindVinErrorControls(wrap) {
+    if (!wrap || wrap.dataset.bound === "1") return;
+    wrap.dataset.bound = "1";
     const btn = wrap.querySelector(".vin-check-error-btn");
     const popover = wrap.querySelector(".vin-check-error-popover");
     if (!btn || !popover) return;
-    const message = btn.dataset.error || wrap.closest(".listing-vin-check-block")?.dataset.vinError || "";
-    btn.addEventListener("mouseenter", () => showPopover(btn, popover, message));
-    btn.addEventListener("focus", () => showPopover(btn, popover, message));
-    btn.addEventListener("click", (event) => {
+    const messageFor = () =>
+      btn.dataset.error ||
+      wrap.closest(".listing-vin-check-block")?.dataset.vinError ||
+      "Не удалось получить VIN";
+    btn.title = btn.title || "Нажмите, чтобы скопировать текст ошибки";
+    btn.addEventListener("mouseenter", () => showPopover(btn, popover, messageFor()));
+    btn.addEventListener("focus", () => showPopover(btn, popover, messageFor()));
+    btn.addEventListener("click", async (event) => {
+      event.preventDefault();
       event.stopPropagation();
-      popover.hidden = !popover.hidden;
-      if (!popover.hidden) popover.textContent = message;
+      const message = messageFor();
+      const copied = await copyTextToClipboard(message);
+      popover.hidden = false;
+      popover.textContent = copied
+        ? `Скопировано в буфер обмена\n\n${message}`
+        : `Не удалось скопировать. Текст ошибки:\n\n${message}`;
     });
   }
 

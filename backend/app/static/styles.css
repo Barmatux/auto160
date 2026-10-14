@@ -1956,7 +1956,9 @@ body.vin-enter-modal-open {
   top: calc(100% + 6px);
   z-index: 25;
   min-width: 220px;
-  max-width: 320px;
+  max-width: min(420px, 80vw);
+  max-height: 240px;
+  overflow: auto;
   padding: 8px 10px;
   border-radius: 10px;
   border: 1px solid #fecaca;
@@ -1964,6 +1966,9 @@ body.vin-enter-modal-open {
   color: #7f1d1d;
   font-size: 12px;
   line-height: 1.35;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
   box-shadow: 0 8px 20px rgba(127, 29, 29, 0.12);
 }
 
