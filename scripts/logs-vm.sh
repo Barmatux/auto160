@@ -18,7 +18,7 @@ usage() {
   echo "Usage:"
   echo "  $0 [file] [SERVICE] [LINES]     tail ~/auto160/logs/SERVICE.log"
   echo "  $0 docker [SERVICE] [LINES]     docker compose logs -f"
-  echo "Services: api, avby-sync, avby-archive, avby-vin-session, autoplius-sync"
+  echo "Services: api, avby-sync, avby-archive, avby-vin-session, avby-price-stats, autoplius-sync"
 }
 
 if [[ "$MODE" == "-h" || "$MODE" == "--help" ]]; then
