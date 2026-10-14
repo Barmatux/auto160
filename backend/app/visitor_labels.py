@@ -50,6 +50,7 @@ SERVICE_LABELS = {
     "api": "API",
     "avby-sync": "Парсинг av.by",
     "avby-archive": "Архивация av.by",
+    "avby-price-stats": "Оценка av.by",
     "avby-vin-session": "VIN session",
 }
 

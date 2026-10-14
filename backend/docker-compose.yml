@@ -170,5 +170,29 @@ services:
       --run-at-hour 2
       --delay 1.5
 
+  avby-price-stats:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: auto160-avby-price-stats
+    restart: unless-stopped
+    environment:
+      LOG_DIR: /app/logs
+      LOG_SERVICE: avby-price-stats
+      TZ: Europe/Minsk
+    volumes:
+      - ../logs:/app/logs
+    depends_on:
+      db:
+        condition: service_healthy
+    command: >
+      python tools/schedule_avby_price_stats.py
+      --run-at-hour 1
+      --min-delay 12
+      --max-delay 20
+      --pause-every 12
+      --pause-seconds 90
+      --max-consecutive-errors 5
+
 volumes:
   pgdata:

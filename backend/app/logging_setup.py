@@ -10,13 +10,14 @@ from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-LOG_SERVICES = ("api", "avby-sync", "avby-vin-session", "avby-archive")
+LOG_SERVICES = ("api", "avby-sync", "avby-vin-session", "avby-archive", "avby-price-stats")
 
 LOG_SERVICE_LABELS: dict[str, str] = {
     "api": "API (uvicorn)",
     "avby-sync": "Парсинг av.by",
     "avby-vin-session": "VIN session keeper",
     "avby-archive": "Архивация av.by",
+    "avby-price-stats": "Оценка av.by",
 }
 
 LOG_RECORD_FORMAT = "%(asctime)s %(levelname)s [%(name)s] %(message)s"
