@@ -1949,6 +1949,35 @@ body.vin-enter-modal-open {
   opacity: 0.55;
 }
 
+.vin-check-customs-pending {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.vin-check-customs-pending-spin {
+  display: inline-block;
+  font-size: 14px;
+  line-height: 1;
+  animation: vin-check-spin 1s linear infinite;
+}
+
+.vin-check-customs-pending-text {
+  line-height: 1.2;
+}
+
+@keyframes vin-check-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .vin-check-error-popover,
 .vin-check-data-error-popover {
   position: absolute;

@@ -194,6 +194,13 @@
     if (data.vin && data.customs_error) {
       block.dataset.customsError = data.customs_error;
       dateWrap.appendChild(buildDataErrorWrap());
+      return;
+    }
+
+    if (data.vin) {
+      delete block.dataset.customsError;
+      delete block.dataset.releaseDate;
+      dateWrap.appendChild(buildCustomsPendingWrap());
     }
   }
 
@@ -206,6 +213,22 @@
       '<span class="vin-check-data-error-popover" hidden></span>';
     bindDataErrorControls(wrap);
     return wrap;
+  }
+
+  function buildCustomsPendingWrap() {
+    const wrap = document.createElement("span");
+    wrap.className = "vin-check-customs-pending";
+    wrap.setAttribute("aria-live", "polite");
+    wrap.innerHTML =
+      '<span class="vin-check-customs-pending-spin" aria-hidden="true">🔄</span>' +
+      '<span class="vin-check-customs-pending-text">запрос даты ввоза</span>';
+    return wrap;
+  }
+
+  function showCustomsPending(dateWrap) {
+    if (!dateWrap) return;
+    dateWrap.innerHTML = "";
+    dateWrap.appendChild(buildCustomsPendingWrap());
   }
 
   async function copyTextToClipboard(text) {
@@ -292,6 +315,7 @@
     const dateWrap = block.querySelector(".listing-vin-check-date");
     const popover = block.querySelector(".vin-check-data-error-popover");
     if (popover) popover.hidden = true;
+    showCustomsPending(dateWrap);
 
     block.dataset.customsLoading = "1";
     if (retryBtn) {
@@ -369,6 +393,11 @@
     const isVinFetch = !block.dataset.vin;
     if (isVinFetch) {
       markVinCheckLaunched(block);
+    }
+
+    const dateWrap = block.querySelector(".listing-vin-check-date");
+    if (block.dataset.vin && !block.dataset.releaseDate) {
+      showCustomsPending(dateWrap);
     }
 
     block.dataset.loading = "1";
@@ -596,6 +625,8 @@
 
   document.querySelectorAll(".listing-vin-check-block").forEach((block) => {
     if (block.dataset.vin && !block.dataset.releaseDate && !block.dataset.customsError) {
+      const dateWrap = block.querySelector(".listing-vin-check-date");
+      showCustomsPending(dateWrap);
       runVinCheck(block, { auto: true });
     }
   });

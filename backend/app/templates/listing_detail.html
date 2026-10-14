@@ -67,6 +67,11 @@
                   >🔄</button>
                   <span class="vin-check-data-error-popover" hidden></span>
                 </span>
+              {% elif listing.vin %}
+                <span class="vin-check-customs-pending" aria-live="polite">
+                  <span class="vin-check-customs-pending-spin" aria-hidden="true">🔄</span>
+                  <span class="vin-check-customs-pending-text">запрос даты ввоза</span>
+                </span>
               {% endif %}
             </div>
           </div>
