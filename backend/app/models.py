@@ -436,3 +436,131 @@ class Message(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
 
     thread: Mapped["MessageThread"] = relationship(back_populates="messages")
+
+
+class AvbyPriceStatTarget(Base):
+    """Catalog generation (rating=1) mapped to av.by ocenka IDs."""
+
+    __tablename__ = "avby_price_stat_targets"
+    __table_args__ = (UniqueConstraint("catalog_slug", name="uq_avby_price_stat_targets_slug"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    catalog_slug: Mapped[str] = mapped_column(String(200), index=True)
+    make: Mapped[str] = mapped_column(String(80), index=True)
+    model: Mapped[str] = mapped_column(String(120), index=True)
+    generation: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    year_from: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    year_to: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    source_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    brand_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+    model_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+    generation_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+    resolve_status: Mapped[str] = mapped_column(String(20), default="pending", index=True)
+    resolve_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    resolved_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    year_stats: Mapped[list["AvbyPriceYearStat"]] = relationship(
+        back_populates="target", cascade="all, delete-orphan"
+    )
+
+
+class AvbyPriceYearStat(Base):
+    """Full av.by ocenka snapshot for one generation + year."""
+
+    __tablename__ = "avby_price_year_stats"
+    __table_args__ = (
+        UniqueConstraint(
+            "brand_id",
+            "model_id",
+            "generation_id",
+            "year",
+            name="uq_avby_price_year_stats_ids_year",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    target_id: Mapped[int] = mapped_column(
+        ForeignKey("avby_price_stat_targets.id", ondelete="CASCADE"), index=True
+    )
+    brand_id: Mapped[int] = mapped_column(Integer, index=True)
+    model_id: Mapped[int] = mapped_column(Integer, index=True)
+    generation_id: Mapped[int] = mapped_column(Integer, index=True)
+    year: Mapped[int] = mapped_column(Integer, index=True)
+    make: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    model_name: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    generation_name: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    image_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    price_usd: Mapped[float | None] = mapped_column(Numeric(12, 2), nullable=True)
+    price_byn: Mapped[float | None] = mapped_column(Numeric(12, 2), nullable=True)
+    min_price_usd: Mapped[float | None] = mapped_column(Numeric(12, 2), nullable=True)
+    max_price_usd: Mapped[float | None] = mapped_column(Numeric(12, 2), nullable=True)
+    advert_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    active_advert_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    activity_new_60d: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    activity_removed_60d: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    activity_days: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    activity_by_month: Mapped[list | None] = mapped_column(JSON, nullable=True)
+    main_filter_url: Mapped[str | None] = mapped_column(String(1000), nullable=True)
+    active_filter_url: Mapped[str | None] = mapped_column(String(1000), nullable=True)
+    raw_payload: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    active_payload: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    fetch_status: Mapped[str] = mapped_column(String(20), default="ok", index=True)
+    fetch_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    fetched_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+
+    target: Mapped["AvbyPriceStatTarget"] = relationship(back_populates="year_stats")
+    history_points: Mapped[list["AvbyPriceHistoryPoint"]] = relationship(
+        back_populates="year_stat", cascade="all, delete-orphan"
+    )
+    sold_adverts: Mapped[list["AvbyPriceSoldAdvert"]] = relationship(
+        back_populates="year_stat", cascade="all, delete-orphan"
+    )
+
+
+class AvbyPriceHistoryPoint(Base):
+    __tablename__ = "avby_price_history_points"
+    __table_args__ = (
+        UniqueConstraint(
+            "year_stat_id",
+            "year",
+            "month",
+            name="uq_avby_price_history_points_stat_ym",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    year_stat_id: Mapped[int] = mapped_column(
+        ForeignKey("avby_price_year_stats.id", ondelete="CASCADE"), index=True
+    )
+    year: Mapped[int] = mapped_column(Integer, index=True)
+    month: Mapped[int] = mapped_column(Integer)
+    median_price_usd: Mapped[float | None] = mapped_column(Numeric(12, 2), nullable=True)
+
+    year_stat: Mapped["AvbyPriceYearStat"] = relationship(back_populates="history_points")
+
+
+class AvbyPriceSoldAdvert(Base):
+    __tablename__ = "avby_price_sold_adverts"
+    __table_args__ = (
+        UniqueConstraint(
+            "year_stat_id",
+            "avby_id",
+            name="uq_avby_price_sold_adverts_stat_avby",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    year_stat_id: Mapped[int] = mapped_column(
+        ForeignKey("avby_price_year_stats.id", ondelete="CASCADE"), index=True
+    )
+    avby_id: Mapped[int] = mapped_column(Integer, index=True)
+    price_usd: Mapped[float | None] = mapped_column(Numeric(12, 2), nullable=True)
+    price_byn: Mapped[float | None] = mapped_column(Numeric(12, 2), nullable=True)
+    days_on_sale: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    published_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    public_status: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    payload: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+
+    year_stat: Mapped["AvbyPriceYearStat"] = relationship(back_populates="sold_adverts")
