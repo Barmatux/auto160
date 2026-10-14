@@ -28,12 +28,40 @@
   <section class="price-stats-chart-wrap">
     <div class="price-stats-chart-head">
       <h2>История медианной цены</h2>
-      <p class="hint">USD по месяцам (как на av.by). Наведите на точку — точное значение.</p>
+      <p class="hint">USD по месяцам. Наведите или нажмите на точку — покажется месяц и медиана.</p>
     </div>
-    <div class="price-stats-chart-card">
+    <div class="price-stats-chart-card" id="price-stats-history-chart">
       {{ detail.history_svg | safe }}
     </div>
   </section>
+  <script>
+    (() => {
+      const root = document.getElementById("price-stats-history-chart");
+      if (!root) return;
+      const points = Array.from(root.querySelectorAll(".price-stats-point"));
+      const clear = () => points.forEach((el) => el.classList.remove("is-active"));
+      points.forEach((el) => {
+        el.addEventListener("mouseenter", () => {
+          clear();
+          el.classList.add("is-active");
+        });
+        el.addEventListener("focus", () => {
+          clear();
+          el.classList.add("is-active");
+        });
+        el.addEventListener("click", (event) => {
+          event.stopPropagation();
+          const wasActive = el.classList.contains("is-active");
+          clear();
+          if (!wasActive) el.classList.add("is-active");
+        });
+      });
+      root.addEventListener("mouseleave", clear);
+      document.addEventListener("click", (event) => {
+        if (!root.contains(event.target)) clear();
+      });
+    })();
+  </script>
 {% endif %}
 
 <section class="price-stats-chart-wrap">

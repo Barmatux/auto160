@@ -534,22 +534,32 @@ def _nice_ticks(lo: float, hi: float, count: int = 5) -> list[float]:
     return ticks or [float(lo), float(hi)]
 
 
-def _history_svg(points: list[dict[str, Any]], *, width: int = 760, height: int = 280) -> str | None:
+def _escape_svg_text(value: str) -> str:
+    return (
+        str(value)
+        .replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace('"', "&quot;")
+    )
+
+
+def _history_svg(points: list[dict[str, Any]], *, width: int = 760, height: int = 300) -> str | None:
     values = [p["value"] for p in points if p.get("value") is not None]
     if len(values) < 2:
         return None
 
     lo = min(values)
     hi = max(values)
-    # Add headroom so the line isn't glued to edges.
+    # Add headroom so the line isn't glued to edges / tooltips.
     pad_value = (hi - lo) * 0.08 if hi > lo else max(hi * 0.05, 100)
     y_min = max(0.0, lo - pad_value)
     y_max = hi + pad_value
     span = (y_max - y_min) or 1.0
 
     left = 64.0
-    right = 18.0
-    top = 22.0
+    right = 24.0
+    top = 36.0
     bottom = 46.0
     usable_w = width - left - right
     usable_h = height - top - bottom
@@ -578,7 +588,7 @@ def _history_svg(points: list[dict[str, Any]], *, width: int = 760, height: int 
             f'<line class="price-stats-grid" x1="{left}" y1="{y:.1f}" '
             f'x2="{width - right}" y2="{y:.1f}" />'
             f'<text class="price-stats-axis" x="{left - 8}" y="{y + 4:.1f}" '
-            f'text-anchor="end">{format_money_amount(tick)}</text>'
+            f'text-anchor="end">{_escape_svg_text(format_money_amount(tick))}</text>'
         )
 
     label_step = max(1, len(points) // 8)
@@ -589,15 +599,46 @@ def _history_svg(points: list[dict[str, Any]], *, width: int = 760, height: int 
         x = coords[idx][0]
         label_parts.append(
             f'<text class="price-stats-axis" x="{x:.1f}" y="{height - 14}" '
-            f'text-anchor="middle">{point.get("short_label") or point["label"]}</text>'
+            f'text-anchor="middle">'
+            f'{_escape_svg_text(point.get("short_label") or point["label"])}</text>'
         )
 
+    tip_w = 118.0
+    tip_h = 42.0
     dot_parts: list[str] = []
-    for (x, y), point in zip(coords, points):
-        tip = f'{point.get("short_label") or point["label"]}: {point["value_label"]}'
+    for idx, ((x, y), point) in enumerate(zip(coords, points)):
+        month = _escape_svg_text(point.get("short_label") or point["label"])
+        value_label = _escape_svg_text(point["value_label"])
+        # Keep tooltip inside the plot horizontally.
+        tip_x = min(max(x - tip_w / 2, left + 4), width - right - tip_w - 4)
+        tip_above = y - tip_h - 14 >= 4
+        tip_y = y - tip_h - 14 if tip_above else y + 14
+        tip_anchor_x = x - tip_x
+        if tip_above:
+            arrow = (
+                f'<polygon class="price-stats-tip-bg" '
+                f'points="{tip_anchor_x - 6:.1f},{tip_h:.0f} '
+                f'{tip_anchor_x:.1f},{tip_h + 7:.0f} '
+                f'{tip_anchor_x + 6:.1f},{tip_h:.0f}" />'
+            )
+        else:
+            arrow = (
+                f'<polygon class="price-stats-tip-bg" '
+                f'points="{tip_anchor_x - 6:.1f},0 '
+                f'{tip_anchor_x:.1f},-7 '
+                f'{tip_anchor_x + 6:.1f},0" />'
+            )
         dot_parts.append(
-            f'<circle class="price-stats-dot" cx="{x:.1f}" cy="{y:.1f}" r="3.5">'
-            f"<title>{tip}</title></circle>"
+            f'<g class="price-stats-point" tabindex="0" role="button" '
+            f'data-point-index="{idx}" aria-label="{month}: {value_label}">'
+            f'<circle class="price-stats-hit" cx="{x:.1f}" cy="{y:.1f}" r="16" />'
+            f'<circle class="price-stats-dot" cx="{x:.1f}" cy="{y:.1f}" r="4.5" />'
+            f'<g class="price-stats-tip" transform="translate({tip_x:.1f},{tip_y:.1f})">'
+            f'<rect class="price-stats-tip-bg" width="{tip_w:.0f}" height="{tip_h:.0f}" rx="8" />'
+            f"{arrow}"
+            f'<text class="price-stats-tip-month" x="10" y="17">{month}</text>'
+            f'<text class="price-stats-tip-value" x="10" y="34">{value_label}</text>'
+            f"</g></g>"
         )
 
     return (
@@ -609,9 +650,9 @@ def _history_svg(points: list[dict[str, Any]], *, width: int = 760, height: int 
         + f'<polygon class="price-stats-area" points="{area_points}" />'
         + f'<polyline class="price-stats-line" fill="none" stroke-width="2.5" '
         f'points="{line_points}" />'
-        + "".join(dot_parts)
         + "".join(label_parts)
         + f'<text class="price-stats-axis price-stats-axis-title" x="12" y="16">USD</text>'
+        + "".join(dot_parts)
         + "</svg>"
     )
 

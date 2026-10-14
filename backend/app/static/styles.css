@@ -3940,10 +3940,55 @@ body.vin-enter-modal-open {
   stroke-linejoin: round;
 }
 
+.price-stats-hit {
+  fill: transparent;
+  cursor: pointer;
+}
+
 .price-stats-dot {
   fill: #fff;
   stroke: #2563eb;
   stroke-width: 2;
+  pointer-events: none;
+  transition: r 0.12s ease, fill 0.12s ease;
+}
+
+.price-stats-point {
+  outline: none;
+}
+
+.price-stats-point .price-stats-tip {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s ease;
+}
+
+.price-stats-point:hover .price-stats-dot,
+.price-stats-point:focus .price-stats-dot,
+.price-stats-point.is-active .price-stats-dot {
+  fill: #2563eb;
+}
+
+.price-stats-point:hover .price-stats-tip,
+.price-stats-point:focus .price-stats-tip,
+.price-stats-point.is-active .price-stats-tip {
+  opacity: 1;
+}
+
+.price-stats-tip-bg {
+  fill: #0f172a;
+  stroke: none;
+}
+
+.price-stats-tip-month {
+  fill: #cbd5e1;
+  font-size: 11px;
+}
+
+.price-stats-tip-value {
+  fill: #fff;
+  font-size: 13px;
+  font-weight: 700;
 }
 
 .price-stats-axis {
