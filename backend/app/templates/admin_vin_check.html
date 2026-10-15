@@ -90,6 +90,16 @@
             />
             пробег до 200т.км.
           </label>
+          <label class="inline-checkbox">
+            <input
+              type="checkbox"
+              name="over2l"
+              value="1"
+              {% if vin_check_filters.engine_over_2l %}checked{% endif %}
+              onchange="this.form.submit()"
+            />
+            &gt;2л
+          </label>
           <div class="admin-vin-check-price-range" role="group" aria-label="Цена, BYN">
             <span class="admin-vin-check-price-label">Цена</span>
             <label class="admin-vin-check-price-field">

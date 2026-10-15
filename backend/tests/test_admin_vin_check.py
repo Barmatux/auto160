@@ -217,6 +217,43 @@ def test_listing_matches_vin_check_filters():
         mid_mileage,
         VinCheckListingFilters(mileage_to_100k=True, mileage_to_200k=True),
     ) is False
+
+    small_engine = SimpleNamespace(
+        transmission_type="Автомат",
+        engine_type="бензин",
+        year=2021,
+        brand="BMW",
+        model="X1",
+        engine_capacity_l=1.5,
+    )
+    exact_2l = SimpleNamespace(
+        transmission_type="Автомат",
+        engine_type="бензин",
+        year=2021,
+        brand="BMW",
+        model="X1",
+        engine_capacity_l=2.0,
+    )
+    large_engine = SimpleNamespace(
+        transmission_type="Автомат",
+        engine_type="бензин",
+        year=2021,
+        brand="BMW",
+        model="X1",
+        engine_capacity_l=2.5,
+    )
+    missing_engine = SimpleNamespace(
+        transmission_type="Автомат",
+        engine_type="бензин",
+        year=2021,
+        brand="BMW",
+        model="X1",
+        engine_capacity_l=None,
+    )
+    assert listing_matches_vin_check_filters(large_engine, VinCheckListingFilters(engine_over_2l=True)) is True
+    assert listing_matches_vin_check_filters(exact_2l, VinCheckListingFilters(engine_over_2l=True)) is False
+    assert listing_matches_vin_check_filters(small_engine, VinCheckListingFilters(engine_over_2l=True)) is False
+    assert listing_matches_vin_check_filters(missing_engine, VinCheckListingFilters(engine_over_2l=True)) is False
     priced = SimpleNamespace(
         transmission_type="Автомат",
         engine_type="бензин",
