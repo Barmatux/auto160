@@ -64,7 +64,7 @@ class VinCheckListingFilters:
     year_from_2020: bool = False
     mileage_to_100k: bool = False
     mileage_to_200k: bool = False
-    engine_over_2l: bool = False
+    engine_over_1_9l: bool = False
     brand: str | None = None
     model: str | None = None
     price_from: int | None = None
@@ -1097,7 +1097,7 @@ def listing_matches_vin_check_filters(
         max_km = 100_000 if filters.mileage_to_100k else 200_000
         if mileage_int > max_km:
             return False
-    if filters.engine_over_2l:
+    if filters.engine_over_1_9l:
         raw_capacity = getattr(listing, "engine_capacity_l", None)
         if raw_capacity is None:
             return False
@@ -1105,7 +1105,7 @@ def listing_matches_vin_check_filters(
             capacity_l = float(raw_capacity)
         except (TypeError, ValueError):
             return False
-        if capacity_l <= 2.0:
+        if capacity_l <= 1.9:
             return False
     if filters.price_from is not None or filters.price_to is not None:
         raw_price = getattr(listing, "price", None)

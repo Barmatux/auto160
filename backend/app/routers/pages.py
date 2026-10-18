@@ -4144,8 +4144,8 @@ def _build_admin_vin_check_url(
             params["km100"] = "1"
         elif filters.mileage_to_200k:
             params["km200"] = "1"
-        if filters.engine_over_2l:
-            params["over2l"] = "1"
+        if filters.engine_over_1_9l:
+            params["over19l"] = "1"
         if filters.price_from is not None:
             params["price_from"] = filters.price_from
         if filters.price_to is not None:
@@ -4169,6 +4169,7 @@ def admin_vin_check_page(
     from2020: str | None = Query(default=None),
     km100: str | None = Query(default=None),
     km200: str | None = Query(default=None),
+    over19l: str | None = Query(default=None),
     over2l: str | None = Query(default=None),
     price_from: str | None = Query(default=None),
     price_to: str | None = Query(default=None),
@@ -4205,7 +4206,8 @@ def admin_vin_check_page(
         year_from_2020=_parse_vin_check_bool_param(from2020),
         mileage_to_100k=mileage_to_100k,
         mileage_to_200k=mileage_to_200k,
-        engine_over_2l=_parse_vin_check_bool_param(over2l),
+        engine_over_1_9l=_parse_vin_check_bool_param(over19l)
+        or _parse_vin_check_bool_param(over2l),
         brand=brand_value,
         model=model_value,
         price_from=parsed_price_from,
