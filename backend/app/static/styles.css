@@ -3019,18 +3019,6 @@ body.vin-enter-modal-open {
   background: #f4f1ff;
 }
 
-.listing-contact-messenger[data-messenger="whatsapp"] {
-  color: #25d366;
-  border-color: rgba(37, 211, 102, 0.35);
-  background: #effff5;
-}
-
-.listing-contact-messenger[data-messenger="viber"] {
-  color: #7360f2;
-  border-color: rgba(115, 96, 242, 0.35);
-  background: #f3f0ff;
-}
-
 .listing-contact-messenger:hover {
   filter: brightness(0.97);
   border-color: currentColor;
@@ -6875,8 +6863,6 @@ body.listing-lightbox-open {
   flex-shrink: 0;
 }
 .a160-msg-external-btn[data-messenger="telegram"] { color: #229ED9; }
-.a160-msg-external-btn[data-messenger="whatsapp"] { color: #25D366; }
-.a160-msg-external-btn[data-messenger="viber"] { color: #7360F2; }
 .a160-msg-external-btn[data-messenger="max"] { color: #1b4f8a; }
 .a160-msg-external-btn span {
   color: #1a1a1a;
