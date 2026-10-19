@@ -21,6 +21,7 @@
     {
       id: "max",
       label: "MAX",
+      url: "https://max.ru/u/f9LHodD0cOIUwILxPw-KsvA1_CDFtdhIMz2oMtYa_gELW9HMhq7_whWwjSw",
       svg: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm3.7 13.55h-1.72l-1.18-3.74h-.05l-1.2 3.74H9.83L7.55 8.45h1.8l1.12 3.9h.05l1.2-3.9h1.6l1.2 3.9h.05l1.12-3.9h1.76l-2.35 7.1z"/></svg>',
     },
   ];
