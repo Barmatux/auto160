@@ -6851,6 +6851,7 @@ body.listing-lightbox-open {
   gap: 8px;
 }
 .a160-msg-external-btn {
+  text-decoration: none;
   display: inline-flex;
   align-items: center;
   gap: 6px;

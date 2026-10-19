@@ -1,10 +1,11 @@
 (function () {
   const API = "/api/v1/messages";
 
-  const MESSENGER_MOCKS = [
+  const MESSENGERS = [
     {
       id: "telegram",
       label: "Telegram",
+      url: "https://t.me/auto160",
       svg: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8-1.55 7.3c-.12.54-.43.67-.87.42l-2.4-1.77-1.16 1.12c-.13.13-.24.24-.49.24l.17-2.43 4.42-4c.19-.17-.04-.27-.3-.1l-5.46 3.44-2.35-.74c-.51-.16-.52-.51.11-.76l9.18-3.54c.42-.17.79.1.6.82z"/></svg>',
     },
     {
@@ -25,16 +26,24 @@
   ];
 
   function messengersBlockHtml() {
-    const buttons = MESSENGER_MOCKS.map(
-      (m) =>
-        `<button type="button" class="a160-msg-external-btn" data-messenger-mock="${m.id}" data-messenger="${m.id}" aria-label="${m.label}">
+    const pending = MESSENGERS.filter((m) => !m.url).map((m) => m.label);
+    const buttons = MESSENGERS.map((m) => {
+      if (m.url) {
+        return `<a class="a160-msg-external-btn" href="${esc(m.url)}" target="_blank" rel="noopener noreferrer" data-messenger="${m.id}" aria-label="${m.label}">
           ${m.svg}<span>${m.label}</span>
-        </button>`
-    ).join("");
+        </a>`;
+      }
+      return `<button type="button" class="a160-msg-external-btn" data-messenger-mock="${m.id}" data-messenger="${m.id}" aria-label="${m.label}">
+          ${m.svg}<span>${m.label}</span>
+        </button>`;
+    }).join("");
+    const hint = pending.length
+      ? `${pending.join(", ")} — скоро.`
+      : "";
     return `<div class="a160-msg-external" data-a160-msg-external>
       <p class="a160-msg-external-title">Или напишите в мессенджере</p>
       <div class="a160-msg-external-row" role="group" aria-label="Мессенджеры">${buttons}</div>
-      <p class="a160-msg-external-hint">Ссылки скоро появятся — пока демо-кнопки.</p>
+      ${hint ? `<p class="a160-msg-external-hint">${hint}</p>` : ""}
     </div>`;
   }
 
@@ -255,7 +264,7 @@
     if (!mockBtn) return;
     event.preventDefault();
     const name = mockBtn.getAttribute("data-messenger-mock") || "мессенджер";
-    alert(`Ссылка на ${name} пока не подключена (мок).`);
+    alert(`Ссылка на ${name} пока не подключена.`);
   });
 
   listEl.addEventListener("click", (event) => {
