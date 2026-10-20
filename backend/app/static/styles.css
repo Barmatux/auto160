@@ -5149,6 +5149,12 @@ body.vin-enter-modal-open {
 .listings-feed .listing-card:has(.listing-price-has-conversions.is-price-tooltip-open) {
   position: relative;
   z-index: 25;
+  /* Avoid transform containing-block so price tooltips stay viewport-fixed. */
+  transform: none;
+}
+
+.listings-feed .listing-card:has(.listing-price-has-conversions.is-price-tooltip-open):hover {
+  transform: none;
 }
 
 .listings-feed .listings-feed-price .listing-price-primary {

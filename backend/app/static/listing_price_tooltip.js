@@ -11,9 +11,34 @@
     return Math.max(VIEWPORT_PAD, Math.ceil(rect.bottom) + GAP);
   }
 
-  function placeTooltip(priceEl) {
-    var tip = priceEl.querySelector(".listing-price-tooltip");
+  function getTip(priceEl) {
+    return priceEl._priceTooltipEl || priceEl.querySelector(".listing-price-tooltip");
+  }
+
+  function mountTipToBody(priceEl, tip) {
+    if (!tip || tip.parentElement === document.body) return;
+    priceEl._priceTooltipEl = tip;
+    tip._priceTooltipHome = priceEl;
+    document.body.appendChild(tip);
+  }
+
+  function restoreTip(priceEl, tip) {
     if (!tip) return;
+    var home = tip._priceTooltipHome || priceEl;
+    if (home && tip.parentElement === document.body) {
+      home.appendChild(tip);
+    }
+    tip._priceTooltipHome = null;
+    priceEl._priceTooltipEl = null;
+  }
+
+  function placeTooltip(priceEl) {
+    var tip = getTip(priceEl);
+    if (!tip) return;
+
+    // Reparent to body so card hover `transform` does not create a containing
+    // block for position:fixed (breaks placement in 2nd/3rd grid columns).
+    mountTipToBody(priceEl, tip);
 
     tip.style.position = "fixed";
     tip.style.left = "0";
@@ -23,6 +48,7 @@
     tip.style.transform = "none";
     tip.style.width = "";
     tip.style.maxWidth = "";
+    tip.style.zIndex = "1200";
     tip.style.visibility = "hidden";
     tip.style.display = "block";
 
@@ -59,7 +85,7 @@
   }
 
   function clearTooltip(priceEl) {
-    var tip = priceEl.querySelector(".listing-price-tooltip");
+    var tip = getTip(priceEl);
     if (!tip) return;
     tip.style.display = "";
     tip.style.visibility = "";
@@ -71,6 +97,8 @@
     tip.style.transform = "";
     tip.style.width = "";
     tip.style.maxWidth = "";
+    tip.style.zIndex = "";
+    restoreTip(priceEl, tip);
   }
 
   function bindPriceTooltips(root) {
