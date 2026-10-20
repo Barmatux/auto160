@@ -1,4 +1,6 @@
 import re
+import time
+from copy import deepcopy
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from urllib.parse import quote, urlencode
@@ -2357,7 +2359,30 @@ def _apply_max_hp_filter(query, max_hp: int = 160):
     return _apply_hp_filter(query, max_hp=max_hp, exact_hp=False)
 
 
+_HOME_STATS_CACHE: tuple[float, dict] | None = None
+_HOME_POPULAR_MAKES_CACHE: tuple[float, list[dict]] | None = None
+_HOME_BLOCK_CACHE_TTL_SEC = 600.0
+
+
+def _home_cache_get(cache: tuple[float, object] | None):
+    if cache is None:
+        return None
+    expires_at, value = cache
+    if time.monotonic() >= expires_at:
+        return None
+    return deepcopy(value)
+
+
+def _home_cache_set(value):
+    return (time.monotonic() + _HOME_BLOCK_CACHE_TTL_SEC, deepcopy(value))
+
+
 def _home_stats(db: Session) -> dict:
+    global _HOME_STATS_CACHE
+    cached = _home_cache_get(_HOME_STATS_CACHE)
+    if cached is not None:
+        return cached
+
     hp_filter = or_(CatalogItem.engine_power_hp.is_(None), CatalogItem.engine_power_hp <= 160)
     catalog_filters = (
         CatalogItem.source_site == "av.by",
@@ -2386,7 +2411,7 @@ def _home_stats(db: Session) -> dict:
         CarListing.year >= year_min,
         CarListing.year <= year_max,
     ).count()
-    return {
+    result = {
         "catalog_items_count": catalog_items_count,
         "catalog_makes_count": catalog_makes_count,
         "listings_count": listings_count,
@@ -2394,27 +2419,48 @@ def _home_stats(db: Session) -> dict:
         "passable_year_from": year_min,
         "passable_year_to": year_max,
     }
+    _HOME_STATS_CACHE = _home_cache_set(result)
+    return result
 
 
 def _home_popular_makes(db: Session, *, limit: int = 10) -> list[dict]:
+    global _HOME_POPULAR_MAKES_CACHE
+    cached = _home_cache_get(_HOME_POPULAR_MAKES_CACHE)
+    if cached is not None:
+        return cached[:limit]
+
+    item_count = func.count(CatalogItem.id)
     rows = (
-        apply_visible_catalog_filter(_apply_max_hp_filter(db.query(CatalogItem)))
+        apply_visible_catalog_filter(
+            _apply_max_hp_filter(
+                db.query(
+                    CatalogItem.make,
+                    item_count.label("item_count"),
+                    func.min(CatalogItem.id).label("first_id"),
+                )
+            )
+        )
         .filter(CatalogItem.make.isnot(None), CatalogItem.source_site == "av.by")
-        .order_by(CatalogItem.make.asc(), CatalogItem.created_at.desc())
+        .group_by(CatalogItem.make)
+        .order_by(item_count.desc(), CatalogItem.make.asc())
+        .limit(limit)
         .all()
     )
-    grouped: dict[str, dict] = {}
-    for item in rows:
-        make = (item.make or "").strip()
-        if not make:
+    makes: list[dict] = []
+    for make, count, first_id in rows:
+        make_name = (make or "").strip()
+        if not make_name:
             continue
-        if make not in grouped:
-            grouped[make] = {"make": make, "count": 0, "first_id": item.id}
-        grouped[make]["count"] += 1
-    makes = sorted(grouped.values(), key=lambda row: (-row["count"], row["make"]))[:limit]
-    for make in makes:
-        make["models_url"] = "/catalog/models?" + urlencode({"make": make["make"]})
-        make["logo_url"] = _make_logo_url(make["make"])
+        makes.append(
+            {
+                "make": make_name,
+                "count": int(count or 0),
+                "first_id": int(first_id) if first_id is not None else None,
+                "models_url": "/catalog/models?" + urlencode({"make": make_name}),
+                "logo_url": _make_logo_url(make_name),
+            }
+        )
+    _HOME_POPULAR_MAKES_CACHE = _home_cache_set(makes)
     return makes
 
 
