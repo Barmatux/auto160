@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Админка — Подборка на главной{% endblock %}
+{% block content %}
+{% set admin_section = "featured" %}
+{% include "partials/admin_nav.html" %}
+
+<h1>Подборка на главной</h1>
+<p class="hint">
+  До {{ pool_limit }} активных объявлений в пуле; на главной показывается до {{ home_limit }}
+  с ежедневной ротацией. В подборку только лоты с датой ввоза старше 1 года.
+</p>
+
+<form class="admin-featured-add" data-featured-add-form>
+  <label>
+    ID объявления
+    <input type="number" name="listing_id" min="1" required />
+  </label>
+  <label>
+    Вес (больше = выше в пуле)
+    <input type="number" name="sort_weight" value="0" />
+  </label>
+  <button type="submit" class="btn-primary">Добавить</button>
+  <p class="hint" data-featured-add-status hidden></p>
+</form>
+
+<table class="users-table">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Объявление</th>
+      <th>Дата ввоза</th>
+      <th>Вес</th>
+      <th>Активно</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for row in featured_rows %}
+      <tr data-featured-row="{{ row.id }}">
+        <td>{{ row.listing_id }}</td>
+        <td>
+          {% if row.listing %}
+            <a href="/listings/{{ row.listing.id }}">{{ row.listing.brand }} {{ row.listing.model }} {{ row.listing.year }}</a>
+            {% if row.listing.source_url %}
+              <div class="hint"><a href="{{ row.listing.source_url }}" target="_blank" rel="noopener">av.by</a></div>
+            {% endif %}
+          {% else %}
+            —
+          {% endif %}
+        </td>
+        <td>{{ row.release_date or "—" }}</td>
+        <td>{{ row.sort_weight }}</td>
+        <td>{% if row.is_active %}да{% else %}нет{% endif %}</td>
+        <td class="admin-featured-actions">
+          {% if row.is_active %}
+            <button type="button" class="btn-link" data-featured-deactivate="{{ row.id }}">Выключить</button>
+          {% else %}
+            <button type="button" class="btn-link" data-featured-activate="{{ row.id }}">Включить</button>
+          {% endif %}
+          <button type="button" class="btn-link" data-featured-remove="{{ row.id }}">Удалить</button>
+        </td>
+      </tr>
+    {% else %}
+      <tr><td colspan="6">Подборка пуста</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<script src="/static/admin_featured.js?v=20261020-01" defer></script>
+{% endblock %}

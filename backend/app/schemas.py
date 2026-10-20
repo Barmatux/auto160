@@ -554,3 +554,66 @@ class MarketAvgPriceListResponse(BaseModel):
     usd_scale: int | None = None
     usd_rate_date: datetime | None = None
     usd_rate_source: str | None = "НБ РБ"
+
+
+class FeaturedListingOut(BaseModel):
+    id: int
+    listing_id: int
+    sort_weight: int
+    is_active: bool
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class FeaturedListingCreateRequest(BaseModel):
+    listing_id: int
+    sort_weight: int = 0
+
+
+class FeaturedListingActiveRequest(BaseModel):
+    is_active: bool
+
+
+class SiteLeadCreateRequest(BaseModel):
+    contact_name: str
+    contact: str
+    comment: str | None = None
+    listing_id: int | None = None
+    avby_url: str | None = None
+    source: str = "belarus_landing"
+
+
+class SiteLeadOut(BaseModel):
+    id: int
+    source: str
+    contact_name: str
+    contact: str
+    comment: str | None = None
+    listing_id: int | None = None
+    avby_url: str | None = None
+    is_read: bool
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class SiteLeadReadRequest(BaseModel):
+    is_read: bool = True
+
+
+class ImportDateLookupRequest(BaseModel):
+    query: str
+
+
+class ImportDateLookupResponse(BaseModel):
+    ok: bool
+    input_kind: str
+    vin: str | None = None
+    release_date: str | None = None
+    customs_found: bool | None = None
+    message: str | None = None
+    listing_id: int | None = None
+    avby_url: str | None = None

@@ -1,0 +1,31 @@
+<article
+  class="featured-card"
+  data-featured-card
+  data-listing-id="{{ listing.id }}"
+  data-avby-url="{{ listing.source_url or '' }}"
+  data-title="{{ listing | listing_feed_heading }}"
+>
+  {% set gallery_urls = listing_gallery_urls.get(listing.id, []) %}
+  {% if gallery_urls %}
+    <div class="featured-card-media">
+      <img
+        class="featured-card-photo"
+        src="{{ gallery_urls[0] }}"
+        alt="{{ listing.brand }} {{ listing.model }}"
+        loading="lazy"
+      />
+    </div>
+  {% endif %}
+  <div class="featured-card-body">
+    <p class="featured-card-badge">Авто более года в РБ</p>
+    <h3 class="featured-card-title">{{ listing | listing_feed_heading }}</h3>
+    <p class="featured-card-meta">
+      {% if listing.year %}{{ listing.year }} г.{% endif %}
+      {% if listing.mileage %} · {{ listing.mileage | format_mileage_km }} км{% endif %}
+    </p>
+    {% include "partials/listing_price_display.html" %}
+    <button type="button" class="btn-secondary featured-card-open" data-featured-open>
+      Смотреть объявление
+    </button>
+  </div>
+</article>

@@ -1,0 +1,41 @@
+<dialog class="featured-avby-dialog" data-featured-dialog>
+  <div class="featured-avby-dialog-inner">
+    <button type="button" class="featured-avby-dialog-close" data-featured-dialog-close aria-label="Закрыть">×</button>
+    <h2 data-featured-dialog-title>Перейти на объявление на av.by?</h2>
+    <p class="hint">
+      Объявление размещено на av.by. Актуальная цена и наличие — на площадке.
+      Auto160 помогает с подбором и проверкой, но не продаёт этот автомобиль.
+    </p>
+    <div class="featured-avby-dialog-actions">
+      <a
+        class="btn-primary"
+        href="#"
+        target="_blank"
+        rel="noopener noreferrer"
+        data-featured-avby-link
+      >Перейти на av.by</a>
+      <button type="button" class="btn-secondary" data-featured-dialog-close>Остаться</button>
+    </div>
+    <hr class="featured-avby-dialog-sep" />
+    <h3>Связаться с Auto160</h3>
+    <form class="featured-lead-form" data-featured-lead-form>
+      <label>
+        Имя
+        <input type="text" name="contact_name" maxlength="120" required autocomplete="name" />
+      </label>
+      <label>
+        Телефон или Telegram
+        <input type="text" name="contact" maxlength="120" required autocomplete="tel" />
+      </label>
+      <label>
+        Комментарий
+        <textarea name="comment" rows="3" maxlength="2000" placeholder="Необязательно"></textarea>
+      </label>
+      <input type="hidden" name="listing_id" value="" data-featured-lead-listing-id />
+      <input type="hidden" name="avby_url" value="" data-featured-lead-avby-url />
+      <input type="hidden" name="source" value="featured_modal" />
+      <button type="submit" class="btn-primary" data-featured-lead-submit>Отправить заявку</button>
+      <p class="hint" data-featured-lead-status hidden></p>
+    </form>
+  </div>
+</dialog>

@@ -17,10 +17,13 @@ from app.config import settings
 from app.listing_display import build_listing_price_display
 from app.models import CarListing, CatalogItem, ListingStatus
 
+# Europe sources shown on the public /listings/eu feed (Belarus/av.by detail URLs stay out of sitemap).
+_SITEMAP_PUBLIC_LISTING_SOURCES = ("autoplius", "auto24")
+
 SITE_NAME = "Auto160"
 DEFAULT_DESCRIPTION = (
     "Auto160 — подбор авто до 160 л.с. в Европе и Беларуси: каталог комплектаций, "
-    "объявления без утильсбора с онлайн-площадок и проверка VIN перед покупкой."
+    "проверка VIN и даты ввоза, сопровождение покупки. Объявления из Беларуси — на av.by."
 )
 
 # City landings that are allowed to be indexed (unique title/H1/canonical).
@@ -47,8 +50,8 @@ STATIC_SEO: dict[str, tuple[str, str]] = {
         "Комплектации автомобилей до 160 л.с.: марки, модели, поколения, характеристики и фото.",
     ),
     "/listings": (
-        "Лента объявлений авто под льготный утильсбор (до 160 л.с.) в Беларуси — Auto160",
-        "Актуальные объявления автомобилей до 160 л.с. в Беларуси: цена, пробег, город, двигатель.",
+        "Авто из Беларуси для РФ — подбор и проверка — Auto160",
+        "Подбор автомобилей в Беларуси: дата ввоза по VIN или ссылке av.by, заказ подбора у Auto160.",
     ),
     "/inspection": (
         "Проверка VIN в базе таможни РБ — Auto160",
@@ -332,7 +335,7 @@ def listing_seo_meta(
     )
     crumbs = [
         ("Главная", "/"),
-        ("Лента объявлений", "/listings"),
+        ("Авто из Беларуси", "/listings"),
         (f"{listing.brand} {listing.model}", f"/listings/{listing.id}"),
     ]
     return SeoMeta(
@@ -724,16 +727,6 @@ def build_sitemap_sections(db: Session, base_url: str) -> dict[str, list[tuple[s
     ):
         static.append((f"{base_url}{path}", today))
 
-    for city in sorted(INDEXABLE_CITIES):
-        count = (
-            db.query(func.count(CarListing.id))
-            .filter(CarListing.status == ListingStatus.published, CarListing.city == city)
-            .scalar()
-            or 0
-        )
-        if count > 0:
-            static.append((f"{base_url}/listings?city={quote(city)}", today))
-
     makes = (
         db.query(CatalogItem.make)
         .filter(CatalogItem.source_site == "av.by", CatalogItem.make.isnot(None), _hp_filter())
@@ -810,9 +803,13 @@ def build_sitemap_sections(db: Session, base_url: str) -> dict[str, list[tuple[s
     for item_id, created_at in catalog_items:
         catalog.append((f"{base_url}/catalog/item/{item_id}", _format_lastmod(created_at)))
 
+    # Only public Europe listings — Belarus/av.by detail pages are admin-only.
     listings = (
         exclude_hidden_body_type(
-            db.query(CarListing.id, CarListing.created_at).filter(CarListing.status == ListingStatus.published),
+            db.query(CarListing.id, CarListing.created_at).filter(
+                CarListing.status == ListingStatus.published,
+                CarListing.source.in_(_SITEMAP_PUBLIC_LISTING_SOURCES),
+            ),
             CarListing.body_type,
         )
         .order_by(CarListing.id.asc())

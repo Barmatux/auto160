@@ -33,6 +33,17 @@ class SemanticListingOut(BaseModel):
         from_attributes = True
 
 
+_FOREIGN_LISTING_SOURCES = ("autoplius", "auto24", "mobile_de")
+_PUBLIC_EU_LISTING_SOURCES = ("autoplius", "auto24")
+
+
+def _listing_is_belarus_source(listing: CarListing) -> bool:
+    source = (listing.source or "").strip().lower()
+    if not source or source == "av.by":
+        return True
+    return source not in _FOREIGN_LISTING_SOURCES
+
+
 @router.get("", response_model=list[ListingOut])
 def list_listings(
     brand: str | None = Query(default=None),
@@ -47,7 +58,11 @@ def list_listings(
     query = exclude_hidden_body_type(db.query(CarListing), CarListing.body_type)
 
     if current_user is None or current_user.role != UserRole.admin:
-        query = query.filter(CarListing.status == ListingStatus.published)
+        query = query.filter(
+            CarListing.status == ListingStatus.published,
+            # Guests only see Europe listings via API (Belarus feed is admin-only).
+            CarListing.source.in_(_PUBLIC_EU_LISTING_SOURCES),
+        )
 
     if brand:
         query = query.filter(CarListing.brand.ilike(f"%{brand}%"))
@@ -70,6 +85,7 @@ def listing_statuses():
 def semantic_search_listings(
     q: str = Query(..., min_length=1, max_length=500),
     limit: int = Query(default=20, ge=1, le=50),
+    current_user: User | None = Depends(get_optional_current_user),
     db: Session = Depends(get_db),
 ):
     try:
@@ -79,23 +95,28 @@ def semantic_search_listings(
     except Exception as exc:  # noqa: BLE001 — surface provider errors cleanly
         raise HTTPException(status_code=502, detail=f"embedding failed: {exc}") from exc
 
-    return [
-        SemanticListingOut(
-            id=listing.id,
-            title=listing.title,
-            brand=listing.brand,
-            model=listing.model,
-            year=listing.year,
-            price=listing.price,
-            city=listing.city,
-            source=listing.source,
-            source_url=listing.source_url,
-            cover_photo_url=listing.cover_photo_url,
-            status=listing.status,
-            distance=distance,
+    is_admin = current_user is not None and current_user.role == UserRole.admin
+    results: list[SemanticListingOut] = []
+    for listing, distance in rows:
+        if not is_admin and _listing_is_belarus_source(listing):
+            continue
+        results.append(
+            SemanticListingOut(
+                id=listing.id,
+                title=listing.title,
+                brand=listing.brand,
+                model=listing.model,
+                year=listing.year,
+                price=listing.price,
+                city=listing.city,
+                source=listing.source,
+                source_url=listing.source_url,
+                cover_photo_url=listing.cover_photo_url,
+                status=listing.status,
+                distance=distance,
+            )
         )
-        for listing, distance in rows
-    ]
+    return results
 
 
 @router.get("/{listing_id}", response_model=ListingOut)
@@ -107,10 +128,13 @@ def get_listing(
     listing = db.query(CarListing).filter(CarListing.id == listing_id).first()
     if not listing:
         raise HTTPException(status_code=404, detail="Listing not found")
+    is_admin = current_user is not None and current_user.role == UserRole.admin
+    if _listing_is_belarus_source(listing) and not is_admin:
+        raise HTTPException(status_code=404, detail="Listing not found")
     if listing.status == ListingStatus.published:
         return listing
 
-    if current_user is None or current_user.role != UserRole.admin:
+    if not is_admin:
         raise HTTPException(status_code=404, detail="Listing not found")
 
     return listing

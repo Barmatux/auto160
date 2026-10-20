@@ -119,6 +119,13 @@ from app.manual_vin_check import (
     list_manual_vin_check_account_options,
     paginate_manual_vin_check_listings,
 )
+from app.featured import (
+    FEATURED_HOME_LIMIT,
+    FEATURED_POOL_LIMIT,
+    home_featured_listings,
+    list_featured_rows,
+    list_site_leads,
+)
 from app.listing_catalog_link import (
     canonical_model_name as _canonical_model_name,
     fetch_listings_for_catalog_items,
@@ -135,7 +142,17 @@ from app.avby_price_analytics_admin import (
     list_price_stat_targets,
     list_query_string,
 )
-from app.models import AvbyServiceAccount, AvbySyncRun, AvbySyncRunVinCheck, CarListing, CatalogItem, CatalogItemPhoto, ListingStatus, User, UserRole
+from app.models import (
+    AvbyServiceAccount,
+    AvbySyncRun,
+    AvbySyncRunVinCheck,
+    CarListing,
+    CatalogItem,
+    CatalogItemPhoto,
+    ListingStatus,
+    User,
+    UserRole,
+)
 from app.security import decode_token, is_token_revoked
 from app.seo import (
     INDEXABLE_CITIES,
@@ -947,6 +964,15 @@ def _listings_market_source_predicate(market: str):
         CarListing.source.is_(None),
         ~CarListing.source.in_(FOREIGN_LISTING_SOURCES),
     )
+
+
+def _listing_is_belarus_source(listing: CarListing | None) -> bool:
+    if listing is None:
+        return False
+    source = (listing.source or "").strip().lower()
+    if not source or source == "av.by":
+        return True
+    return source not in FOREIGN_LISTING_SOURCES
 
 
 def _apply_listings_market_source_filter(query, market: str | None):
@@ -2460,14 +2486,13 @@ def _home_popular_directions() -> list[dict]:
 @router.get("/")
 def home(request: Request, db: Session = Depends(get_db)):
     current_user = _resolve_user_from_request(request, db)
-    latest_listings = _home_latest_listings(db)
+    featured_listings = home_featured_listings(db)
     context = _template_context(request, current_user, home_seo_meta(request))
     context.update(_home_stats(db))
     context["popular_makes"] = _home_popular_makes(db)
     context["popular_directions"] = _home_popular_directions()
-    context["latest_listings"] = latest_listings
-    context["listing_gallery_urls"] = resolve_listing_gallery_urls_map(latest_listings, limit=5)
-    context["listing_customs_map"] = build_listing_customs_map(db, latest_listings) if latest_listings else {}
+    context["featured_listings"] = featured_listings
+    context["listing_gallery_urls"] = resolve_listing_gallery_urls_map(featured_listings, limit=1)
     context["catalog_quick_links"] = _home_catalog_quick_links()
     return templates.TemplateResponse(request, "index.html", context)
 
@@ -2576,6 +2601,20 @@ def listings_page(
         listings_market = "by"
         listings_base_path = "/listings"
     current_user = _resolve_user_from_request(request, db)
+    is_admin = _is_admin_user(current_user)
+    # Guests see Belarus landing instead of the av.by mirror feed.
+    if listings_market == "by" and not is_admin:
+        seo = SeoMeta(
+            title="Авто из Беларуси для РФ — подбор и проверка — Auto160",
+            description=(
+                "Подбор автомобилей в Беларуси для ввоза в РФ: дата ввоза по VIN или ссылке av.by, "
+                "заказ подбора у Auto160. Объявления смотрите на av.by."
+            ),
+            path="/listings",
+        )
+        context = _template_context(request, current_user, seo)
+        return templates.TemplateResponse(request, "belarus_landing.html", context)
+
     is_authenticated = current_user is not None
     import_age_selection = parse_import_age_filters(False, False)
     if listings_market == "by" and is_authenticated:
@@ -2611,7 +2650,6 @@ def listings_page(
         )
     price_range = parse_listing_price_range(request.query_params.get("price_range"))
     query = exclude_hidden_body_type(db.query(CarListing), CarListing.body_type)
-    is_admin = _is_admin_user(current_user)
     if not is_admin:
         query = query.filter(CarListing.status == ListingStatus.published)
     if listings_market == "eu":
@@ -2920,10 +2958,14 @@ def listings_page(
 @router.get("/listings/{listing_id}")
 def listing_item(request: Request, listing_id: int, db: Session = Depends(get_db)):
     current_user = _resolve_user_from_request(request, db)
+    is_admin = _is_admin_user(current_user)
     listing = db.query(CarListing).filter(CarListing.id == listing_id).first()
     if listing and listing.status != ListingStatus.published:
-        if current_user is None or current_user.role != UserRole.admin:
+        if not is_admin:
             listing = None
+    # Belarus/av.by detail pages are admin-only (public teaser goes to av.by via modal).
+    if listing and _listing_is_belarus_source(listing) and not is_admin:
+        listing = None
     seo = None
     if listing:
         cover_urls = _resolve_listing_cover_urls([listing], db)
@@ -2989,11 +3031,13 @@ def vin_inspection_page(
     has_query = bool((vin or "").strip() or listing_id is not None or refresh)
     context = _template_context(request, current_user, inspection_seo_meta(has_query=has_query))
     listing = None
+    is_admin = _is_admin_user(current_user)
     if listing_id is not None:
         listing = db.query(CarListing).filter(CarListing.id == listing_id).first()
-        if listing and listing.status != ListingStatus.published:
-            if current_user is None or current_user.role != UserRole.admin:
-                listing = None
+        if listing and listing.status != ListingStatus.published and not is_admin:
+            listing = None
+        if listing and _listing_is_belarus_source(listing) and not is_admin:
+            listing = None
 
     vin_input = (vin or (listing.vin if listing and listing.vin else "") or "").strip().upper()
     normalized_vin = _normalize_vin(vin_input)
@@ -3623,9 +3667,16 @@ def catalog_item_detail(request: Request, item_id: int, db: Session = Depends(ge
     spec_rows = _resolve_best_spec_rows(item, db)
     context["spec_rows"] = spec_rows
     context["spec_sections"] = _group_spec_rows(spec_rows)
-    context["listings_url"] = _modification_listings_url(item)
-    context["generation_listings_url"] = _generation_listings_url(db, item)
-    related_listings = fetch_listings_for_catalog_items(db, [item], limit_per_item=8).get(item.id, [])
+    is_admin = _is_admin_user(current_user)
+    if is_admin:
+        context["listings_url"] = _modification_listings_url(item)
+        context["generation_listings_url"] = _generation_listings_url(db, item)
+        related_listings = fetch_listings_for_catalog_items(db, [item], limit_per_item=8).get(item.id, [])
+    else:
+        # Guests: no av.by mirror feed — point to Belarus landing / hide related ads.
+        context["listings_url"] = "/listings"
+        context["generation_listings_url"] = None
+        related_listings = []
     context["related_listings"] = related_listings
     context["related_listing_cover_urls"] = _resolve_listing_cover_urls(related_listings, db)
     return templates.TemplateResponse(request, "catalog_item_detail.html", context)
@@ -5023,6 +5074,49 @@ def admin_messages_page(request: Request, db: Session = Depends(get_db)):
         return redirect
     context = _template_context(request, current_user)
     return templates.TemplateResponse(request, "admin_messages.html", context)
+
+
+@router.get("/admin/featured")
+def admin_featured_page(request: Request, db: Session = Depends(get_db)):
+    current_user = _resolve_user_from_request(request, db)
+    redirect = _admin_page_redirect(current_user)
+    if redirect:
+        return redirect
+    rows = list_featured_rows(db)
+    listing_ids = [row.listing_id for row in rows]
+    listings = db.query(CarListing).filter(CarListing.id.in_(listing_ids)).all() if listing_ids else []
+    by_id = {item.id: item for item in listings}
+    customs_map = build_listing_customs_map(db, listings) if listings else {}
+    featured_rows = []
+    for row in rows:
+        listing = by_id.get(row.listing_id)
+        customs = customs_map.get(row.listing_id)
+        featured_rows.append(
+            {
+                "id": row.id,
+                "listing_id": row.listing_id,
+                "sort_weight": row.sort_weight,
+                "is_active": row.is_active,
+                "listing": listing,
+                "release_date": customs.release_date if customs else None,
+            }
+        )
+    context = _template_context(request, current_user)
+    context["featured_rows"] = featured_rows
+    context["home_limit"] = FEATURED_HOME_LIMIT
+    context["pool_limit"] = FEATURED_POOL_LIMIT
+    return templates.TemplateResponse(request, "admin_featured.html", context)
+
+
+@router.get("/admin/site-leads")
+def admin_site_leads_page(request: Request, db: Session = Depends(get_db)):
+    current_user = _resolve_user_from_request(request, db)
+    redirect = _admin_page_redirect(current_user)
+    if redirect:
+        return redirect
+    context = _template_context(request, current_user)
+    context["leads"] = list_site_leads(db, limit=200)
+    return templates.TemplateResponse(request, "admin_site_leads.html", context)
 
 
 @router.get("/admin/price-stats")

@@ -438,6 +438,41 @@ class Message(Base):
     thread: Mapped["MessageThread"] = relationship(back_populates="messages")
 
 
+class FeaturedListing(Base):
+    """Admin-curated BY listing for the public homepage rotation."""
+
+    __tablename__ = "featured_listings"
+    __table_args__ = (UniqueConstraint("listing_id", name="uq_featured_listings_listing_id"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    listing_id: Mapped[int] = mapped_column(ForeignKey("car_listings.id", ondelete="CASCADE"), index=True)
+    sort_weight: Mapped[int] = mapped_column(Integer, default=0, index=True)
+    is_active: Mapped[bool] = mapped_column(default=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+
+    listing: Mapped["CarListing"] = relationship()
+
+
+class SiteLead(Base):
+    """Public contact lead from homepage modal or Belarus landing."""
+
+    __tablename__ = "site_leads"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    source: Mapped[str] = mapped_column(String(40), index=True)
+    contact_name: Mapped[str] = mapped_column(String(120))
+    contact: Mapped[str] = mapped_column(String(120))
+    comment: Mapped[str | None] = mapped_column(Text, nullable=True)
+    listing_id: Mapped[int | None] = mapped_column(
+        ForeignKey("car_listings.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    avby_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    is_read: Mapped[bool] = mapped_column(default=False, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+
+    listing: Mapped["CarListing | None"] = relationship()
+
+
 class AvbyPriceStatTarget(Base):
     """Catalog generation (rating=1) mapped to av.by ocenka IDs."""
 

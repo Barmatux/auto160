@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Админка — Заявки{% endblock %}
+{% block content %}
+{% set admin_section = "site-leads" %}
+{% include "partials/admin_nav.html" %}
+
+<h1>Заявки с сайта</h1>
+<p class="hint">Лиды с главной (модалка av.by) и страницы «Авто из Беларуси».</p>
+
+<table class="users-table">
+  <thead>
+    <tr>
+      <th>Когда</th>
+      <th>Источник</th>
+      <th>Контакт</th>
+      <th>Комментарий</th>
+      <th>Объявление</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for lead in leads %}
+      <tr class="{% if not lead.is_read %}is-unread{% endif %}" data-lead-row="{{ lead.id }}">
+        <td>{{ lead.created_at.strftime('%d.%m.%Y %H:%M') if lead.created_at else "—" }}</td>
+        <td>{{ lead.source }}</td>
+        <td>
+          <strong>{{ lead.contact_name }}</strong>
+          <div>{{ lead.contact }}</div>
+        </td>
+        <td>{{ lead.comment or "—" }}</td>
+        <td>
+          {% if lead.listing_id %}
+            <a href="/listings/{{ lead.listing_id }}">#{{ lead.listing_id }}</a>
+          {% endif %}
+          {% if lead.avby_url %}
+            <div class="hint"><a href="{{ lead.avby_url }}" target="_blank" rel="noopener">av.by</a></div>
+          {% endif %}
+          {% if not lead.listing_id and not lead.avby_url %}—{% endif %}
+        </td>
+        <td>
+          {% if not lead.is_read %}
+            <button type="button" class="btn-link" data-lead-mark-read="{{ lead.id }}">Прочитано</button>
+          {% else %}
+            <span class="hint">прочитано</span>
+          {% endif %}
+        </td>
+      </tr>
+    {% else %}
+      <tr><td colspan="6">Заявок пока нет</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<script src="/static/admin_site_leads.js?v=20261020-01" defer></script>
+{% endblock %}

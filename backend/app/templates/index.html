@@ -8,13 +8,13 @@
     в Европе и Беларуси
   </h1>
   <p class="home-subtitle">
-    Сравнивай комплектации в каталоге, смотри актуальные объявления автомобилей без утильсбора
-    с онлайн-площадок в Европе и Беларуси, проверяй VIN перед покупкой.
+    Сравнивай комплектации в каталоге, проверяй дату ввоза и VIN перед покупкой.
+    Объявления из Беларуси смотри на av.by — мы помогаем с подбором и проверкой.
   </p>
 
   <div class="home-actions">
     <a class="btn-secondary" href="/catalog">Каталог</a>
-    <a class="btn-secondary" href="/listings">Объявления</a>
+    <a class="btn-secondary" href="/listings">Авто из Беларуси</a>
     <a class="btn-secondary" href="/inspection">Проверка VIN</a>
   </div>
   {% if catalog_quick_links %}
@@ -71,23 +71,27 @@
       {% endfor %}
     </div>
   {% else %}
-    <p class="hint">Каталог пока пуст — данные подгружаются с av.by.</p>
+    <p class="hint">Каталог пока пуст.</p>
   {% endif %}
 </section>
 
 <section class="home-section">
   <div class="home-section-head">
-    <h2>Новые объявления</h2>
-    <a class="home-link" href="/listings">Вся лента →</a>
+    <h2>Подборка Auto160</h2>
+    <a class="home-link" href="/listings">Авто из Беларуси →</a>
   </div>
-  {% if latest_listings %}
-    <div class="catalog listings-feed home-listings-feed">
-      {% for listing in latest_listings %}
-        {% include "partials/listing_feed_card.html" %}
+  {% if featured_listings %}
+    <div class="featured-grid">
+      {% for listing in featured_listings %}
+        {% include "partials/featured_listing_card.html" %}
       {% endfor %}
     </div>
+    {% include "partials/featured_avby_modal.html" %}
   {% else %}
-    <p class="hint">Объявления ещё не загружены. Синхронизация с av.by выполняется автоматически.</p>
+    <p class="hint">
+      Подборка обновляется. Закажите подбор на странице
+      <a href="/listings">«Авто из Беларуси»</a> или проверьте VIN.
+    </p>
   {% endif %}
 </section>
 
@@ -95,19 +99,17 @@
   <h2>Как пользоваться</h2>
   <ol class="home-steps">
     <li>
-      <strong>Каталог</strong> — выбери марку и комплектацию, сравни характеристики и посмотри связанные объявления.
+      <strong>Каталог</strong> — выбери марку и комплектацию, сравни характеристики.
     </li>
     <li>
-      <strong>Лента</strong> — фильтруй по марке, городу и «проходным» авто ({{ passable_year_from }}–{{ passable_year_to }} г.в.).
+      <strong>Авто из Беларуси</strong> — найди объявление на av.by или закажи подбор у нас, узнай дату ввоза.
     </li>
     <li>
-      <strong>Проверка VIN</strong> — перед сделкой проверь авто в базе таможни РБ или перейди на av.by по ссылке из объявления.
+      <strong>Проверка VIN</strong> — перед сделкой проверь авто в базе таможни РБ.
     </li>
   </ol>
 </section>
-{% if is_admin and latest_listings %}
-  {% include "partials/listing_vin_admin_script.html" %}
+{% if featured_listings %}
+  <script src="/static/featured_home.js?v=20261020-01" defer></script>
 {% endif %}
-<script src="/static/listings_feed_gallery.js?v=20260924-02" defer></script>
-{% include "partials/listing_description_script.html" %}
 {% endblock %}

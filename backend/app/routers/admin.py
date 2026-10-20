@@ -29,6 +29,14 @@ from app.catalog_ratings import apply_generation_rating, format_production_years
 from app.catalog_visibility import apply_generation_catalog_visibility
 from app.db import get_db
 from app.deps import require_admin, require_admin_flexible
+from app.featured import (
+    add_featured_listing,
+    list_featured_rows,
+    list_site_leads,
+    mark_site_lead_read,
+    remove_featured_listing,
+    set_featured_active,
+)
 from app.logging_setup import LOG_SERVICES, format_log_time, log_dir, log_timezone, tail_log
 from app.models import AvbyServiceAccount, CarListing, User, UserRole
 from app.schemas import (
@@ -45,6 +53,9 @@ from app.schemas import (
     CatalogGenerationVisibilityUpdate,
     CatalogGenerationYearsResult,
     CatalogGenerationYearsUpdate,
+    FeaturedListingActiveRequest,
+    FeaturedListingCreateRequest,
+    FeaturedListingOut,
     ListingCustomsRecheckResponse,
     ListingManualVinRequest,
     ListingVinCheckResponse,
@@ -52,6 +63,8 @@ from app.schemas import (
     ManualVinCheckRunRequest,
     ManualVinCheckRunItem,
     ManualVinCheckRunResponse,
+    SiteLeadOut,
+    SiteLeadReadRequest,
     UserPublic,
     UserRoleUpdateRequest,
 )
@@ -547,3 +560,72 @@ def fetch_listing_vin(
         checks_remaining=result.checks_remaining,
         fetched_at=result.fetched_at,
     )
+
+
+@router.get("/featured-listings", response_model=list[FeaturedListingOut])
+def admin_list_featured_listings(
+    _: User = Depends(require_admin_flexible),
+    db: Session = Depends(get_db),
+):
+    return list_featured_rows(db)
+
+
+@router.post("/featured-listings", response_model=FeaturedListingOut)
+def admin_add_featured_listing(
+    payload: FeaturedListingCreateRequest,
+    _: User = Depends(require_admin_flexible),
+    db: Session = Depends(get_db),
+):
+    try:
+        return add_featured_listing(db, payload.listing_id, sort_weight=payload.sort_weight)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post("/featured-listings/{featured_id}/active", response_model=FeaturedListingOut)
+def admin_set_featured_active(
+    featured_id: int,
+    payload: FeaturedListingActiveRequest,
+    _: User = Depends(require_admin_flexible),
+    db: Session = Depends(get_db),
+):
+    try:
+        return set_featured_active(db, featured_id, is_active=payload.is_active)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.delete("/featured-listings/{featured_id}", status_code=204)
+def admin_remove_featured_listing(
+    featured_id: int,
+    _: User = Depends(require_admin_flexible),
+    db: Session = Depends(get_db),
+):
+    try:
+        remove_featured_listing(db, featured_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return None
+
+
+@router.get("/site-leads", response_model=list[SiteLeadOut])
+def admin_list_site_leads(
+    limit: int = Query(default=100, ge=1, le=500),
+    offset: int = Query(default=0, ge=0),
+    _: User = Depends(require_admin_flexible),
+    db: Session = Depends(get_db),
+):
+    return list_site_leads(db, limit=limit, offset=offset)
+
+
+@router.post("/site-leads/{lead_id}/read", response_model=SiteLeadOut)
+def admin_mark_site_lead_read(
+    lead_id: int,
+    payload: SiteLeadReadRequest,
+    _: User = Depends(require_admin_flexible),
+    db: Session = Depends(get_db),
+):
+    try:
+        return mark_site_lead_read(db, lead_id, is_read=payload.is_read)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
