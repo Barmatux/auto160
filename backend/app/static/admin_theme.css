@@ -1,51 +1,56 @@
 /* Logo-style site theme — black + blue→green gradient (dark) and light variant. */
 
 body.theme-admin {
-  --bg: #07090d;
-  --surface: #12161e;
-  --surface-soft: #181d27;
-  --text: #f3f6fb;
-  --muted: #9aa6bc;
-  --border: #2a3345;
-  --primary: #00a8ff;
-  --primary-dark: #00d98a;
-  --accent: #00ff9a;
-  --danger: #ff5d6c;
-  --shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
-  --brand-blue: #00a8ff;
-  --brand-green: #00e28a;
-  --brand-gradient: linear-gradient(90deg, #00a8ff 0%, #00e28a 100%);
-  --brand-gradient-soft: linear-gradient(135deg, rgba(0, 168, 255, 0.18), rgba(0, 226, 138, 0.12));
+  /* Soften pure black/white: high luminance contrast causes bloom/halos on bright screens. */
+  --bg: #12151c;
+  --surface: #1a1f2a;
+  --surface-soft: #222835;
+  --text: #c9d2df;
+  --muted: #8b96a8;
+  --border: #333b4d;
+  --primary: #3aaef0;
+  --primary-dark: #2ecf8a;
+  --accent: #3ad89a;
+  --danger: #e86b76;
+  --shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+  --brand-blue: #3aaef0;
+  --brand-green: #2ecf8a;
+  --brand-gradient: linear-gradient(90deg, #3aaef0 0%, #2ecf8a 100%);
+  --brand-gradient-soft: linear-gradient(135deg, rgba(58, 174, 240, 0.14), rgba(46, 207, 138, 0.1));
+  --heading: #dce3ee;
 
   font-family: "Outfit", "Segoe UI", sans-serif;
   background:
-    radial-gradient(ellipse 70% 45% at 8% -10%, rgba(0, 168, 255, 0.22), transparent 55%),
-    radial-gradient(ellipse 55% 40% at 92% 0%, rgba(0, 226, 138, 0.16), transparent 50%),
+    radial-gradient(ellipse 70% 45% at 8% -10%, rgba(58, 174, 240, 0.12), transparent 55%),
+    radial-gradient(ellipse 55% 40% at 92% 0%, rgba(46, 207, 138, 0.09), transparent 50%),
     var(--bg);
   color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 body.theme-admin a {
-  color: #8fd9ff;
+  color: #7ebfe8;
 }
 
 body.theme-admin a:hover {
-  color: #b8ffe0;
+  color: #9fd9c0;
 }
 
 body.theme-admin .header {
   align-items: center;
-  /* Match logo plaque black (~#030303) so the mark does not float on a different charcoal */
-  background: #030303;
+  /* Slightly lifted from pure black to reduce OLED bloom next to bright UI chrome */
+  background: #10131a;
   border-bottom: 1px solid transparent;
-  border-image: linear-gradient(90deg, rgba(0, 168, 255, 0.55), rgba(0, 226, 138, 0.55)) 1;
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+  border-image: linear-gradient(90deg, rgba(58, 174, 240, 0.45), rgba(46, 207, 138, 0.45)) 1;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.3);
 }
 
 body.theme-admin .header .brand {
   display: inline-flex;
   align-items: center;
-  color: #fff;
+  color: var(--heading);
 }
 
 body.theme-admin .header .brand-logo {
@@ -81,9 +86,9 @@ body.theme-admin .header-nav-dropdown-toggle:hover,
 body.theme-admin .header-nav-dropdown.is-open .header-nav-dropdown-toggle,
 body.theme-admin .header-nav-dropdown.is-active .header-nav-dropdown-toggle,
 body.theme-admin .header-nav a.is-active {
-  background: rgba(0, 168, 255, 0.12);
-  color: #fff;
-  border-color: rgba(0, 168, 255, 0.25);
+  background: rgba(58, 174, 240, 0.12);
+  color: var(--heading);
+  border-color: rgba(58, 174, 240, 0.25);
 }
 
 body.theme-admin .header-nav-dropdown-menu {
@@ -93,14 +98,14 @@ body.theme-admin .header-nav-dropdown-menu {
 }
 
 body.theme-admin .header-nav .user-badge {
-  background: rgba(0, 226, 138, 0.12);
-  color: #b8ffe0;
-  border: 1px solid rgba(0, 226, 138, 0.28);
+  background: rgba(46, 207, 138, 0.12);
+  color: #9fd9c0;
+  border: 1px solid rgba(46, 207, 138, 0.28);
 }
 
 body.theme-admin .header-vin-check-link,
 body.theme-admin .header-vin-check-dropdown .header-vin-check-link {
-  color: #00e28a;
+  color: #5ecf9a;
 }
 
 body.theme-admin .admin-manual-vin-url-field input {
@@ -149,8 +154,8 @@ body.theme-admin .site-footer-inner a {
 }
 
 body.theme-admin .site-footer-inner a:hover {
-  background: rgba(0, 168, 255, 0.12);
-  color: #fff;
+  background: rgba(58, 174, 240, 0.12);
+  color: var(--heading);
 }
 
 body.theme-admin .card,
@@ -490,14 +495,14 @@ body.theme-admin .listing-price,
 body.theme-admin .price,
 body.theme-admin .admin-vin-import-value,
 body.theme-admin .listing-vin-code {
-  color: #b8ffe0;
+  color: #8fd9b8;
 }
 
 body.theme-admin h1,
 body.theme-admin h2,
 body.theme-admin h3,
 body.theme-admin .catalog-main-head h1 {
-  color: #fff;
+  color: var(--heading);
 }
 
 body.theme-admin .catalog-main-head h1 {
@@ -564,7 +569,7 @@ body.theme-admin:not(.theme-admin-light) .home-direction-card {
 }
 
 body.theme-admin:not(.theme-admin-light) .home-direction-label {
-  color: #fff;
+  color: var(--heading);
 }
 
 body.theme-admin:not(.theme-admin-light) .home-make-fallback {
@@ -575,11 +580,11 @@ body.theme-admin:not(.theme-admin-light) .home-make-fallback {
 body.theme-admin .listing-feed-gallery-arrow,
 body.theme-admin .listings-feed .listing-photo-nav {
   background: rgba(0, 0, 0, 0.55);
-  color: #fff;
+  color: var(--heading);
 }
 
 body.theme-admin:not(.theme-admin-light) .listing-detail-title {
-  color: #f3f6fb;
+  color: var(--heading);
 }
 
 body.theme-admin:not(.theme-admin-light) .listing-detail-title-link {
@@ -843,6 +848,40 @@ body.theme-admin.theme-admin-light .cookie-consent-btn-secondary {
 
 @media (max-width: 900px) {
   body.theme-admin.theme-admin-light .header-nav-wrap {
-    background: #030303;
+    background: #10131a;
   }
+}
+
+/* Belarus landing cards — keep form panels softer than page bg */
+body.theme-admin:not(.theme-admin-light) .belarus-landing-path {
+  background: var(--surface);
+  border-color: var(--border);
+}
+body.theme-admin:not(.theme-admin-light) .belarus-landing-path-note {
+  border-top-color: var(--border);
+  color: var(--muted);
+}
+body.theme-admin:not(.theme-admin-light) .belarus-lead-form input,
+body.theme-admin:not(.theme-admin-light) .belarus-lead-form textarea,
+body.theme-admin:not(.theme-admin-light) .belarus-import-form input {
+  background: #141821;
+  border-color: var(--border);
+  color: var(--text);
+}
+body.theme-admin:not(.theme-admin-light) .featured-card {
+  background: var(--surface);
+  border-color: var(--border);
+}
+body.theme-admin:not(.theme-admin-light) .featured-card-badge {
+  color: #6fbf9a;
+}
+body.theme-admin:not(.theme-admin-light) .featured-card-meta {
+  color: var(--muted);
+}
+body.theme-admin:not(.theme-admin-light) .featured-avby-dialog {
+  background: var(--surface);
+  color: var(--text);
+}
+body.theme-admin:not(.theme-admin-light) .featured-avby-dialog-close {
+  color: var(--muted);
 }

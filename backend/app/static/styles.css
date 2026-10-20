@@ -7189,7 +7189,7 @@ body.listing-lightbox-open {
   border-top: 1px solid rgba(0, 0, 0, 0.08);
   font-size: 0.92rem;
   line-height: 1.45;
-  color: #555;
+  color: var(--muted, #555);
 }
 .belarus-landing-path-note p {
   margin: 0 0 8px;
