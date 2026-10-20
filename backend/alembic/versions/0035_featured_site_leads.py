@@ -1,6 +1,6 @@
 """Featured homepage listings and public site leads.
 
-Revision ID: 0035_featured_listings_site_leads
+Revision ID: 0035_featured_site_leads
 Revises: 0034_avby_price_stats
 """
 
@@ -9,7 +9,7 @@ from typing import Sequence, Union
 import sqlalchemy as sa
 from alembic import op
 
-revision: str = "0035_featured_listings_site_leads"
+revision: str = "0035_featured_site_leads"
 down_revision: Union[str, None] = "0034_avby_price_stats"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
