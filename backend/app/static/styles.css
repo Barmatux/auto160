@@ -7154,7 +7154,7 @@ body.listing-lightbox-open {
   border-radius: 8px;
 }
 .belarus-landing {
-  max-width: 920px;
+  max-width: 1100px;
   margin: 0 auto;
   padding: 8px 0 40px;
 }
@@ -7163,30 +7163,51 @@ body.listing-lightbox-open {
 }
 .belarus-landing-paths {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 20px;
-  margin-bottom: 32px;
+  margin-bottom: 28px;
+  align-items: stretch;
 }
 .belarus-landing-path {
   padding: 18px 20px;
   border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 12px;
+  background: var(--surface, #fff);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 .belarus-landing-path h2 {
-  margin-top: 0;
+  margin: 0;
 }
-.belarus-import-check {
-  padding: 18px 20px;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: 12px;
-  margin-bottom: 24px;
+.belarus-landing-path > p {
+  margin: 0;
+}
+.belarus-landing-path-note {
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  font-size: 0.92rem;
+  line-height: 1.45;
+  color: #555;
+}
+.belarus-landing-path-note p {
+  margin: 0 0 8px;
+}
+.belarus-landing-path-note p:last-child {
+  margin-bottom: 0;
 }
 .belarus-import-result {
-  margin-top: 12px;
+  margin-top: 4px;
   font-weight: 600;
 }
 .belarus-landing-disclaimer {
   margin-top: 8px;
+}
+@media (max-width: 960px) {
+  .belarus-landing-paths {
+    grid-template-columns: 1fr;
+  }
 }
 .admin-featured-add {
   display: flex;

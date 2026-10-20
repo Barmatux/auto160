@@ -21,6 +21,7 @@
         rel="noopener noreferrer"
       >Перейти на av.by</a>
     </article>
+
     <article class="belarus-landing-path">
       <h2>Заказать подбор у нас</h2>
       <p>Опишите бюджет и требования — менеджер подберёт варианты.</p>
@@ -41,28 +42,39 @@
         <button type="submit" class="btn-primary">Отправить заявку</button>
         <p class="hint" data-belarus-lead-status hidden></p>
       </form>
+      <div class="belarus-landing-path-note">
+        <p>
+          Каждый день анализируем новые объявления на av.by: отсеиваем авто
+          младше года в РБ, сверяем комплектации и мощность до 160&nbsp;л.с.,
+          отмечаем лоты с подтверждённой датой ввоза.
+        </p>
+        <p>
+          По вашей заявке собираем короткий список подходящих вариантов
+          и помогаем проверить VIN и таможню перед сделкой.
+        </p>
+      </div>
+    </article>
+
+    <article class="belarus-landing-path belarus-import-check" data-import-date-block>
+      <h2>Узнать дату ввоза в РБ</h2>
+      <p>Введите VIN или ссылку на объявление av.by — покажем дату ввоза из базы ГТК.</p>
+      <form class="belarus-import-form" data-import-date-form>
+        <label>
+          VIN или ссылка av.by
+          <input
+            type="text"
+            name="query"
+            maxlength="500"
+            required
+            placeholder="WVWZZZ… или https://cars.av.by/…"
+            autocomplete="off"
+          />
+        </label>
+        <button type="submit" class="btn-secondary">Проверить</button>
+      </form>
+      <div class="belarus-import-result" data-import-date-result hidden></div>
     </article>
   </div>
-
-  <section class="belarus-import-check" data-import-date-block>
-    <h2>Узнать дату ввоза в РБ</h2>
-    <p class="hint">Введите VIN или ссылку на объявление av.by.</p>
-    <form class="belarus-import-form" data-import-date-form>
-      <label>
-        VIN или ссылка av.by
-        <input
-          type="text"
-          name="query"
-          maxlength="500"
-          required
-          placeholder="WVWZZZ… или https://cars.av.by/…"
-          autocomplete="off"
-        />
-      </label>
-      <button type="submit" class="btn-secondary">Проверить</button>
-    </form>
-    <div class="belarus-import-result" data-import-date-result hidden></div>
-  </section>
 
   <p class="hint belarus-landing-disclaimer">
     Auto160 не является площадкой продажи объявлений av.by. Актуальная цена и наличие —
@@ -70,5 +82,5 @@
   </p>
 </section>
 
-<script src="/static/belarus_landing.js?v=20261020-01" defer></script>
+<script src="/static/belarus_landing.js?v=20261020-02" defer></script>
 {% endblock %}
