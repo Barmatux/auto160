@@ -5323,8 +5323,8 @@ def admin_arbitrage_page(
     request: Request,
     q: str | None = Query(default=None),
     make: str | None = Query(default=None),
-    max_hp: int | None = Query(default=160, ge=1, le=1000),
-    max_price_usd: float | None = Query(default=20000, ge=1000, le=200000),
+    max_hp: int | None = Query(default=None, ge=1, le=1000),
+    max_price_usd: float | None = Query(default=None, ge=1000, le=200000),
     min_sold_n: int | None = Query(default=8, ge=1, le=200),
     max_median_days: float | None = Query(default=None, ge=1, le=365),
     year_from: int | None = Query(default=None, ge=1990, le=2035),
@@ -5361,8 +5361,8 @@ def admin_arbitrage_page(
             "makes": makes,
             "q": filters.q or "",
             "make": filters.make or "",
-            "max_hp": filters.max_hp,
-            "max_price_usd": int(filters.max_price_usd),
+            "max_hp": filters.max_hp or "",
+            "max_price_usd": int(filters.max_price_usd) if filters.max_price_usd else "",
             "min_sold_n": filters.min_sold_n,
             "max_median_days": (
                 int(filters.max_median_days) if filters.max_median_days else ""

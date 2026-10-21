@@ -1,20 +1,19 @@
 {% extends "base.html" %}
-{% block title %}Админка — Ниши EU→РБ{% endblock %}
+{% block title %}Админка — Аналитика РБ{% endblock %}
 {% block content %}
 {% set admin_section = "arbitrage" %}
 {% include "partials/admin_nav.html" %}
 
-<h1>Перспективные ниши EU→РБ</h1>
+<h1>Аналитика рынка РБ (av.by)</h1>
 <p class="hint">
-  Скоринг по скорости продажи на av.by (ocenka): медиана дней в продаже, доля быстрых сделок,
-  оборот за 60 дней. В расчёт попадают только поколения с галочкой
-  <strong>EU→РБ</strong> в
+  Скорость продажи и ликвидность по данным ocenka av.by + объявления в нашей базе (source=av.by).
+  В расчёт попадают только поколения с галочкой
+  <strong>Аналитика РБ</strong> в
   <a href="/admin/ratings">Управлении каталогом</a>
-  (сейчас отмечено slug: <strong>{{ coverage.tracked_slugs }}</strong>).
-  Фильтр по умолчанию: ≤{{ max_hp }} л.с., медиана рынка ≤ {{ max_price_usd }} $,
-  минимум {{ min_sold_n }} проданных в снимке.
+  (slug: <strong>{{ coverage.tracked_slugs }}</strong>).
   Покрытие: <strong>{{ coverage.year_ok }}</strong> year-stats,
-  <strong>{{ coverage.sold_adverts }}</strong> sold samples.
+  <strong>{{ coverage.sold_adverts }}</strong> sold samples,
+  в БД av.by объявлений: <strong>{{ coverage.our_avby_listings }}</strong>.
   Обновлено: {{ coverage.last_fetched_label }}.
 </p>
 
@@ -32,8 +31,9 @@
     <div class="value">{{ kpi.fast_share_label }}</div>
   </article>
   <article class="admin-stat-card">
-    <div class="label">Средний score</div>
-    <div class="value">{{ kpi.avg_score_label }}</div>
+    <div class="label">Наши лоты (sum)</div>
+    <div class="value">{{ kpi.our_listings_total }}</div>
+    <div class="sub">score ср. {{ kpi.avg_score_label }}</div>
   </article>
 </section>
 
@@ -52,12 +52,12 @@
     </select>
   </label>
   <label>
-    Макс. л.с.
-    <input type="number" name="max_hp" value="{{ max_hp }}" min="1" max="1000" />
+    Макс. л.с. <span class="hint">(опц.)</span>
+    <input type="number" name="max_hp" value="{{ max_hp }}" min="1" max="1000" placeholder="—" />
   </label>
   <label>
-    Макс. цена $
-    <input type="number" name="max_price_usd" value="{{ max_price_usd }}" min="1000" step="500" />
+    Макс. цена $ <span class="hint">(опц.)</span>
+    <input type="number" name="max_price_usd" value="{{ max_price_usd }}" min="1000" step="500" placeholder="—" />
   </label>
   <label>
     Мин. sold
@@ -101,13 +101,13 @@
         <th>Ниша</th>
         <th>Год</th>
         <th>л.с.</th>
-        <th>Медиана дней</th>
-        <th>p25</th>
-        <th>≤30д</th>
+        <th>Медиана дней<br /><span class="hint">ocenka</span></th>
         <th>Sold</th>
         <th>Active</th>
         <th>Оборот 60д</th>
         <th>Цена $</th>
+        <th>Наши<br />active/arch</th>
+        <th>Наши дни<br />арх / висит</th>
         <th>Score</th>
       </tr>
     </thead>
@@ -121,23 +121,27 @@
             <div class="admin-vin-listing-meta">{{ row.generation }}</div>
           </td>
           <td>{{ row.year }}</td>
-          <td>{{ row.hp }}</td>
-          <td><strong>{{ row.median_days }}</strong></td>
-          <td>{{ row.p25_days }}</td>
-          <td>{{ (row.pct_sold_le_30 * 100) | round(0) }}%</td>
+          <td>{{ row.hp if row.hp is not none else "—" }}</td>
+          <td><strong>{{ row.median_days }}</strong> <span class="hint">p25 {{ row.p25_days }}</span></td>
           <td>{{ row.sold_n }}</td>
           <td>{{ row.active_n if row.active_n is not none else "—" }}</td>
           <td>{{ row.turnover_60d if row.turnover_60d is not none else "—" }}</td>
           <td>{{ row.median_price_usd | int }}</td>
+          <td>{{ row.our_published }} / {{ row.our_archived }}</td>
+          <td>
+            {{ row.our_median_days_archived if row.our_median_days_archived is not none else "—" }}
+            /
+            {{ row.our_median_days_hanging if row.our_median_days_hanging is not none else "—" }}
+          </td>
           <td><strong>{{ row.velocity_score }}</strong></td>
         </tr>
       {% else %}
         <tr>
           <td colspan="11" class="hint">
             Нет ниш под текущие фильтры.
-            Отметьте поколения галочкой «EU→РБ» в
-            <a href="/admin/ratings">Управлении каталогом</a>,
-            ослабьте min sold / max price или дождитесь ocenka по этим поколениям.
+            Отметьте поколения галочкой «Аналитика РБ» в
+            <a href="/admin/ratings">Управлении каталогом</a>
+            или дождитесь ocenka по этим поколениям.
           </td>
         </tr>
       {% endfor %}
@@ -208,7 +212,7 @@
         },
         scales: {
           x: {
-            title: { display: true, text: "Медиана дней на продаже" },
+            title: { display: true, text: "Медиана дней на продаже (ocenka)" },
             grid: { color: "rgba(15,23,42,0.06)" },
           },
           y: {

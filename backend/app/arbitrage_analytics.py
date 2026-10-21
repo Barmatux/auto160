@@ -1,4 +1,4 @@
-"""EU→BY niche velocity analytics from av.by ocenka sold samples."""
+"""BY market niche velocity analytics from av.by ocenka + local CarListing DB."""
 
 from __future__ import annotations
 
@@ -14,20 +14,20 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload
 
 from app.avby_price_stats import catalog_slug_from_url
-from app.exchange_rates import fetch_nbrb_rates
 from app.models import (
     AvbyPriceHistoryPoint,
     AvbyPriceSoldAdvert,
-    AvbyPriceStatTarget,
     AvbyPriceYearStat,
     CarListing,
     CatalogItem,
     ListingStatus,
 )
+from app.seller_analytics import listing_days_on_market
 
-_EU_SOURCES = ("autoplius", "auto24", "mobile_de")
 _CACHE_TTL_SEC = 900
 _cache: dict[str, Any] = {"key": None, "expires": 0.0, "rows": None, "kpi": None}
+
+DEFAULT_MIN_SOLD_N = 8
 
 
 def invalidate_arbitrage_cache() -> None:
@@ -39,10 +39,6 @@ def invalidate_arbitrage_cache() -> None:
     _cache["base_key"] = None
     _cache["base_expires"] = 0.0
     _cache["base_rows"] = None
-
-DEFAULT_MAX_HP = 160
-DEFAULT_MAX_PRICE_USD = 20_000
-DEFAULT_MIN_SOLD_N = 8
 
 
 def _num(value: Any) -> float | None:
@@ -74,7 +70,6 @@ def _median(vals: list[float]) -> float | None:
 
 
 def _linear_slope(ys: list[float]) -> float | None:
-    """Simple OLS slope vs index 0..n-1; positive = price rising."""
     n = len(ys)
     if n < 2:
         return None
@@ -88,10 +83,7 @@ def _linear_slope(ys: list[float]) -> float | None:
 
 
 def tracked_slug_hp_map(db: Session) -> dict[str, int | None]:
-    """ocenka catalog_slug → min hp for generations marked arbitrage_track.
-
-    Only these slugs enter EU→BY niche scoring. hp may be None if unknown.
-    """
+    """ocenka catalog_slug → min hp for generations marked arbitrage_track."""
     items = (
         db.query(CatalogItem.source_url, CatalogItem.engine_power_hp)
         .filter(CatalogItem.arbitrage_track.is_(True))
@@ -118,13 +110,12 @@ def tracked_slug_hp_map(db: Session) -> dict[str, int | None]:
     return out
 
 
-def hp_by_catalog_slug(db: Session) -> dict[str, int]:
-    """Min known hp for tracked slugs only (legacy helper for callers needing int hp)."""
-    return {
-        slug: hp
-        for slug, hp in tracked_slug_hp_map(db).items()
-        if hp is not None
-    }
+def _model_matches(listing_model: str | None, niche_model: str) -> bool:
+    a = (listing_model or "").strip().lower()
+    b = (niche_model or "").strip().lower()
+    if not a or not b:
+        return False
+    return a == b or a.startswith(b + " ") or b.startswith(a + " ") or b in a or a in b
 
 
 @dataclass(frozen=True)
@@ -135,7 +126,7 @@ class NicheRow:
     model: str
     generation: str
     year: int
-    hp: int
+    hp: int | None
     catalog_slug: str
     median_days: float
     p25_days: float
@@ -155,6 +146,12 @@ class NicheRow:
     main_filter_url: str | None
     image_url: str | None
     year_stat_price_usd: float | None
+    # Local Auto160 DB (source=av.by)
+    our_published: int
+    our_archived: int
+    our_median_days_archived: float | None
+    our_median_days_hanging: float | None
+    our_median_price_byn: float | None
 
     @property
     def label(self) -> str:
@@ -177,8 +174,8 @@ class NicheRow:
 
 @dataclass(frozen=True)
 class ArbitrageFilters:
-    max_hp: int = DEFAULT_MAX_HP
-    max_price_usd: float = DEFAULT_MAX_PRICE_USD
+    max_hp: int | None = None
+    max_price_usd: float | None = None
     min_sold_n: int = DEFAULT_MIN_SOLD_N
     max_median_days: float | None = None
     year_from: int | None = None
@@ -203,7 +200,6 @@ def _score_niche(
     active_n: int | None,
     turnover_cap: float,
 ) -> float:
-    # Faster days → higher; cap at 90 days.
     days_norm = 1.0 - min(max(median_days, 0.0), 90.0) / 90.0
     pct_norm = min(max(pct_sold_le_30, 0.0), 1.0)
     if turnover_60d is None or turnover_cap <= 0:
@@ -215,11 +211,121 @@ def _score_niche(
     raw = 100.0 * (
         0.40 * days_norm + 0.25 * pct_norm + 0.20 * turn_norm + 0.15 * sold_norm
     )
-    # Overstock penalty: many active ads + slow median.
     if active_n is not None and active_n >= 25 and median_days >= 45:
         raw -= 15.0
     confidence = 1.0 if sold_n >= 20 else sold_n / 20.0
     return round(max(0.0, min(100.0, raw * confidence)), 1)
+
+
+def _load_avby_listings_for_makes(db: Session, makes: set[str]) -> list[CarListing]:
+    cleaned = sorted({(m or "").strip() for m in makes if (m or "").strip()})
+    if not cleaned:
+        return []
+    # Case-insensitive brand match via OR of ilike exact.
+    clauses = [func.lower(CarListing.brand) == m.lower() for m in cleaned]
+    from sqlalchemy import or_
+
+    return (
+        db.query(CarListing)
+        .filter(CarListing.source == "av.by")
+        .filter(or_(*clauses))
+        .all()
+    )
+
+
+def _local_stats_for_niche(
+    listings: list[CarListing],
+    *,
+    make: str,
+    model: str,
+    year: int,
+    now: datetime,
+) -> tuple[int, int, float | None, float | None, float | None]:
+    make_l = (make or "").strip().lower()
+    matched = [
+        listing
+        for listing in listings
+        if (listing.brand or "").strip().lower() == make_l
+        and listing.year == year
+        and _model_matches(listing.model, model)
+    ]
+    published = sum(1 for x in matched if x.status == ListingStatus.published)
+    archived = sum(1 for x in matched if x.status == ListingStatus.archived)
+    days_arch: list[float] = []
+    days_hang: list[float] = []
+    prices: list[float] = []
+    for listing in matched:
+        days = listing_days_on_market(listing, now=now)
+        if days is not None:
+            if listing.status == ListingStatus.archived:
+                days_arch.append(float(days))
+            elif listing.status == ListingStatus.published:
+                days_hang.append(float(days))
+        price = _num(listing.price)
+        if (
+            price is not None
+            and price > 0
+            and not listing.price_byn_missing
+            and listing.status in (ListingStatus.published, ListingStatus.archived)
+        ):
+            prices.append(price)
+    return (
+        published,
+        archived,
+        _median(days_arch),
+        _median(days_hang),
+        _median(prices),
+    )
+
+
+def find_local_avby_listings(
+    db: Session,
+    *,
+    make: str,
+    model: str,
+    year: int,
+    limit: int = 40,
+) -> list[dict[str, Any]]:
+    make_s = (make or "").strip()
+    model_s = (model or "").strip()
+    if not make_s or not model_s:
+        return []
+    now = datetime.utcnow()
+    rows = (
+        db.query(CarListing)
+        .filter(CarListing.source == "av.by")
+        .filter(func.lower(CarListing.brand) == make_s.lower())
+        .filter(CarListing.year == year)
+        .order_by(CarListing.created_at.desc())
+        .limit(300)
+        .all()
+    )
+    out: list[dict[str, Any]] = []
+    for listing in rows:
+        if not _model_matches(listing.model, model_s):
+            continue
+        days = listing_days_on_market(listing, now=now)
+        price = _num(listing.price)
+        out.append(
+            {
+                "id": listing.id,
+                "title": listing.title,
+                "status": listing.status.value if listing.status else "—",
+                "mileage": listing.mileage,
+                "hp": listing.engine_power_hp,
+                "price_byn": round(price, 0) if price is not None else None,
+                "price_byn_label": (
+                    f"{price:,.0f} BYN".replace(",", " ") if price is not None else "—"
+                ),
+                "days_on_market": days if days is not None else "—",
+                "url": f"/listings/{listing.id}",
+                "source_url": listing.source_url,
+                "city": listing.city,
+            }
+        )
+        if len(out) >= limit:
+            break
+    return out
 
 
 def _compute_all_niches(db: Session) -> list[NicheRow]:
@@ -233,9 +339,6 @@ def _compute_all_niches(db: Session) -> list[NicheRow]:
         .filter(AvbyPriceYearStat.fetch_status == "ok")
         .all()
     )
-    if not year_stats:
-        return []
-
     year_stats = [
         ys
         for ys in year_stats
@@ -271,7 +374,6 @@ def _compute_all_niches(db: Session) -> list[NicheRow]:
             continue
         hist_by_ys.setdefault(point.year_stat_id, []).append(val)
 
-    # Precompute turnover distribution for cap (p95 among positive turnovers).
     turnovers: list[float] = []
     for ys in year_stats:
         active = ys.active_advert_count
@@ -284,17 +386,20 @@ def _compute_all_niches(db: Session) -> list[NicheRow]:
     if turnover_cap is None or turnover_cap <= 0:
         turnover_cap = 2.0
 
+    makes = {
+        (ys.target.make or ys.make or "").strip()
+        for ys in year_stats
+        if ys.target is not None
+    }
+    local_listings = _load_avby_listings_for_makes(db, makes)
+    now = datetime.utcnow()
+
     niches: list[NicheRow] = []
     for ys in year_stats:
         target = ys.target
-        if target is None:
-            continue
-        if target.catalog_slug not in tracked:
+        if target is None or target.catalog_slug not in tracked:
             continue
         hp = tracked.get(target.catalog_slug)
-        # Hard filter: unknown hp excluded from leaderboard (same as plan).
-        if hp is None:
-            continue
 
         adverts = sold_by_ys.get(ys.id) or []
         days_list = [
@@ -329,9 +434,11 @@ def _compute_all_niches(db: Session) -> list[NicheRow]:
         prices_sorted = sorted(price_list) if price_list else []
         p25_price = _percentile(prices_sorted, 0.25) if prices_sorted else None
         p75_price = _percentile(prices_sorted, 0.75) if prices_sorted else None
-        iqr = None
-        if p25_price is not None and p75_price is not None:
-            iqr = p75_price - p25_price
+        iqr = (
+            (p75_price - p25_price)
+            if p25_price is not None and p75_price is not None
+            else None
+        )
 
         active_n = ys.active_advert_count
         removed = ys.activity_removed_60d
@@ -342,7 +449,6 @@ def _compute_all_niches(db: Session) -> list[NicheRow]:
 
         hist_vals = hist_by_ys.get(ys.id) or []
         trend = _linear_slope(hist_vals[-6:]) if hist_vals else None
-
         score = _score_niche(
             median_days=median_days,
             pct_sold_le_30=pct30,
@@ -352,12 +458,22 @@ def _compute_all_niches(db: Session) -> list[NicheRow]:
             turnover_cap=float(turnover_cap),
         )
 
+        make = target.make or (ys.make or "")
+        model = target.model or (ys.model_name or "")
+        our_pub, our_arch, our_med_arch, our_med_hang, our_price = _local_stats_for_niche(
+            local_listings,
+            make=make,
+            model=model,
+            year=ys.year,
+            now=now,
+        )
+
         niches.append(
             NicheRow(
                 year_stat_id=ys.id,
                 target_id=target.id,
-                make=target.make or (ys.make or ""),
-                model=target.model or (ys.model_name or ""),
+                make=make,
+                model=model,
                 generation=(target.generation or ys.generation_name or "—"),
                 year=ys.year,
                 hp=hp,
@@ -380,6 +496,17 @@ def _compute_all_niches(db: Session) -> list[NicheRow]:
                 main_filter_url=ys.main_filter_url,
                 image_url=ys.image_url,
                 year_stat_price_usd=_num(ys.price_usd),
+                our_published=our_pub,
+                our_archived=our_arch,
+                our_median_days_archived=(
+                    round(our_med_arch, 1) if our_med_arch is not None else None
+                ),
+                our_median_days_hanging=(
+                    round(our_med_hang, 1) if our_med_hang is not None else None
+                ),
+                our_median_price_byn=(
+                    round(our_price, 0) if our_price is not None else None
+                ),
             )
         )
     return niches
@@ -390,9 +517,10 @@ def filter_niches(rows: list[NicheRow], filters: ArbitrageFilters) -> list[Niche
     make = (filters.make or "").strip() or None
     out: list[NicheRow] = []
     for row in rows:
-        if row.hp > filters.max_hp:
-            continue
-        if row.median_price_usd > filters.max_price_usd:
+        if filters.max_hp is not None:
+            if row.hp is None or row.hp > filters.max_hp:
+                continue
+        if filters.max_price_usd is not None and row.median_price_usd > filters.max_price_usd:
             continue
         if row.sold_n < filters.min_sold_n:
             continue
@@ -423,6 +551,7 @@ def build_kpi(rows: list[NicheRow]) -> dict[str, Any]:
             "fast_share_label": "0%",
             "avg_score": None,
             "avg_score_label": "—",
+            "our_listings_total": 0,
         }
     top20 = rows[:20]
     top_days = [r.median_days for r in top20]
@@ -430,6 +559,7 @@ def build_kpi(rows: list[NicheRow]) -> dict[str, Any]:
     fast_n = sum(1 for r in rows if r.median_days <= 21)
     fast_share = fast_n / len(rows)
     avg_score = sum(r.velocity_score for r in rows) / len(rows)
+    our_total = sum(r.our_published + r.our_archived for r in rows)
     return {
         "niches_count": len(rows),
         "top20_median_days": round(top_med, 1) if top_med is not None else None,
@@ -440,6 +570,7 @@ def build_kpi(rows: list[NicheRow]) -> dict[str, Any]:
         "fast_share_label": f"{fast_share * 100:.0f}%",
         "avg_score": round(avg_score, 1),
         "avg_score_label": f"{avg_score:.0f}",
+        "our_listings_total": our_total,
     }
 
 
@@ -459,7 +590,6 @@ def list_arbitrage_niches(
     ):
         return list(_cache["rows"]), dict(_cache["kpi"])
 
-    # Broader cache: compute unfiltered once, then filter.
     base_key = "__all__"
     if (
         use_cache
@@ -486,7 +616,6 @@ def list_arbitrage_niches(
 
 
 def list_arbitrage_makes(db: Session, filters: ArbitrageFilters) -> list[str]:
-    # Makes from filtered universe without make/q constraints.
     base = ArbitrageFilters(
         max_hp=filters.max_hp,
         max_price_usd=filters.max_price_usd,
@@ -539,18 +668,10 @@ def get_niche_detail(db: Session, year_stat_id: int) -> dict[str, Any] | None:
 
     tracked = tracked_slug_hp_map(db)
     hp = tracked.get(ys.target.catalog_slug)
-    if ys.target.catalog_slug not in tracked:
-        # Still show detail if opened by id, but flag as not tracked.
-        pass
 
-    # Build single-row metrics via shared path when possible.
     all_rows, _ = list_arbitrage_niches(
         db,
-        ArbitrageFilters(
-            max_hp=10_000,
-            max_price_usd=10_000_000,
-            min_sold_n=1,
-        ),
+        ArbitrageFilters(min_sold_n=1),
     )
     row = next((r for r in all_rows if r.year_stat_id == year_stat_id), None)
 
@@ -559,7 +680,6 @@ def get_niche_detail(db: Session, year_stat_id: int) -> dict[str, Any] | None:
         for a in ys.sold_adverts
         if a.days_on_sale is not None and a.days_on_sale >= 0
     ]
-    # Histogram buckets
     buckets = [0, 7, 14, 21, 30, 45, 60, 90, 120, 180, 365]
     hist_labels: list[str] = []
     hist_counts: list[int] = []
@@ -603,13 +723,11 @@ def get_niche_detail(db: Session, year_stat_id: int) -> dict[str, Any] | None:
             }
         )
 
-    eu_listings = find_eu_matches(
+    local_listings = find_local_avby_listings(
         db,
         make=ys.target.make or ys.make or "",
         model=ys.target.model or ys.model_name or "",
         year=ys.year,
-        max_price_usd=DEFAULT_MAX_PRICE_USD,
-        max_hp=DEFAULT_MAX_HP,
     )
 
     return {
@@ -632,78 +750,8 @@ def get_niche_detail(db: Session, year_stat_id: int) -> dict[str, Any] | None:
         "histogram": {"labels": hist_labels, "counts": hist_counts},
         "price_history": {"labels": hist_labels_line, "values": hist_values_line},
         "sold_table": sold_table,
-        "eu_listings": eu_listings,
+        "local_listings": local_listings,
     }
-
-
-def find_eu_matches(
-    db: Session,
-    *,
-    make: str,
-    model: str,
-    year: int,
-    max_price_usd: float,
-    max_hp: int,
-    limit: int = 30,
-) -> list[dict[str, Any]]:
-    make_s = (make or "").strip()
-    model_s = (model or "").strip()
-    if not make_s or not model_s:
-        return []
-
-    rates = fetch_nbrb_rates()
-    query = (
-        db.query(CarListing)
-        .filter(CarListing.status == ListingStatus.published)
-        .filter(CarListing.source.in_(_EU_SOURCES))
-        .filter(CarListing.brand.ilike(make_s))
-        .filter(CarListing.year == year)
-        .filter(CarListing.price.isnot(None))
-        .filter(CarListing.price_byn_missing.is_(False))
-    )
-    # Model match: allow substring either way for catalog vs listing naming.
-    model_like = f"%{model_s}%"
-    query = query.filter(CarListing.model.ilike(model_like))
-    if max_hp:
-        query = query.filter(
-            (CarListing.engine_power_hp.is_(None))
-            | (CarListing.engine_power_hp <= max_hp)
-        )
-
-    candidates = (
-        query.order_by(CarListing.price.asc()).limit(200).all()
-    )
-    out: list[dict[str, Any]] = []
-    for listing in candidates:
-        price_byn = _num(listing.price)
-        if price_byn is None:
-            continue
-        if rates:
-            price_usd = rates.convert_byn_to_usd(price_byn)
-        else:
-            # Rough fallback if NBRB unavailable (~3.2 BYN/USD).
-            price_usd = price_byn / 3.2
-        if price_usd > max_price_usd:
-            continue
-        out.append(
-            {
-                "id": listing.id,
-                "title": listing.title,
-                "source": listing.source,
-                "year": listing.year,
-                "mileage": listing.mileage,
-                "hp": listing.engine_power_hp,
-                "price_byn": round(price_byn, 0),
-                "price_usd": round(price_usd, 0),
-                "price_usd_label": f"{price_usd:,.0f} $".replace(",", " "),
-                "url": f"/listings/{listing.id}",
-                "source_url": listing.source_url,
-                "city": listing.city,
-            }
-        )
-        if len(out) >= limit:
-            break
-    return out
 
 
 def list_query_string(**params: Any) -> str:
@@ -727,8 +775,8 @@ def parse_filters(
     q: str | None = None,
 ) -> ArbitrageFilters:
     return ArbitrageFilters(
-        max_hp=int(max_hp) if max_hp else DEFAULT_MAX_HP,
-        max_price_usd=float(max_price_usd) if max_price_usd else DEFAULT_MAX_PRICE_USD,
+        max_hp=int(max_hp) if max_hp else None,
+        max_price_usd=float(max_price_usd) if max_price_usd else None,
         min_sold_n=int(min_sold_n) if min_sold_n is not None else DEFAULT_MIN_SOLD_N,
         max_median_days=float(max_median_days) if max_median_days else None,
         year_from=year_from,
@@ -747,18 +795,25 @@ def coverage_hint(db: Session) -> dict[str, Any]:
         or 0
     )
     tracked_n = (
-        db.query(func.count(func.distinct(CatalogItem.id)))
+        db.query(func.count(CatalogItem.id))
         .filter(CatalogItem.arbitrage_track.is_(True))
         .scalar()
         or 0
     )
     tracked_slugs = len(tracked_slug_hp_map(db))
+    our_avby = (
+        db.query(func.count(CarListing.id))
+        .filter(CarListing.source == "av.by")
+        .scalar()
+        or 0
+    )
     last_fetched = db.query(func.max(AvbyPriceYearStat.fetched_at)).scalar()
     return {
         "sold_adverts": int(sold_n),
         "year_ok": int(year_ok),
         "tracked_items": int(tracked_n),
         "tracked_slugs": int(tracked_slugs),
+        "our_avby_listings": int(our_avby),
         "last_fetched_at": last_fetched,
         "last_fetched_label": (
             last_fetched.strftime("%d.%m.%Y %H:%M") if last_fetched else "—"

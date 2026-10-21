@@ -10,8 +10,8 @@
   (марка → модель → поколение). Галочка «Показать в каталоге» включает поколение в каталог;
   снятие скрывает его и отправляет связанные объявления в архив. Галочка «VIN CHECK» включает
   объявления этого поколения на странице VIN CHECK (раньше это был рейтинг&nbsp;1).
-  Галочка «EU→РБ» включает поколение в дашборд
-  <a href="/admin/arbitrage">Ниши EU→РБ</a> (скорость продажи / скоринг).
+  Галочка «Аналитика РБ» включает поколение в дашборд
+  <a href="/admin/arbitrage">Аналитика РБ</a> (скорость продажи на av.by + наша база).
   Годы производства можно задать вручную или подтянуть кнопкой «С av.by».
   Найдено: {{ rating_total }}.
 </p>
@@ -65,7 +65,7 @@
         <th>Мощность<br />двигателя</th>
         <th class="admin-ratings-check-head">Показать<br />в каталоге</th>
         <th class="admin-ratings-check-head">VIN CHECK</th>
-        <th class="admin-ratings-check-head">EU→РБ</th>
+        <th class="admin-ratings-check-head">Аналитика<br />РБ</th>
         <th>Фото</th>
       </tr>
     </thead>
@@ -148,7 +148,7 @@
                 data-model="{{ row.model }}"
                 data-generation="{{ row.generation_key }}"
                 {% if row.arbitrage_track %}checked{% endif %}
-                aria-label="EU→РБ аналитика {{ row.make }} {{ row.model }} {{ row.generation }}"
+                aria-label="Аналитика РБ {{ row.make }} {{ row.model }} {{ row.generation }}"
               />
             </label>
             <div class="admin-arbitrage-track-status" hidden></div>
@@ -416,7 +416,7 @@
       if (!response.ok) {
         checkbox.checked = !enabled;
         const detail = data.detail;
-        const message = typeof detail === "string" ? detail : "Не удалось сохранить EU→РБ";
+        const message = typeof detail === "string" ? detail : "Не удалось сохранить Аналитика РБ";
         setCellStatus(cell, ".admin-arbitrage-track-status", message, true);
         return;
       }
@@ -424,7 +424,7 @@
       setCellStatus(
         cell,
         ".admin-arbitrage-track-status",
-        data.enabled ? "В аналитике" : "Убрано из аналитики",
+        data.enabled ? "В аналитике РБ" : "Убрано из аналитики",
         false
       );
     });

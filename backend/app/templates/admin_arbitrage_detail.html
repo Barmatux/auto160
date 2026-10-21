@@ -90,36 +90,58 @@
   </div>
 </section>
 
+{% if detail.row %}
+<section class="admin-stats-grid" style="margin-top:8px;">
+  <article class="admin-stat-card">
+    <div class="label">Наши active / archive</div>
+    <div class="value">{{ detail.row.our_published }} / {{ detail.row.our_archived }}</div>
+  </article>
+  <article class="admin-stat-card">
+    <div class="label">Наши дни (архив)</div>
+    <div class="value">{{ detail.row.our_median_days_archived if detail.row.our_median_days_archived is not none else "—" }}</div>
+    <div class="sub">висит {{ detail.row.our_median_days_hanging if detail.row.our_median_days_hanging is not none else "—" }}</div>
+  </article>
+  <article class="admin-stat-card">
+    <div class="label">Наша медиана BYN</div>
+    <div class="value">
+      {% if detail.row.our_median_price_byn is not none %}{{ detail.row.our_median_price_byn | int }}{% else %}—{% endif %}
+    </div>
+  </article>
+</section>
+{% endif %}
+
 <section class="home-section" style="padding:0;margin-top:24px;">
   <div class="home-section-head">
-    <h2>Похожие лоты в Европе (≤$20k, ≤160 л.с.)</h2>
+    <h2>Объявления в нашей базе (av.by)</h2>
   </div>
-  <p class="hint">Сопоставление по марке/модели/году без расчёта пошлин — ориентир для закупки.</p>
+  <p class="hint">Лоты Auto160 с source=av.by по марке / модели / году этой ниши.</p>
   <div class="admin-vin-table-wrap">
     <table class="users-table admin-vin-table">
       <thead>
         <tr>
           <th>Лот</th>
-          <th>Источник</th>
+          <th>Статус</th>
           <th>Пробег</th>
           <th>л.с.</th>
-          <th>Цена $</th>
+          <th>Цена BYN</th>
+          <th>Дней</th>
         </tr>
       </thead>
       <tbody>
-        {% for item in detail.eu_listings %}
+        {% for item in detail.local_listings %}
           <tr>
             <td class="admin-vin-listing">
               <a class="admin-vin-listing-title" href="{{ item.url }}">{{ item.title }}</a>
               <div class="admin-vin-listing-meta">{{ item.city }}</div>
             </td>
-            <td>{{ item.source }}</td>
+            <td>{{ item.status }}</td>
             <td>{{ item.mileage }}</td>
             <td>{{ item.hp if item.hp is not none else "—" }}</td>
-            <td><strong>{{ item.price_usd_label }}</strong></td>
+            <td><strong>{{ item.price_byn_label }}</strong></td>
+            <td>{{ item.days_on_market }}</td>
           </tr>
         {% else %}
-          <tr><td colspan="5" class="hint">Нет опубликованных EU-лотов под эту нишу и ценовой потолок.</td></tr>
+          <tr><td colspan="6" class="hint">В базе нет av.by-лотов по этой нише.</td></tr>
         {% endfor %}
       </tbody>
     </table>
