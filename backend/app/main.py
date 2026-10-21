@@ -9,6 +9,7 @@ from app.avby_session import warm_vin_test_session
 from app.db import SessionLocal, engine
 from app.logging_setup import ensure_uvicorn_file_logging, setup_logging
 from app.middleware.analytics import AnalyticsMiddleware
+from app.middleware.static_cache import StaticCacheMiddleware
 from app.routers import admin, auth, catalog_photos, chat, internal_catalog, listings, market_prices, media, messaging, pages, site_public, vin_check
 from app.storage import ensure_bucket_exists
 
@@ -16,6 +17,7 @@ setup_logging("api")
 
 app = FastAPI(title="Auto160 Backend", version="0.1.0")
 app.add_middleware(AnalyticsMiddleware)
+app.add_middleware(StaticCacheMiddleware)
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 _STATIC_DIR = Path(__file__).resolve().parent / "static"

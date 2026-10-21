@@ -61,7 +61,7 @@ body.theme-admin .header .brand-logo {
   object-fit: contain;
   object-position: left center;
   border-radius: 0;
-  /* Source is 1024×313 — avoid browser “crisp edges” scaling artifacts */
+  /* Header asset is 480×147 (retina-ready for ~240 CSS px width). */
   image-rendering: auto;
   -webkit-font-smoothing: antialiased;
 }

@@ -36,12 +36,27 @@
     {% if seo_json_ld_script %}
       <script type="application/ld+json">{{ seo_json_ld_script | safe }}</script>
     {% endif %}
-    <link rel="stylesheet" href="/static/styles.css?v=20261021-01" />
+    <link rel="stylesheet" href="/static/styles.css?v=20261021-02" />
     {% if site_theme_uses_logo %}
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-      <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet" />
-      <link rel="stylesheet" href="/static/admin_theme.css?v=20261021-01" />
+      {# Non-blocking font CSS: print→all after load so first paint is not stalled. #}
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap"
+        media="print"
+        onload="this.media='all'"
+      />
+      <noscript>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" />
+      </noscript>
+      <link rel="stylesheet" href="/static/admin_theme.css?v=20261021-02" />
+      <link
+        rel="preload"
+        as="image"
+        href="/static/brand/logo-admin-v8-header.png?v=20261021-header"
+        fetchpriority="high"
+      />
     {% endif %}
   </head>
   <body
@@ -52,11 +67,12 @@
         {% if site_theme_uses_logo %}
           <img
             class="brand-logo"
-            src="/static/brand/logo-admin-v8-horizontal.png?v=20260916-logo8"
+            src="/static/brand/logo-admin-v8-header.png?v=20261021-header"
             alt="auto160.ru — подбор авто до 160 л.с."
-            width="1024"
-            height="313"
+            width="480"
+            height="147"
             decoding="async"
+            fetchpriority="high"
           />
         {% else %}
           Авто160
