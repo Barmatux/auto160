@@ -3653,7 +3653,8 @@ body.vin-enter-modal-open {
   accent-color: #1d4ed8;
 }
 
-.admin-ratings-check-cell .admin-rating-status {
+.admin-ratings-check-cell .admin-rating-status,
+.admin-ratings-check-cell .admin-arbitrage-track-status {
   margin-top: 6px;
   font-size: 0.78rem;
 }
@@ -3779,46 +3780,45 @@ body.vin-enter-modal-open {
   margin: 0;
 }
 
-/* 1 марка 2 модель 3 поколение 4 годы 5 мощность 6 показ 7 vin 8 фото */
+/* 1 марка 2 модель 3 поколение 4 годы 5 мощность 6 показ 7 vin 8 аналитика РБ 9 фото */
 .admin-vin-table.admin-ratings-table th:nth-child(1),
 .admin-vin-table.admin-ratings-table td:nth-child(1) {
-  width: 9%;
+  width: 8%;
 }
 
 .admin-vin-table.admin-ratings-table th:nth-child(2),
 .admin-vin-table.admin-ratings-table td:nth-child(2) {
-  width: 8%;
+  width: 7%;
 }
 
 .admin-vin-table.admin-ratings-table th:nth-child(3),
 .admin-vin-table.admin-ratings-table td:nth-child(3) {
-  width: 15%;
+  width: 13%;
 }
 
 .admin-vin-table.admin-ratings-table th:nth-child(4),
 .admin-vin-table.admin-ratings-table td:nth-child(4) {
-  width: 17%;
+  width: 15%;
 }
 
 .admin-vin-table.admin-ratings-table th:nth-child(5),
 .admin-vin-table.admin-ratings-table td:nth-child(5) {
-  width: 10%;
+  width: 8%;
   white-space: nowrap;
 }
 
 .admin-vin-table.admin-ratings-table th:nth-child(6),
-.admin-vin-table.admin-ratings-table td:nth-child(6) {
-  width: 7%;
-}
-
+.admin-vin-table.admin-ratings-table td:nth-child(6),
 .admin-vin-table.admin-ratings-table th:nth-child(7),
-.admin-vin-table.admin-ratings-table td:nth-child(7) {
-  width: 7%;
-}
-
+.admin-vin-table.admin-ratings-table td:nth-child(7),
 .admin-vin-table.admin-ratings-table th:nth-child(8),
 .admin-vin-table.admin-ratings-table td:nth-child(8) {
-  width: 27%;
+  width: 6%;
+}
+
+.admin-vin-table.admin-ratings-table th:nth-child(9),
+.admin-vin-table.admin-ratings-table td:nth-child(9) {
+  width: 25%;
 }
 
 .admin-vin-table.admin-ratings-table td:nth-child(4) {
