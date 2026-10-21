@@ -1,0 +1,220 @@
+{% extends "base.html" %}
+{% block title %}Админка — Ниши EU→РБ{% endblock %}
+{% block content %}
+{% set admin_section = "arbitrage" %}
+{% include "partials/admin_nav.html" %}
+
+<h1>Перспективные ниши EU→РБ</h1>
+<p class="hint">
+  Скоринг по скорости продажи на av.by (ocenka): медиана дней в продаже, доля быстрых сделок,
+  оборот за 60 дней. Фильтр по умолчанию: ≤{{ max_hp }} л.с., медиана рынка ≤ {{ max_price_usd }} $,
+  минимум {{ min_sold_n }} проданных в снимке.
+  Покрытие: <strong>{{ coverage.year_ok }}</strong> year-stats,
+  <strong>{{ coverage.sold_adverts }}</strong> sold samples.
+  Обновлено: {{ coverage.last_fetched_label }}.
+</p>
+
+<section class="admin-stats-grid">
+  <article class="admin-stat-card">
+    <div class="label">Ниш в фильтре</div>
+    <div class="value">{{ kpi.niches_count }}</div>
+  </article>
+  <article class="admin-stat-card">
+    <div class="label">Медиана дней (топ-20)</div>
+    <div class="value">{{ kpi.top20_median_days_label }}</div>
+  </article>
+  <article class="admin-stat-card">
+    <div class="label">Доля ниш ≤21 дня</div>
+    <div class="value">{{ kpi.fast_share_label }}</div>
+  </article>
+  <article class="admin-stat-card">
+    <div class="label">Средний score</div>
+    <div class="value">{{ kpi.avg_score_label }}</div>
+  </article>
+</section>
+
+<form class="filters filters-inline admin-log-toolbar arbitrage-filters" method="get" action="/admin/arbitrage">
+  <label>
+    Поиск
+    <input type="search" name="q" value="{{ q }}" placeholder="VW Golf, slug…" />
+  </label>
+  <label>
+    Марка
+    <select name="make">
+      <option value="">Все</option>
+      {% for item in makes %}
+        <option value="{{ item }}"{% if make == item %} selected{% endif %}>{{ item }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>
+    Макс. л.с.
+    <input type="number" name="max_hp" value="{{ max_hp }}" min="1" max="1000" />
+  </label>
+  <label>
+    Макс. цена $
+    <input type="number" name="max_price_usd" value="{{ max_price_usd }}" min="1000" step="500" />
+  </label>
+  <label>
+    Мин. sold
+    <input type="number" name="min_sold_n" value="{{ min_sold_n }}" min="1" max="200" />
+  </label>
+  <label>
+    Макс. медиана дней
+    <input type="number" name="max_median_days" value="{{ max_median_days }}" min="1" max="365" placeholder="—" />
+  </label>
+  <label>
+    Год от
+    <input type="number" name="year_from" value="{{ year_from }}" min="1990" max="2035" placeholder="—" />
+  </label>
+  <label>
+    Год до
+    <input type="number" name="year_to" value="{{ year_to }}" min="1990" max="2035" placeholder="—" />
+  </label>
+  <button type="submit">Показать</button>
+  <a class="page-link" href="{{ reset_url }}">Сбросить</a>
+</form>
+
+<section class="arbitrage-charts">
+  <article class="arbitrage-chart-card">
+    <h2>Топ-15 по velocity score</h2>
+    <div class="arbitrage-chart-canvas-wrap">
+      <canvas id="arbitrageBarChart" height="320"></canvas>
+    </div>
+  </article>
+  <article class="arbitrage-chart-card">
+    <h2>Скорость vs цена (размер = sold_n)</h2>
+    <div class="arbitrage-chart-canvas-wrap">
+      <canvas id="arbitrageScatterChart" height="320"></canvas>
+    </div>
+  </article>
+</section>
+
+<section class="admin-vin-table-wrap">
+  <table class="users-table admin-vin-table price-stats-table arbitrage-table">
+    <thead>
+      <tr>
+        <th>Ниша</th>
+        <th>Год</th>
+        <th>л.с.</th>
+        <th>Медиана дней</th>
+        <th>p25</th>
+        <th>≤30д</th>
+        <th>Sold</th>
+        <th>Active</th>
+        <th>Оборот 60д</th>
+        <th>Цена $</th>
+        <th>Score</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+        <tr>
+          <td class="admin-vin-listing">
+            <a class="admin-vin-listing-title" href="{{ row.detail_url }}">
+              {{ row.make }} {{ row.model }}
+            </a>
+            <div class="admin-vin-listing-meta">{{ row.generation }}</div>
+          </td>
+          <td>{{ row.year }}</td>
+          <td>{{ row.hp }}</td>
+          <td><strong>{{ row.median_days }}</strong></td>
+          <td>{{ row.p25_days }}</td>
+          <td>{{ (row.pct_sold_le_30 * 100) | round(0) }}%</td>
+          <td>{{ row.sold_n }}</td>
+          <td>{{ row.active_n if row.active_n is not none else "—" }}</td>
+          <td>{{ row.turnover_60d if row.turnover_60d is not none else "—" }}</td>
+          <td>{{ row.median_price_usd | int }}</td>
+          <td><strong>{{ row.velocity_score }}</strong></td>
+        </tr>
+      {% else %}
+        <tr>
+          <td colspan="11" class="hint">Нет ниш под текущие фильтры. Ослабьте min sold / max price или дождитесь ocenka.</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js"></script>
+<script id="arbitrage-charts-data" type="application/json">{{ charts | tojson }}</script>
+<script>
+(function () {
+  const raw = document.getElementById("arbitrage-charts-data");
+  if (!raw || typeof Chart === "undefined") return;
+  let data;
+  try { data = JSON.parse(raw.textContent || "{}"); } catch (e) { return; }
+  const bar = data.bar || {};
+  const scatter = data.scatter || {};
+  const barEl = document.getElementById("arbitrageBarChart");
+  const scatterEl = document.getElementById("arbitrageScatterChart");
+  if (barEl && (bar.labels || []).length) {
+    new Chart(barEl, {
+      type: "bar",
+      data: {
+        labels: bar.labels,
+        datasets: [{
+          label: "Velocity score",
+          data: bar.scores,
+          backgroundColor: "rgba(37, 99, 235, 0.65)",
+          borderRadius: 6,
+        }],
+      },
+      options: {
+        indexAxis: "y",
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { beginAtZero: true, max: 100, grid: { color: "rgba(15,23,42,0.06)" } },
+          y: { ticks: { font: { size: 11 } }, grid: { display: false } },
+        },
+      },
+    });
+  }
+  if (scatterEl && (scatter.points || []).length) {
+    new Chart(scatterEl, {
+      type: "bubble",
+      data: {
+        datasets: [{
+          label: "Ниши",
+          data: scatter.points,
+          backgroundColor: "rgba(14, 165, 233, 0.45)",
+          borderColor: "rgba(37, 99, 235, 0.8)",
+        }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: function (ctx) {
+                const p = ctx.raw || {};
+                return (p.label || "") + ": " + p.x + " дн., $" + p.y + ", score " + p.score;
+              },
+            },
+          },
+        },
+        scales: {
+          x: {
+            title: { display: true, text: "Медиана дней на продаже" },
+            grid: { color: "rgba(15,23,42,0.06)" },
+          },
+          y: {
+            title: { display: true, text: "Медиана цены, $" },
+            grid: { color: "rgba(15,23,42,0.06)" },
+          },
+        },
+        onClick: function (_evt, elements, chart) {
+          if (!elements.length) return;
+          const p = chart.data.datasets[elements[0].datasetIndex].data[elements[0].index];
+          if (p && p.url) window.location.href = p.url;
+        },
+      },
+    });
+  }
+})();
+</script>
+{% endblock %}

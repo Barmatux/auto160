@@ -4193,6 +4193,48 @@ body.vin-enter-modal-open {
   line-height: 1.2;
 }
 
+.arbitrage-filters {
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+
+.arbitrage-charts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin: 8px 0 24px;
+}
+
+.arbitrage-chart-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px 10px;
+  box-shadow: var(--shadow);
+}
+
+.arbitrage-chart-card h2 {
+  margin: 0 0 10px;
+  font-size: 1rem;
+  color: #1e3a8a;
+}
+
+.arbitrage-chart-canvas-wrap {
+  position: relative;
+  height: 320px;
+}
+
+.arbitrage-table td,
+.arbitrage-table th {
+  white-space: nowrap;
+}
+
+@media (max-width: 960px) {
+  .arbitrage-charts {
+    grid-template-columns: 1fr;
+  }
+}
+
 .admin-stat-card .sub {
   margin-top: 8px;
   color: var(--muted);

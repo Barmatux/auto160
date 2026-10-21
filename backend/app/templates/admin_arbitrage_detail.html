@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+{% block title %}Ниша — {{ detail.make }} {{ detail.model }} {{ detail.year }}{% endblock %}
+{% block content %}
+{% set admin_section = "arbitrage" %}
+{% include "partials/admin_nav.html" %}
+
+<p class="hint"><a href="/admin/arbitrage">← К лидерборду</a></p>
+
+<h1>{{ detail.make }} {{ detail.model }} · {{ detail.year }}</h1>
+<p class="hint">
+  {{ detail.generation }}
+  {% if detail.hp %} · {{ detail.hp }} л.с.{% endif %}
+  · <a href="{{ detail.ocenka_url }}" target="_blank" rel="noopener">ocenka av.by</a>
+  · <a href="{{ detail.price_stats_url }}">карточка оценки</a>
+  {% if detail.main_filter_url %}
+    · <a href="{{ detail.main_filter_url }}" target="_blank" rel="noopener">фильтр объявлений</a>
+  {% endif %}
+</p>
+
+{% if detail.row %}
+<section class="admin-stats-grid">
+  <article class="admin-stat-card">
+    <div class="label">Velocity score</div>
+    <div class="value">{{ detail.row.velocity_score }}</div>
+  </article>
+  <article class="admin-stat-card">
+    <div class="label">Медиана дней</div>
+    <div class="value">{{ detail.row.median_days }}</div>
+    <div class="sub">p25 {{ detail.row.p25_days }}</div>
+  </article>
+  <article class="admin-stat-card">
+    <div class="label">Sold / Active</div>
+    <div class="value">{{ detail.row.sold_n }}{% if detail.row.active_n is not none %} / {{ detail.row.active_n }}{% endif %}</div>
+    <div class="sub">≤30д {{ (detail.row.pct_sold_le_30 * 100) | round(0) }}%</div>
+  </article>
+  <article class="admin-stat-card">
+    <div class="label">Медиана цены</div>
+    <div class="value">${{ detail.row.median_price_usd | int }}</div>
+    <div class="sub">
+      {% if detail.row.turnover_60d is not none %}оборот 60д {{ detail.row.turnover_60d }}{% endif %}
+    </div>
+  </article>
+</section>
+{% endif %}
+
+<section class="arbitrage-charts">
+  <article class="arbitrage-chart-card">
+    <h2>Распределение дней на продаже</h2>
+    <div class="arbitrage-chart-canvas-wrap">
+      <canvas id="arbitrageDaysHist" height="280"></canvas>
+    </div>
+  </article>
+  <article class="arbitrage-chart-card">
+    <h2>История медианной цены</h2>
+    <div class="arbitrage-chart-canvas-wrap">
+      <canvas id="arbitragePriceHist" height="280"></canvas>
+    </div>
+  </article>
+</section>
+
+<section class="home-section" style="padding:0;margin-top:24px;">
+  <div class="home-section-head">
+    <h2>Проданные в снимке ocenka</h2>
+  </div>
+  <div class="admin-vin-table-wrap">
+    <table class="users-table admin-vin-table">
+      <thead>
+        <tr>
+          <th>Объявление</th>
+          <th>Цена</th>
+          <th>Дней</th>
+          <th>Опубликовано</th>
+          <th>Статус</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in detail.sold_table %}
+          <tr>
+            <td><a href="{{ item.url }}" target="_blank" rel="noopener">#{{ item.avby_id }}</a></td>
+            <td>{{ item.price_usd_label }}</td>
+            <td>{{ item.days_on_sale }}</td>
+            <td>{{ item.published_label }}</td>
+            <td>{{ item.public_status }}</td>
+          </tr>
+        {% else %}
+          <tr><td colspan="5" class="hint">Нет sold samples.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="home-section" style="padding:0;margin-top:24px;">
+  <div class="home-section-head">
+    <h2>Похожие лоты в Европе (≤$20k, ≤160 л.с.)</h2>
+  </div>
+  <p class="hint">Сопоставление по марке/модели/году без расчёта пошлин — ориентир для закупки.</p>
+  <div class="admin-vin-table-wrap">
+    <table class="users-table admin-vin-table">
+      <thead>
+        <tr>
+          <th>Лот</th>
+          <th>Источник</th>
+          <th>Пробег</th>
+          <th>л.с.</th>
+          <th>Цена $</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in detail.eu_listings %}
+          <tr>
+            <td class="admin-vin-listing">
+              <a class="admin-vin-listing-title" href="{{ item.url }}">{{ item.title }}</a>
+              <div class="admin-vin-listing-meta">{{ item.city }}</div>
+            </td>
+            <td>{{ item.source }}</td>
+            <td>{{ item.mileage }}</td>
+            <td>{{ item.hp if item.hp is not none else "—" }}</td>
+            <td><strong>{{ item.price_usd_label }}</strong></td>
+          </tr>
+        {% else %}
+          <tr><td colspan="5" class="hint">Нет опубликованных EU-лотов под эту нишу и ценовой потолок.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js"></script>
+<script id="arbitrage-detail-charts" type="application/json">{{ detail_charts | tojson }}</script>
+<script>
+(function () {
+  const raw = document.getElementById("arbitrage-detail-charts");
+  if (!raw || typeof Chart === "undefined") return;
+  let data;
+  try { data = JSON.parse(raw.textContent || "{}"); } catch (e) { return; }
+  const hist = data.histogram || {};
+  const price = data.price_history || {};
+  const histEl = document.getElementById("arbitrageDaysHist");
+  const priceEl = document.getElementById("arbitragePriceHist");
+  if (histEl && (hist.labels || []).length) {
+    new Chart(histEl, {
+      type: "bar",
+      data: {
+        labels: hist.labels,
+        datasets: [{
+          label: "Число продаж",
+          data: hist.counts,
+          backgroundColor: "rgba(37, 99, 235, 0.6)",
+          borderRadius: 4,
+        }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { beginAtZero: true, ticks: { precision: 0 } },
+        },
+      },
+    });
+  }
+  if (priceEl && (price.labels || []).length) {
+    new Chart(priceEl, {
+      type: "line",
+      data: {
+        labels: price.labels,
+        datasets: [{
+          label: "Медиана $",
+          data: price.values,
+          borderColor: "#2563eb",
+          backgroundColor: "rgba(37, 99, 235, 0.12)",
+          fill: true,
+          tension: 0.25,
+        }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+      },
+    });
+  }
+})();
+</script>
+{% endblock %}
