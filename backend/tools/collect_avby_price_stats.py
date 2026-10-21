@@ -1,4 +1,7 @@
-"""Collect av.by ocenka / price-statistics for catalog rating=1 generations.
+"""Collect av.by ocenka / price-statistics for catalog generations.
+
+Default: rating=1 generations.
+With --makes: all catalog generations for those brands (e.g. peugeot,renault).
 
 Designed for careful production runs:
 - adaptive delays + jitter
@@ -21,6 +24,8 @@ if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 os.chdir(ROOT_DIR)
 
+from sqlalchemy import or_  # noqa: E402
+
 from app.avby_price_stats import (  # noqa: E402
     SoftRateLimit,
     AvbyPriceStatsClient,
@@ -40,40 +45,37 @@ logging.basicConfig(
 logger = logging.getLogger("collect_avby_price_stats")
 
 
-def _progress(db) -> dict[str, int]:
-    targets = db.query(AvbyPriceStatTarget).count()
-    ready = (
-        db.query(AvbyPriceStatTarget)
-        .filter(AvbyPriceStatTarget.resolve_status == "ready")
-        .count()
-    )
-    pending = (
-        db.query(AvbyPriceStatTarget)
-        .filter(AvbyPriceStatTarget.resolve_status == "pending")
-        .count()
-    )
-    failed_resolve = (
-        db.query(AvbyPriceStatTarget)
-        .filter(AvbyPriceStatTarget.resolve_status == "error")
-        .count()
-    )
-    year_ok = (
-        db.query(AvbyPriceYearStat)
-        .filter(AvbyPriceYearStat.fetch_status == "ok")
-        .count()
-    )
-    year_err = (
-        db.query(AvbyPriceYearStat)
-        .filter(AvbyPriceYearStat.fetch_status == "error")
-        .count()
-    )
+def _parse_makes(raw: str | None) -> list[str] | None:
+    if not raw:
+        return None
+    makes = [part.strip() for part in raw.split(",") if part.strip()]
+    return makes or None
+
+
+def _progress(db, *, makes: list[str] | None = None) -> dict[str, int]:
+    def _targets():
+        q = db.query(AvbyPriceStatTarget)
+        if makes:
+            q = q.filter(or_(*[AvbyPriceStatTarget.make.ilike(m) for m in makes]))
+        return q
+
+    def _years():
+        q = db.query(AvbyPriceYearStat)
+        if makes:
+            q = q.join(AvbyPriceStatTarget).filter(
+                or_(*[AvbyPriceStatTarget.make.ilike(m) for m in makes])
+            )
+        return q
+
     return {
-        "targets": targets,
-        "ready": ready,
-        "pending": pending,
-        "failed_resolve": failed_resolve,
-        "year_ok": year_ok,
-        "year_err": year_err,
+        "targets": _targets().count(),
+        "ready": _targets().filter(AvbyPriceStatTarget.resolve_status == "ready").count(),
+        "pending": _targets().filter(AvbyPriceStatTarget.resolve_status == "pending").count(),
+        "failed_resolve": _targets()
+        .filter(AvbyPriceStatTarget.resolve_status == "error")
+        .count(),
+        "year_ok": _years().filter(AvbyPriceYearStat.fetch_status == "ok").count(),
+        "year_err": _years().filter(AvbyPriceYearStat.fetch_status == "error").count(),
     }
 
 
@@ -88,18 +90,42 @@ def main() -> None:
     parser.add_argument("--skip-active", action="store_true", help="Skip active-adverts endpoint (fewer requests)")
     parser.add_argument("--resolve-only", action="store_true", help="Only resolve landing IDs")
     parser.add_argument("--slug", type=str, default=None, help="Process a single catalog slug")
+    parser.add_argument(
+        "--makes",
+        type=str,
+        default=None,
+        help="Comma-separated makes; upserts ALL generations for them (e.g. peugeot,renault)",
+    )
+    parser.add_argument(
+        "--min-year",
+        type=int,
+        default=None,
+        help="Skip years before this (reduces volume for full-brand dumps)",
+    )
+    parser.add_argument(
+        "--max-year",
+        type=int,
+        default=None,
+        help="Skip years after this",
+    )
     parser.add_argument("--max-consecutive-errors", type=int, default=8)
     parser.add_argument("--pause-every", type=int, default=25, help="Extra pause after N successful year fetches")
     parser.add_argument("--pause-seconds", type=float, default=45.0)
     args = parser.parse_args()
+    makes = _parse_makes(args.makes)
 
     rate = SoftRateLimit(min_delay=args.min_delay, max_delay=args.max_delay)
     client = AvbyPriceStatsClient(rate=rate)
     db = SessionLocal()
     started = time.time()
     try:
-        created = upsert_targets_from_catalog(db)
-        logger.info("targets upserted; newly_created=%s progress=%s", created, _progress(db))
+        created = upsert_targets_from_catalog(db, makes=makes)
+        logger.info(
+            "targets upserted; newly_created=%s makes=%s progress=%s",
+            created,
+            makes or "rating=1",
+            _progress(db, makes=makes),
+        )
 
         q = db.query(AvbyPriceStatTarget).order_by(
             AvbyPriceStatTarget.make.asc(),
@@ -108,30 +134,36 @@ def main() -> None:
         )
         if args.slug:
             q = q.filter(AvbyPriceStatTarget.catalog_slug == args.slug)
+        if makes:
+            q = q.filter(or_(*[AvbyPriceStatTarget.make.ilike(m) for m in makes]))
         targets = q.all()
         if args.limit_targets is not None:
             targets = targets[: args.limit_targets]
 
+        year_kwargs = {"min_year": args.min_year, "max_year": args.max_year}
         year_plan = 0
         for t in targets:
-            year_plan += len(years_for_target(t))
+            year_plan += len(years_for_target(t, **year_kwargs))
         logger.info(
-            "plan targets=%s year_calls~=%s include_active=%s dry_run=%s",
+            "plan targets=%s year_calls~=%s include_active=%s dry_run=%s min_year=%s",
             len(targets),
             year_plan,
             not args.skip_active,
             args.dry_run,
+            args.min_year,
         )
         if args.dry_run:
             for t in targets[:20]:
+                ys = years_for_target(t, **year_kwargs)
                 logger.info(
-                    "  %s | %s %s %s | years=%s-%s | status=%s",
+                    "  %s | %s %s %s | years=%s-%s (%s) | status=%s",
                     t.catalog_slug,
                     t.make,
                     t.model,
                     t.generation or "",
-                    t.year_from,
-                    t.year_to,
+                    ys[0] if ys else None,
+                    ys[-1] if ys else None,
+                    len(ys),
                     t.resolve_status,
                 )
             if len(targets) > 20:
@@ -182,7 +214,7 @@ def main() -> None:
             if args.resolve_only:
                 continue
 
-            years = years_for_target(target)
+            years = years_for_target(target, **year_kwargs)
             if not years:
                 logger.warning("no years for %s", target.catalog_slug)
                 continue
@@ -197,7 +229,7 @@ def main() -> None:
                         skipped,
                         errors,
                         time.time() - started,
-                        _progress(db),
+                        _progress(db, makes=makes),
                     )
                     return
 
@@ -288,7 +320,7 @@ def main() -> None:
                             skipped,
                             errors,
                             time.time() - started,
-                            _progress(db),
+                            _progress(db, makes=makes),
                         )
                         return
 
@@ -299,7 +331,7 @@ def main() -> None:
             skipped,
             errors,
             time.time() - started,
-            _progress(db),
+            _progress(db, makes=makes),
         )
     finally:
         db.close()

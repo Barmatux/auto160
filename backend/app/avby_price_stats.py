@@ -12,6 +12,7 @@ from typing import Any
 from urllib.parse import parse_qs, urlencode
 
 from curl_cffi import requests
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.avby_session import AVBY_PUBLIC_API_KEY
@@ -30,7 +31,7 @@ UA = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
 )
-_CATALOG_SLUG_RE = re.compile(r"/catalog/([^/]+)/", re.I)
+_CATALOG_SLUG_RE = re.compile(r"/catalog/([^/?#]+)", re.I)
 
 
 @dataclass
@@ -112,22 +113,46 @@ def catalog_slug_from_url(source_url: str | None) -> str | None:
     return match.group(1) if match else None
 
 
-def build_rating_one_generation_rows(db: Session) -> list[dict[str, Any]]:
-    items = (
-        db.query(CatalogItem)
-        .filter(CatalogItem.rating == 1)
-        .filter(
-            (CatalogItem.source_site == "av.by")
-            | (CatalogItem.source_url.ilike("%av.by/catalog/%"))
-        )
-        .all()
+def _normalize_makes(makes: list[str] | None) -> list[str] | None:
+    if not makes:
+        return None
+    cleaned = [m.strip() for m in makes if m and m.strip()]
+    return cleaned or None
+
+
+def build_catalog_generation_rows(
+    db: Session,
+    *,
+    makes: list[str] | None = None,
+    rating_one_only: bool = True,
+) -> list[dict[str, Any]]:
+    """Group CatalogItem modifications into generation-level ocenka targets.
+
+    Default: rating=1 only (existing analytics set).
+    With ``makes``: all generations for those brands (rating filter off unless
+    ``rating_one_only=True`` is passed explicitly).
+    """
+    makes = _normalize_makes(makes)
+    q = db.query(CatalogItem).filter(
+        (CatalogItem.source_site == "av.by")
+        | (CatalogItem.source_url.ilike("%av.by/catalog/%"))
     )
+    if rating_one_only:
+        q = q.filter(CatalogItem.rating == 1)
+    if makes:
+        q = q.filter(or_(*[CatalogItem.make.ilike(m) for m in makes]))
+    items = q.all()
     grouped: dict[str, dict[str, Any]] = {}
     for item in items:
         slug = catalog_slug_from_url(item.source_url)
         if not slug:
             continue
-        years = [y for y in (item.year_from, item.year_to) if y]
+        y_from = int(item.year_from) if item.year_from else None
+        y_to = int(item.year_to) if item.year_to else None
+        # Prefer generation URL without /modification/… for landing resolve.
+        source_url = item.source_url or ""
+        gen_url_match = re.search(r"(https?://[^/]+/catalog/[^/]+)", source_url, re.I)
+        gen_url = gen_url_match.group(1) if gen_url_match else source_url
         row = grouped.get(slug)
         if row is None:
             grouped[slug] = {
@@ -135,23 +160,42 @@ def build_rating_one_generation_rows(db: Session) -> list[dict[str, Any]]:
                 "make": (item.make or "").strip(),
                 "model": (item.model or "").strip(),
                 "generation": (item.generation or "").strip() or None,
-                "year_from": min(years) if years else None,
-                "year_to": max(years) if years else None,
-                "source_url": item.source_url,
+                "year_from": y_from,
+                "year_to": y_to,
+                "source_url": gen_url,
             }
             continue
-        if years:
-            existing = [y for y in (row["year_from"], row["year_to"]) if y]
-            all_years = existing + years
-            row["year_from"] = min(all_years)
-            row["year_to"] = max(all_years)
-        if not row.get("source_url") and item.source_url:
-            row["source_url"] = item.source_url
+        if y_from is not None:
+            row["year_from"] = (
+                min(row["year_from"], y_from) if row["year_from"] is not None else y_from
+            )
+        if y_to is not None:
+            row["year_to"] = (
+                max(row["year_to"], y_to) if row["year_to"] is not None else y_to
+            )
+        if not row.get("source_url") and gen_url:
+            row["source_url"] = gen_url
     return sorted(grouped.values(), key=lambda r: (r["make"], r["model"], r["catalog_slug"]))
 
 
-def upsert_targets_from_catalog(db: Session) -> int:
-    rows = build_rating_one_generation_rows(db)
+def build_rating_one_generation_rows(db: Session) -> list[dict[str, Any]]:
+    return build_catalog_generation_rows(db, rating_one_only=True)
+
+
+def upsert_targets_from_catalog(
+    db: Session,
+    *,
+    makes: list[str] | None = None,
+    rating_one_only: bool | None = None,
+) -> int:
+    makes = _normalize_makes(makes)
+    if rating_one_only is None:
+        # Brand dumps (e.g. Peugeot+Renault) include every generation; otherwise
+        # keep the historical rating=1 analytics set.
+        rating_one_only = not bool(makes)
+    rows = build_catalog_generation_rows(
+        db, makes=makes, rating_one_only=rating_one_only
+    )
     existing = {
         t.catalog_slug: t for t in db.query(AvbyPriceStatTarget).all()
     }
@@ -257,14 +301,32 @@ def _money(block: dict[str, Any] | None, currency: str) -> float | None:
         return None
 
 
-def years_for_target(target: AvbyPriceStatTarget) -> list[int]:
-    y0 = target.year_from
-    y1 = target.year_to or target.year_from
-    if y0 and y1 and y1 >= y0:
-        return list(range(int(y0), int(y1) + 1))
-    if y0:
-        return [int(y0)]
-    return []
+def years_for_target(
+    target: AvbyPriceStatTarget,
+    *,
+    min_year: int | None = None,
+    max_year: int | None = None,
+) -> list[int]:
+    if not target.year_from:
+        return []
+    y0 = int(target.year_from)
+    current = datetime.utcnow().year
+    if target.year_to is None:
+        y1 = current
+    else:
+        y1 = int(target.year_to)
+        # Catalog typos (e.g. 1018 instead of 2018) — treat as open-ended.
+        if y1 < 1950 or y1 > current + 1:
+            y1 = current
+    if y1 < y0:
+        return []
+    if min_year is not None:
+        y0 = max(y0, int(min_year))
+    if max_year is not None:
+        y1 = min(y1, int(max_year))
+    if y1 < y0:
+        return []
+    return list(range(y0, y1 + 1))
 
 
 def fetch_and_store_year_stat(
