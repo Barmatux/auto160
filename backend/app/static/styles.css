@@ -5764,12 +5764,14 @@ body.listing-lightbox-open {
 
 .home-section-makes {
   margin-top: 12px;
-  padding-inline: 6px;
+  padding: 0 12px 12px;
+  box-sizing: border-box;
 }
 
 .home-section-directions {
   margin-top: 12px;
-  padding-inline: 6px;
+  padding: 0 12px 12px;
+  box-sizing: border-box;
 }
 
 .home-section-head {
@@ -6158,10 +6160,12 @@ body.listing-lightbox-open {
 
   .home-section-makes {
     margin-top: 10px;
+    padding: 0 10px 10px;
   }
 
   .home-section-directions {
     margin-top: 10px;
+    padding: 0 10px 10px;
   }
 
   .home-directions {
