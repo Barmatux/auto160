@@ -10,6 +10,8 @@
   (марка → модель → поколение). Галочка «Показать в каталоге» включает поколение в каталог;
   снятие скрывает его и отправляет связанные объявления в архив. Галочка «VIN CHECK» включает
   объявления этого поколения на странице VIN CHECK (раньше это был рейтинг&nbsp;1).
+  Галочка «EU→РБ» включает поколение в дашборд
+  <a href="/admin/arbitrage">Ниши EU→РБ</a> (скорость продажи / скоринг).
   Годы производства можно задать вручную или подтянуть кнопкой «С av.by».
   Найдено: {{ rating_total }}.
 </p>
@@ -63,6 +65,7 @@
         <th>Мощность<br />двигателя</th>
         <th class="admin-ratings-check-head">Показать<br />в каталоге</th>
         <th class="admin-ratings-check-head">VIN CHECK</th>
+        <th class="admin-ratings-check-head">EU→РБ</th>
         <th>Фото</th>
       </tr>
     </thead>
@@ -136,6 +139,20 @@
             </label>
             <div class="admin-rating-status" hidden></div>
           </td>
+          <td class="admin-ratings-check-cell">
+            <label class="admin-ratings-check">
+              <input
+                type="checkbox"
+                class="admin-arbitrage-track-flag"
+                data-make="{{ row.make }}"
+                data-model="{{ row.model }}"
+                data-generation="{{ row.generation_key }}"
+                {% if row.arbitrage_track %}checked{% endif %}
+                aria-label="EU→РБ аналитика {{ row.make }} {{ row.model }} {{ row.generation }}"
+              />
+            </label>
+            <div class="admin-arbitrage-track-status" hidden></div>
+          </td>
           <td class="admin-ratings-photo-cell">
             {% if row.photo_item_id %}
               {% set cover_url = rating_cover_urls.get(row.photo_item_id) %}
@@ -175,7 +192,7 @@
           </td>
         </tr>
       {% else %}
-        <tr><td colspan="8">Поколений по этому фильтру нет.</td></tr>
+        <tr><td colspan="9">Поколений по этому фильтру нет.</td></tr>
       {% endfor %}
     </tbody>
   </table>
@@ -370,6 +387,46 @@
       }
       checkbox.checked = data.rating != null && Number(data.rating) === 1;
       setCellStatus(cell, ".admin-rating-status", "Сохранено", false);
+    });
+  });
+
+  document.querySelectorAll(".admin-arbitrage-track-flag").forEach(function (checkbox) {
+    checkbox.addEventListener("change", async function () {
+      const enabled = checkbox.checked;
+      const cell = checkbox.closest("td");
+      const payload = {
+        make: checkbox.dataset.make || "",
+        model: checkbox.dataset.model || "",
+        generation: checkbox.dataset.generation || "",
+        enabled: enabled,
+      };
+      checkbox.disabled = true;
+      setCellStatus(cell, ".admin-arbitrage-track-status", "Сохранение…", false);
+      const response = await adminFetch("/api/v1/admin/catalog-generations/arbitrage-track", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      checkbox.disabled = false;
+      if (!response) {
+        checkbox.checked = !enabled;
+        return;
+      }
+      const data = await response.json().catch(function () { return {}; });
+      if (!response.ok) {
+        checkbox.checked = !enabled;
+        const detail = data.detail;
+        const message = typeof detail === "string" ? detail : "Не удалось сохранить EU→РБ";
+        setCellStatus(cell, ".admin-arbitrage-track-status", message, true);
+        return;
+      }
+      checkbox.checked = Boolean(data.enabled);
+      setCellStatus(
+        cell,
+        ".admin-arbitrage-track-status",
+        data.enabled ? "В аналитике" : "Убрано из аналитики",
+        false
+      );
     });
   });
 

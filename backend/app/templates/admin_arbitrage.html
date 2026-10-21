@@ -7,7 +7,11 @@
 <h1>Перспективные ниши EU→РБ</h1>
 <p class="hint">
   Скоринг по скорости продажи на av.by (ocenka): медиана дней в продаже, доля быстрых сделок,
-  оборот за 60 дней. Фильтр по умолчанию: ≤{{ max_hp }} л.с., медиана рынка ≤ {{ max_price_usd }} $,
+  оборот за 60 дней. В расчёт попадают только поколения с галочкой
+  <strong>EU→РБ</strong> в
+  <a href="/admin/ratings">Управлении каталогом</a>
+  (сейчас отмечено slug: <strong>{{ coverage.tracked_slugs }}</strong>).
+  Фильтр по умолчанию: ≤{{ max_hp }} л.с., медиана рынка ≤ {{ max_price_usd }} $,
   минимум {{ min_sold_n }} проданных в снимке.
   Покрытие: <strong>{{ coverage.year_ok }}</strong> year-stats,
   <strong>{{ coverage.sold_adverts }}</strong> sold samples.
@@ -129,7 +133,12 @@
         </tr>
       {% else %}
         <tr>
-          <td colspan="11" class="hint">Нет ниш под текущие фильтры. Ослабьте min sold / max price или дождитесь ocenka.</td>
+          <td colspan="11" class="hint">
+            Нет ниш под текущие фильтры.
+            Отметьте поколения галочкой «EU→РБ» в
+            <a href="/admin/ratings">Управлении каталогом</a>,
+            ослабьте min sold / max price или дождитесь ocenka по этим поколениям.
+          </td>
         </tr>
       {% endfor %}
     </tbody>

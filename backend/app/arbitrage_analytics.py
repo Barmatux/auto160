@@ -29,6 +29,17 @@ _EU_SOURCES = ("autoplius", "auto24", "mobile_de")
 _CACHE_TTL_SEC = 900
 _cache: dict[str, Any] = {"key": None, "expires": 0.0, "rows": None, "kpi": None}
 
+
+def invalidate_arbitrage_cache() -> None:
+    """Drop in-process niche cache (call after catalog track flag changes)."""
+    _cache["key"] = None
+    _cache["expires"] = 0.0
+    _cache["rows"] = None
+    _cache["kpi"] = None
+    _cache["base_key"] = None
+    _cache["base_expires"] = 0.0
+    _cache["base_rows"] = None
+
 DEFAULT_MAX_HP = 160
 DEFAULT_MAX_PRICE_USD = 20_000
 DEFAULT_MIN_SOLD_N = 8
@@ -76,28 +87,44 @@ def _linear_slope(ys: list[float]) -> float | None:
     return num / den
 
 
-def hp_by_catalog_slug(db: Session) -> dict[str, int]:
-    """Min engine_power_hp per ocenka catalog slug (rating=1 catalog rows)."""
+def tracked_slug_hp_map(db: Session) -> dict[str, int | None]:
+    """ocenka catalog_slug → min hp for generations marked arbitrage_track.
+
+    Only these slugs enter EU→BY niche scoring. hp may be None if unknown.
+    """
     items = (
         db.query(CatalogItem.source_url, CatalogItem.engine_power_hp)
-        .filter(CatalogItem.rating == 1)
-        .filter(CatalogItem.engine_power_hp.isnot(None))
+        .filter(CatalogItem.arbitrage_track.is_(True))
         .filter(
             (CatalogItem.source_site == "av.by")
             | (CatalogItem.source_url.ilike("%av.by/catalog/%"))
         )
         .all()
     )
-    out: dict[str, int] = {}
+    out: dict[str, int | None] = {}
     for source_url, hp in items:
         slug = catalog_slug_from_url(source_url)
-        if not slug or hp is None:
+        if not slug:
             continue
-        hp_i = int(hp)
-        prev = out.get(slug)
+        hp_i = int(hp) if hp is not None else None
+        if slug not in out:
+            out[slug] = hp_i
+            continue
+        prev = out[slug]
+        if hp_i is None:
+            continue
         if prev is None or hp_i < prev:
             out[slug] = hp_i
     return out
+
+
+def hp_by_catalog_slug(db: Session) -> dict[str, int]:
+    """Min known hp for tracked slugs only (legacy helper for callers needing int hp)."""
+    return {
+        slug: hp
+        for slug, hp in tracked_slug_hp_map(db).items()
+        if hp is not None
+    }
 
 
 @dataclass(frozen=True)
@@ -196,13 +223,24 @@ def _score_niche(
 
 
 def _compute_all_niches(db: Session) -> list[NicheRow]:
-    hp_map = hp_by_catalog_slug(db)
+    tracked = tracked_slug_hp_map(db)
+    if not tracked:
+        return []
+
     year_stats = (
         db.query(AvbyPriceYearStat)
         .options(joinedload(AvbyPriceYearStat.target))
         .filter(AvbyPriceYearStat.fetch_status == "ok")
         .all()
     )
+    if not year_stats:
+        return []
+
+    year_stats = [
+        ys
+        for ys in year_stats
+        if ys.target is not None and ys.target.catalog_slug in tracked
+    ]
     if not year_stats:
         return []
 
@@ -251,7 +289,10 @@ def _compute_all_niches(db: Session) -> list[NicheRow]:
         target = ys.target
         if target is None:
             continue
-        hp = hp_map.get(target.catalog_slug)
+        if target.catalog_slug not in tracked:
+            continue
+        hp = tracked.get(target.catalog_slug)
+        # Hard filter: unknown hp excluded from leaderboard (same as plan).
         if hp is None:
             continue
 
@@ -496,8 +537,11 @@ def get_niche_detail(db: Session, year_stat_id: int) -> dict[str, Any] | None:
     if ys is None or ys.target is None:
         return None
 
-    hp_map = hp_by_catalog_slug(db)
-    hp = hp_map.get(ys.target.catalog_slug)
+    tracked = tracked_slug_hp_map(db)
+    hp = tracked.get(ys.target.catalog_slug)
+    if ys.target.catalog_slug not in tracked:
+        # Still show detail if opened by id, but flag as not tracked.
+        pass
 
     # Build single-row metrics via shared path when possible.
     all_rows, _ = list_arbitrage_niches(
@@ -702,10 +746,19 @@ def coverage_hint(db: Session) -> dict[str, Any]:
         .scalar()
         or 0
     )
+    tracked_n = (
+        db.query(func.count(func.distinct(CatalogItem.id)))
+        .filter(CatalogItem.arbitrage_track.is_(True))
+        .scalar()
+        or 0
+    )
+    tracked_slugs = len(tracked_slug_hp_map(db))
     last_fetched = db.query(func.max(AvbyPriceYearStat.fetched_at)).scalar()
     return {
         "sold_adverts": int(sold_n),
         "year_ok": int(year_ok),
+        "tracked_items": int(tracked_n),
+        "tracked_slugs": int(tracked_slugs),
         "last_fetched_at": last_fetched,
         "last_fetched_label": (
             last_fetched.strftime("%d.%m.%Y %H:%M") if last_fetched else "—"

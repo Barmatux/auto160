@@ -25,7 +25,13 @@ from app.manual_vin_check import (
     user_has_manual_vin_check_launch,
 )
 from app.catalog_generation_years import apply_generation_years, sync_generation_years_from_sources
-from app.catalog_ratings import apply_generation_rating, format_production_years, generation_label
+from app.arbitrage_analytics import invalidate_arbitrage_cache
+from app.catalog_ratings import (
+    apply_generation_arbitrage_track,
+    apply_generation_rating,
+    format_production_years,
+    generation_label,
+)
 from app.catalog_visibility import apply_generation_catalog_visibility
 from app.db import get_db
 from app.deps import require_admin, require_admin_flexible
@@ -47,6 +53,8 @@ from app.schemas import (
     AvbyServiceAccountSecrets,
     AvbyServiceAccountUpdateRequest,
     AppLogTailResponse,
+    CatalogGenerationArbitrageTrackResult,
+    CatalogGenerationArbitrageTrackUpdate,
     CatalogGenerationRatingResult,
     CatalogGenerationRatingUpdate,
     CatalogGenerationVisibilityResult,
@@ -370,6 +378,35 @@ def update_catalog_generation_visibility(
         hidden=payload.hidden,
         updated_items=result.updated_items,
         archived_listings=result.archived_listings,
+    )
+
+
+@router.patch(
+    "/catalog-generations/arbitrage-track",
+    response_model=CatalogGenerationArbitrageTrackResult,
+)
+def update_catalog_generation_arbitrage_track(
+    payload: CatalogGenerationArbitrageTrackUpdate,
+    _: User = Depends(require_admin_flexible),
+    db: Session = Depends(get_db),
+):
+    items, updated = apply_generation_arbitrage_track(
+        db,
+        make=payload.make,
+        model=payload.model,
+        generation=payload.generation,
+        enabled=payload.enabled,
+    )
+    if not items:
+        raise HTTPException(status_code=404, detail="Поколение не найдено в каталоге")
+    db.commit()
+    invalidate_arbitrage_cache()
+    return CatalogGenerationArbitrageTrackResult(
+        make=payload.make.strip(),
+        model=payload.model.strip(),
+        generation=generation_label(payload.generation),
+        enabled=bool(payload.enabled),
+        updated_items=updated,
     )
 
 
