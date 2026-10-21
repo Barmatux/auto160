@@ -5764,10 +5764,12 @@ body.listing-lightbox-open {
 
 .home-section-makes {
   margin-top: 12px;
+  padding-inline: 6px;
 }
 
 .home-section-directions {
   margin-top: 12px;
+  padding-inline: 6px;
 }
 
 .home-section-head {
