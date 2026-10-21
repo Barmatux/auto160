@@ -36,7 +36,7 @@
     {% if seo_json_ld_script %}
       <script type="application/ld+json">{{ seo_json_ld_script | safe }}</script>
     {% endif %}
-    <link rel="stylesheet" href="/static/styles.css?v=20261021-04" />
+    <link rel="stylesheet" href="/static/styles.css?v=20261021-05" />
     {% if site_theme_uses_logo %}
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -58,6 +58,7 @@
         fetchpriority="high"
       />
     {% endif %}
+    {% block extra_head %}{% endblock %}
   </head>
   <body
     {% if site_theme == "logo" %}class="theme-admin"{% elif site_theme == "logo-light" %}class="theme-admin theme-admin-light"{% endif %}

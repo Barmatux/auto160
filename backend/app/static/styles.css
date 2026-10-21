@@ -5627,6 +5627,20 @@ body.listing-lightbox-open {
   background: #f8fbff;
 }
 
+/* Homepage type trial: Golos Text body + Onest display (Cyrillic-friendly). */
+.page:has(.home-hero) {
+  font-family: "Golos Text", "Segoe UI", sans-serif;
+}
+
+.page:has(.home-hero) .home-hero h1,
+.page:has(.home-hero) .home-section-head h2,
+.page:has(.home-hero) .home-how h2,
+.page:has(.home-hero) .home-direction-label,
+.page:has(.home-hero) .home-make-card strong {
+  font-family: "Onest", "Segoe UI", sans-serif;
+  letter-spacing: -0.02em;
+}
+
 .home-hero {
   background: linear-gradient(180deg, #eaf1ff 0%, #dce8fb 100%);
   border: 1px solid #c9dcff;
@@ -5651,6 +5665,8 @@ body.listing-lightbox-open {
   margin: 0 0 10px;
   font-size: 52px;
   line-height: 1.05;
+  font-weight: 700;
+  letter-spacing: -0.03em;
   color: #1e3a8a;
 }
 
