@@ -2363,6 +2363,7 @@ def _apply_max_hp_filter(query, max_hp: int = 160):
 
 _HOME_STATS_CACHE: tuple[float, dict] | None = None
 _HOME_POPULAR_MAKES_CACHE: tuple[float, list[dict]] | None = None
+_CATALOG_MAKES_DEFAULT_CACHE: tuple[float, list[dict]] | None = None
 _HOME_BLOCK_CACHE_TTL_SEC = 600.0
 
 
@@ -2377,6 +2378,50 @@ def _home_cache_get(cache: tuple[float, object] | None):
 
 def _home_cache_set(value):
     return (time.monotonic() + _HOME_BLOCK_CACHE_TTL_SEC, deepcopy(value))
+
+
+def _catalog_query_has_make_filters(request: Request, *, exact_hp: bool, with_listings: bool) -> bool:
+    if exact_hp or with_listings:
+        return True
+    q = request.query_params
+    if any((q.get(key) or "").strip() for key in ("export_country", "year_from", "year_to", "seats_7")):
+        return True
+    if q.getlist("body_type") or q.getlist("fuel_type") or q.getlist("transmission"):
+        return True
+    return False
+
+
+def _catalog_make_groups_from_query(query) -> list[dict]:
+    """Aggregate filtered CatalogItem rows by make in SQL (avoids loading every row)."""
+    item_count = func.count(CatalogItem.id)
+    rows = (
+        query.filter(CatalogItem.make.isnot(None))
+        .with_entities(
+            CatalogItem.make,
+            item_count.label("item_count"),
+            func.min(CatalogItem.id).label("first_id"),
+            func.min(CatalogItem.year_from).label("year_from"),
+            func.max(CatalogItem.year_to).label("year_to"),
+        )
+        .group_by(CatalogItem.make)
+        .order_by(CatalogItem.make.asc())
+        .all()
+    )
+    makes: list[dict] = []
+    for make, count, first_id, year_from, year_to in rows:
+        make_name = (make or "").strip()
+        if not make_name:
+            continue
+        makes.append(
+            {
+                "make": make_name,
+                "count": int(count or 0),
+                "first_id": int(first_id) if first_id is not None else None,
+                "year_from": year_from,
+                "year_to": year_to,
+            }
+        )
+    return makes
 
 
 def _home_stats(db: Session) -> dict:
@@ -3115,36 +3160,26 @@ def catalog(
     request: Request,
     db: Session = Depends(get_db),
 ):
+    global _CATALOG_MAKES_DEFAULT_CACHE
     current_user = _resolve_user_from_request(request, db)
     query, exact_hp, with_listings = _catalog_items_base_query(db, request, current_user)
     listing_pairs = _published_listing_make_models(db) if with_listings else None
-    rows = query.filter(CatalogItem.make.isnot(None)).order_by(CatalogItem.make.asc(), CatalogItem.created_at.desc()).all()
-    grouped: dict[str, dict] = {}
-    for item in rows:
-        make = (item.make or "").strip()
-        if not make:
-            continue
-        if make not in grouped:
-            grouped[make] = {
-                "make": make,
-                "count": 0,
-                "first_id": item.id,
-                "year_from": item.year_from,
-                "year_to": item.year_to,
-            }
-        grouped[make]["count"] += 1
-        if grouped[make]["year_from"] is None or (item.year_from is not None and item.year_from < grouped[make]["year_from"]):
-            grouped[make]["year_from"] = item.year_from
-        if grouped[make]["year_to"] is None or (item.year_to is not None and item.year_to > grouped[make]["year_to"]):
-            grouped[make]["year_to"] = item.year_to
+    use_default_cache = (
+        not _is_admin_user(current_user)
+        and not _catalog_query_has_make_filters(request, exact_hp=exact_hp, with_listings=with_listings)
+    )
+    makes: list[dict] | None = _home_cache_get(_CATALOG_MAKES_DEFAULT_CACHE) if use_default_cache else None
+    if makes is None:
+        makes = _catalog_make_groups_from_query(query)
+        if listing_pairs is not None:
+            makes = [
+                make_row
+                for make_row in makes
+                if any(pair[0] == normalize_match_text(make_row["make"]) for pair in listing_pairs)
+            ]
+        if use_default_cache:
+            _CATALOG_MAKES_DEFAULT_CACHE = _home_cache_set(makes)
 
-    makes = sorted(grouped.values(), key=lambda m: m["make"])
-    if listing_pairs is not None:
-        makes = [
-            make_row
-            for make_row in makes
-            if any(pair[0] == normalize_match_text(make_row["make"]) for pair in listing_pairs)
-        ]
     filter_pairs = _catalog_filter_query_pairs(request, exclude=_CATALOG_NAV_EXCLUDE)
     for make_row in makes:
         make_row["models_url"] = _build_catalog_filtered_url(
