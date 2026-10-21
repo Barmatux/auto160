@@ -5760,18 +5760,16 @@ body.listing-lightbox-open {
 
 .home-section {
   margin-top: 28px;
+  padding: 0 12px 12px;
+  box-sizing: border-box;
 }
 
 .home-section-makes {
   margin-top: 12px;
-  padding: 0 12px 12px;
-  box-sizing: border-box;
 }
 
 .home-section-directions {
   margin-top: 12px;
-  padding: 0 12px 12px;
-  box-sizing: border-box;
 }
 
 .home-section-head {
@@ -6156,16 +6154,15 @@ body.listing-lightbox-open {
 
   .home-section {
     margin-top: 18px;
+    padding: 0 10px 10px;
   }
 
   .home-section-makes {
     margin-top: 10px;
-    padding: 0 10px 10px;
   }
 
   .home-section-directions {
     margin-top: 10px;
-    padding: 0 10px 10px;
   }
 
   .home-directions {
