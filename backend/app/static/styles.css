@@ -279,6 +279,51 @@ body {
   border-color: #d2e2ff;
 }
 
+.site-footer-legal {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 12px 18px;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: var(--muted, #5a6a86);
+}
+
+.site-footer-legal p {
+  margin: 0;
+}
+
+.site-footer-legal a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.requisites-dl {
+  margin: 0 0 1.25rem;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.requisites-dl > div {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.requisites-dl dt {
+  font-size: 0.85rem;
+  color: var(--muted, #5a6a86);
+}
+
+.requisites-dl dd {
+  margin: 0;
+  line-height: 1.45;
+}
+
+.requisites-dl code {
+  font-size: 0.95em;
+  word-break: break-all;
+}
+
 .cookie-consent {
   position: fixed;
   left: 0;

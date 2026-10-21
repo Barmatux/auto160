@@ -65,6 +65,14 @@ STATIC_SEO: dict[str, tuple[str, str]] = {
         "Зачем выбирать авто до 160 л.с. в Беларуси — Auto160",
         "Почему порог 160 л.с. важен при выборе авто в Беларуси: налоги, страховка, эксплуатация и подбор на Auto160.",
     ),
+    "/privacy": (
+        "Политика персональных данных — Auto160",
+        "Как Auto160 (ООО «Сканди Моторс») обрабатывает персональные данные, cookie и аналитику.",
+    ),
+    "/requisites": (
+        "Реквизиты ООО «Сканди Моторс» — Auto160",
+        "Реквизиты оператора Auto160: ООО «Сканди Моторс», УНП 193866357, адрес и банковские реквизиты.",
+    ),
 }
 
 
@@ -125,13 +133,27 @@ def dumps_json_ld(blocks: list[dict[str, Any]]) -> str:
 
 
 def organization_json_ld(base: str) -> dict[str, Any]:
+    from app.company import (
+        COMPANY_LEGAL_ADDRESS,
+        COMPANY_SHORT_NAME,
+        COMPANY_UNP,
+    )
+
     return {
         "@context": "https://schema.org",
         "@type": "Organization",
         "name": SITE_NAME,
+        "legalName": COMPANY_SHORT_NAME,
+        "taxID": COMPANY_UNP,
         "url": base,
         "logo": f"{base}/static/brand/logo-admin-v8-horizontal.png",
         "description": DEFAULT_DESCRIPTION,
+        "address": {
+            "@type": "PostalAddress",
+            "streetAddress": COMPANY_LEGAL_ADDRESS,
+            "addressLocality": "Минск",
+            "addressCountry": "BY",
+        },
     }
 
 
@@ -724,6 +746,7 @@ def build_sitemap_sections(db: Session, base_url: str) -> dict[str, list[tuple[s
         "/guides/vin",
         "/guides/do-160-hp",
         "/privacy",
+        "/requisites",
     ):
         static.append((f"{base_url}{path}", today))
 

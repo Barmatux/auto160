@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}{{ seo_title or "Реквизиты — Auto160" }}{% endblock %}
+{% block content %}
+<section class="catalog-main legal-page">
+  <div class="catalog-main-head">
+    <h1>Реквизиты оператора</h1>
+    <p class="hint">
+      Сведения о юридическом лице, от имени которого работает сервис Auto160 (auto160.ru).
+    </p>
+  </div>
+
+  <article class="legal-article">
+    <h2>Оператор сервиса</h2>
+    <dl class="requisites-dl">
+      <div>
+        <dt>Наименование</dt>
+        <dd>{{ company_full_name }}</dd>
+      </div>
+      <div>
+        <dt>Краткое наименование</dt>
+        <dd>{{ company_short_name }}</dd>
+      </div>
+      <div>
+        <dt>УНП</dt>
+        <dd>{{ company_unp }}</dd>
+      </div>
+      <div>
+        <dt>УНПФ (ФСЗН)</dt>
+        <dd>{{ company_unpf }}</dd>
+      </div>
+      <div>
+        <dt>Юридический адрес</dt>
+        <dd>{{ company_legal_address }}</dd>
+      </div>
+      <div>
+        <dt>Адрес стоянки</dt>
+        <dd>{{ company_yard_address }}</dd>
+      </div>
+      {% if company_phone %}
+      <div>
+        <dt>Телефон</dt>
+        <dd><a href="tel:{{ company_phone | replace(' ', '') }}">{{ company_phone }}</a></dd>
+      </div>
+      {% endif %}
+      {% if company_email %}
+      <div>
+        <dt>Email</dt>
+        <dd><a href="mailto:{{ company_email }}">{{ company_email }}</a></dd>
+      </div>
+      {% endif %}
+    </dl>
+
+    <h2>Банковские реквизиты (BYN)</h2>
+    <dl class="requisites-dl">
+      <div>
+        <dt>Расчётный счёт</dt>
+        <dd><code>{{ company_bank_account_byn }}</code></dd>
+      </div>
+      <div>
+        <dt>Банк</dt>
+        <dd>{{ company_bank_name }}</dd>
+      </div>
+      <div>
+        <dt>Адрес банка</dt>
+        <dd>{{ company_bank_address }}</dd>
+      </div>
+      <div>
+        <dt>SWIFT</dt>
+        <dd>{{ company_bank_swift }}</dd>
+      </div>
+      <div>
+        <dt>УНП банка</dt>
+        <dd>{{ company_bank_unp }}</dd>
+      </div>
+      <div>
+        <dt>ОКПО банка</dt>
+        <dd>{{ company_bank_okpo }}</dd>
+      </div>
+    </dl>
+
+    <h2>О сервисе Auto160</h2>
+    <p>
+      Сайт auto160.ru принадлежит и администрируется {{ company_short_name }}.
+      Сервис оказывает информационные услуги по подбору и проверке автомобилей
+      (в том числе проверка VIN и даты ввоза в Республику Беларусь), а также сопровождение сделки.
+    </p>
+    <p>
+      Объявления о продаже автомобилей на сторонних площадках (в частности av.by)
+      размещаются их владельцами; актуальная цена и наличие уточняются на площадке-источнике.
+      {{ company_short_name }} не является оператором доски объявлений av.by.
+    </p>
+
+    <p class="hint">
+      По вопросам персональных данных см.
+      <a href="/privacy">политику обработки персональных данных</a>.
+    </p>
+  </article>
+</section>
+{% endblock %}

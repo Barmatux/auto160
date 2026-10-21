@@ -158,6 +158,18 @@ body.theme-admin .site-footer-inner a:hover {
   color: var(--heading);
 }
 
+body.theme-admin .site-footer-legal {
+  color: var(--muted);
+}
+
+body.theme-admin .site-footer-legal a {
+  color: #7ebfe8;
+}
+
+body.theme-admin .requisites-dl dt {
+  color: var(--muted);
+}
+
 body.theme-admin .card,
 body.theme-admin .listing-card,
 body.theme-admin .avby-listing-card,

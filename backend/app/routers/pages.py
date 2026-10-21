@@ -90,6 +90,7 @@ from app.customs_vin import (
 )
 from app.avby_accounts import list_active_vin_accounts, serialize_account_public
 from app.vin_account_stats import build_vin_fetch_daily_stats
+from app.company import company_public_context
 from app.db import get_db
 from app.logging_setup import LOG_SERVICES, LOG_SERVICE_LABELS, format_log_time, log_dir, log_timezone, tail_log
 from app.metrics import yandex_metrika_context
@@ -468,6 +469,7 @@ def _template_context(request: Request, current_user: User | None, seo: SeoMeta 
     }
     context.update(build_seo_context(request, seo))
     context.update(yandex_metrika_context(request))
+    context.update(company_public_context())
     return context
 
 
@@ -3851,6 +3853,24 @@ def privacy_page(request: Request, db: Session = Depends(get_db)):
         ),
     )
     return templates.TemplateResponse(request, "privacy.html", context)
+
+
+@router.get("/requisites")
+def requisites_page(request: Request, db: Session = Depends(get_db)):
+    current_user = _resolve_user_from_request(request, db)
+    context = _template_context(
+        request,
+        current_user,
+        SeoMeta(
+            title="Реквизиты ООО «Сканди Моторс» — Auto160",
+            description=(
+                "Реквизиты оператора сервиса Auto160: ООО «Сканди Моторс», УНП 193866357, "
+                "юридический адрес в Минске, банковские реквизиты."
+            ),
+            path="/requisites",
+        ),
+    )
+    return templates.TemplateResponse(request, "requisites.html", context)
 
 
 @router.get("/catalog/beta")
