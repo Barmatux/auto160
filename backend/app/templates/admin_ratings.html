@@ -157,6 +157,18 @@
             {% if row.photo_item_id %}
               {% set cover_url = rating_cover_urls.get(row.photo_item_id) %}
               <div class="admin-ratings-photo-wrap">
+                <div class="admin-ratings-photo-media">
+                  {% if cover_url %}
+                    <img
+                      class="admin-ratings-photo-thumb"
+                      src="{{ cover_url }}"
+                      alt="{{ row.make }} {{ row.model }}"
+                      data-photo-thumb="{{ row.photo_item_id }}"
+                    />
+                  {% else %}
+                    <div class="admin-ratings-photo-placeholder" data-photo-thumb="{{ row.photo_item_id }}">нет фото</div>
+                  {% endif %}
+                </div>
                 <div class="admin-ratings-photo-actions">
                   <input
                     type="file"
@@ -172,18 +184,6 @@
                   >Заменить картинку</button>
                   <a class="page-link admin-ratings-all-photos-link" href="/admin/catalog/{{ row.photo_item_id }}/photos">Все фото</a>
                   <div class="admin-ratings-photo-status" hidden></div>
-                </div>
-                <div class="admin-ratings-photo-media">
-                  {% if cover_url %}
-                    <img
-                      class="admin-ratings-photo-thumb"
-                      src="{{ cover_url }}"
-                      alt="{{ row.make }} {{ row.model }}"
-                      data-photo-thumb="{{ row.photo_item_id }}"
-                    />
-                  {% else %}
-                    <div class="admin-ratings-photo-placeholder" data-photo-thumb="{{ row.photo_item_id }}">нет фото</div>
-                  {% endif %}
                 </div>
               </div>
             {% else %}
@@ -235,6 +235,11 @@
     const cloneCells = Array.from(cloneRow.cells);
 
     function sync() {
+      // Fixed clone fights horizontal table scroll on narrow screens.
+      if (window.matchMedia && window.matchMedia("(max-width: 900px)").matches) {
+        wrap.style.display = "none";
+        return;
+      }
       const headerBottom = siteHeader ? Math.ceil(siteHeader.getBoundingClientRect().bottom) : 0;
       const tableRect = table.getBoundingClientRect();
       const headRect = table.tHead.getBoundingClientRect();
