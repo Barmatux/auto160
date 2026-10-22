@@ -3419,24 +3419,27 @@ body.vin-enter-modal-open {
 
 .admin-ratings-photo-wrap {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  max-width: 132px;
   min-width: 0;
 }
 
 .admin-ratings-photo-actions {
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 4px;
-  flex: 1 1 auto;
+  width: 100%;
   min-width: 0;
 }
 
 .admin-ratings-photo-media {
-  flex: 0 0 88px;
-  width: 88px;
-  height: 66px;
+  flex: 0 0 auto;
+  width: 100%;
+  max-width: 120px;
+  height: 72px;
   display: flex;
   overflow: hidden;
   border: 1px solid var(--border);
@@ -3471,11 +3474,17 @@ body.vin-enter-modal-open {
 
 .admin-ratings-replace-photo-btn,
 .admin-ratings-all-photos-link {
-  display: inline-block;
+  display: block;
+  width: 100%;
   margin: 0;
-  font-size: 12px;
-  line-height: 1.25;
-  white-space: normal;
+  padding: 5px 6px;
+  box-sizing: border-box;
+  font-size: 11px;
+  line-height: 1.2;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .admin-ratings-photo-status {
@@ -3580,6 +3589,9 @@ body.vin-enter-modal-open {
 
 .admin-vin-table.admin-ratings-table thead th {
   white-space: normal;
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
   line-height: 1.2;
   vertical-align: middle;
   background: #e8eef8;
@@ -3631,6 +3643,9 @@ body.vin-enter-modal-open {
 
 .admin-ratings-check-head {
   text-align: center;
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
 }
 
 .admin-ratings-check-cell {
@@ -3788,7 +3803,7 @@ body.vin-enter-modal-open {
 
 .admin-vin-table.admin-ratings-table th:nth-child(2),
 .admin-vin-table.admin-ratings-table td:nth-child(2) {
-  width: 7%;
+  width: 8%;
 }
 
 .admin-vin-table.admin-ratings-table th:nth-child(3),
@@ -3808,17 +3823,27 @@ body.vin-enter-modal-open {
 }
 
 .admin-vin-table.admin-ratings-table th:nth-child(6),
-.admin-vin-table.admin-ratings-table td:nth-child(6),
+.admin-vin-table.admin-ratings-table td:nth-child(6) {
+  width: 11%;
+  min-width: 7.25rem;
+}
+
 .admin-vin-table.admin-ratings-table th:nth-child(7),
-.admin-vin-table.admin-ratings-table td:nth-child(7),
+.admin-vin-table.admin-ratings-table td:nth-child(7) {
+  width: 6%;
+  min-width: 4.5rem;
+}
+
 .admin-vin-table.admin-ratings-table th:nth-child(8),
 .admin-vin-table.admin-ratings-table td:nth-child(8) {
-  width: 6%;
+  width: 9%;
+  min-width: 6.25rem;
 }
 
 .admin-vin-table.admin-ratings-table th:nth-child(9),
 .admin-vin-table.admin-ratings-table td:nth-child(9) {
-  width: 25%;
+  width: 12%;
+  min-width: 7.25rem;
 }
 
 .admin-vin-table.admin-ratings-table td:nth-child(4) {
@@ -3827,6 +3852,128 @@ body.vin-enter-modal-open {
 
 .admin-vin-table.admin-ratings-table .admin-ratings-photo-cell {
   vertical-align: middle;
+}
+
+/* Mobile: horizontal table scroll + vertical headers (this page only). */
+@media (max-width: 900px) {
+  .admin-vin-table-wrap.admin-ratings-table-wrap {
+    overflow-x: auto;
+    overflow-y: visible;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+  }
+
+  .admin-vin-table.admin-ratings-table {
+    width: max-content;
+    min-width: 960px;
+    table-layout: fixed;
+  }
+
+  .admin-vin-table.admin-ratings-table thead th {
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    transform: rotate(180deg);
+    white-space: nowrap;
+    overflow-wrap: normal;
+    word-break: normal;
+    line-height: 1.15;
+    letter-spacing: 0.02em;
+    vertical-align: bottom;
+    text-align: left;
+    height: 9.5rem;
+    padding: 10px 6px;
+  }
+
+  .admin-vin-table.admin-ratings-table thead th br {
+    display: none;
+  }
+
+  .admin-vin-table.admin-ratings-table th:nth-child(1),
+  .admin-vin-table.admin-ratings-table td:nth-child(1) {
+    width: 72px;
+    min-width: 72px;
+  }
+
+  .admin-vin-table.admin-ratings-table th:nth-child(2),
+  .admin-vin-table.admin-ratings-table td:nth-child(2) {
+    width: 88px;
+    min-width: 88px;
+  }
+
+  .admin-vin-table.admin-ratings-table th:nth-child(3),
+  .admin-vin-table.admin-ratings-table td:nth-child(3) {
+    width: 120px;
+    min-width: 120px;
+  }
+
+  .admin-vin-table.admin-ratings-table th:nth-child(4),
+  .admin-vin-table.admin-ratings-table td:nth-child(4) {
+    width: 150px;
+    min-width: 150px;
+  }
+
+  .admin-vin-table.admin-ratings-table th:nth-child(5),
+  .admin-vin-table.admin-ratings-table td:nth-child(5) {
+    width: 72px;
+    min-width: 72px;
+  }
+
+  .admin-vin-table.admin-ratings-table th:nth-child(6),
+  .admin-vin-table.admin-ratings-table td:nth-child(6),
+  .admin-vin-table.admin-ratings-table th:nth-child(8),
+  .admin-vin-table.admin-ratings-table td:nth-child(8) {
+    width: 56px;
+    min-width: 56px;
+  }
+
+  .admin-vin-table.admin-ratings-table th:nth-child(7),
+  .admin-vin-table.admin-ratings-table td:nth-child(7) {
+    width: 48px;
+    min-width: 48px;
+  }
+
+  .admin-vin-table.admin-ratings-table th:nth-child(9),
+  .admin-vin-table.admin-ratings-table td:nth-child(9) {
+    width: 132px;
+    min-width: 132px;
+  }
+
+  .admin-vin-table.admin-ratings-table tbody td {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .admin-ratings-fixed-head {
+    display: none !important;
+  }
+}
+
+/* Login: never allow page-level horizontal scroll. */
+html:has(body.page-login),
+body.page-login,
+body.page-login .page,
+body.page-login .header,
+body.page-login main,
+body.page-login .content {
+  overflow-x: hidden !important;
+  max-width: 100%;
+}
+
+body.page-login .header .brand,
+body.page-login .header .brand-logo {
+  max-width: min(100%, 68vw);
+}
+
+body.page-login .form {
+  max-width: min(700px, 100%);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+body.page-login .form input,
+body.page-login .form button {
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .admin-vin-sort {

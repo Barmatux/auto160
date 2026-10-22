@@ -40,11 +40,20 @@ body.theme-admin a:hover {
 
 body.theme-admin .header {
   align-items: center;
-  /* Slightly lifted from pure black to reduce OLED bloom next to bright UI chrome */
-  background: #10131a;
+  /* Match logo plaque pure black so the mark does not float as a darker box */
+  background: #000000;
   border-bottom: 1px solid transparent;
   border-image: linear-gradient(90deg, rgba(58, 174, 240, 0.45), rgba(46, 207, 138, 0.45)) 1;
   box-shadow: 0 10px 28px rgba(0, 0, 0, 0.3);
+}
+
+/* Graphite dark variant: header + logo plaque share #10131a */
+body.theme-admin.theme-admin-graphite .header {
+  background: #10131a;
+}
+
+body.theme-admin.theme-admin-graphite .header-nav-dropdown-menu {
+  background: #141821;
 }
 
 body.theme-admin .header .brand {
@@ -678,9 +687,13 @@ body.theme-admin .catalog-main-head label {
   }
 
   body.theme-admin .header-nav-wrap {
-    background: #030303;
+    background: #000000;
     border: 1px solid var(--border);
     box-shadow: var(--shadow);
+  }
+
+  body.theme-admin.theme-admin-graphite .header-nav-wrap {
+    background: #10131a;
   }
 }
 
