@@ -29,6 +29,7 @@ from sqlalchemy import or_  # noqa: E402
 from app.avby_price_stats import (  # noqa: E402
     SoftRateLimit,
     AvbyPriceStatsClient,
+    build_catalog_generation_rows,
     fetch_and_store_year_stat,
     resolve_target,
     upsert_targets_from_catalog,
@@ -97,6 +98,11 @@ def main() -> None:
         help="Comma-separated makes; upserts ALL generations for them (e.g. peugeot,renault)",
     )
     parser.add_argument(
+        "--arbitrage-track",
+        action="store_true",
+        help="Only generations marked «Аналитика РБ» (arbitrage_track)",
+    )
+    parser.add_argument(
         "--min-year",
         type=int,
         default=None,
@@ -119,11 +125,20 @@ def main() -> None:
     db = SessionLocal()
     started = time.time()
     try:
-        created = upsert_targets_from_catalog(db, makes=makes)
+        created = upsert_targets_from_catalog(
+            db,
+            makes=makes,
+            arbitrage_track_only=args.arbitrage_track,
+        )
+        scope = (
+            f"arbitrage_track makes={makes}"
+            if args.arbitrage_track and makes
+            else ("arbitrage_track" if args.arbitrage_track else (makes or "rating=1"))
+        )
         logger.info(
-            "targets upserted; newly_created=%s makes=%s progress=%s",
+            "targets upserted; newly_created=%s scope=%s progress=%s",
             created,
-            makes or "rating=1",
+            scope,
             _progress(db, makes=makes),
         )
 
@@ -134,7 +149,21 @@ def main() -> None:
         )
         if args.slug:
             q = q.filter(AvbyPriceStatTarget.catalog_slug == args.slug)
-        if makes:
+        if args.arbitrage_track:
+            tracked_slugs = [
+                r["catalog_slug"]
+                for r in build_catalog_generation_rows(
+                    db,
+                    makes=makes,
+                    rating_one_only=False,
+                    arbitrage_track_only=True,
+                )
+            ]
+            if not tracked_slugs:
+                logger.warning("no arbitrage_track generations matched; nothing to do")
+                return
+            q = q.filter(AvbyPriceStatTarget.catalog_slug.in_(tracked_slugs))
+        elif makes:
             q = q.filter(or_(*[AvbyPriceStatTarget.make.ilike(m) for m in makes]))
         targets = q.all()
         if args.limit_targets is not None:

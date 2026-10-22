@@ -125,19 +125,23 @@ def build_catalog_generation_rows(
     *,
     makes: list[str] | None = None,
     rating_one_only: bool = True,
+    arbitrage_track_only: bool = False,
 ) -> list[dict[str, Any]]:
     """Group CatalogItem modifications into generation-level ocenka targets.
 
     Default: rating=1 only (existing analytics set).
     With ``makes``: all generations for those brands (rating filter off unless
     ``rating_one_only=True`` is passed explicitly).
+    With ``arbitrage_track_only``: generations marked «Аналитика РБ».
     """
     makes = _normalize_makes(makes)
     q = db.query(CatalogItem).filter(
         (CatalogItem.source_site == "av.by")
         | (CatalogItem.source_url.ilike("%av.by/catalog/%"))
     )
-    if rating_one_only:
+    if arbitrage_track_only:
+        q = q.filter(CatalogItem.arbitrage_track.is_(True))
+    elif rating_one_only:
         q = q.filter(CatalogItem.rating == 1)
     if makes:
         q = q.filter(or_(*[CatalogItem.make.ilike(m) for m in makes]))
@@ -187,14 +191,18 @@ def upsert_targets_from_catalog(
     *,
     makes: list[str] | None = None,
     rating_one_only: bool | None = None,
+    arbitrage_track_only: bool = False,
 ) -> int:
     makes = _normalize_makes(makes)
     if rating_one_only is None:
-        # Brand dumps (e.g. Peugeot+Renault) include every generation; otherwise
-        # keep the historical rating=1 analytics set.
-        rating_one_only = not bool(makes)
+        # Brand dumps / tracked dumps include every matching generation;
+        # otherwise keep the historical rating=1 analytics set.
+        rating_one_only = not bool(makes) and not arbitrage_track_only
     rows = build_catalog_generation_rows(
-        db, makes=makes, rating_one_only=rating_one_only
+        db,
+        makes=makes,
+        rating_one_only=rating_one_only,
+        arbitrage_track_only=arbitrage_track_only,
     )
     existing = {
         t.catalog_slug: t for t in db.query(AvbyPriceStatTarget).all()
