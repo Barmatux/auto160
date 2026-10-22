@@ -50,25 +50,23 @@
       <noscript>
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" />
       </noscript>
-      <link rel="stylesheet" href="/static/admin_theme.css?v=20261021-02" />
+      <link rel="stylesheet" href="/static/admin_theme.css?v=20261022-01" />
       <link
         rel="preload"
         as="image"
-        href="/static/brand/logo-admin-v8-header.png?v=20261021-header"
+        href="{{ site_theme_logo_src }}"
         fetchpriority="high"
       />
     {% endif %}
     {% block extra_head %}{% endblock %}
   </head>
-  <body
-    {% if site_theme == "logo" %}class="theme-admin"{% elif site_theme == "logo-light" %}class="theme-admin theme-admin-light"{% endif %}
-  >
+  <body{% if site_theme_body_class %} class="{{ site_theme_body_class }}"{% endif %}>
     <header class="header">
       <a class="brand" href="/">
         {% if site_theme_uses_logo %}
           <img
             class="brand-logo"
-            src="/static/brand/logo-admin-v8-header.png?v=20261021-header"
+            src="{{ site_theme_logo_src }}"
             alt="auto160.ru — подбор авто до 160 л.с."
             width="480"
             height="147"

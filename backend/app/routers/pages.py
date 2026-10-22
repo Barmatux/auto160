@@ -33,7 +33,14 @@ from app.fuel_type_labels import (
     resolved_catalog_fuel_type,
 )
 from app.drive_type_labels import drive_type_sql_predicate, normalize_drive_display_label
-from app.site_theme import SITE_THEME_COOKIE, SITE_THEME_LABELS, resolve_site_theme, site_theme_uses_logo
+from app.site_theme import (
+    SITE_THEME_COOKIE,
+    SITE_THEME_LABELS,
+    resolve_site_theme,
+    site_theme_body_class,
+    site_theme_logo_src,
+    site_theme_uses_logo,
+)
 from app.listing_missing_byn import (
     count_listings_missing_byn_price,
     paginate_listings_missing_byn_price,
@@ -469,6 +476,8 @@ def _template_context(request: Request, current_user: User | None, seo: SeoMeta 
         "is_admin": is_admin,
         "site_theme": site_theme,
         "site_theme_uses_logo": site_theme_uses_logo(site_theme),
+        "site_theme_body_class": site_theme_body_class(site_theme),
+        "site_theme_logo_src": site_theme_logo_src(site_theme),
         "site_theme_labels": SITE_THEME_LABELS,
         "show_import_age_filters": False,
         "import_age_rf_passable": False,
