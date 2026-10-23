@@ -117,36 +117,34 @@ body.theme-admin .header-vin-check-dropdown .header-vin-check-link {
   color: #5ecf9a;
 }
 
-body.theme-admin .admin-manual-vin-url-field input {
-  background: rgba(255, 255, 255, 0.04);
-  border-color: rgba(0, 168, 255, 0.28);
-  color: #e8eef8;
-}
-
-body.theme-admin .admin-manual-vin-account-field {
-  color: #c5cedc;
-}
-
-body.theme-admin .admin-manual-vin-account-field select {
-  background: rgba(255, 255, 255, 0.04);
-  border-color: rgba(0, 168, 255, 0.28);
-  color: #e8eef8;
-}
-
-body.theme-admin.theme-admin-light .admin-manual-vin-url-field input {
+/* Form lives inside light .catalog-main-head — keep dark text on white fields. */
+body.theme-admin .admin-manual-vin-url-field input,
+body.theme-admin .catalog-main-head .admin-manual-vin-url-field input {
   background: #fff;
-  border-color: #cbd5e1;
+  border-color: #94a3b8;
   color: #0f172a;
+  -webkit-text-fill-color: #0f172a;
+  caret-color: #0f172a;
 }
 
-body.theme-admin.theme-admin-light .admin-manual-vin-account-field {
+body.theme-admin .admin-manual-vin-url-field input::placeholder,
+body.theme-admin .catalog-main-head .admin-manual-vin-url-field input::placeholder {
+  color: #64748b;
+  -webkit-text-fill-color: #64748b;
+  opacity: 1;
+}
+
+body.theme-admin .admin-manual-vin-account-field,
+body.theme-admin .catalog-main-head .admin-manual-vin-account-field {
   color: #334155;
 }
 
-body.theme-admin.theme-admin-light .admin-manual-vin-account-field select {
+body.theme-admin .admin-manual-vin-account-field select,
+body.theme-admin .catalog-main-head .admin-manual-vin-account-field select {
   background: #fff;
-  border-color: #cbd5e1;
+  border-color: #94a3b8;
   color: #0f172a;
+  -webkit-text-fill-color: #0f172a;
 }
 
 body.theme-admin .header-beta-link {
