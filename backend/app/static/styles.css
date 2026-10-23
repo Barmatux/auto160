@@ -210,35 +210,45 @@ body.design-lab .header.header--design-lab .header-nav-dropdown-toggle {
   font-size: 14px;
 }
 
+body.design-lab .header-nav-row-account {
+  align-items: center;
+}
+
 body.design-lab .header-messengers {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  margin-right: 6px;
+  gap: 6px;
+  margin-right: 4px;
+  height: 28px;
 }
 
 body.design-lab .header-messenger {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 48px;
-  height: 48px;
+  width: 28px;
+  height: 28px;
   padding: 0;
   border: none;
-  border-radius: 12px;
+  border-radius: 50%;
   color: inherit;
   text-decoration: none;
   background: transparent;
   overflow: hidden;
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08);
+  flex: 0 0 28px;
+  box-shadow: none;
+}
+
+body.design-lab .header-messenger--max {
+  border-radius: 7px;
 }
 
 body.design-lab .header-messenger-logo {
-  width: 48px;
-  height: 48px;
+  width: 28px;
+  height: 28px;
   display: block;
-  object-fit: cover;
-  border-radius: 12px;
+  object-fit: contain;
+  border-radius: inherit;
 }
 
 body.design-lab .header-messenger:hover,
@@ -296,10 +306,18 @@ body.theme-admin.theme-admin-light.design-lab .header-messenger {
     max-width: min(160px, 48vw);
   }
 
+  body.design-lab .header-messengers {
+    height: 26px;
+  }
+
   body.design-lab .header-messenger,
   body.design-lab .header-messenger-logo {
-    width: 44px;
-    height: 44px;
+    width: 26px;
+    height: 26px;
+  }
+
+  body.design-lab .header-messenger {
+    flex-basis: 26px;
   }
 }
 
