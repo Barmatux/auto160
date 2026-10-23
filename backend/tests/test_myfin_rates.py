@@ -10,11 +10,15 @@ SAMPLE_HTML = """
 """
 
 
-def test_parse_myfin_best_buy_rates():
+def test_parse_myfin_rates_quoted_in_rub():
     rates = _parse_rates(SAMPLE_HTML)
     assert rates is not None
-    assert rates.usd_buy == 2.946
-    assert rates.eur_buy == 3.304
-    assert rates.rub100_buy == 3.4767
-    assert rates.format_usd() == "2,946"
-    assert rates.format_rub100() == "3,4767"
+    assert rates.usd_buy_byn == 2.946
+    assert rates.eur_buy_byn == 3.304
+    assert rates.rub100_buy_byn == 3.4767
+    # Cross to RUB: usd_byn * 100 / rub100_byn
+    assert abs(rates.usd_rub - (2.946 * 100 / 3.4767)) < 1e-6
+    assert abs(rates.eur_rub - (3.304 * 100 / 3.4767)) < 1e-6
+    assert abs(rates.byn_rub - (100 / 3.4767)) < 1e-6
+    assert "₽" not in rates.format_usd_rub()
+    assert "," in rates.format_usd_rub() or rates.format_usd_rub().replace(".", "").isdigit()

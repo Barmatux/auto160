@@ -75,6 +75,11 @@ body.theme-admin .header .brand-logo {
   -webkit-font-smoothing: antialiased;
 }
 
+body.theme-admin.design-lab .header.header--design-lab .brand-logo {
+  height: 56px;
+  max-width: min(220px, 42vw);
+}
+
 body.theme-admin .header-menu-toggle {
   background: #12161e;
   border-color: #334155;

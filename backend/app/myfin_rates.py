@@ -1,4 +1,4 @@
-"""Best bank buy rates from myfin.by (Minsk) for the design-lab topline."""
+"""Best bank buy rates from myfin.by, quoted in Russian rubles for the RF site."""
 
 from __future__ import annotations
 
@@ -16,24 +16,41 @@ _CACHE_TTL_SEC = 30 * 60
 
 @dataclass(frozen=True)
 class MyfinBuyRates:
-    usd_buy: float
-    eur_buy: float
-    rub100_buy: float
+    """Raw myfin BYN buy rates + RUB cross-quotes for the RF topline."""
+
+    usd_buy_byn: float
+    eur_buy_byn: float
+    rub100_buy_byn: float
     source_url: str = MYFIN_MINSK_URL
     source_label: str = "myfin.by"
 
-    def format_usd(self) -> str:
-        return _fmt(self.usd_buy)
+    @property
+    def usd_rub(self) -> float:
+        """RUB per 1 USD via myfin cross-rate."""
+        return self.usd_buy_byn * 100.0 / self.rub100_buy_byn
 
-    def format_eur(self) -> str:
-        return _fmt(self.eur_buy)
+    @property
+    def eur_rub(self) -> float:
+        """RUB per 1 EUR via myfin cross-rate."""
+        return self.eur_buy_byn * 100.0 / self.rub100_buy_byn
 
-    def format_rub100(self) -> str:
-        return _fmt(self.rub100_buy)
+    @property
+    def byn_rub(self) -> float:
+        """RUB per 1 BYN via myfin RUB buy rate."""
+        return 100.0 / self.rub100_buy_byn
+
+    def format_usd_rub(self) -> str:
+        return _fmt_rub(self.usd_rub)
+
+    def format_eur_rub(self) -> str:
+        return _fmt_rub(self.eur_rub)
+
+    def format_byn_rub(self) -> str:
+        return _fmt_rub(self.byn_rub)
 
 
-def _fmt(value: float) -> str:
-    text = f"{value:.4f}".rstrip("0").rstrip(".")
+def _fmt_rub(value: float) -> str:
+    text = f"{value:.2f}".rstrip("0").rstrip(".")
     return text.replace(".", ",")
 
 
@@ -60,7 +77,7 @@ def _parse_rates(html: str) -> MyfinBuyRates | None:
         return None
     if usd <= 0 or eur <= 0 or rub <= 0:
         return None
-    return MyfinBuyRates(usd_buy=usd, eur_buy=eur, rub100_buy=rub)
+    return MyfinBuyRates(usd_buy_byn=usd, eur_buy_byn=eur, rub100_buy_byn=rub)
 
 
 def fetch_myfin_buy_rates(*, force_refresh: bool = False) -> MyfinBuyRates | None:

@@ -1,26 +1,26 @@
 {# Design-lab header: topline rates + revised nav. Only included when design_lab. #}
 <div class="site-topline" data-design-lab-topline>
   <div class="site-topline-inner">
-    <div class="site-topline-rates" aria-label="Лучшие курсы покупки банков Минска (myfin.by)">
+    <div class="site-topline-rates" aria-label="Курсы покупки относительно российского рубля (myfin.by)">
       {% if design_lab_rates %}
-        <a class="site-topline-rate" href="{{ design_lab_rates.source_url }}" target="_blank" rel="noopener noreferrer" title="Лучший курс покупки на myfin.by">
+        <a class="site-topline-rate" href="{{ design_lab_rates.source_url }}" target="_blank" rel="noopener noreferrer" title="USD к рублю по лучшему курсу myfin.by">
           <span class="site-topline-rate-code">USD</span>
-          <strong>{{ design_lab_rates.format_usd() }}</strong>
-          <span class="site-topline-rate-unit">BYN</span>
+          <strong>{{ design_lab_rates.format_usd_rub() }}</strong>
+          <span class="site-topline-rate-unit">₽</span>
         </a>
         <span class="site-topline-sep" aria-hidden="true">·</span>
-        <a class="site-topline-rate" href="{{ design_lab_rates.source_url }}" target="_blank" rel="noopener noreferrer" title="Лучший курс покупки на myfin.by">
+        <a class="site-topline-rate" href="{{ design_lab_rates.source_url }}" target="_blank" rel="noopener noreferrer" title="EUR к рублю по лучшему курсу myfin.by">
           <span class="site-topline-rate-code">EUR</span>
-          <strong>{{ design_lab_rates.format_eur() }}</strong>
-          <span class="site-topline-rate-unit">BYN</span>
+          <strong>{{ design_lab_rates.format_eur_rub() }}</strong>
+          <span class="site-topline-rate-unit">₽</span>
         </a>
         <span class="site-topline-sep" aria-hidden="true">·</span>
-        <a class="site-topline-rate" href="{{ design_lab_rates.source_url }}" target="_blank" rel="noopener noreferrer" title="Лучший курс покупки 100 RUB на myfin.by">
-          <span class="site-topline-rate-code">RUB 100</span>
-          <strong>{{ design_lab_rates.format_rub100() }}</strong>
-          <span class="site-topline-rate-unit">BYN</span>
+        <a class="site-topline-rate" href="{{ design_lab_rates.source_url }}" target="_blank" rel="noopener noreferrer" title="BYN к рублю по лучшему курсу myfin.by">
+          <span class="site-topline-rate-code">BYN</span>
+          <strong>{{ design_lab_rates.format_byn_rub() }}</strong>
+          <span class="site-topline-rate-unit">₽</span>
         </a>
-        <span class="site-topline-source">покупка · myfin.by</span>
+        <span class="site-topline-source">к ₽ · myfin.by</span>
       {% else %}
         <span class="site-topline-rates-fallback">Курсы myfin.by временно недоступны</span>
       {% endif %}

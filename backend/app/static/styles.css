@@ -96,22 +96,22 @@ body {
 
 /* Design-lab only: rates topline + revised header chrome. */
 .site-topline {
-  position: sticky;
-  top: 0;
-  z-index: 12;
+  position: relative;
+  z-index: 1;
   background: #070a10;
   border-bottom: 1px solid rgba(148, 163, 184, 0.22);
   color: #e2e8f0;
-  font-size: 12px;
-  line-height: 1.2;
+  font-size: 11px;
+  line-height: 1.15;
 }
 
 .site-topline-inner {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 7px 22px;
+  gap: 10px;
+  padding: 3px 18px;
+  min-height: 26px;
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
@@ -170,15 +170,15 @@ body {
 .site-topline-theme {
   flex: 0 0 auto;
   margin: 0;
-  padding: 3px 10px;
+  padding: 2px 8px;
   border: 1px solid rgba(148, 163, 184, 0.35);
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.04);
   color: #e2e8f0;
   font: inherit;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
-  line-height: 1.15;
+  line-height: 1.1;
   white-space: nowrap;
   cursor: pointer;
 }
@@ -190,33 +190,49 @@ body {
   background: rgba(56, 189, 248, 0.12);
 }
 
+/* Design-lab header stays pinned; rates strip scrolls away. */
 body.design-lab .header.header--design-lab {
-  top: 32px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  padding: 6px 16px;
+  align-items: center;
+}
+
+body.design-lab .header.header--design-lab .brand-logo {
+  height: 56px;
+  max-width: min(220px, 42vw);
+}
+
+body.design-lab .header.header--design-lab .header-nav a,
+body.design-lab .header.header--design-lab .header-nav-dropdown-toggle {
+  padding: 5px 8px;
+  font-size: 14px;
 }
 
 body.design-lab .header-messengers {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  margin-right: 2px;
+  gap: 10px;
+  margin-right: 6px;
 }
 
 body.design-lab .header-messenger {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 30px;
-  height: 30px;
-  border-radius: 8px;
-  border: 1px solid rgba(148, 163, 184, 0.35);
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.4);
   color: #e2e8f0;
   text-decoration: none;
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.06);
 }
 
 body.design-lab .header-messenger svg {
-  width: 16px;
-  height: 16px;
+  width: 28px;
+  height: 28px;
   display: block;
 }
 
@@ -255,8 +271,9 @@ body.theme-admin.theme-admin-light.design-lab .header-messenger:focus-visible {
 
 @media (max-width: 760px) {
   .site-topline-inner {
-    padding: 6px 12px;
-    gap: 8px;
+    padding: 3px 10px;
+    gap: 6px;
+    min-height: 24px;
   }
 
   .site-topline-source {
@@ -264,11 +281,22 @@ body.theme-admin.theme-admin-light.design-lab .header-messenger:focus-visible {
   }
 
   body.design-lab .header.header--design-lab {
-    top: 0;
+    padding: 6px 10px;
   }
 
-  .site-topline {
-    position: relative;
+  body.design-lab .header.header--design-lab .brand-logo {
+    height: 44px;
+    max-width: min(160px, 48vw);
+  }
+
+  body.design-lab .header-messenger {
+    width: 44px;
+    height: 44px;
+  }
+
+  body.design-lab .header-messenger svg {
+    width: 24px;
+    height: 24px;
   }
 }
 
