@@ -223,29 +223,43 @@ body.design-lab .header-messenger {
   justify-content: center;
   width: 48px;
   height: 48px;
+  padding: 0;
+  border: none;
   border-radius: 12px;
-  border: 1px solid rgba(148, 163, 184, 0.4);
-  color: #e2e8f0;
+  color: inherit;
   text-decoration: none;
-  background: rgba(255, 255, 255, 0.06);
+  background: transparent;
+  overflow: hidden;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 
-body.design-lab .header-messenger svg {
-  width: 28px;
-  height: 28px;
+body.design-lab .header-messenger-logo {
+  width: 48px;
+  height: 48px;
   display: block;
+  object-fit: cover;
+  border-radius: 12px;
 }
 
 body.design-lab .header-messenger:hover,
 body.design-lab .header-messenger:focus-visible {
-  border-color: rgba(56, 189, 248, 0.55);
-  color: #7dd3fc;
+  transform: translateY(-1px);
+  box-shadow: 0 0 0 2px rgba(125, 211, 252, 0.55);
 }
 
 body.design-lab .header-messenger--whatsapp:hover,
 body.design-lab .header-messenger--whatsapp:focus-visible {
-  color: #4ade80;
-  border-color: rgba(74, 222, 128, 0.55);
+  box-shadow: 0 0 0 2px rgba(37, 211, 102, 0.65);
+}
+
+body.design-lab .header-messenger--max:hover,
+body.design-lab .header-messenger--max:focus-visible {
+  box-shadow: 0 0 0 2px rgba(149, 0, 255, 0.55);
+}
+
+body.design-lab .header-messenger--telegram:hover,
+body.design-lab .header-messenger--telegram:focus-visible {
+  box-shadow: 0 0 0 2px rgba(38, 165, 228, 0.65);
 }
 
 body.theme-admin.design-lab .site-topline {
@@ -258,15 +272,8 @@ body.theme-admin.theme-admin-light.design-lab .site-topline {
 }
 
 body.theme-admin.theme-admin-light.design-lab .header-messenger {
-  color: #0f172a;
-  border-color: #cbd5e1;
-  background: #fff;
-}
-
-body.theme-admin.theme-admin-light.design-lab .header-messenger:hover,
-body.theme-admin.theme-admin-light.design-lab .header-messenger:focus-visible {
-  color: #0369a1;
-  border-color: #7dd3fc;
+  background: transparent;
+  box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.12);
 }
 
 @media (max-width: 760px) {
@@ -289,14 +296,10 @@ body.theme-admin.theme-admin-light.design-lab .header-messenger:focus-visible {
     max-width: min(160px, 48vw);
   }
 
-  body.design-lab .header-messenger {
+  body.design-lab .header-messenger,
+  body.design-lab .header-messenger-logo {
     width: 44px;
     height: 44px;
-  }
-
-  body.design-lab .header-messenger svg {
-    width: 24px;
-    height: 24px;
   }
 }
 
