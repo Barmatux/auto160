@@ -34,6 +34,8 @@ from app.fuel_type_labels import (
 )
 from app.drive_type_labels import drive_type_sql_predicate, normalize_drive_display_label
 from app.design_lab import is_design_lab_user
+from app.messengers import header_messenger_links
+from app.myfin_rates import fetch_myfin_buy_rates
 from app.site_theme import (
     SITE_THEME_COOKIE,
     SITE_THEME_LABELS,
@@ -477,6 +479,8 @@ def _template_context(request: Request, current_user: User | None, seo: SeoMeta 
         "is_authenticated": current_user is not None,
         "is_admin": is_admin,
         "design_lab": design_lab,
+        "design_lab_rates": fetch_myfin_buy_rates() if design_lab else None,
+        "design_lab_messengers": header_messenger_links() if design_lab else [],
         "site_theme": site_theme,
         "site_theme_uses_logo": site_theme_uses_logo(site_theme),
         "site_theme_body_class": site_theme_body_class(site_theme),
@@ -2608,6 +2612,15 @@ def home(request: Request, db: Session = Depends(get_db)):
     context["listing_gallery_urls"] = resolve_listing_gallery_urls_map(featured_listings, limit=1)
     context["catalog_quick_links"] = _home_catalog_quick_links()
     return templates.TemplateResponse(request, "index.html", context)
+
+
+@router.get("/calculator")
+def calculator_page(request: Request, db: Session = Depends(get_db)):
+    current_user = _resolve_user_from_request(request, db)
+    if not is_design_lab_user(current_user):
+        return RedirectResponse(url="/", status_code=302)
+    context = _template_context(request, current_user)
+    return templates.TemplateResponse(request, "calculator.html", context)
 
 
 @router.get("/design-preview")

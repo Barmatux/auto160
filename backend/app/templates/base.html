@@ -36,7 +36,7 @@
     {% if seo_json_ld_script %}
       <script type="application/ld+json">{{ seo_json_ld_script | safe }}</script>
     {% endif %}
-    <link rel="stylesheet" href="/static/styles.css?v=20261023-02" />
+    <link rel="stylesheet" href="/static/styles.css?v=20261023-03" />
     {% if site_theme_uses_logo %}
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -61,6 +61,9 @@
     {% block extra_head %}{% endblock %}
   </head>
   <body class="{% block body_class %}{% endblock %}{% if site_theme_body_class %} {{ site_theme_body_class }}{% endif %}{% if design_lab|default(false) %} design-lab{% endif %}">
+    {% if design_lab|default(false) %}
+      {% include "partials/header_design_lab.html" %}
+    {% else %}
     <header class="header">
       <a class="brand" href="/">
         {% if site_theme_uses_logo %}
@@ -186,6 +189,7 @@
         </button>
       </div>
     </header>
+    {% endif %}
     <main class="page">{% block content %}{% endblock %}</main>
     <footer class="site-footer">
       <div class="site-footer-inner">

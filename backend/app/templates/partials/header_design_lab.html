@@ -1,0 +1,177 @@
+{# Design-lab header: topline rates + revised nav. Only included when design_lab. #}
+<div class="site-topline" data-design-lab-topline>
+  <div class="site-topline-inner">
+    <div class="site-topline-rates" aria-label="Лучшие курсы покупки банков Минска (myfin.by)">
+      {% if design_lab_rates %}
+        <a class="site-topline-rate" href="{{ design_lab_rates.source_url }}" target="_blank" rel="noopener noreferrer" title="Лучший курс покупки на myfin.by">
+          <span class="site-topline-rate-code">USD</span>
+          <strong>{{ design_lab_rates.format_usd() }}</strong>
+          <span class="site-topline-rate-unit">BYN</span>
+        </a>
+        <span class="site-topline-sep" aria-hidden="true">·</span>
+        <a class="site-topline-rate" href="{{ design_lab_rates.source_url }}" target="_blank" rel="noopener noreferrer" title="Лучший курс покупки на myfin.by">
+          <span class="site-topline-rate-code">EUR</span>
+          <strong>{{ design_lab_rates.format_eur() }}</strong>
+          <span class="site-topline-rate-unit">BYN</span>
+        </a>
+        <span class="site-topline-sep" aria-hidden="true">·</span>
+        <a class="site-topline-rate" href="{{ design_lab_rates.source_url }}" target="_blank" rel="noopener noreferrer" title="Лучший курс покупки 100 RUB на myfin.by">
+          <span class="site-topline-rate-code">RUB 100</span>
+          <strong>{{ design_lab_rates.format_rub100() }}</strong>
+          <span class="site-topline-rate-unit">BYN</span>
+        </a>
+        <span class="site-topline-source">покупка · myfin.by</span>
+      {% else %}
+        <span class="site-topline-rates-fallback">Курсы myfin.by временно недоступны</span>
+      {% endif %}
+    </div>
+    {% if site_theme_uses_logo %}
+      <button
+        type="button"
+        class="site-topline-theme"
+        data-site-theme-toggle
+        data-site-theme="{{ site_theme }}"
+      >{% if site_theme == "logo-light" %}Тёмная тема{% else %}Светлая тема{% endif %}</button>
+    {% endif %}
+  </div>
+</div>
+
+<header class="header header--design-lab">
+  <a class="brand" href="/">
+    {% if site_theme_uses_logo %}
+      <img
+        class="brand-logo"
+        src="{{ site_theme_logo_src }}"
+        alt="auto160.ru — подбор авто до 160 л.с."
+        width="480"
+        height="147"
+        decoding="async"
+        fetchpriority="high"
+      />
+    {% else %}
+      Авто160
+    {% endif %}
+  </a>
+  <div id="site-nav" class="header-nav-wrap" data-header-nav aria-label="Основное меню">
+    <nav class="header-nav header-nav-row">
+      <a href="/">Главная</a>
+      <a href="/catalog">Каталог</a>
+      {% if is_admin %}
+        <a href="/catalog/beta" class="header-beta-link">beta Каталог</a>
+      {% endif %}
+      <a href="/listings">Авто из Беларуси</a>
+      <a href="/listings/eu">Авто из Европы</a>
+      <div class="header-nav-dropdown" data-header-dropdown>
+        <button
+          type="button"
+          class="header-nav-dropdown-toggle"
+          data-header-dropdown-toggle
+          aria-expanded="false"
+          aria-haspopup="true"
+        >Проверка</button>
+        <div class="header-nav-dropdown-menu" data-header-dropdown-menu hidden>
+          <a href="/inspection">Проверка VIN</a>
+          {% if is_admin %}
+            <a href="/admin/vin-check/manual">Ручная проверка</a>
+            <a href="/admin/vin-check">VIN CHECK</a>
+          {% else %}
+            <a href="/vin-check/manual">Ручная проверка</a>
+          {% endif %}
+        </div>
+      </div>
+      <a href="/calculator">Калькулятор</a>
+      {% if is_admin %}
+        <a href="/admin/users">Пользователи</a>
+        <a href="/admin/avby-accounts">Аккаунты</a>
+      {% endif %}
+    </nav>
+    {% if is_admin %}
+      <nav class="header-nav header-nav-row header-nav-row-secondary">
+        <div class="header-nav-dropdown" data-header-dropdown data-site-theme-dropdown>
+          <button
+            type="button"
+            class="header-nav-dropdown-toggle"
+            data-header-dropdown-toggle
+            aria-expanded="false"
+            aria-haspopup="true"
+          >Сменить дизайн сайта</button>
+          <div class="header-nav-dropdown-menu header-theme-menu" data-header-dropdown-menu hidden>
+            {% for theme_key, theme_label in site_theme_labels.items() %}
+              <button
+                type="button"
+                class="header-theme-option{% if site_theme == theme_key %} is-active{% endif %}"
+                data-site-theme-option="{{ theme_key }}"
+              >{{ theme_label }}</button>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="header-nav-dropdown" data-header-dropdown>
+          <button
+            type="button"
+            class="header-nav-dropdown-toggle"
+            data-header-dropdown-toggle
+            aria-expanded="false"
+            aria-haspopup="true"
+          >Управление объявлениями</button>
+          <div class="header-nav-dropdown-menu" data-header-dropdown-menu hidden>
+            <a href="/create-listing">Подать объявление</a>
+            <a href="/admin/archived-listings">Архив объявлений</a>
+            <a href="/admin/listings-without-byn">Без цены BYN</a>
+            <a href="/listings/auctions">Европейские аукционы</a>
+          </div>
+        </div>
+        <a href="/admin/analytics">Аналитика</a>
+        <a href="/admin/messages">Сообщения <span class="admin-msg-unread-badge" data-admin-msg-badge hidden>0</span></a>
+        <a href="/admin/business-sellers">Бизнес-аккаунты</a>
+        <a href="/admin/ratings">Управление каталогом</a>
+      </nav>
+    {% endif %}
+    <nav class="header-nav header-nav-row header-nav-row-account">
+      {% if is_admin %}
+        <a href="/admin/avby-sync">Парсинг</a>
+        <a href="/admin/logs">Логи</a>
+      {% endif %}
+      {% if is_authenticated %}
+        <div class="header-messengers" aria-label="Мессенджеры">
+          {% for m in design_lab_messengers %}
+            <a
+              class="header-messenger header-messenger--{{ m.id }}"
+              href="{{ m.url }}"
+              {% if m.url != '#' %}target="_blank" rel="noopener noreferrer"{% endif %}
+              aria-label="{{ m.label }}"
+              title="{{ m.label }}"
+              data-messenger="{{ m.id }}"
+            >
+              {% if m.id == 'telegram' %}
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8-1.55 7.3c-.12.54-.43.67-.87.42l-2.4-1.77-1.16 1.12c-.13.13-.24.24-.49.24l.17-2.43 4.42-4c.19-.17-.04-.27-.3-.1l-5.46 3.44-2.35-.74c-.51-.16-.52-.51.11-.76l9.18-3.54c.42-.17.79.1.6.82z"/></svg>
+              {% elif m.id == 'max' %}
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm3.7 13.55h-1.72l-1.18-3.74h-.05l-1.2 3.74H9.83L7.55 8.45h1.8l1.12 3.9h.05l1.2-3.9h1.6l1.2 3.9h.05l1.12-3.9h1.76l-2.35 7.1z"/></svg>
+              {% else %}
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2zm.01 1.67c2.2 0 4.26.86 5.82 2.42a8.23 8.23 0 0 1 2.41 5.83c0 4.54-3.7 8.23-8.24 8.23-1.48 0-2.93-.39-4.19-1.15l-.3-.18-3.12.82.83-3.04-.2-.32a8.2 8.2 0 0 1-1.26-4.38c0-4.54 3.7-8.23 8.25-8.23zm4.52 10.8c-.18-.09-1.07-.53-1.24-.59-.17-.06-.29-.09-.41.09-.12.18-.47.59-.58.71-.11.12-.21.13-.39.04-.18-.09-.76-.28-1.45-.89-.54-.48-.9-1.07-1.01-1.25-.1-.18-.01-.28.08-.37.08-.08.18-.21.27-.32.09-.1.12-.18.18-.3.06-.12.03-.23-.02-.32-.05-.09-.41-1-0.56-1.37-.15-.36-.3-.31-.41-.31h-.35c-.12 0-.32.04-.48.23-.17.18-.63.61-.63 1.49 0 .88.64 1.73.73 1.85.09.12 1.26 1.93 3.05 2.7.43.18.76.29 1.02.37.43.14.82.12 1.13.07.34-.07 1.07-.44 1.22-.86.15-.42.15-.78.1-.86-.05-.08-.17-.13-.35-.22z"/></svg>
+              {% endif %}
+            </a>
+          {% endfor %}
+        </div>
+        <span class="user-badge">{{ current_user.email }}</span>
+        <a href="/logout">Выход</a>
+      {% else %}
+        <a href="/login">Вход</a>
+        <a href="/register">Регистрация</a>
+      {% endif %}
+    </nav>
+  </div>
+  <div class="header-actions">
+    <button
+      class="header-menu-toggle"
+      type="button"
+      data-header-menu-toggle
+      aria-expanded="false"
+      aria-controls="site-nav"
+      aria-label="Открыть меню"
+    >
+      <span class="header-menu-line" aria-hidden="true"></span>
+      <span class="header-menu-line" aria-hidden="true"></span>
+      <span class="header-menu-line" aria-hidden="true"></span>
+    </button>
+  </div>
+</header>
