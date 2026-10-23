@@ -18,6 +18,66 @@
   </noscript>
 {% endblock %}
 {% block content %}
+{% if design_lab %}
+<section class="home-hero home-hero--split" aria-label="Подбор авто Auto160">
+  <div class="home-hero-split">
+    <article class="home-hero-pane home-hero-pane--by">
+      <img
+        class="home-hero-pane-media"
+        src="/static/brand/design-lab/hero-bmw-f48-msport.jpg"
+        alt="BMW X1 F48 M Sport"
+        width="1280"
+        height="720"
+        decoding="async"
+        fetchpriority="high"
+      />
+      <span class="home-hero-pane-scrim" aria-hidden="true"></span>
+      <div class="home-hero-pane-content">
+        <p class="home-hero-pane-kicker">Беларусь · до 160 л.с.</p>
+        <h1>
+          Подберём и привезём под ключ авто из Беларуси под льготный утильсбор
+          <span class="home-hero-pane-accent">в течение 3 дней</span>
+        </h1>
+        <p class="home-hero-pane-lead">Наши услуги:</p>
+        <ul class="home-hero-pane-list">
+          <li>поиск автомобиля</li>
+          <li>проверка истории по всем доступным базам</li>
+          <li>разовый осмотр автомобиля по всей Беларуси</li>
+          <li>подбор под ключ</li>
+          <li>оплата по безналичному расчёту в соответствии с законодательством РФ</li>
+          <li>доставка автомобиля в Москву</li>
+        </ul>
+        <div class="home-hero-pane-actions">
+          <a class="home-hero-pane-cta" href="/listings">Авто из Беларуси</a>
+          <a class="home-hero-pane-cta home-hero-pane-cta--ghost" href="/inspection">Проверка VIN</a>
+        </div>
+      </div>
+    </article>
+    <article class="home-hero-pane home-hero-pane--eu">
+      <img
+        class="home-hero-pane-media"
+        src="/static/brand/design-lab/hero-volvo-xc40-rdesign.jpg"
+        alt="Volvo XC40 R-Design"
+        width="1280"
+        height="720"
+        decoding="async"
+        fetchpriority="high"
+      />
+      <span class="home-hero-pane-scrim" aria-hidden="true"></span>
+      <div class="home-hero-pane-content">
+        <p class="home-hero-pane-kicker">Европа · до 160 л.с.</p>
+        <h2>Подбор и доставка авто из Европы</h2>
+        <p class="home-hero-pane-lead">
+          Сравнивайте комплектации в каталоге и выбирайте авто под льготный утильсбор.
+        </p>
+        <div class="home-hero-pane-actions">
+          <a class="home-hero-pane-cta" href="/catalog">Каталог</a>
+        </div>
+      </div>
+    </article>
+  </div>
+</section>
+{% else %}
 <section class="home-hero">
   <h1>
     Подбор авто под льготный утильсбор<br />
@@ -42,6 +102,7 @@
     </div>
   {% endif %}
 </section>
+{% endif %}
 
 <section class="home-section home-section-directions">
   <div class="home-section-head">

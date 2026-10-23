@@ -33,6 +33,7 @@ from app.fuel_type_labels import (
     resolved_catalog_fuel_type,
 )
 from app.drive_type_labels import drive_type_sql_predicate, normalize_drive_display_label
+from app.design_lab import is_design_lab_user
 from app.site_theme import (
     SITE_THEME_COOKIE,
     SITE_THEME_LABELS,
@@ -469,11 +470,13 @@ def _resolve_site_theme(request: Request, current_user: User | None) -> str:
 def _template_context(request: Request, current_user: User | None, seo: SeoMeta | None = None) -> dict:
     is_admin = current_user is not None and current_user.role == UserRole.admin
     site_theme = _resolve_site_theme(request, current_user)
+    design_lab = is_design_lab_user(current_user)
     context = {
         "request": request,
         "current_user": current_user,
         "is_authenticated": current_user is not None,
         "is_admin": is_admin,
+        "design_lab": design_lab,
         "site_theme": site_theme,
         "site_theme_uses_logo": site_theme_uses_logo(site_theme),
         "site_theme_body_class": site_theme_body_class(site_theme),
