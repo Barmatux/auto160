@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import re
+
 from sqlalchemy import asc, func
 from sqlalchemy.orm import Session
 
@@ -12,6 +14,25 @@ from app.fuel_type_labels import (
     resolved_catalog_fuel_type,
 )
 from app.models import CatalogItem
+
+# av.by stores engineCapacity as "999 см.куб." / "1598" / "1 598 см³"
+_CC_RE = re.compile(r"(\d[\d\s]*)")
+
+
+def _parse_engine_cc(value: object) -> int | None:
+    text = str(value or "").strip()
+    if not text:
+        return None
+    match = _CC_RE.search(text)
+    if not match:
+        return None
+    digits = re.sub(r"\s+", "", match.group(1))
+    if not digits.isdigit():
+        return None
+    cc = int(digits)
+    if cc <= 0 or cc > 20000:
+        return None
+    return cc
 
 
 def _base_catalog_query(db: Session):
@@ -54,9 +75,9 @@ def engine_cc_from_item(item: CatalogItem) -> int | None:
     raw = item.raw_specs if isinstance(item.raw_specs, dict) else {}
     detail = raw.get("modification_detail") if isinstance(raw, dict) else None
     if isinstance(detail, dict):
-        capacity = str(detail.get("engineCapacity") or "").strip()
-        if capacity.isdigit() and int(capacity) > 0:
-            return int(capacity)
+        parsed = _parse_engine_cc(detail.get("engineCapacity"))
+        if parsed is not None:
+            return parsed
     if item.engine_volume_l is not None:
         liters = float(item.engine_volume_l)
         if liters > 0:
