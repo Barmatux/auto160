@@ -189,6 +189,7 @@
   {% endif %}
 </section>
 
+{% if not design_lab %}
 <section class="home-how">
   <h2>Как пользоваться</h2>
   <ol class="home-steps">
@@ -203,6 +204,7 @@
     </li>
   </ol>
 </section>
+{% endif %}
 {% if featured_listings %}
   <script src="/static/featured_home.js?v=20261020-01" defer></script>
 {% endif %}
