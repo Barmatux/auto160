@@ -5920,14 +5920,15 @@ body.page-login .form button {
 
 .listing-detail-side-action-primary {
   border-color: transparent;
-  background: linear-gradient(180deg, var(--primary), var(--primary-dark));
-  color: #fff;
+  background: #00a8ff;
+  color: #041018;
 }
 
 .listing-detail-side-action-primary:hover {
-  background: linear-gradient(180deg, #3b82f6, #1d4ed8);
+  background: #00a8ff;
+  filter: brightness(1.08);
   border-color: transparent;
-  color: #fff;
+  color: #041018;
 }
 
 .listing-detail-center {
@@ -6529,7 +6530,7 @@ a.home-hero-pane-visual:focus-visible {
   padding: 8px 14px;
   border-radius: 10px;
   border: 1px solid transparent;
-  background: linear-gradient(135deg, #00a8ff 0%, #14b8a6 100%);
+  background: #00a8ff;
   color: #041018;
   font-weight: 700;
   font-size: 0.92rem;

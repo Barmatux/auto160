@@ -15,6 +15,7 @@ body.theme-admin {
   --shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
   --brand-blue: #3aaef0;
   --brand-green: #2ecf8a;
+  --brand-cta: #00a8ff;
   --brand-gradient: linear-gradient(90deg, #3aaef0 0%, #2ecf8a 100%);
   --brand-gradient-soft: linear-gradient(135deg, rgba(58, 174, 240, 0.14), rgba(46, 207, 138, 0.1));
   --heading: #dce3ee;
@@ -336,23 +337,40 @@ body.theme-admin .catalog-multi-select-row.is-selected {
 
 body.theme-admin .btn,
 body.theme-admin button.btn,
+body.theme-admin .btn-primary,
+body.theme-admin button.btn-primary,
 body.theme-admin .page-link:not(.disabled),
 body.theme-admin .catalog-filters-submit,
 body.theme-admin .cookie-consent-btn-primary,
 body.theme-admin .vin-check-btn,
-body.theme-admin input[type="submit"] {
-  background: var(--brand-gradient);
+body.theme-admin input[type="submit"],
+body.theme-admin .form button,
+body.theme-admin .filters button,
+body.theme-admin .actions-row button:not(.danger):not(.btn-secondary),
+body.theme-admin .users-table button,
+body.theme-admin .vehicle-hierarchy-submit,
+body.theme-admin .listing-detail-side-action-primary,
+body.theme-admin .home-hero-pane-cta:not(.home-hero-pane-cta--ghost) {
+  background: var(--brand-cta);
   border: 0;
   color: #041018;
   font-weight: 700;
 }
 
 body.theme-admin .btn:hover,
+body.theme-admin .btn-primary:hover,
+body.theme-admin button.btn-primary:hover,
 body.theme-admin .page-link:not(.disabled):hover,
 body.theme-admin .catalog-filters-submit:hover,
-body.theme-admin .cookie-consent-btn-primary:hover {
+body.theme-admin .cookie-consent-btn-primary:hover,
+body.theme-admin .form button:hover,
+body.theme-admin .filters button:hover,
+body.theme-admin .actions-row button:not(.danger):not(.btn-secondary):hover,
+body.theme-admin .listing-detail-side-action-primary:hover,
+body.theme-admin .home-hero-pane-cta:not(.home-hero-pane-cta--ghost):hover {
   filter: brightness(1.08);
   color: #041018;
+  background: var(--brand-cta);
 }
 
 body.theme-admin .page-link.disabled,
@@ -369,7 +387,7 @@ body.theme-admin .btn-link-like {
 
 /* Chat “Помощник” — light text on pale button was unreadable in dark theme */
 body.theme-admin:not(.theme-admin-light) .a160-chat-toggle {
-  background: var(--brand-gradient);
+  background: var(--brand-cta);
   border: 1px solid rgba(255, 255, 255, 0.35);
   color: #041018;
   font-weight: 800;
@@ -378,7 +396,7 @@ body.theme-admin:not(.theme-admin-light) .a160-chat-toggle {
 
 body.theme-admin:not(.theme-admin-light) .a160-chat-toggle:hover {
   filter: brightness(1.1);
-  background: var(--brand-gradient);
+  background: var(--brand-cta);
   color: #041018;
   border-color: rgba(255, 255, 255, 0.5);
 }
@@ -427,7 +445,7 @@ body.theme-admin:not(.theme-admin-light) .a160-chat-input {
 }
 
 body.theme-admin:not(.theme-admin-light) .a160-chat-send {
-  background: var(--brand-gradient);
+  background: var(--brand-cta);
   color: #041018;
   font-weight: 700;
 }
@@ -524,7 +542,7 @@ body.theme-admin .admin-vin-date-cell.is-in-range {
 
 body.theme-admin .admin-vin-date-cell.is-start,
 body.theme-admin .admin-vin-date-cell.is-end {
-  background: var(--brand-gradient);
+  background: var(--brand-cta);
   color: #041018;
 }
 
