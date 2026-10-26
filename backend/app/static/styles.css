@@ -206,8 +206,14 @@ body.design-lab .header.header--design-lab .brand-logo {
 
 body.design-lab .header.header--design-lab .header-nav a,
 body.design-lab .header.header--design-lab .header-nav-dropdown-toggle {
-  padding: 5px 8px;
+  padding: 6px 10px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+body.design-lab .header.header--design-lab .header-nav .user-badge {
   font-size: 14px;
+  padding: 7px 12px;
 }
 
 body.design-lab .header-nav-row-account {
@@ -217,8 +223,8 @@ body.design-lab .header-nav-row-account {
 body.design-lab .header-messengers {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  margin-right: 4px;
+  gap: 12px;
+  margin-right: 8px;
   height: 28px;
 }
 
