@@ -17,7 +17,13 @@
         <h2>Автомобиль из каталога</h2>
         <p class="hint">
           В списке только поколения с флагом «Калькулятор растаможки».
-          Конфигурации ≤&nbsp;160&nbsp;л.с. подсвечены зелёным (льготный утильсбор).
+        </p>
+        <p class="calc-under160-legend" aria-label="Легенда подсветки">
+          <span class="calc-under160-swatch" aria-hidden="true"></span>
+          <span>
+            Зелёным отмечены <strong>проходные</strong> модели и моторы —
+            мощность ≤&nbsp;160&nbsp;л.с. (льготный утильсбор для физлиц).
+          </span>
         </p>
         {% if customs_makes %}
           <div class="calc-grid">

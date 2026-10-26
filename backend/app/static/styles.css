@@ -8561,6 +8561,35 @@ body.design-lab .inspection-results-head h2 {
   color: #6ee7b7;
 }
 
+.calc-under160-legend {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(52, 211, 153, 0.35);
+  background: rgba(6, 78, 59, 0.35);
+  color: #a7f3d0;
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+
+.calc-under160-legend strong {
+  color: #d1fae5;
+  font-weight: 700;
+}
+
+.calc-under160-swatch {
+  flex: 0 0 auto;
+  width: 12px;
+  height: 12px;
+  margin-top: 4px;
+  border-radius: 999px;
+  background: #34d399;
+  box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.25);
+}
+
 .calc-span-2 {
   grid-column: 1 / -1;
 }
