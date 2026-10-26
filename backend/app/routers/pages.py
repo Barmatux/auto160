@@ -5255,6 +5255,11 @@ def admin_customs_page(request: Request, db: Session = Depends(get_db)):
             "Не удалось загрузить базу растаможки. "
             f"Возможно, миграция ещё не применена: {exc}"
         )
+    makes = public_make_names(db)
+    if not makes:
+        vehicle_specs = list_customs_vehicle_specs(db, active_only=True)
+        makes = sorted({row.make for row in vehicle_specs}, key=lambda m: m.lower())
+    context["customs_makes"] = makes
     return templates.TemplateResponse(request, "admin_customs.html", context)
 
 

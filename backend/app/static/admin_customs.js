@@ -15,6 +15,27 @@
     return data;
   }
 
+  var tabsRoot = document.querySelector("[data-admin-customs-tabs]");
+  if (tabsRoot) {
+    var panes = {
+      db: document.querySelector('[data-customs-pane="db"]'),
+      calc: document.querySelector('[data-customs-pane="calc"]'),
+    };
+    tabsRoot.querySelectorAll("[data-admin-customs-tab]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var key = btn.getAttribute("data-admin-customs-tab");
+        tabsRoot.querySelectorAll("[data-admin-customs-tab]").forEach(function (other) {
+          var active = other === btn;
+          other.classList.toggle("is-active", active);
+          other.setAttribute("aria-selected", active ? "true" : "false");
+        });
+        Object.keys(panes).forEach(function (paneKey) {
+          if (panes[paneKey]) panes[paneKey].hidden = paneKey !== key;
+        });
+      });
+    });
+  }
+
   var statusEl = document.querySelector("[data-customs-db-status]");
   function setStatus(text, isError) {
     if (!statusEl) return;

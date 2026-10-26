@@ -17,7 +17,7 @@
   var ccSelect = root.querySelector("[data-calc-cc]");
   var catalogHp = root.querySelector("[data-calc-catalog-hp]");
   var specMeta = root.querySelector("[data-calc-spec-meta]");
-  var mode = "manual";
+  var mode = root.getAttribute("data-calc-default-mode") === "catalog" ? "catalog" : "manual";
 
   function money(value) {
     if (value == null || Number.isNaN(Number(value))) return "—";
@@ -52,6 +52,7 @@
       setMode(btn.getAttribute("data-calc-mode"));
     });
   });
+  setMode(mode);
 
   function resetSelect(select, placeholder, disabled) {
     if (!select) return;

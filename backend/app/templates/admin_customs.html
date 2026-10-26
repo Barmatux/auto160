@@ -4,11 +4,20 @@
 {% set admin_section = "customs" %}
 {% include "partials/admin_nav.html" %}
 
-<h1>Растаможка — база данных</h1>
+<h1>Растаможка</h1>
 <p class="hint">
-  Марка → модель → объём в литрах → точный объём в см³.
-  Точный см³ потом подставляется в публичный калькулятор.
+  База: марка → модель → объём в литрах → точный см³.
+  Калькулятор использует эту базу и формулы пошлины / утильсбора.
 </p>
+
+<div class="admin-customs-tabs" role="tablist" aria-label="Разделы растаможки" data-admin-customs-tabs>
+  <button type="button" class="admin-customs-tab is-active" role="tab" aria-selected="true" data-admin-customs-tab="db">
+    База данных
+  </button>
+  <button type="button" class="admin-customs-tab" role="tab" aria-selected="false" data-admin-customs-tab="calc">
+    Калькулятор
+  </button>
+</div>
 
 <section class="admin-customs-pane" data-customs-pane="db">
   <div class="customs-db-board" data-customs-db>
@@ -76,16 +85,23 @@
         <li class="customs-db-empty">Выберите объём в литрах</li>
       </ul>
       <p class="hint customs-db-hint" data-cc-hint>
-        Выбранный см³ подставляется в калькулятор растаможки.
+        Выбранный см³ подставляется в калькулятор на соседней вкладке.
       </p>
     </div>
   </div>
   <p class="hint" data-customs-db-status hidden></p>
 </section>
 
+<section class="admin-customs-pane" data-customs-pane="calc" hidden>
+  {% set calc_embedded = true %}
+  {% set calc_default_mode = "catalog" %}
+  {% include "partials/customs_calculator_panel.html" %}
+</section>
+
 {% if customs_db_error %}
   <p class="hint" style="color:#f87171; margin-top:12px;">{{ customs_db_error }}</p>
 {% endif %}
 
-<script src="/static/admin_customs.js?v=20261026-32" defer></script>
+<script src="/static/admin_customs.js?v=20261026-33" defer></script>
+<script src="/static/customs_calc.js?v=20261026-33" defer></script>
 {% endblock %}

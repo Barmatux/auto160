@@ -8725,6 +8725,19 @@ body.design-lab .inspection-results-head h2 {
   }
 }
 
+/* —— Admin customs: embedded calculator —— */
+.calc-page--embedded {
+  margin-top: 4px;
+}
+
+.calc-page--embedded .calc-page-intro {
+  display: none;
+}
+
+.admin-customs-pane[hidden] {
+  display: none !important;
+}
+
 /* —— Admin customs DB hierarchy board —— */
 .admin-customs-tabs {
   display: inline-flex;
