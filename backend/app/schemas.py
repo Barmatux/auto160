@@ -759,6 +759,20 @@ class CustomsDbMotorOut(BaseModel):
     label: str
 
 
+class CustomsCatalogModelOut(BaseModel):
+    name: str
+
+
+class CustomsCatalogMotorOut(BaseModel):
+    id: int
+    generation: str | None = None
+    liters: float | None = None
+    engine_cc: int
+    power_hp: float
+    engine_kind: str = "ice"
+    label: str
+
+
 class CustomsDbCcCreateRequest(BaseModel):
     liter_id: int
     engine_cc: int
@@ -770,13 +784,14 @@ class CustomsDbCcCreateRequest(BaseModel):
 class CustomsCalcRequest(BaseModel):
     age_band: str
     engine_cc: float = 0
-    power_hp: float
+    power_hp: float = 0
     price: float
     currency: str = "EUR"
     importer: str = "personal"
     engine_kind: str = "ice"
     vehicle_spec_id: int | None = None
     engine_cc_id: int | None = None
+    catalog_item_id: int | None = None
 
 
 class CustomsCalcResponse(BaseModel):

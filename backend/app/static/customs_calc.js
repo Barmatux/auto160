@@ -53,7 +53,7 @@
   async function loadMakes() {
     if (!makeSelect) return;
     try {
-      var res = await fetch("/api/v1/public/customs-db/makes", {
+      var res = await fetch("/api/v1/public/customs-catalog/makes", {
         credentials: "same-origin",
       });
       var rows = await res.json();
@@ -81,7 +81,7 @@
     clearMotorFields();
     try {
       var res = await fetch(
-        "/api/v1/public/customs-db/models?make=" + encodeURIComponent(make),
+        "/api/v1/public/customs-catalog/models?make=" + encodeURIComponent(make),
         { credentials: "same-origin" }
       );
       var rows = await res.json();
@@ -89,7 +89,7 @@
       resetSelect(modelSelect, rows.length ? "Выберите модель" : "Нет моделей", !rows.length);
       rows.forEach(function (row) {
         var opt = document.createElement("option");
-        opt.value = String(row.id);
+        opt.value = row.name;
         opt.textContent = row.name;
         modelSelect.appendChild(opt);
       });
@@ -100,12 +100,15 @@
     }
   }
 
-  async function loadMotors(modelId) {
+  async function loadMotors(make, model) {
     resetSelect(motorSelect, "Загрузка…", true);
     clearMotorFields();
     try {
       var res = await fetch(
-        "/api/v1/public/customs-db/motors?model_id=" + encodeURIComponent(modelId),
+        "/api/v1/public/customs-catalog/motors?make=" +
+          encodeURIComponent(make) +
+          "&model=" +
+          encodeURIComponent(model),
         { credentials: "same-origin" }
       );
       var rows = await res.json();
@@ -119,9 +122,9 @@
         var opt = document.createElement("option");
         opt.value = String(row.id);
         opt.textContent = row.label;
-        opt.dataset.cc = String(row.engine_cc);
+        opt.dataset.cc = String(row.engine_cc || 0);
         opt.dataset.hp = row.power_hp != null ? String(row.power_hp) : "";
-        opt.dataset.liters = row.liters != null ? String(row.liters) : "";
+        opt.dataset.kind = row.engine_kind || "ice";
         opt.dataset.label = row.label || "";
         motorSelect.appendChild(opt);
       });
@@ -138,12 +141,15 @@
       clearMotorFields();
       return;
     }
-    if (volumeInput) volumeInput.value = opt.dataset.cc || "";
+    if (volumeInput) {
+      volumeInput.value =
+        opt.dataset.kind === "electric" ? "электро" : opt.dataset.cc || "";
+    }
     if (catalogHp) catalogHp.value = opt.dataset.hp || "";
     if (specMeta) {
       var bits = [];
-      if (opt.dataset.liters) bits.push(opt.dataset.liters + " л");
-      if (opt.dataset.cc) bits.push(opt.dataset.cc + " см³");
+      if (opt.dataset.kind === "electric") bits.push("электро");
+      else if (opt.dataset.cc) bits.push(opt.dataset.cc + " см³");
       if (opt.dataset.hp) bits.push(opt.dataset.hp + " л.с.");
       specMeta.textContent = bits.length
         ? "В расчёт пойдёт " + bits.join(" · ")
@@ -166,13 +172,14 @@
 
   if (modelSelect) {
     modelSelect.addEventListener("change", function () {
-      var id = modelSelect.value;
-      if (!id) {
+      var model = modelSelect.value;
+      var make = makeSelect ? makeSelect.value : "";
+      if (!model || !make) {
         resetSelect(motorSelect, "Сначала выберите модель", true);
         clearMotorFields();
         return;
       }
-      loadMotors(id);
+      loadMotors(make, model);
     });
   }
 
@@ -231,26 +238,22 @@
     event.preventDefault();
     setStatus("Считаем…");
     var fd = new FormData(form);
-    var ccId = Number(fd.get("engine_cc_id") || 0);
-    if (!ccId) {
+    var itemId = Number(fd.get("catalog_item_id") || 0);
+    if (!itemId) {
       setStatus("Выберите марку, модель и мотор из каталога", true);
       return;
     }
     var opt = motorSelect && motorSelect.selectedOptions[0];
-    var powerHp = opt && opt.dataset.hp ? Number(opt.dataset.hp) : 0;
-    if (!powerHp) {
-      setStatus("У этой конфигурации в каталоге нет мощности (л.с.) — добавьте её в базе", true);
-      return;
-    }
     var payload = {
       price: Number(fd.get("price")),
       currency: String(fd.get("currency") || "EUR"),
       importer: String(fd.get("importer") || "personal"),
-      engine_kind: "ice",
+      engine_kind: (opt && opt.dataset.kind) || "ice",
       age_band: String(fd.get("catalog_age_band") || "from3to5"),
       engine_cc: opt ? Number(opt.dataset.cc || 0) : 0,
-      power_hp: powerHp,
-      engine_cc_id: ccId,
+      power_hp: opt && opt.dataset.hp ? Number(opt.dataset.hp) : 0,
+      catalog_item_id: itemId,
+      engine_cc_id: null,
       vehicle_spec_id: null,
     };
 

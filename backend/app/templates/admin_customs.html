@@ -6,8 +6,8 @@
 
 <h1>Растаможка</h1>
 <p class="hint">
-  База: марка → модель → объём в литрах → точный см³.
-  Калькулятор использует эту базу и формулы пошлины / утильсбора.
+  База: марка → модель → объём в литрах → точный см³ (справочник).
+  Калькулятор берёт марки и конфигурации из основного каталога Auto160.
 </p>
 
 <div class="admin-customs-tabs" role="tablist" aria-label="Разделы растаможки" data-admin-customs-tabs>
@@ -102,6 +102,6 @@
   <p class="hint" style="color:#f87171; margin-top:12px;">{{ customs_db_error }}</p>
 {% endif %}
 
-<script src="/static/admin_customs.js?v=20261026-34" defer></script>
-<script src="/static/customs_calc.js?v=20261026-34" defer></script>
+<script src="/static/admin_customs.js?v=20261026-35" defer></script>
+<script src="/static/customs_calc.js?v=20261026-35" defer></script>
 {% endblock %}

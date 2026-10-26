@@ -16,7 +16,7 @@
       <div class="calc-panel-block" data-calc-panel="catalog">
         <h2>Автомобиль из каталога</h2>
         <p class="hint">
-          Марка → модель → мотор. Точный объём и мощность подставляются из базы растаможки.
+          Марки, модели и моторы подтягиваются из каталога Auto160 автоматически.
         </p>
         {% if customs_makes %}
           <div class="calc-grid">
@@ -31,13 +31,13 @@
             </label>
             <label>
               Модель
-              <select name="model_id" data-calc-model required disabled>
+              <select name="model" data-calc-model required disabled>
                 <option value="">Сначала выберите марку</option>
               </select>
             </label>
             <label class="calc-span-2">
               Мотор / конфигурация
-              <select name="engine_cc_id" data-calc-motor required disabled>
+              <select name="catalog_item_id" data-calc-motor required disabled>
                 <option value="">Сначала выберите модель</option>
               </select>
             </label>
@@ -61,7 +61,7 @@
           <p class="hint" data-calc-spec-meta></p>
         {% else %}
           <p class="hint">
-            База пока пуста. Добавьте марки, модели и моторы во вкладке «База данных».
+            В каталоге пока нет марок. Добавьте модификации в «Управление каталогом».
           </p>
         {% endif %}
       </div>
