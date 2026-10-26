@@ -36,19 +36,33 @@ def list_makes(db: Session) -> list[str]:
     return [name for (name,) in rows if (name or "").strip()]
 
 
-def list_models(db: Session, make: str) -> list[str]:
+PREFERENTIAL_HP_MAX = 160
+
+
+def list_models(db: Session, make: str) -> list[dict]:
     key = (make or "").strip()
     if not key:
         return []
     rows = (
         _base_catalog_query(db)
         .filter(func.lower(CatalogItem.make) == key.lower())
-        .with_entities(CatalogItem.model)
-        .distinct()
+        .with_entities(
+            CatalogItem.model,
+            func.max(CatalogItem.engine_power_hp).label("hp_max"),
+        )
+        .group_by(CatalogItem.model)
         .order_by(asc(CatalogItem.model))
         .all()
     )
-    return [name for (name,) in rows if (name or "").strip()]
+    result: list[dict] = []
+    for name, hp_max in rows:
+        cleaned = (name or "").strip()
+        if not cleaned:
+            continue
+        # Model is preferential when every known catalog hp is ≤160.
+        under_160 = hp_max is not None and int(hp_max) <= PREFERENTIAL_HP_MAX
+        result.append({"name": cleaned, "under_160": under_160})
+    return result
 
 
 def engine_cc_from_item(item: CatalogItem) -> int | None:
@@ -167,6 +181,7 @@ def list_motors(db: Session, make: str, model: str) -> list[dict]:
                 "engine_cc": engine_cc or 0,
                 "power_hp": power_hp,
                 "engine_kind": engine_kind_from_item(item),
+                "under_160": float(power_hp) <= PREFERENTIAL_HP_MAX,
                 "label": motor_label(item, engine_cc=engine_cc, power_hp=power_hp),
             }
         )

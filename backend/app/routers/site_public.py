@@ -141,7 +141,7 @@ def public_customs_catalog_makes(db: Session = Depends(get_db)):
 
 @router.get("/customs-catalog/models", response_model=list[CustomsCatalogModelOut])
 def public_customs_catalog_models(make: str = Query(...), db: Session = Depends(get_db)):
-    return [CustomsCatalogModelOut(name=name) for name in list_catalog_models_for_customs(db, make)]
+    return [CustomsCatalogModelOut(**row) for row in list_catalog_models_for_customs(db, make)]
 
 
 @router.get("/customs-catalog/motors", response_model=list[CustomsCatalogMotorOut])

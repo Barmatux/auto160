@@ -47,7 +47,18 @@
   function clearMotorFields() {
     if (volumeInput) volumeInput.value = "";
     if (catalogHp) catalogHp.value = "";
-    if (specMeta) specMeta.textContent = "";
+    if (specMeta) {
+      specMeta.textContent = "";
+      specMeta.classList.remove("calc-spec-meta--under160");
+    }
+    if (motorSelect) motorSelect.classList.remove("calc-select--under160");
+  }
+
+  function syncUnder160Select(select) {
+    if (!select) return;
+    var opt = select.selectedOptions[0];
+    var under = !!(opt && opt.value && opt.dataset.under160 === "1");
+    select.classList.toggle("calc-select--under160", under);
   }
 
   async function loadMakes() {
@@ -90,10 +101,15 @@
       rows.forEach(function (row) {
         var opt = document.createElement("option");
         opt.value = row.name;
-        opt.textContent = row.name;
+        opt.textContent = row.under_160 ? "● " + row.name + " · ≤160 л.с." : row.name;
+        if (row.under_160) {
+          opt.className = "calc-opt--under160";
+          opt.dataset.under160 = "1";
+        }
         modelSelect.appendChild(opt);
       });
       if (rows.length) modelSelect.disabled = false;
+      syncUnder160Select(modelSelect);
     } catch (err) {
       resetSelect(modelSelect, "Ошибка загрузки", true);
       setStatus(err.message || "Ошибка", true);
@@ -121,14 +137,20 @@
       rows.forEach(function (row) {
         var opt = document.createElement("option");
         opt.value = String(row.id);
-        opt.textContent = row.label;
+        var under160 = Boolean(row.under_160) || (row.power_hp != null && Number(row.power_hp) <= 160);
+        opt.textContent = under160 ? "● " + row.label : row.label;
         opt.dataset.cc = String(row.engine_cc || 0);
         opt.dataset.hp = row.power_hp != null ? String(row.power_hp) : "";
         opt.dataset.kind = row.engine_kind || "ice";
         opt.dataset.label = row.label || "";
+        if (under160) {
+          opt.className = "calc-opt--under160";
+          opt.dataset.under160 = "1";
+        }
         motorSelect.appendChild(opt);
       });
       if (rows.length) motorSelect.disabled = false;
+      syncUnder160Select(motorSelect);
     } catch (err) {
       resetSelect(motorSelect, "Ошибка загрузки", true);
       setStatus(err.message || "Ошибка", true);
@@ -146,14 +168,18 @@
         opt.dataset.kind === "electric" ? "электро" : opt.dataset.cc || "";
     }
     if (catalogHp) catalogHp.value = opt.dataset.hp || "";
+    syncUnder160Select(motorSelect);
     if (specMeta) {
       var bits = [];
       if (opt.dataset.kind === "electric") bits.push("электро");
       else if (opt.dataset.cc) bits.push(opt.dataset.cc + " см³");
       if (opt.dataset.hp) bits.push(opt.dataset.hp + " л.с.");
+      var under160 = opt.dataset.under160 === "1";
+      if (under160) bits.push("льготный утиль ≤160 л.с.");
       specMeta.textContent = bits.length
         ? "В расчёт пойдёт " + bits.join(" · ")
         : "";
+      specMeta.classList.toggle("calc-spec-meta--under160", under160);
     }
   }
 
@@ -172,6 +198,7 @@
 
   if (modelSelect) {
     modelSelect.addEventListener("change", function () {
+      syncUnder160Select(modelSelect);
       var model = modelSelect.value;
       var make = makeSelect ? makeSelect.value : "";
       if (!model || !make) {

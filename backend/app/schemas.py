@@ -777,6 +777,7 @@ class CustomsDbMotorOut(BaseModel):
 
 class CustomsCatalogModelOut(BaseModel):
     name: str
+    under_160: bool = False
 
 
 class CustomsCatalogMotorOut(BaseModel):
@@ -786,6 +787,7 @@ class CustomsCatalogMotorOut(BaseModel):
     engine_cc: int
     power_hp: float
     engine_kind: str = "ice"
+    under_160: bool = False
     label: str
 
 

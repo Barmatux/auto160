@@ -8543,6 +8543,24 @@ body.design-lab .inspection-results-head h2 {
   border-color: rgba(56, 189, 248, 0.55);
 }
 
+.calc-grid select.calc-select--under160,
+.calc-form select.calc-select--under160 {
+  border-color: rgba(52, 211, 153, 0.65);
+  box-shadow: 0 0 0 1px rgba(52, 211, 153, 0.28);
+  color: #a7f3d0;
+}
+
+.calc-grid select option.calc-opt--under160,
+.calc-form select option.calc-opt--under160 {
+  background: #064e3b;
+  color: #a7f3d0;
+  font-weight: 600;
+}
+
+.calc-spec-meta--under160 {
+  color: #6ee7b7;
+}
+
 .calc-span-2 {
   grid-column: 1 / -1;
 }
