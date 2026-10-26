@@ -282,10 +282,6 @@ body.design-lab .site-topline {
   border-bottom: 1px solid rgba(148, 163, 184, 0.16);
 }
 
-body.design-lab .site-chrome {
-  overflow: hidden;
-}
-
 body.design-lab .site-topline .brand--topline {
   top: -8px;
   padding: 0 10px;
