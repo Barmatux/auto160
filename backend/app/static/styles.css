@@ -6113,13 +6113,56 @@ body.listing-lightbox-open {
 }
 
 .home-hero-pane-head {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   min-height: 5.2rem;
-  padding: 18px 20px 8px;
+  padding: 18px 56px 8px;
   box-sizing: border-box;
   text-align: center;
+}
+
+.home-hero-pane-flag {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 2;
+  display: block;
+  width: 42px;
+  overflow: hidden;
+  text-decoration: none;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  transition: filter 0.15s ease, width 0.15s ease;
+}
+
+.home-hero-pane-flag--by {
+  right: 0;
+  border-radius: 0 0 0 8px;
+}
+
+.home-hero-pane-flag--eu {
+  left: 0;
+  border-radius: 0 0 8px 0;
+}
+
+.home-hero-pane-flag img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.home-hero-pane-flag:hover,
+.home-hero-pane-flag:focus-visible {
+  width: 48px;
+  filter: brightness(1.08);
+  outline: none;
+}
+
+.home-hero-pane-flag:focus-visible {
+  box-shadow: inset 0 0 0 2px #7dd3fc;
 }
 
 .home-hero-pane-body {
@@ -6137,6 +6180,14 @@ body.listing-lightbox-open {
   background: #0b0e14;
   isolation: isolate;
   overflow: hidden;
+  display: block;
+  text-decoration: none;
+  color: inherit;
+}
+
+a.home-hero-pane-visual:focus-visible {
+  outline: 2px solid #7dd3fc;
+  outline-offset: -2px;
 }
 
 .home-hero-pane-visual::before,
@@ -6803,7 +6854,16 @@ body.theme-admin .home-hero.home-hero--split .home-hero-pane-lead {
 
   .home-hero-pane-head {
     min-height: 4.8rem;
-    padding: 14px 14px 6px;
+    padding: 14px 48px 6px;
+  }
+
+  .home-hero-pane-flag {
+    width: 36px;
+  }
+
+  .home-hero-pane-flag:hover,
+  .home-hero-pane-flag:focus-visible {
+    width: 40px;
   }
 
   .home-hero-pane-body {
