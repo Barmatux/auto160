@@ -95,9 +95,14 @@ body {
 }
 
 /* Design-lab only: rates topline + revised header chrome. */
+.site-chrome {
+  position: relative;
+  z-index: 10;
+}
+
 .site-topline {
   position: relative;
-  z-index: 1;
+  z-index: 2;
   background: #070a10;
   border-bottom: 1px solid rgba(148, 163, 184, 0.22);
   color: #e2e8f0;
@@ -106,23 +111,84 @@ body {
 }
 
 .site-topline-inner {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 3px 18px;
-  min-height: 26px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 10px 16px;
+  padding: 2px 18px 0;
+  min-height: 28px;
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
 }
 
+.site-topline .brand--topline {
+  position: relative;
+  z-index: 3;
+  grid-column: 1;
+  display: inline-flex;
+  align-items: flex-start;
+  align-self: start;
+  margin: 0;
+  padding: 0;
+  text-decoration: none;
+  color: inherit;
+}
+
 .site-topline-rates {
+  grid-column: 1 / -1;
+  grid-row: 1;
+  justify-self: center;
+  align-self: center;
+  z-index: 1;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
+  justify-content: center;
   gap: 6px 8px;
   min-width: 0;
+  padding: 4px 0;
+  pointer-events: none;
+}
+
+.site-topline-rates > * {
+  pointer-events: auto;
+}
+
+.site-topline-end {
+  grid-column: 3;
+  grid-row: 1;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  align-self: center;
+  min-height: 24px;
+}
+
+.site-topline-link {
+  color: #e2e8f0;
+  text-decoration: none;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.site-topline-link:hover,
+.site-topline-link:focus-visible {
+  color: #fff;
+}
+
+.site-topline-user {
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+}
+
+.site-topline-messengers {
+  margin-right: 2px;
 }
 
 .site-topline-rate {
@@ -189,18 +255,37 @@ body {
   background: rgba(56, 189, 248, 0.12);
 }
 
-/* Design-lab header stays pinned; rates strip scrolls away. */
-body.design-lab .header.header--design-lab {
+/* Header chrome: logo sits in the top-left corner; rates centered; auth by theme. */
+body.design-lab .site-chrome {
   position: sticky;
   top: 0;
   z-index: 10;
-  padding: 2px 16px;
-  align-items: center;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.97), rgba(248, 251, 255, 0.95));
+  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.08);
 }
 
-body.design-lab .header.header--design-lab .brand-logo {
-  height: 92px;
-  max-width: min(340px, 52vw);
+body.theme-admin:not(.theme-admin-light).design-lab .site-chrome {
+  background: #0b0e14;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+body.design-lab .site-topline .brand-logo {
+  height: 72px;
+  max-width: min(280px, 46vw);
+  display: block;
+}
+
+body.design-lab .header.header--design-lab {
+  position: relative;
+  top: auto;
+  z-index: 1;
+  padding: 2px 16px;
+  align-items: center;
+  min-height: 44px;
+  background: transparent;
+  border-bottom: none;
+  box-shadow: none;
+  backdrop-filter: none;
 }
 
 body.design-lab .header.header--design-lab .header-nav a,
@@ -293,22 +378,41 @@ body.theme-admin.theme-admin-light.design-lab .header-messenger {
 
 @media (max-width: 760px) {
   .site-topline-inner {
-    padding: 3px 10px;
+    grid-template-columns: auto 1fr;
+    padding: 2px 10px 0;
     gap: 6px;
     min-height: 24px;
   }
 
-  .site-topline-source {
+  .site-topline-rates {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    justify-self: center;
+    order: 3;
+    padding: 2px 0 4px;
+  }
+
+  .site-topline-end {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .site-topline-source,
+  .site-topline-user {
     display: none;
+  }
+
+  .site-topline-messengers {
+    display: none;
+  }
+
+  body.design-lab .site-topline .brand-logo {
+    height: 48px;
+    max-width: min(180px, 48vw);
   }
 
   body.design-lab .header.header--design-lab {
     padding: 2px 10px;
-  }
-
-  body.design-lab .header.header--design-lab .brand-logo {
-    height: 64px;
-    max-width: min(240px, 58vw);
   }
 
   body.design-lab .header-messengers {

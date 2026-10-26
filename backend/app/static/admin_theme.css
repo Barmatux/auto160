@@ -75,15 +75,15 @@ body.theme-admin .header .brand-logo {
   -webkit-font-smoothing: antialiased;
 }
 
-body.theme-admin.design-lab .header.header--design-lab .brand-logo {
-  height: 92px;
-  max-width: min(340px, 52vw);
+body.theme-admin.design-lab .site-topline .brand-logo {
+  height: 72px;
+  max-width: min(280px, 46vw);
 }
 
 @media (max-width: 760px) {
-  body.theme-admin.design-lab .header.header--design-lab .brand-logo {
-    height: 64px;
-    max-width: min(240px, 58vw);
+  body.theme-admin.design-lab .site-topline .brand-logo {
+    height: 48px;
+    max-width: min(180px, 48vw);
   }
 }
 
