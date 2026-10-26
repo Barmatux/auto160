@@ -71,14 +71,6 @@
           <a class="site-topline-link" href="/login">Вход</a>
           <a class="site-topline-link" href="/register">Регистрация</a>
         {% endif %}
-        {% if site_theme_uses_logo %}
-          <button
-            type="button"
-            class="site-topline-theme"
-            data-site-theme-toggle
-            data-site-theme="{{ site_theme }}"
-          >{% if site_theme == "logo-light" %}Тёмная тема{% else %}Светлая тема{% endif %}</button>
-        {% endif %}
       </div>
     </div>
   </div>
