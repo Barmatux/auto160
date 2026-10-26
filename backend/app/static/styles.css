@@ -195,13 +195,13 @@ body.design-lab .header.header--design-lab {
   position: sticky;
   top: 0;
   z-index: 10;
-  padding: 6px 16px;
+  padding: 2px 16px;
   align-items: center;
 }
 
 body.design-lab .header.header--design-lab .brand-logo {
-  height: 56px;
-  max-width: min(220px, 42vw);
+  height: 92px;
+  max-width: min(340px, 52vw);
 }
 
 body.design-lab .header.header--design-lab .header-nav a,
@@ -298,12 +298,12 @@ body.theme-admin.theme-admin-light.design-lab .header-messenger {
   }
 
   body.design-lab .header.header--design-lab {
-    padding: 6px 10px;
+    padding: 2px 10px;
   }
 
   body.design-lab .header.header--design-lab .brand-logo {
-    height: 44px;
-    max-width: min(160px, 48vw);
+    height: 64px;
+    max-width: min(240px, 58vw);
   }
 
   body.design-lab .header-messengers {

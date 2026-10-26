@@ -76,8 +76,15 @@ body.theme-admin .header .brand-logo {
 }
 
 body.theme-admin.design-lab .header.header--design-lab .brand-logo {
-  height: 56px;
-  max-width: min(220px, 42vw);
+  height: 92px;
+  max-width: min(340px, 52vw);
+}
+
+@media (max-width: 760px) {
+  body.theme-admin.design-lab .header.header--design-lab .brand-logo {
+    height: 64px;
+    max-width: min(240px, 58vw);
+  }
 }
 
 body.theme-admin .header-menu-toggle {
