@@ -23,20 +23,6 @@
     statusEl.style.color = isError ? "#f87171" : "";
   }
 
-  document.querySelectorAll("[data-customs-tab]").forEach(function (btn) {
-    btn.addEventListener("click", function () {
-      var tab = btn.getAttribute("data-customs-tab");
-      document.querySelectorAll("[data-customs-tab]").forEach(function (b) {
-        var on = b.getAttribute("data-customs-tab") === tab;
-        b.classList.toggle("is-active", on);
-        b.setAttribute("aria-selected", on ? "true" : "false");
-      });
-      document.querySelectorAll("[data-customs-pane]").forEach(function (pane) {
-        pane.hidden = pane.getAttribute("data-customs-pane") !== tab;
-      });
-    });
-  });
-
   var board = document.querySelector("[data-customs-db]");
   if (!board) return;
 
@@ -99,7 +85,8 @@
     state.modelId = null;
     state.literId = null;
     board.querySelectorAll("[data-make-id]").forEach(function (el) {
-      el.closest("li").classList.toggle("is-active", el.getAttribute("data-make-id") === String(makeId));
+      var li = el.closest("li");
+      if (li) li.classList.toggle("is-active", el.getAttribute("data-make-id") === String(makeId));
     });
     var parent = board.querySelector("[data-parent-make]");
     if (parent) parent.value = String(makeId);
@@ -123,7 +110,8 @@
     state.modelId = modelId;
     state.literId = null;
     board.querySelectorAll("[data-model-id]").forEach(function (el) {
-      el.closest("li").classList.toggle("is-active", el.getAttribute("data-model-id") === String(modelId));
+      var li = el.closest("li");
+      if (li) li.classList.toggle("is-active", el.getAttribute("data-model-id") === String(modelId));
     });
     var parent = board.querySelector("[data-parent-model]");
     if (parent) parent.value = String(modelId);
@@ -144,7 +132,8 @@
   async function loadCcs(literId) {
     state.literId = literId;
     board.querySelectorAll("[data-liter-id]").forEach(function (el) {
-      el.closest("li").classList.toggle("is-active", el.getAttribute("data-liter-id") === String(literId));
+      var li = el.closest("li");
+      if (li) li.classList.toggle("is-active", el.getAttribute("data-liter-id") === String(literId));
     });
     var parent = board.querySelector("[data-parent-liter]");
     if (parent) parent.value = String(literId);
@@ -163,22 +152,6 @@
   }
 
   board.addEventListener("click", async function (event) {
-    var makeBtn = event.target.closest("[data-make-id]");
-    if (makeBtn && !makeBtn.hasAttribute("data-del-make")) {
-      loadModels(Number(makeBtn.getAttribute("data-make-id")));
-      return;
-    }
-    var modelBtn = event.target.closest("[data-model-id]");
-    if (modelBtn && !modelBtn.hasAttribute("data-del-model")) {
-      loadLiters(Number(modelBtn.getAttribute("data-model-id")));
-      return;
-    }
-    var literBtn = event.target.closest("[data-liter-id]");
-    if (literBtn && !literBtn.hasAttribute("data-del-liter")) {
-      loadCcs(Number(literBtn.getAttribute("data-liter-id")));
-      return;
-    }
-
     var delMake = event.target.closest("[data-del-make]");
     if (delMake) {
       if (!window.confirm("Удалить марку и всё внутри?")) return;
@@ -229,6 +202,22 @@
       } catch (err) {
         setStatus(err.message || "Ошибка", true);
       }
+      return;
+    }
+
+    var makeBtn = event.target.closest("[data-make-id]");
+    if (makeBtn) {
+      loadModels(Number(makeBtn.getAttribute("data-make-id")));
+      return;
+    }
+    var modelBtn = event.target.closest("[data-model-id]");
+    if (modelBtn) {
+      loadLiters(Number(modelBtn.getAttribute("data-model-id")));
+      return;
+    }
+    var literBtn = event.target.closest("[data-liter-id]");
+    if (literBtn) {
+      loadCcs(Number(literBtn.getAttribute("data-liter-id")));
     }
   });
 
@@ -307,18 +296,5 @@
     } catch (err) {
       setStatus(err.message || "Ошибка", true);
     }
-  });
-
-  document.querySelectorAll("[data-customs-remove]").forEach(function (btn) {
-    btn.addEventListener("click", async function () {
-      var id = btn.getAttribute("data-customs-remove");
-      if (!window.confirm("Удалить из старого каталога?")) return;
-      try {
-        await api("/api/v1/admin/customs-vehicles/" + id, { method: "DELETE" });
-        window.location.reload();
-      } catch (err) {
-        alert(err.message || "Ошибка");
-      }
-    });
   });
 })();

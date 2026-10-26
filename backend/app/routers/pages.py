@@ -5246,8 +5246,15 @@ def admin_customs_page(request: Request, db: Session = Depends(get_db)):
     if redirect:
         return redirect
     context = _template_context(request, current_user)
-    context["customs_db_makes"] = list_customs_db_makes(db, active_only=False)
-    context["customs_specs"] = list_customs_vehicle_specs(db, active_only=False)
+    context["customs_db_error"] = None
+    try:
+        context["customs_db_makes"] = list_customs_db_makes(db, active_only=False)
+    except Exception as exc:  # noqa: BLE001 — show migration/schema issues in admin UI
+        context["customs_db_makes"] = []
+        context["customs_db_error"] = (
+            "Не удалось загрузить базу растаможки. "
+            f"Возможно, миграция ещё не применена: {exc}"
+        )
     return templates.TemplateResponse(request, "admin_customs.html", context)
 
 

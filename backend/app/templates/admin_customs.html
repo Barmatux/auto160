@@ -1,28 +1,20 @@
 {% extends "base.html" %}
-{% block title %}Админка — Растаможка{% endblock %}
+{% block title %}Админка — Растаможка / База данных{% endblock %}
 {% block content %}
 {% set admin_section = "customs" %}
 {% include "partials/admin_nav.html" %}
 
-<h1>Растаможка</h1>
+<h1>Растаможка — база данных</h1>
 <p class="hint">
-  Иерархическая база для калькулятора: марка → модель → объём в литрах → точный объём в см³.
+  Марка → модель → объём в литрах → точный объём в см³.
+  Точный см³ потом подставляется в публичный калькулятор.
 </p>
-
-<div class="admin-customs-tabs" role="tablist" aria-label="Разделы растаможки">
-  <button type="button" class="admin-customs-tab is-active" data-customs-tab="db" role="tab" aria-selected="true">
-    База данных
-  </button>
-  <button type="button" class="admin-customs-tab" data-customs-tab="legacy" role="tab" aria-selected="false">
-    Старый каталог
-  </button>
-</div>
 
 <section class="admin-customs-pane" data-customs-pane="db">
   <div class="customs-db-board" data-customs-db>
     <div class="customs-db-col" data-col="makes">
       <header class="customs-db-col-head">
-        <h2>Марки</h2>
+        <h2>1. Марки</h2>
         <form class="customs-db-add" data-add="make">
           <input type="text" name="name" placeholder="Toyota" required />
           <button type="submit" class="btn-primary">+</button>
@@ -44,7 +36,7 @@
 
     <div class="customs-db-col" data-col="models">
       <header class="customs-db-col-head">
-        <h2>Модели</h2>
+        <h2>2. Модели</h2>
         <form class="customs-db-add" data-add="model">
           <input type="hidden" name="make_id" value="" data-parent-make />
           <input type="text" name="name" placeholder="RAV4" required disabled />
@@ -58,7 +50,7 @@
 
     <div class="customs-db-col" data-col="liters">
       <header class="customs-db-col-head">
-        <h2>Объём, л</h2>
+        <h2>3. Объём, л</h2>
         <form class="customs-db-add" data-add="liter">
           <input type="hidden" name="model_id" value="" data-parent-model />
           <input type="number" name="liters" min="0.1" max="20" step="0.1" placeholder="1.6" required disabled />
@@ -72,7 +64,7 @@
 
     <div class="customs-db-col" data-col="ccs">
       <header class="customs-db-col-head">
-        <h2>Точный объём, см³</h2>
+        <h2>4. Точный объём, см³</h2>
         <form class="customs-db-add customs-db-add--cc" data-add="cc">
           <input type="hidden" name="liter_id" value="" data-parent-liter />
           <input type="number" name="engine_cc" min="1" max="20000" step="1" placeholder="1598" required disabled />
@@ -91,37 +83,9 @@
   <p class="hint" data-customs-db-status hidden></p>
 </section>
 
-<section class="admin-customs-pane" data-customs-pane="legacy" hidden>
-  <p class="hint">Плоский каталог (устаревший). Для новых данных используйте вкладку «База данных».</p>
-  <table class="users-table admin-customs-table">
-    <thead>
-      <tr>
-        <th>ID</th>
-        <th>Авто</th>
-        <th>Объём</th>
-        <th>Мощность</th>
-        <th>Активно</th>
-        <th></th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for row in customs_specs %}
-        <tr data-customs-row="{{ row.id }}">
-          <td>{{ row.id }}</td>
-          <td><strong>{{ row.make }} {{ row.model }}</strong></td>
-          <td>{{ row.engine_cc }} см³</td>
-          <td>{{ row.power_hp }} л.с.</td>
-          <td>{% if row.is_active %}да{% else %}нет{% endif %}</td>
-          <td class="admin-featured-actions">
-            <button type="button" class="btn-link" data-customs-remove="{{ row.id }}">Удалить</button>
-          </td>
-        </tr>
-      {% else %}
-        <tr><td colspan="6">Пусто</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</section>
+{% if customs_db_error %}
+  <p class="hint" style="color:#f87171; margin-top:12px;">{{ customs_db_error }}</p>
+{% endif %}
 
-<script src="/static/admin_customs.js?v=20261026-30" defer></script>
+<script src="/static/admin_customs.js?v=20261026-31" defer></script>
 {% endblock %}
