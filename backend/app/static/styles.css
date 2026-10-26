@@ -6302,6 +6302,17 @@ body.theme-admin .home-hero.home-hero--split .home-hero-pane-lead {
   color: #1e3a8a;
 }
 
+/* Design-lab split hero: do not inherit the 52px homepage h1. */
+.home-hero.home-hero--split .home-hero-pane h1,
+.home-hero.home-hero--split .home-hero-pane h2 {
+  margin: 0;
+  font-size: clamp(0.72rem, 0.85vw, 0.82rem);
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
 .home-hero-hp {
   display: inline-block;
   font-size: calc(1em + 2px);
