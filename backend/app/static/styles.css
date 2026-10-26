@@ -7995,3 +7995,37 @@ body.theme-admin .home-hero.home-hero--split .home-hero-pane-lead {
 tr.is-unread td {
   font-weight: 600;
 }
+
+/* Design-lab: combined Проверка page */
+body.design-lab .inspection-combined {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+body.design-lab .inspection-combined > h1 {
+  margin: 0 0 4px;
+}
+
+body.design-lab .inspection-combined-block {
+  padding: 18px 0 8px;
+  border-top: 1px solid rgba(15, 23, 42, 0.12);
+}
+
+body.design-lab .inspection-combined-block--customs {
+  border-top: none;
+  padding-top: 0;
+}
+
+body.design-lab .inspection-combined-block h2 {
+  margin: 0 0 10px;
+  font-size: 1.25rem;
+}
+
+body.design-lab .admin-vin-check-manual-page--embedded {
+  margin: 0;
+}
+
+body.design-lab .admin-vin-check-manual-page--embedded .catalog-main-head {
+  margin-top: 0;
+}
