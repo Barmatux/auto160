@@ -76,14 +76,14 @@ body.theme-admin .header .brand-logo {
 }
 
 body.theme-admin.design-lab .site-topline .brand-logo {
-  height: 72px;
-  max-width: min(280px, 46vw);
+  height: 64px;
+  max-width: min(250px, 42vw);
 }
 
 @media (max-width: 760px) {
   body.theme-admin.design-lab .site-topline .brand-logo {
-    height: 48px;
-    max-width: min(180px, 48vw);
+    height: 44px;
+    max-width: min(160px, 42vw);
   }
 }
 
