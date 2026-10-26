@@ -193,6 +193,10 @@
     <main class="page">{% block content %}{% endblock %}</main>
     <footer class="site-footer">
       <div class="site-footer-inner">
+        {% if design_lab %}
+        <a href="/requisites">Реквизиты</a>
+        <a href="/privacy">Персональные данные</a>
+        {% else %}
         <a href="/">Главная</a>
         <a href="/catalog">Каталог</a>
         <a href="/listings">Авто из Беларуси</a>
@@ -202,6 +206,7 @@
         <a href="/guides/do-160-hp">Гайд: до 160 л.с. — без утильсбора</a>
         <a href="/requisites">Реквизиты</a>
         <a href="/privacy">Персональные данные</a>
+        {% endif %}
       </div>
       <div class="site-footer-legal">
         <p>
