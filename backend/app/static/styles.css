@@ -8724,3 +8724,165 @@ body.design-lab .inspection-results-head h2 {
     position: static;
   }
 }
+
+/* —— Admin customs DB hierarchy board —— */
+.admin-customs-tabs {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  margin: 12px 0 18px;
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.55);
+  border: 1px solid rgba(148, 163, 184, 0.22);
+}
+
+.admin-customs-tab {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: #94a3b8;
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: 9px;
+  cursor: pointer;
+}
+
+.admin-customs-tab.is-active {
+  background: rgba(0, 168, 255, 0.18);
+  color: #e2e8f0;
+}
+
+.customs-db-board {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  align-items: stretch;
+}
+
+.customs-db-col {
+  min-width: 0;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.35);
+  display: flex;
+  flex-direction: column;
+  min-height: 420px;
+}
+
+.customs-db-col-head {
+  padding: 12px 12px 10px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+.customs-db-col-head h2 {
+  margin: 0 0 10px;
+  font-size: 0.95rem;
+}
+
+.customs-db-add {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.customs-db-add input {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: rgba(2, 6, 23, 0.45);
+  color: #e2e8f0;
+  font: inherit;
+  font-size: 0.88rem;
+}
+
+.customs-db-add button {
+  flex: 0 0 auto;
+  min-width: 36px;
+  padding: 8px 10px;
+}
+
+.customs-db-add--cc {
+  flex-wrap: wrap;
+}
+
+.customs-db-add--cc input[name="engine_cc"] {
+  flex: 1 1 46%;
+}
+
+.customs-db-add--cc input[name="power_hp"] {
+  flex: 1 1 46%;
+}
+
+.customs-db-list {
+  list-style: none;
+  margin: 0;
+  padding: 8px;
+  overflow: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.customs-db-list > li {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+}
+
+.customs-db-list > li.is-active .customs-db-item {
+  background: rgba(0, 168, 255, 0.2);
+  border-color: rgba(0, 168, 255, 0.45);
+  color: #f8fafc;
+}
+
+.customs-db-item {
+  flex: 1;
+  text-align: left;
+  border: 1px solid transparent;
+  background: rgba(2, 6, 23, 0.28);
+  color: #e2e8f0;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.customs-db-item:hover {
+  border-color: rgba(148, 163, 184, 0.28);
+}
+
+.customs-db-del {
+  flex: 0 0 auto;
+  padding: 0 8px;
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.customs-db-empty {
+  color: #64748b;
+  font-size: 0.85rem;
+  padding: 10px 8px;
+}
+
+.customs-db-hint {
+  margin: 0;
+  padding: 8px 12px 12px;
+}
+
+@media (max-width: 1100px) {
+  .customs-db-board {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .customs-db-board {
+    grid-template-columns: 1fr;
+  }
+}

@@ -35,6 +35,20 @@ from app.catalog_ratings import (
 from app.catalog_visibility import apply_generation_catalog_visibility
 from app.db import get_db
 from app.deps import require_admin, require_admin_flexible
+from app.customs_db import (
+    create_cc as create_customs_db_cc,
+    create_liter as create_customs_db_liter,
+    create_make as create_customs_db_make,
+    create_model as create_customs_db_model,
+    delete_cc as delete_customs_db_cc,
+    delete_liter as delete_customs_db_liter,
+    delete_make as delete_customs_db_make,
+    delete_model as delete_customs_db_model,
+    list_ccs as list_customs_db_ccs,
+    list_liters as list_customs_db_liters,
+    list_makes as list_customs_db_makes,
+    list_models as list_customs_db_models,
+)
 from app.customs_vehicles import (
     create_customs_vehicle_spec,
     delete_customs_vehicle_spec,
@@ -67,6 +81,14 @@ from app.schemas import (
     CatalogGenerationVisibilityUpdate,
     CatalogGenerationYearsResult,
     CatalogGenerationYearsUpdate,
+    CustomsDbCcCreateRequest,
+    CustomsDbCcOut,
+    CustomsDbLiterCreateRequest,
+    CustomsDbLiterOut,
+    CustomsDbMakeCreateRequest,
+    CustomsDbMakeOut,
+    CustomsDbModelCreateRequest,
+    CustomsDbModelOut,
     CustomsVehicleSpecCreateRequest,
     CustomsVehicleSpecOut,
     CustomsVehicleSpecUpdateRequest,
@@ -649,6 +671,152 @@ def admin_remove_featured_listing(
 ):
     try:
         remove_featured_listing(db, featured_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return None
+
+
+@router.get("/customs-db/makes", response_model=list[CustomsDbMakeOut])
+def admin_list_customs_db_makes(
+    _: User = Depends(require_admin_flexible),
+    db: Session = Depends(get_db),
+):
+    return list_customs_db_makes(db, active_only=False)
+
+
+@router.post("/customs-db/makes", response_model=CustomsDbMakeOut)
+def admin_create_customs_db_make(
+    payload: CustomsDbMakeCreateRequest,
+    _: User = Depends(require_admin_flexible),
+    db: Session = Depends(get_db),
+):
+    try:
+        return create_customs_db_make(db, name=payload.name, sort_weight=payload.sort_weight)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.delete("/customs-db/makes/{make_id}", status_code=204)
+def admin_delete_customs_db_make(
+    make_id: int,
+    _: User = Depends(require_admin_flexible),
+    db: Session = Depends(get_db),
+):
+    try:
+        delete_customs_db_make(db, make_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return None
+
+
+@router.get("/customs-db/models", response_model=list[CustomsDbModelOut])
+def admin_list_customs_db_models(
+    make_id: int = Query(...),
+    _: User = Depends(require_admin_flexible),
+    db: Session = Depends(get_db),
+):
+    return list_customs_db_models(db, make_id, active_only=False)
+
+
+@router.post("/customs-db/models", response_model=CustomsDbModelOut)
+def admin_create_customs_db_model(
+    payload: CustomsDbModelCreateRequest,
+    _: User = Depends(require_admin_flexible),
+    db: Session = Depends(get_db),
+):
+    try:
+        return create_customs_db_model(
+            db, make_id=payload.make_id, name=payload.name, sort_weight=payload.sort_weight
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.delete("/customs-db/models/{model_id}", status_code=204)
+def admin_delete_customs_db_model(
+    model_id: int,
+    _: User = Depends(require_admin_flexible),
+    db: Session = Depends(get_db),
+):
+    try:
+        delete_customs_db_model(db, model_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return None
+
+
+@router.get("/customs-db/liters", response_model=list[CustomsDbLiterOut])
+def admin_list_customs_db_liters(
+    model_id: int = Query(...),
+    _: User = Depends(require_admin_flexible),
+    db: Session = Depends(get_db),
+):
+    return list_customs_db_liters(db, model_id, active_only=False)
+
+
+@router.post("/customs-db/liters", response_model=CustomsDbLiterOut)
+def admin_create_customs_db_liter(
+    payload: CustomsDbLiterCreateRequest,
+    _: User = Depends(require_admin_flexible),
+    db: Session = Depends(get_db),
+):
+    try:
+        return create_customs_db_liter(
+            db, model_id=payload.model_id, liters=payload.liters, sort_weight=payload.sort_weight
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.delete("/customs-db/liters/{liter_id}", status_code=204)
+def admin_delete_customs_db_liter(
+    liter_id: int,
+    _: User = Depends(require_admin_flexible),
+    db: Session = Depends(get_db),
+):
+    try:
+        delete_customs_db_liter(db, liter_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return None
+
+
+@router.get("/customs-db/ccs", response_model=list[CustomsDbCcOut])
+def admin_list_customs_db_ccs(
+    liter_id: int = Query(...),
+    _: User = Depends(require_admin_flexible),
+    db: Session = Depends(get_db),
+):
+    return list_customs_db_ccs(db, liter_id, active_only=False)
+
+
+@router.post("/customs-db/ccs", response_model=CustomsDbCcOut)
+def admin_create_customs_db_cc(
+    payload: CustomsDbCcCreateRequest,
+    _: User = Depends(require_admin_flexible),
+    db: Session = Depends(get_db),
+):
+    try:
+        return create_customs_db_cc(
+            db,
+            liter_id=payload.liter_id,
+            engine_cc=payload.engine_cc,
+            power_hp=payload.power_hp,
+            notes=payload.notes,
+            sort_weight=payload.sort_weight,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.delete("/customs-db/ccs/{cc_id}", status_code=204)
+def admin_delete_customs_db_cc(
+    cc_id: int,
+    _: User = Depends(require_admin_flexible),
+    db: Session = Depends(get_db),
+):
+    try:
+        delete_customs_db_cc(db, cc_id)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     return None

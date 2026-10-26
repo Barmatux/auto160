@@ -476,7 +476,7 @@ class SiteLead(Base):
 
 
 class CustomsVehicleSpec(Base):
-    """Admin-curated make/model engine specs for the public customs calculator."""
+    """Legacy flat specs (kept for backward compatibility). Prefer CustomsDb* hierarchy."""
 
     __tablename__ = "customs_vehicle_specs"
 
@@ -495,6 +495,85 @@ class CustomsVehicleSpec(Base):
     sort_weight: Mapped[int] = mapped_column(Integer, default=0, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class CustomsDbMake(Base):
+    """Customs calculator DB: vehicle make."""
+
+    __tablename__ = "customs_db_makes"
+    __table_args__ = (UniqueConstraint("name", name="uq_customs_db_makes_name"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    name: Mapped[str] = mapped_column(String(80), index=True)
+    sort_weight: Mapped[int] = mapped_column(Integer, default=0, index=True)
+    is_active: Mapped[bool] = mapped_column(default=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    models: Mapped[list["CustomsDbModel"]] = relationship(
+        back_populates="make", cascade="all, delete-orphan"
+    )
+
+
+class CustomsDbModel(Base):
+    """Customs calculator DB: model within a make."""
+
+    __tablename__ = "customs_db_models"
+    __table_args__ = (UniqueConstraint("make_id", "name", name="uq_customs_db_models_make_name"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    make_id: Mapped[int] = mapped_column(ForeignKey("customs_db_makes.id", ondelete="CASCADE"), index=True)
+    name: Mapped[str] = mapped_column(String(120), index=True)
+    sort_weight: Mapped[int] = mapped_column(Integer, default=0, index=True)
+    is_active: Mapped[bool] = mapped_column(default=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    make: Mapped["CustomsDbMake"] = relationship(back_populates="models")
+    liters: Mapped[list["CustomsDbEngineLiter"]] = relationship(
+        back_populates="model", cascade="all, delete-orphan"
+    )
+
+
+class CustomsDbEngineLiter(Base):
+    """Customs calculator DB: nominal engine volume in liters (1 decimal)."""
+
+    __tablename__ = "customs_db_engine_liters"
+    __table_args__ = (
+        UniqueConstraint("model_id", "liters", name="uq_customs_db_engine_liters_model_liters"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    model_id: Mapped[int] = mapped_column(ForeignKey("customs_db_models.id", ondelete="CASCADE"), index=True)
+    liters: Mapped[float] = mapped_column(Numeric(4, 1))
+    sort_weight: Mapped[int] = mapped_column(Integer, default=0, index=True)
+    is_active: Mapped[bool] = mapped_column(default=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    model: Mapped["CustomsDbModel"] = relationship(back_populates="liters")
+    displacements: Mapped[list["CustomsDbEngineCc"]] = relationship(
+        back_populates="liter", cascade="all, delete-orphan"
+    )
+
+
+class CustomsDbEngineCc(Base):
+    """Customs calculator DB: exact engine displacement in cm³ (fed into the calculator)."""
+
+    __tablename__ = "customs_db_engine_cc"
+    __table_args__ = (
+        UniqueConstraint("liter_id", "engine_cc", name="uq_customs_db_engine_cc_liter_cc"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    liter_id: Mapped[int] = mapped_column(
+        ForeignKey("customs_db_engine_liters.id", ondelete="CASCADE"), index=True
+    )
+    engine_cc: Mapped[int] = mapped_column(Integer)
+    power_hp: Mapped[float | None] = mapped_column(Numeric(8, 2), nullable=True)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    sort_weight: Mapped[int] = mapped_column(Integer, default=0, index=True)
+    is_active: Mapped[bool] = mapped_column(default=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    liter: Mapped["CustomsDbEngineLiter"] = relationship(back_populates="displacements")
 
 
 class AvbyPriceStatTarget(Base):

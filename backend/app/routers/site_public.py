@@ -3,12 +3,20 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
+from app.customs_db import (
+    cc_label,
+    get_cc,
+    list_ccs,
+    list_liters,
+    public_make_names,
+    public_models_for_make_name,
+)
 from app.customs_duty_calc import CustomsCalcInput, calculate_customs, normalize_age_band
 from app.customs_vehicles import (
     get_customs_vehicle_spec,
     list_customs_vehicle_specs,
-    list_makes,
-    list_models_for_make,
+    list_makes as list_legacy_makes,
+    list_models_for_make as list_legacy_models_for_make,
 )
 from app.db import get_db
 from app.featured import create_site_lead, lookup_public_import_date
@@ -16,6 +24,9 @@ from app.myfin_rates import fetch_myfin_buy_rates
 from app.schemas import (
     CustomsCalcRequest,
     CustomsCalcResponse,
+    CustomsDbCcOut,
+    CustomsDbLiterOut,
+    CustomsDbModelOut,
     CustomsVehicleSpecOut,
     ImportDateLookupRequest,
     ImportDateLookupResponse,
@@ -25,7 +36,6 @@ from app.schemas import (
 
 router = APIRouter(prefix="/api/v1/public", tags=["public"])
 
-# Fallback FX if myfin is temporarily unavailable (approx mid-2026).
 _FALLBACK_EUR_RUB = 98.0
 _FALLBACK_USD_RUB = 90.0
 _FALLBACK_BYN_RUB = 28.0
@@ -69,9 +79,35 @@ def lookup_import_date(payload: ImportDateLookupRequest, db: Session = Depends(g
     )
 
 
+@router.get("/customs-db/makes", response_model=list[str])
+def public_customs_db_makes(db: Session = Depends(get_db)):
+    names = public_make_names(db)
+    if names:
+        return names
+    return list_legacy_makes(db)
+
+
+@router.get("/customs-db/models", response_model=list[CustomsDbModelOut])
+def public_customs_db_models(make: str = Query(...), db: Session = Depends(get_db)):
+    return public_models_for_make_name(db, make)
+
+
+@router.get("/customs-db/liters", response_model=list[CustomsDbLiterOut])
+def public_customs_db_liters(model_id: int = Query(...), db: Session = Depends(get_db)):
+    return list_liters(db, model_id, active_only=True)
+
+
+@router.get("/customs-db/ccs", response_model=list[CustomsDbCcOut])
+def public_customs_db_ccs(liter_id: int = Query(...), db: Session = Depends(get_db)):
+    return list_ccs(db, liter_id, active_only=True)
+
+
 @router.get("/customs-vehicles/makes", response_model=list[str])
 def public_customs_makes(db: Session = Depends(get_db)):
-    return list_makes(db)
+    names = public_make_names(db)
+    if names:
+        return names
+    return list_legacy_makes(db)
 
 
 @router.get("/customs-vehicles", response_model=list[CustomsVehicleSpecOut])
@@ -80,7 +116,7 @@ def public_customs_vehicles(
     db: Session = Depends(get_db),
 ):
     if make:
-        return list_models_for_make(db, make)
+        return list_legacy_models_for_make(db, make)
     return list_customs_vehicle_specs(db, active_only=True)
 
 
@@ -96,7 +132,16 @@ def public_customs_calc(payload: CustomsCalcRequest, db: Session = Depends(get_d
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
-    if payload.vehicle_spec_id:
+    if payload.engine_cc_id:
+        row = get_cc(db, payload.engine_cc_id)
+        if row is None or not row.is_active:
+            raise HTTPException(status_code=404, detail="Объём двигателя не найден")
+        engine_cc = float(row.engine_cc)
+        if row.power_hp is not None:
+            power_hp = float(row.power_hp)
+        vehicle_label = cc_label(row)
+        engine_kind = "ice"
+    elif payload.vehicle_spec_id:
         spec = get_customs_vehicle_spec(db, payload.vehicle_spec_id)
         if spec is None or not spec.is_active:
             raise HTTPException(status_code=404, detail="Комплектация не найдена")

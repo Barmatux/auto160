@@ -685,6 +685,76 @@ class CustomsVehicleSpecUpdateRequest(BaseModel):
     sort_weight: int | None = None
 
 
+class CustomsDbMakeOut(BaseModel):
+    id: int
+    name: str
+    sort_weight: int
+    is_active: bool
+
+    class Config:
+        from_attributes = True
+
+
+class CustomsDbMakeCreateRequest(BaseModel):
+    name: str
+    sort_weight: int = 0
+
+
+class CustomsDbModelOut(BaseModel):
+    id: int
+    make_id: int
+    name: str
+    sort_weight: int
+    is_active: bool
+
+    class Config:
+        from_attributes = True
+
+
+class CustomsDbModelCreateRequest(BaseModel):
+    make_id: int
+    name: str
+    sort_weight: int = 0
+
+
+class CustomsDbLiterOut(BaseModel):
+    id: int
+    model_id: int
+    liters: float
+    sort_weight: int
+    is_active: bool
+
+    class Config:
+        from_attributes = True
+
+
+class CustomsDbLiterCreateRequest(BaseModel):
+    model_id: int
+    liters: float
+    sort_weight: int = 0
+
+
+class CustomsDbCcOut(BaseModel):
+    id: int
+    liter_id: int
+    engine_cc: int
+    power_hp: float | None = None
+    notes: str | None = None
+    sort_weight: int
+    is_active: bool
+
+    class Config:
+        from_attributes = True
+
+
+class CustomsDbCcCreateRequest(BaseModel):
+    liter_id: int
+    engine_cc: int
+    power_hp: float | None = None
+    notes: str | None = None
+    sort_weight: int = 0
+
+
 class CustomsCalcRequest(BaseModel):
     age_band: str
     engine_cc: float = 0
@@ -694,6 +764,7 @@ class CustomsCalcRequest(BaseModel):
     importer: str = "personal"
     engine_kind: str = "ice"
     vehicle_spec_id: int | None = None
+    engine_cc_id: int | None = None
 
 
 class CustomsCalcResponse(BaseModel):

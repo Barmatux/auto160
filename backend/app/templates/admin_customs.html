@@ -6,113 +6,122 @@
 
 <h1>Растаможка</h1>
 <p class="hint">
-  Каталог комплектаций для публичного калькулятора: марка, модель, объём и мощность.
-  Эти данные подставляются во второй режим ввода на странице «Растаможка».
+  Иерархическая база для калькулятора: марка → модель → объём в литрах → точный объём в см³.
 </p>
 
-<form class="admin-customs-form" data-customs-add-form>
-  <div class="admin-customs-grid">
-    <label>
-      Марка
-      <input type="text" name="make" required placeholder="Toyota" />
-    </label>
-    <label>
-      Модель
-      <input type="text" name="model" required placeholder="RAV4" />
-    </label>
-    <label>
-      Поколение
-      <input type="text" name="generation" placeholder="XA50" />
-    </label>
-    <label>
-      Год с
-      <input type="number" name="year_from" min="1980" max="2035" />
-    </label>
-    <label>
-      Год по
-      <input type="number" name="year_to" min="1980" max="2035" />
-    </label>
-    <label>
-      Объём, см³
-      <input type="number" name="engine_cc" min="0" max="10000" required value="1987" />
-    </label>
-    <label>
-      Мощность, л.с.
-      <input type="number" name="power_hp" min="1" max="2000" step="0.1" required value="150" />
-    </label>
-    <label>
-      Тип
-      <select name="engine_kind">
-        <option value="ice" selected>ДВС / гибрид</option>
-        <option value="electric">Электро</option>
-      </select>
-    </label>
-    <label>
-      Топливо
-      <input type="text" name="fuel_label" placeholder="бензин" />
-    </label>
-    <label>
-      Вес
-      <input type="number" name="sort_weight" value="0" />
-    </label>
-    <label class="admin-customs-span-2">
-      Заметка
-      <input type="text" name="notes" placeholder="Японский рынок, 156 л.с. в документах" />
-    </label>
-  </div>
-  <div class="actions-row">
-    <button type="submit" class="btn-primary">Добавить</button>
-    <p class="hint" data-customs-add-status hidden></p>
-  </div>
-</form>
+<div class="admin-customs-tabs" role="tablist" aria-label="Разделы растаможки">
+  <button type="button" class="admin-customs-tab is-active" data-customs-tab="db" role="tab" aria-selected="true">
+    База данных
+  </button>
+  <button type="button" class="admin-customs-tab" data-customs-tab="legacy" role="tab" aria-selected="false">
+    Старый каталог
+  </button>
+</div>
 
-<table class="users-table admin-customs-table">
-  <thead>
-    <tr>
-      <th>ID</th>
-      <th>Авто</th>
-      <th>Годы</th>
-      <th>Объём</th>
-      <th>Мощность</th>
-      <th>Тип</th>
-      <th>Активно</th>
-      <th></th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for row in customs_specs %}
-      <tr data-customs-row="{{ row.id }}">
-        <td>{{ row.id }}</td>
-        <td>
-          <strong>{{ row.make }} {{ row.model }}</strong>
-          {% if row.generation %}<div class="hint">{{ row.generation }}</div>{% endif %}
-          {% if row.notes %}<div class="hint">{{ row.notes }}</div>{% endif %}
-        </td>
-        <td>
-          {% if row.year_from or row.year_to %}
-            {{ row.year_from or "…" }}–{{ row.year_to or "…" }}
-          {% else %}
-            —
-          {% endif %}
-        </td>
-        <td>{{ row.engine_cc }} см³</td>
-        <td>{{ row.power_hp }} л.с.</td>
-        <td>{{ row.engine_kind }}{% if row.fuel_label %} · {{ row.fuel_label }}{% endif %}</td>
-        <td>{% if row.is_active %}да{% else %}нет{% endif %}</td>
-        <td class="admin-featured-actions">
-          {% if row.is_active %}
-            <button type="button" class="btn-link" data-customs-deactivate="{{ row.id }}">Выключить</button>
-          {% else %}
-            <button type="button" class="btn-link" data-customs-activate="{{ row.id }}">Включить</button>
-          {% endif %}
-          <button type="button" class="btn-link" data-customs-remove="{{ row.id }}">Удалить</button>
-        </td>
+<section class="admin-customs-pane" data-customs-pane="db">
+  <div class="customs-db-board" data-customs-db>
+    <div class="customs-db-col" data-col="makes">
+      <header class="customs-db-col-head">
+        <h2>Марки</h2>
+        <form class="customs-db-add" data-add="make">
+          <input type="text" name="name" placeholder="Toyota" required />
+          <button type="submit" class="btn-primary">+</button>
+        </form>
+      </header>
+      <ul class="customs-db-list" data-list="makes">
+        {% for make in customs_db_makes %}
+          <li>
+            <button type="button" class="customs-db-item" data-make-id="{{ make.id }}">
+              <span>{{ make.name }}</span>
+            </button>
+            <button type="button" class="btn-link customs-db-del" data-del-make="{{ make.id }}" title="Удалить">×</button>
+          </li>
+        {% else %}
+          <li class="customs-db-empty" data-empty="makes">Пока пусто — добавьте марку</li>
+        {% endfor %}
+      </ul>
+    </div>
+
+    <div class="customs-db-col" data-col="models">
+      <header class="customs-db-col-head">
+        <h2>Модели</h2>
+        <form class="customs-db-add" data-add="model">
+          <input type="hidden" name="make_id" value="" data-parent-make />
+          <input type="text" name="name" placeholder="RAV4" required disabled />
+          <button type="submit" class="btn-primary" disabled>+</button>
+        </form>
+      </header>
+      <ul class="customs-db-list" data-list="models">
+        <li class="customs-db-empty">Выберите марку</li>
+      </ul>
+    </div>
+
+    <div class="customs-db-col" data-col="liters">
+      <header class="customs-db-col-head">
+        <h2>Объём, л</h2>
+        <form class="customs-db-add" data-add="liter">
+          <input type="hidden" name="model_id" value="" data-parent-model />
+          <input type="number" name="liters" min="0.1" max="20" step="0.1" placeholder="1.6" required disabled />
+          <button type="submit" class="btn-primary" disabled>+</button>
+        </form>
+      </header>
+      <ul class="customs-db-list" data-list="liters">
+        <li class="customs-db-empty">Выберите модель</li>
+      </ul>
+    </div>
+
+    <div class="customs-db-col" data-col="ccs">
+      <header class="customs-db-col-head">
+        <h2>Точный объём, см³</h2>
+        <form class="customs-db-add customs-db-add--cc" data-add="cc">
+          <input type="hidden" name="liter_id" value="" data-parent-liter />
+          <input type="number" name="engine_cc" min="1" max="20000" step="1" placeholder="1598" required disabled />
+          <input type="number" name="power_hp" min="1" max="2000" step="0.1" placeholder="л.с. (опц.)" disabled />
+          <button type="submit" class="btn-primary" disabled>+</button>
+        </form>
+      </header>
+      <ul class="customs-db-list" data-list="ccs">
+        <li class="customs-db-empty">Выберите объём в литрах</li>
+      </ul>
+      <p class="hint customs-db-hint" data-cc-hint>
+        Выбранный см³ подставляется в калькулятор растаможки.
+      </p>
+    </div>
+  </div>
+  <p class="hint" data-customs-db-status hidden></p>
+</section>
+
+<section class="admin-customs-pane" data-customs-pane="legacy" hidden>
+  <p class="hint">Плоский каталог (устаревший). Для новых данных используйте вкладку «База данных».</p>
+  <table class="users-table admin-customs-table">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Авто</th>
+        <th>Объём</th>
+        <th>Мощность</th>
+        <th>Активно</th>
+        <th></th>
       </tr>
-    {% else %}
-      <tr><td colspan="8">Пока нет комплектаций — добавьте первую выше.</td></tr>
-    {% endfor %}
-  </tbody>
-</table>
+    </thead>
+    <tbody>
+      {% for row in customs_specs %}
+        <tr data-customs-row="{{ row.id }}">
+          <td>{{ row.id }}</td>
+          <td><strong>{{ row.make }} {{ row.model }}</strong></td>
+          <td>{{ row.engine_cc }} см³</td>
+          <td>{{ row.power_hp }} л.с.</td>
+          <td>{% if row.is_active %}да{% else %}нет{% endif %}</td>
+          <td class="admin-featured-actions">
+            <button type="button" class="btn-link" data-customs-remove="{{ row.id }}">Удалить</button>
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="6">Пусто</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
 
-<script src="/static/admin_customs.js?v=20261026-28" defer></script>
+<script src="/static/admin_customs.js?v=20261026-30" defer></script>
 {% endblock %}

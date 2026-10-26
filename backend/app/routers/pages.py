@@ -131,6 +131,7 @@ from app.manual_vin_check import (
     list_manual_vin_check_account_options,
     paginate_manual_vin_check_listings,
 )
+from app.customs_db import list_makes as list_customs_db_makes, public_make_names
 from app.customs_vehicles import list_customs_vehicle_specs
 from app.featured import (
     FEATURED_HOME_LIMIT,
@@ -2619,10 +2620,12 @@ def home(request: Request, db: Session = Depends(get_db)):
 def calculator_page(request: Request, db: Session = Depends(get_db)):
     current_user = _resolve_user_from_request(request, db)
     context = _template_context(request, current_user, calculator_seo_meta())
-    vehicle_specs = list_customs_vehicle_specs(db, active_only=True)
-    makes = sorted({row.make for row in vehicle_specs}, key=lambda m: m.lower())
+    makes = public_make_names(db)
+    if not makes:
+        vehicle_specs = list_customs_vehicle_specs(db, active_only=True)
+        makes = sorted({row.make for row in vehicle_specs}, key=lambda m: m.lower())
     context["customs_makes"] = makes
-    context["customs_vehicle_count"] = len(vehicle_specs)
+    context["customs_vehicle_count"] = len(makes)
     return templates.TemplateResponse(request, "calculator.html", context)
 
 
@@ -5243,6 +5246,7 @@ def admin_customs_page(request: Request, db: Session = Depends(get_db)):
     if redirect:
         return redirect
     context = _template_context(request, current_user)
+    context["customs_db_makes"] = list_customs_db_makes(db, active_only=False)
     context["customs_specs"] = list_customs_vehicle_specs(db, active_only=False)
     return templates.TemplateResponse(request, "admin_customs.html", context)
 

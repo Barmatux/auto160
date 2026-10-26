@@ -15,81 +15,304 @@
     return data;
   }
 
-  function numOrNull(value) {
-    if (value === "" || value == null) return null;
-    var n = Number(value);
-    return Number.isFinite(n) ? n : null;
+  var statusEl = document.querySelector("[data-customs-db-status]");
+  function setStatus(text, isError) {
+    if (!statusEl) return;
+    statusEl.hidden = !text;
+    statusEl.textContent = text || "";
+    statusEl.style.color = isError ? "#f87171" : "";
   }
 
-  var addForm = document.querySelector("[data-customs-add-form]");
-  if (addForm) {
-    var status = addForm.querySelector("[data-customs-add-status]");
-    addForm.addEventListener("submit", async function (event) {
-      event.preventDefault();
-      var fd = new FormData(addForm);
-      if (status) {
-        status.hidden = false;
-        status.textContent = "Сохраняем…";
-      }
-      try {
-        await api("/api/v1/admin/customs-vehicles", {
-          method: "POST",
-          body: JSON.stringify({
-            make: String(fd.get("make") || ""),
-            model: String(fd.get("model") || ""),
-            generation: String(fd.get("generation") || "") || null,
-            year_from: numOrNull(fd.get("year_from")),
-            year_to: numOrNull(fd.get("year_to")),
-            engine_cc: Number(fd.get("engine_cc")),
-            power_hp: Number(fd.get("power_hp")),
-            engine_kind: String(fd.get("engine_kind") || "ice"),
-            fuel_label: String(fd.get("fuel_label") || "") || null,
-            notes: String(fd.get("notes") || "") || null,
-            sort_weight: Number(fd.get("sort_weight") || 0),
-            is_active: true,
-          }),
-        });
-        window.location.reload();
-      } catch (err) {
-        if (status) status.textContent = err.message || "Ошибка";
-      }
-    });
-  }
-
-  document.querySelectorAll("[data-customs-deactivate]").forEach(function (btn) {
-    btn.addEventListener("click", async function () {
-      var id = btn.getAttribute("data-customs-deactivate");
-      try {
-        await api("/api/v1/admin/customs-vehicles/" + id, {
-          method: "PATCH",
-          body: JSON.stringify({ is_active: false }),
-        });
-        window.location.reload();
-      } catch (err) {
-        alert(err.message || "Ошибка");
-      }
+  document.querySelectorAll("[data-customs-tab]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var tab = btn.getAttribute("data-customs-tab");
+      document.querySelectorAll("[data-customs-tab]").forEach(function (b) {
+        var on = b.getAttribute("data-customs-tab") === tab;
+        b.classList.toggle("is-active", on);
+        b.setAttribute("aria-selected", on ? "true" : "false");
+      });
+      document.querySelectorAll("[data-customs-pane]").forEach(function (pane) {
+        pane.hidden = pane.getAttribute("data-customs-pane") !== tab;
+      });
     });
   });
 
-  document.querySelectorAll("[data-customs-activate]").forEach(function (btn) {
-    btn.addEventListener("click", async function () {
-      var id = btn.getAttribute("data-customs-activate");
+  var board = document.querySelector("[data-customs-db]");
+  if (!board) return;
+
+  var state = { makeId: null, modelId: null, literId: null };
+
+  function litersLabel(value) {
+    var n = Number(value);
+    return (Number.isInteger(n) ? String(n) : n.toFixed(1).replace(/\.0$/, "")) + " л";
+  }
+
+  function enableForm(selector, enabled) {
+    var form = board.querySelector(selector);
+    if (!form) return;
+    form.querySelectorAll("input:not([type=hidden]), button").forEach(function (el) {
+      el.disabled = !enabled;
+    });
+  }
+
+  function setListEmpty(listName, text) {
+    var list = board.querySelector('[data-list="' + listName + '"]');
+    if (!list) return;
+    list.innerHTML = '<li class="customs-db-empty">' + text + "</li>";
+  }
+
+  function renderList(listName, rows, renderItem) {
+    var list = board.querySelector('[data-list="' + listName + '"]');
+    if (!list) return;
+    list.innerHTML = "";
+    if (!rows.length) {
+      setListEmpty(listName, "Пусто — добавьте запись");
+      return;
+    }
+    rows.forEach(function (row) {
+      list.appendChild(renderItem(row));
+    });
+  }
+
+  function makeRow(label, selectAttr, selectId, delAttr, delId, active) {
+    var li = document.createElement("li");
+    if (active) li.classList.add("is-active");
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "customs-db-item";
+    btn.setAttribute(selectAttr, String(selectId));
+    btn.innerHTML = "<span></span>";
+    btn.querySelector("span").textContent = label;
+    var del = document.createElement("button");
+    del.type = "button";
+    del.className = "btn-link customs-db-del";
+    del.setAttribute(delAttr, String(delId));
+    del.title = "Удалить";
+    del.textContent = "×";
+    li.appendChild(btn);
+    li.appendChild(del);
+    return li;
+  }
+
+  async function loadModels(makeId) {
+    state.makeId = makeId;
+    state.modelId = null;
+    state.literId = null;
+    board.querySelectorAll("[data-make-id]").forEach(function (el) {
+      el.closest("li").classList.toggle("is-active", el.getAttribute("data-make-id") === String(makeId));
+    });
+    var parent = board.querySelector("[data-parent-make]");
+    if (parent) parent.value = String(makeId);
+    enableForm('[data-add="model"]', true);
+    enableForm('[data-add="liter"]', false);
+    enableForm('[data-add="cc"]', false);
+    setListEmpty("liters", "Выберите модель");
+    setListEmpty("ccs", "Выберите объём в литрах");
+    setListEmpty("models", "Загрузка…");
+    try {
+      var rows = await api("/api/v1/admin/customs-db/models?make_id=" + encodeURIComponent(makeId));
+      renderList("models", rows, function (row) {
+        return makeRow(row.name, "data-model-id", row.id, "data-del-model", row.id, false);
+      });
+    } catch (err) {
+      setListEmpty("models", err.message || "Ошибка");
+    }
+  }
+
+  async function loadLiters(modelId) {
+    state.modelId = modelId;
+    state.literId = null;
+    board.querySelectorAll("[data-model-id]").forEach(function (el) {
+      el.closest("li").classList.toggle("is-active", el.getAttribute("data-model-id") === String(modelId));
+    });
+    var parent = board.querySelector("[data-parent-model]");
+    if (parent) parent.value = String(modelId);
+    enableForm('[data-add="liter"]', true);
+    enableForm('[data-add="cc"]', false);
+    setListEmpty("ccs", "Выберите объём в литрах");
+    setListEmpty("liters", "Загрузка…");
+    try {
+      var rows = await api("/api/v1/admin/customs-db/liters?model_id=" + encodeURIComponent(modelId));
+      renderList("liters", rows, function (row) {
+        return makeRow(litersLabel(row.liters), "data-liter-id", row.id, "data-del-liter", row.id, false);
+      });
+    } catch (err) {
+      setListEmpty("liters", err.message || "Ошибка");
+    }
+  }
+
+  async function loadCcs(literId) {
+    state.literId = literId;
+    board.querySelectorAll("[data-liter-id]").forEach(function (el) {
+      el.closest("li").classList.toggle("is-active", el.getAttribute("data-liter-id") === String(literId));
+    });
+    var parent = board.querySelector("[data-parent-liter]");
+    if (parent) parent.value = String(literId);
+    enableForm('[data-add="cc"]', true);
+    setListEmpty("ccs", "Загрузка…");
+    try {
+      var rows = await api("/api/v1/admin/customs-db/ccs?liter_id=" + encodeURIComponent(literId));
+      renderList("ccs", rows, function (row) {
+        var label = row.engine_cc + " см³";
+        if (row.power_hp) label += " · " + row.power_hp + " л.с.";
+        return makeRow(label, "data-cc-id", row.id, "data-del-cc", row.id, false);
+      });
+    } catch (err) {
+      setListEmpty("ccs", err.message || "Ошибка");
+    }
+  }
+
+  board.addEventListener("click", async function (event) {
+    var makeBtn = event.target.closest("[data-make-id]");
+    if (makeBtn && !makeBtn.hasAttribute("data-del-make")) {
+      loadModels(Number(makeBtn.getAttribute("data-make-id")));
+      return;
+    }
+    var modelBtn = event.target.closest("[data-model-id]");
+    if (modelBtn && !modelBtn.hasAttribute("data-del-model")) {
+      loadLiters(Number(modelBtn.getAttribute("data-model-id")));
+      return;
+    }
+    var literBtn = event.target.closest("[data-liter-id]");
+    if (literBtn && !literBtn.hasAttribute("data-del-liter")) {
+      loadCcs(Number(literBtn.getAttribute("data-liter-id")));
+      return;
+    }
+
+    var delMake = event.target.closest("[data-del-make]");
+    if (delMake) {
+      if (!window.confirm("Удалить марку и всё внутри?")) return;
       try {
-        await api("/api/v1/admin/customs-vehicles/" + id, {
-          method: "PATCH",
-          body: JSON.stringify({ is_active: true }),
+        await api("/api/v1/admin/customs-db/makes/" + delMake.getAttribute("data-del-make"), {
+          method: "DELETE",
         });
         window.location.reload();
       } catch (err) {
-        alert(err.message || "Ошибка");
+        setStatus(err.message || "Ошибка", true);
       }
-    });
+      return;
+    }
+    var delModel = event.target.closest("[data-del-model]");
+    if (delModel) {
+      if (!window.confirm("Удалить модель и всё внутри?")) return;
+      try {
+        await api("/api/v1/admin/customs-db/models/" + delModel.getAttribute("data-del-model"), {
+          method: "DELETE",
+        });
+        if (state.makeId) loadModels(state.makeId);
+      } catch (err) {
+        setStatus(err.message || "Ошибка", true);
+      }
+      return;
+    }
+    var delLiter = event.target.closest("[data-del-liter]");
+    if (delLiter) {
+      if (!window.confirm("Удалить объём и точные см³?")) return;
+      try {
+        await api("/api/v1/admin/customs-db/liters/" + delLiter.getAttribute("data-del-liter"), {
+          method: "DELETE",
+        });
+        if (state.modelId) loadLiters(state.modelId);
+      } catch (err) {
+        setStatus(err.message || "Ошибка", true);
+      }
+      return;
+    }
+    var delCc = event.target.closest("[data-del-cc]");
+    if (delCc) {
+      if (!window.confirm("Удалить точный объём?")) return;
+      try {
+        await api("/api/v1/admin/customs-db/ccs/" + delCc.getAttribute("data-del-cc"), {
+          method: "DELETE",
+        });
+        if (state.literId) loadCcs(state.literId);
+      } catch (err) {
+        setStatus(err.message || "Ошибка", true);
+      }
+    }
+  });
+
+  board.querySelector('[data-add="make"]').addEventListener("submit", async function (event) {
+    event.preventDefault();
+    var fd = new FormData(event.currentTarget);
+    try {
+      await api("/api/v1/admin/customs-db/makes", {
+        method: "POST",
+        body: JSON.stringify({ name: String(fd.get("name") || "") }),
+      });
+      window.location.reload();
+    } catch (err) {
+      setStatus(err.message || "Ошибка", true);
+    }
+  });
+
+  board.querySelector('[data-add="model"]').addEventListener("submit", async function (event) {
+    event.preventDefault();
+    if (!state.makeId) return;
+    var fd = new FormData(event.currentTarget);
+    try {
+      await api("/api/v1/admin/customs-db/models", {
+        method: "POST",
+        body: JSON.stringify({
+          make_id: state.makeId,
+          name: String(fd.get("name") || ""),
+        }),
+      });
+      event.currentTarget.reset();
+      board.querySelector("[data-parent-make]").value = String(state.makeId);
+      loadModels(state.makeId);
+    } catch (err) {
+      setStatus(err.message || "Ошибка", true);
+    }
+  });
+
+  board.querySelector('[data-add="liter"]').addEventListener("submit", async function (event) {
+    event.preventDefault();
+    if (!state.modelId) return;
+    var fd = new FormData(event.currentTarget);
+    try {
+      await api("/api/v1/admin/customs-db/liters", {
+        method: "POST",
+        body: JSON.stringify({
+          model_id: state.modelId,
+          liters: Number(fd.get("liters")),
+        }),
+      });
+      event.currentTarget.reset();
+      board.querySelector("[data-parent-model]").value = String(state.modelId);
+      loadLiters(state.modelId);
+    } catch (err) {
+      setStatus(err.message || "Ошибка", true);
+    }
+  });
+
+  board.querySelector('[data-add="cc"]').addEventListener("submit", async function (event) {
+    event.preventDefault();
+    if (!state.literId) return;
+    var fd = new FormData(event.currentTarget);
+    var powerRaw = fd.get("power_hp");
+    var body = {
+      liter_id: state.literId,
+      engine_cc: Number(fd.get("engine_cc")),
+      power_hp: powerRaw === "" || powerRaw == null ? null : Number(powerRaw),
+    };
+    try {
+      await api("/api/v1/admin/customs-db/ccs", {
+        method: "POST",
+        body: JSON.stringify(body),
+      });
+      event.currentTarget.reset();
+      board.querySelector("[data-parent-liter]").value = String(state.literId);
+      loadCcs(state.literId);
+    } catch (err) {
+      setStatus(err.message || "Ошибка", true);
+    }
   });
 
   document.querySelectorAll("[data-customs-remove]").forEach(function (btn) {
     btn.addEventListener("click", async function () {
       var id = btn.getAttribute("data-customs-remove");
-      if (!window.confirm("Удалить комплектацию?")) return;
+      if (!window.confirm("Удалить из старого каталога?")) return;
       try {
         await api("/api/v1/admin/customs-vehicles/" + id, { method: "DELETE" });
         window.location.reload();
