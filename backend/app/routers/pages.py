@@ -33,7 +33,6 @@ from app.fuel_type_labels import (
     resolved_catalog_fuel_type,
 )
 from app.drive_type_labels import drive_type_sql_predicate, normalize_drive_display_label
-from app.design_lab import is_design_lab_user
 from app.messengers import header_messenger_links
 from app.myfin_rates import fetch_myfin_buy_rates
 from app.site_theme import (
@@ -472,15 +471,15 @@ def _resolve_site_theme(request: Request, current_user: User | None) -> str:
 def _template_context(request: Request, current_user: User | None, seo: SeoMeta | None = None) -> dict:
     is_admin = current_user is not None and current_user.role == UserRole.admin
     site_theme = _resolve_site_theme(request, current_user)
-    design_lab = is_design_lab_user(current_user)
     context = {
         "request": request,
         "current_user": current_user,
         "is_authenticated": current_user is not None,
         "is_admin": is_admin,
-        "design_lab": design_lab,
-        "design_lab_rates": fetch_myfin_buy_rates() if design_lab else None,
-        "design_lab_messengers": header_messenger_links() if design_lab else [],
+        # Rolled out site-wide; body.design-lab keeps scoped CSS working.
+        "design_lab": True,
+        "design_lab_rates": fetch_myfin_buy_rates(),
+        "design_lab_messengers": header_messenger_links(),
         "site_theme": site_theme,
         "site_theme_uses_logo": site_theme_uses_logo(site_theme),
         "site_theme_body_class": site_theme_body_class(site_theme),
@@ -2617,8 +2616,6 @@ def home(request: Request, db: Session = Depends(get_db)):
 @router.get("/calculator")
 def calculator_page(request: Request, db: Session = Depends(get_db)):
     current_user = _resolve_user_from_request(request, db)
-    if not is_design_lab_user(current_user):
-        return RedirectResponse(url="/", status_code=302)
     context = _template_context(request, current_user)
     return templates.TemplateResponse(request, "calculator.html", context)
 
@@ -3157,16 +3154,11 @@ def vin_inspection_page(
 ):
     current_user = _resolve_user_from_request(request, db)
     has_query = bool((vin or "").strip() or listing_id is not None or refresh)
-    design_lab = is_design_lab_user(current_user)
-    seo = (
-        SeoMeta(
-            title="Проверка — Auto160",
-            description="Проверка VIN в базе таможни РБ и ручная проверка объявлений av.by.",
-            path="/inspection",
-            noindex=has_query,
-        )
-        if design_lab
-        else inspection_seo_meta(has_query=has_query)
+    seo = SeoMeta(
+        title="Проверка — Auto160",
+        description="Проверка VIN в базе таможни РБ и ручная проверка объявлений av.by.",
+        path="/inspection",
+        noindex=has_query,
     )
     context = _template_context(request, current_user, seo)
     listing = None
@@ -3199,16 +3191,15 @@ def vin_inspection_page(
     context["vin_report"] = vin_report
     context["customs_result"] = customs_result
 
-    if design_lab:
-        _populate_manual_vin_check_context(
-            context=context,
-            db=db,
-            current_user=current_user,
-            page=page,
-            account=account,
-            base_path="/inspection",
-            is_admin=is_admin,
-        )
+    _populate_manual_vin_check_context(
+        context=context,
+        db=db,
+        current_user=current_user,
+        page=page,
+        account=account,
+        base_path="/inspection",
+        is_admin=is_admin,
+    )
 
     return templates.TemplateResponse(request, "inspection.html", context)
 
@@ -4524,6 +4515,31 @@ def _populate_manual_vin_check_context(
     is_admin: bool,
 ) -> None:
     """Fill template context for the manual VIN check section."""
+    if current_user is None:
+        context["listings"] = []
+        context["listing_gallery_urls"] = {}
+        context["listing_customs_map"] = {}
+        context["listing_vin_check_launched"] = {}
+        context["manual_check_account_labels"] = {}
+        context["manual_check_account_options"] = []
+        context["manual_check_account"] = ""
+        context["show_manual_account_filter"] = False
+        context["show_manual_account_labels"] = False
+        context["manual_vin_run_api"] = "/api/v1/vin-check/manual/run"
+        context["manual_vin_check_api_prefix"] = "/api/v1/vin-check/listings"
+        context["manual_vin_reload_url"] = f"{base_path}#manual" if base_path == "/inspection" else base_path
+        context["manual_vin_page_base"] = base_path
+        context["manual_vin_requires_login"] = True
+        context["total"] = 0
+        context["page"] = 1
+        context["total_pages"] = 1
+        context["has_prev"] = False
+        context["has_next"] = False
+        context["prev_url"] = None
+        context["next_url"] = None
+        return
+
+    context["manual_vin_requires_login"] = False
     account_raw = (account or "").strip()
     if is_admin:
         launched_by_user_id, admins_only = _parse_manual_account_filter(account_raw)
@@ -4622,34 +4638,12 @@ def admin_vin_check_manual_page(
     redirect = _admin_page_redirect(current_user)
     if redirect:
         return redirect
-    if is_design_lab_user(current_user):
-        target = _build_manual_vin_check_url(
-            base_path="/inspection",
-            page=page,
-            account=account,
-        )
-        return RedirectResponse(url=f"{target}#manual", status_code=302)
-
-    context = _template_context(
-        request,
-        current_user,
-        SeoMeta(
-            title="Ручная проверка — Auto160",
-            description="Ручной запуск VIN CHECK по ссылке объявления или поиска av.by.",
-            path="/admin/vin-check/manual",
-            noindex=True,
-        ),
-    )
-    _populate_manual_vin_check_context(
-        context=context,
-        db=db,
-        current_user=current_user,
+    target = _build_manual_vin_check_url(
+        base_path="/inspection",
         page=page,
         account=account,
-        base_path="/admin/vin-check/manual",
-        is_admin=True,
     )
-    return templates.TemplateResponse(request, "admin_vin_check_manual.html", context)
+    return RedirectResponse(url=f"{target}#manual", status_code=302)
 
 
 @router.get("/vin-check/manual")
@@ -4660,33 +4654,9 @@ def user_vin_check_manual_page(
 ):
     current_user = _resolve_user_from_request(request, db)
     if current_user is None:
-        return RedirectResponse(url="/login", status_code=302)
-    if is_design_lab_user(current_user):
-        target = _build_manual_vin_check_url(base_path="/inspection", page=page)
-        return RedirectResponse(url=f"{target}#manual", status_code=302)
-    if current_user.role == UserRole.admin:
-        return RedirectResponse(url="/admin/vin-check/manual", status_code=302)
-
-    context = _template_context(
-        request,
-        current_user,
-        SeoMeta(
-            title="Ручная проверка — Auto160",
-            description="Ручной запуск VIN CHECK по ссылке объявления или поиска av.by.",
-            path="/vin-check/manual",
-            noindex=True,
-        ),
-    )
-    _populate_manual_vin_check_context(
-        context=context,
-        db=db,
-        current_user=current_user,
-        page=page,
-        account=None,
-        base_path="/vin-check/manual",
-        is_admin=False,
-    )
-    return templates.TemplateResponse(request, "admin_vin_check_manual.html", context)
+        return RedirectResponse(url="/login?next=/inspection%23manual", status_code=302)
+    target = _build_manual_vin_check_url(base_path="/inspection", page=page)
+    return RedirectResponse(url=f"{target}#manual", status_code=302)
 
 
 @router.get("/admin/ratings")

@@ -36,7 +36,7 @@
     {% if seo_json_ld_script %}
       <script type="application/ld+json">{{ seo_json_ld_script | safe }}</script>
     {% endif %}
-    <link rel="stylesheet" href="/static/styles.css?v=20261026-16" />
+    <link rel="stylesheet" href="/static/styles.css?v=20261026-18" />
     {% if site_theme_uses_logo %}
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -60,153 +60,13 @@
     {% endif %}
     {% block extra_head %}{% endblock %}
   </head>
-  <body class="{% block body_class %}{% endblock %}{% if site_theme_body_class %} {{ site_theme_body_class }}{% endif %}{% if design_lab|default(false) %} design-lab{% endif %}">
-    {% if design_lab|default(false) %}
-      {% include "partials/header_design_lab.html" %}
-    {% else %}
-    <header class="header">
-      <a class="brand" href="/">
-        {% if site_theme_uses_logo %}
-          <img
-            class="brand-logo"
-            src="{{ site_theme_logo_src }}"
-            alt="auto160.ru — подбор авто до 160 л.с."
-            width="480"
-            height="147"
-            decoding="async"
-            fetchpriority="high"
-          />
-        {% else %}
-          Авто160
-        {% endif %}
-      </a>
-      <div id="site-nav" class="header-nav-wrap" data-header-nav aria-label="Основное меню">
-        <nav class="header-nav header-nav-row">
-          <a href="/">Главная</a>
-          <a href="/catalog">Каталог</a>
-          {% if is_admin %}
-            <a href="/catalog/beta" class="header-beta-link">beta Каталог</a>
-          {% endif %}
-          <div class="header-nav-dropdown" data-header-dropdown>
-            <button
-              type="button"
-              class="header-nav-dropdown-toggle"
-              data-header-dropdown-toggle
-              aria-expanded="false"
-              aria-haspopup="true"
-            >Объявления</button>
-            <div class="header-nav-dropdown-menu" data-header-dropdown-menu hidden>
-              <a href="/listings">🇧🇾 Авто из Беларуси</a>
-              <a href="/listings/eu">🇪🇺 Авто из Европы</a>
-              <a href="/listings/auctions">🇪🇺 Авто с европейских аукционов</a>
-            </div>
-          </div>
-          <a href="/inspection">Проверка</a>
-          {% if is_authenticated and not is_admin %}
-            <a href="/vin-check/manual" class="header-vin-check-link">Ручная проверка</a>
-          {% endif %}
-          {% if is_admin %}
-            <a href="/admin/users">Пользователи</a>
-            <a href="/admin/avby-accounts">Аккаунты</a>
-          {% endif %}
-        </nav>
-        {% if is_admin %}
-          <nav class="header-nav header-nav-row header-nav-row-secondary">
-            <div class="header-nav-dropdown" data-header-dropdown data-site-theme-dropdown>
-              <button
-                type="button"
-                class="header-nav-dropdown-toggle"
-                data-header-dropdown-toggle
-                aria-expanded="false"
-                aria-haspopup="true"
-              >Сменить дизайн сайта</button>
-              <div class="header-nav-dropdown-menu header-theme-menu" data-header-dropdown-menu hidden>
-                {% for theme_key, theme_label in site_theme_labels.items() %}
-                  <button
-                    type="button"
-                    class="header-theme-option{% if site_theme == theme_key %} is-active{% endif %}"
-                    data-site-theme-option="{{ theme_key }}"
-                  >{{ theme_label }}</button>
-                {% endfor %}
-              </div>
-            </div>
-            <div class="header-nav-dropdown" data-header-dropdown>
-              <button
-                type="button"
-                class="header-nav-dropdown-toggle"
-                data-header-dropdown-toggle
-                aria-expanded="false"
-                aria-haspopup="true"
-              >Управление объявлениями</button>
-              <div class="header-nav-dropdown-menu" data-header-dropdown-menu hidden>
-                <a href="/create-listing">Подать объявление</a>
-                <a href="/admin/archived-listings">Архив объявлений</a>
-                <a href="/admin/listings-without-byn">Без цены BYN</a>
-              </div>
-            </div>
-            <a href="/admin/vin-check" class="header-vin-check-link">VIN CHECK</a>
-            <a href="/admin/vin-check/manual" class="header-vin-check-link">Ручная проверка</a>
-            <a href="/admin/analytics">Аналитика</a>
-            <a href="/admin/messages">Сообщения <span class="admin-msg-unread-badge" data-admin-msg-badge hidden>0</span></a>
-            <a href="/admin/business-sellers">Бизнес-аккаунты</a>
-            <a href="/admin/ratings">Управление каталогом</a>
-          </nav>
-        {% endif %}
-        <nav class="header-nav header-nav-row header-nav-row-account">
-          {% if is_admin %}
-            <a href="/admin/avby-sync">Парсинг</a>
-            <a href="/admin/logs">Логи</a>
-          {% endif %}
-          {% if is_authenticated %}
-            <span class="user-badge">{{ current_user.email }}</span>
-            <a href="/logout">Выход</a>
-          {% else %}
-            <a href="/login">Вход</a>
-            <a href="/register">Регистрация</a>
-          {% endif %}
-        </nav>
-      </div>
-      <div class="header-actions">
-        {% if site_theme_uses_logo and not is_admin %}
-          <button
-            type="button"
-            class="header-theme-toggle"
-            data-site-theme-toggle
-            data-site-theme="{{ site_theme }}"
-          >{% if site_theme == "logo-light" %}Темная тема{% else %}Светлая тема{% endif %}</button>
-        {% endif %}
-        <button
-          class="header-menu-toggle"
-          type="button"
-          data-header-menu-toggle
-          aria-expanded="false"
-          aria-controls="site-nav"
-          aria-label="Открыть меню"
-        >
-          <span class="header-menu-line" aria-hidden="true"></span>
-          <span class="header-menu-line" aria-hidden="true"></span>
-          <span class="header-menu-line" aria-hidden="true"></span>
-        </button>
-      </div>
-    </header>
-    {% endif %}
+  <body class="{% block body_class %}{% endblock %}{% if site_theme_body_class %} {{ site_theme_body_class }}{% endif %} design-lab">
+    {% include "partials/header_design_lab.html" %}
     <main class="page">{% block content %}{% endblock %}</main>
     <footer class="site-footer">
       <div class="site-footer-inner">
-        {% if design_lab %}
         <a href="/requisites">Реквизиты</a>
         <a href="/privacy">Персональные данные</a>
-        {% else %}
-        <a href="/">Главная</a>
-        <a href="/catalog">Каталог</a>
-        <a href="/listings">Авто из Беларуси</a>
-        <a href="/listings/eu">Европа</a>
-        <a href="/inspection">Проверка VIN</a>
-        <a href="/guides/vin">Гайд: VIN</a>
-        <a href="/guides/do-160-hp">Гайд: до 160 л.с. — без утильсбора</a>
-        <a href="/requisites">Реквизиты</a>
-        <a href="/privacy">Персональные данные</a>
-        {% endif %}
       </div>
       <div class="site-footer-legal">
         <p>

@@ -18,7 +18,6 @@
   </noscript>
 {% endblock %}
 {% block content %}
-{% if design_lab %}
 <section class="home-hero home-hero--split" aria-label="Подбор авто Auto160">
   <div class="home-hero-split">
     <article class="home-hero-pane home-hero-pane--by">
@@ -118,60 +117,6 @@
     </article>
   </div>
 </section>
-{% else %}
-<section class="home-hero">
-  <h1>
-    Подбор авто под льготный утильсбор<br />
-    <span class="home-hero-hp">до 160 л.с.</span><br />
-    в Европе и Беларуси
-  </h1>
-  <p class="home-subtitle">
-    Сравнивай комплектации в каталоге, проверяй дату ввоза и VIN перед покупкой.
-    Объявления из Беларуси смотри на av.by — мы помогаем с подбором и проверкой.
-  </p>
-
-  <div class="home-actions">
-    <a class="btn-secondary" href="/catalog">Каталог</a>
-    <a class="btn-secondary" href="/listings">Авто из Беларуси</a>
-    <a class="btn-secondary" href="/inspection">Проверка VIN</a>
-  </div>
-  {% if catalog_quick_links %}
-    <div class="home-actions home-actions-quick home-actions-quick--desktop-only">
-      {% for link in catalog_quick_links %}
-        <a class="btn-secondary" href="{{ link.url }}">{{ link.label }}</a>
-      {% endfor %}
-    </div>
-  {% endif %}
-</section>
-{% endif %}
-
-{% if not design_lab %}
-<section class="home-section home-section-directions">
-  <div class="home-section-head">
-    <h2>Популярные направления</h2>
-  </div>
-  <div class="home-directions">
-    {% for item in popular_directions %}
-      <a
-        class="home-direction-card home-direction-card--{{ item.flag_key }}"
-        href="{{ item.url }}"
-      >
-        <img
-          class="home-direction-flag-img"
-          src="{{ item.flag_src }}"
-          alt=""
-          width="960"
-          height="480"
-          loading="lazy"
-          decoding="async"
-        />
-        <span class="home-direction-scrim" aria-hidden="true"></span>
-        <strong class="home-direction-label">{{ item.label }}</strong>
-      </a>
-    {% endfor %}
-  </div>
-</section>
-{% endif %}
 
 <section class="home-section home-section-makes">
   <div class="home-section-head">
@@ -216,22 +161,6 @@
   {% endif %}
 </section>
 
-{% if not design_lab %}
-<section class="home-how">
-  <h2>Как пользоваться</h2>
-  <ol class="home-steps">
-    <li>
-      <strong>Каталог</strong> — выбери марку и комплектацию, сравни характеристики.
-    </li>
-    <li>
-      <strong>Авто из Беларуси</strong> — найди объявление на av.by или закажи подбор у нас, узнай дату ввоза.
-    </li>
-    <li>
-      <strong>Проверка VIN</strong> — перед сделкой проверь авто в базе таможни РБ.
-    </li>
-  </ol>
-</section>
-{% endif %}
 {% if featured_listings %}
   <script src="/static/featured_home.js?v=20261020-01" defer></script>
 {% endif %}

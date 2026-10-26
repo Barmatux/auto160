@@ -1,19 +1,17 @@
-"""Account-gated design preview. Only listed emails see experimental UI."""
+"""Former account gate for experimental UI.
+
+Rolled out site-wide: keep this module only so older imports/tests do not break.
+New UI is enabled for everyone via `design_lab=True` in `_template_context`.
+"""
 
 from __future__ import annotations
 
 from typing import Any
 
-# Design changes apply only for these accounts until the gate is cancelled.
-DESIGN_LAB_EMAILS = frozenset(
-    {
-        "cargo.shleg@gmail.com",
-    }
-)
+# Gate cancelled — retained for reference / migration only.
+DESIGN_LAB_EMAILS = frozenset()
 
 
 def is_design_lab_user(user: Any | None) -> bool:
-    if user is None:
-        return False
-    email = (getattr(user, "email", None) or "").strip().lower()
-    return email in DESIGN_LAB_EMAILS
+    """Deprecated. Experimental UI is live for all users."""
+    return True

@@ -21,6 +21,13 @@
       {% endif %}
       <p class="hint">Вставьте ссылку на объявление или поиск av.by — извлечём VIN и проверим дату ввоза на сайте таможни. Для поиска проверка идёт по всем объявлениям текущей страницы, от новых к старым.</p>
 
+      {% if manual_vin_requires_login|default(false) %}
+        <p class="hint">
+          Для ручной проверки
+          <a href="/login?next=/inspection%23manual">войдите в аккаунт</a>.
+        </p>
+      {% endif %}
+
       {% if show_manual_account_filter %}
         <form method="get" action="{{ manual_vin_page_base }}" class="admin-manual-vin-account-filter" data-manual-account-filter>
           <label class="admin-manual-vin-account-field">
@@ -34,6 +41,7 @@
         </form>
       {% endif %}
 
+      {% if not manual_vin_requires_login|default(false) %}
       <form class="admin-manual-vin-form" data-manual-vin-form>
         <label class="admin-manual-vin-url-field">
           <span class="visually-hidden">Ссылка av.by</span>
@@ -52,6 +60,7 @@
       </form>
       <p class="admin-manual-vin-status hint" data-manual-vin-status hidden></p>
       <p class="admin-manual-vin-error sync-error" data-manual-vin-error hidden></p>
+      {% endif %}
     </div>
 
     {% if listings %}

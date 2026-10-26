@@ -1,21 +1,13 @@
 ---
-description: Experimental UI only for design-lab account until cancelled
+description: Design-lab gate cancelled — new UI is live for everyone
 alwaysApply: true
 ---
 
-# Design lab account gate
+# Design lab: rolled out
 
-Until the user explicitly cancels this order, **all design / visual / homepage UI experiments** must be gated so only the design-lab account sees them.
+The account gate for experimental UI has been **cancelled**. The new homepage, header, footer, and Проверка page ship for **all users**.
 
-- Email: `cargo.shleg@gmail.com`
-- Helper: `app.design_lab.is_design_lab_user`
-- Template flag: `design_lab` (from `_template_context`)
-- Body class when active: `design-lab`
-
-## Rules
-
-1. Do **not** change the default public design for anonymous users or other accounts.
-2. Put new markup behind `{% if design_lab %}` (or equivalent), with the previous design in `{% else %}`.
-3. Scope new CSS to `.design-lab` / `.home-hero--split` / other lab-only selectors — do not restyle shared components globally.
-4. Keep adding emails only via `DESIGN_LAB_EMAILS` in `backend/app/design_lab.py`.
-5. When the user says to cancel / roll out to everyone, remove the gate and ship the chosen design broadly.
+- Do **not** reintroduce `{% if design_lab %}` gates for these surfaces.
+- `design_lab` in template context stays `True` so existing `.design-lab` CSS keeps applying.
+- Body class `design-lab` remains on all pages for scoped styles.
+- Helper `app.design_lab.is_design_lab_user` is deprecated and always returns `True`.
