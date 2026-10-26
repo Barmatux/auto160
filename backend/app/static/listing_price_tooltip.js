@@ -3,7 +3,9 @@
   var GAP = 8;
 
   function stickyHeaderBottom() {
-    var header = document.querySelector("body > .header");
+    var header =
+      document.querySelector("body > .site-chrome") ||
+      document.querySelector("body > .header");
     if (!header) return VIEWPORT_PAD;
     var rect = header.getBoundingClientRect();
     // Only reserve space while the site header is sticking at the top.

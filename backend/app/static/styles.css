@@ -19,7 +19,6 @@
 html {
   width: 100%;
   max-width: 100%;
-  overflow-x: hidden;
   overscroll-behavior-x: none;
 }
 
@@ -27,7 +26,7 @@ body {
   margin: 0;
   width: 100%;
   max-width: 100%;
-  overflow-x: hidden;
+  /* Do not set overflow-x here: hidden/auto on body breaks position:sticky chrome. */
   overscroll-behavior-x: none;
   font-family: "Segoe UI", Arial, sans-serif;
   background: radial-gradient(circle at 10% 0%, #e8f1ff 0%, var(--bg) 35%, var(--bg) 100%);
