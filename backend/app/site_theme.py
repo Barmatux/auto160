@@ -31,7 +31,7 @@ SITE_THEME_LABELS = {
 SITE_THEME_LOGO_SRC = {
     SITE_THEME_LOGO: "/static/brand/logo-admin-v8-header.png?v=20261022-black",
     SITE_THEME_LOGO_GRAPHITE: "/static/brand/logo-admin-v8-header-graphite.png?v=20261022-01",
-    SITE_THEME_LOGO_LIGHT: "/static/brand/logo-admin-v8-header.png?v=20261022-black",
+    SITE_THEME_LOGO_LIGHT: "/static/brand/logo-admin-v8-header-light.png?v=20261026-26",
 }
 
 

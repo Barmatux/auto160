@@ -76,14 +76,14 @@ body.theme-admin .header .brand-logo {
 }
 
 body.theme-admin.design-lab .site-topline .brand-logo {
-  height: 82px;
+  height: 76px;
   width: auto;
   max-width: none;
 }
 
 @media (max-width: 760px) {
   body.theme-admin.design-lab .site-topline .brand-logo {
-    height: 56px;
+    height: 52px;
     width: auto;
     max-width: none;
   }
@@ -772,12 +772,25 @@ body.theme-admin.theme-admin-light a.listings-market-tab.is-active:hover {
 }
 
 body.theme-admin.theme-admin-light .header {
-  background: #030303;
+  background: #e8eef8;
+}
+
+body.theme-admin.theme-admin-light.design-lab .header {
+  background: transparent;
 }
 
 body.theme-admin.theme-admin-light .header-nav a,
 body.theme-admin.theme-admin-light .header-nav-dropdown-toggle {
-  color: #d7dee9;
+  color: #0f172a;
+}
+
+body.theme-admin.theme-admin-light .header-menu-toggle {
+  background: #e8eef8;
+  border-color: #94a3b8;
+}
+
+body.theme-admin.theme-admin-light .header-menu-line {
+  background: #0f172a;
 }
 
 body.theme-admin.theme-admin-light .site-footer {
