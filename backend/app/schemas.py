@@ -747,6 +747,18 @@ class CustomsDbCcOut(BaseModel):
         from_attributes = True
 
 
+class CustomsDbMotorOut(BaseModel):
+    """Flattened engine configuration for calculator: model → motor → exact cc."""
+
+    id: int
+    liter_id: int
+    liters: float
+    engine_cc: int
+    power_hp: float | None = None
+    notes: str | None = None
+    label: str
+
+
 class CustomsDbCcCreateRequest(BaseModel):
     liter_id: int
     engine_cc: int

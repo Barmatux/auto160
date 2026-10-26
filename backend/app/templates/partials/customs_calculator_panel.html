@@ -1,5 +1,5 @@
 {# Shared customs calculator panel (public /calculator and admin /admin/customs). #}
-<section class="calc-page{% if calc_embedded %} calc-page--embedded{% endif %}" data-customs-calc{% if calc_default_mode %} data-calc-default-mode="{{ calc_default_mode }}"{% endif %}>
+<section class="calc-page{% if calc_embedded %} calc-page--embedded{% endif %}" data-customs-calc data-calc-default-mode="catalog">
   {% if not calc_embedded %}
   <header class="calc-page-intro">
     <p class="calc-kicker">Растаможка в РФ</p>
@@ -11,53 +11,18 @@
   </header>
   {% endif %}
 
-  <div class="calc-mode-switch" role="tablist" aria-label="Способ ввода">
-    <button type="button" class="calc-mode{% if calc_default_mode != 'catalog' %} is-active{% endif %}" role="tab" aria-selected="{{ 'false' if calc_default_mode == 'catalog' else 'true' }}" data-calc-mode="manual">
-      Ручной ввод
-    </button>
-    <button type="button" class="calc-mode{% if calc_default_mode == 'catalog' %} is-active{% endif %}" role="tab" aria-selected="{{ 'true' if calc_default_mode == 'catalog' else 'false' }}" data-calc-mode="catalog">
-      Марка и модель
-    </button>
-  </div>
-
   <div class="calc-layout">
     <form class="calc-panel calc-form" data-calc-form>
-      <div class="calc-panel-block" data-calc-panel="manual"{% if calc_default_mode == 'catalog' %} hidden{% endif %}>
-        <h2>Параметры автомобиля</h2>
-        <div class="calc-grid">
-          <label>
-            Возраст автомобиля
-            <select name="age_band" required>
-              <option value="under3">До 3 лет</option>
-              <option value="from3to5" selected>От 3 до 5 лет</option>
-              <option value="over5">Старше 5 лет</option>
-            </select>
-          </label>
-          <label>
-            Объём двигателя, см³
-            <input type="number" name="engine_cc" min="0" max="10000" step="1" value="1598" required />
-          </label>
-          <label>
-            Мощность, л.с.
-            <input type="number" name="power_hp" min="1" max="2000" step="0.1" value="150" required />
-          </label>
-          <label>
-            Тип двигателя
-            <select name="engine_kind">
-              <option value="ice" selected>ДВС / гибрид</option>
-              <option value="electric">Электро</option>
-            </select>
-          </label>
-        </div>
-      </div>
-
-      <div class="calc-panel-block" data-calc-panel="catalog"{% if calc_default_mode != 'catalog' %} hidden{% endif %}>
-        <h2>Марка и модель</h2>
+      <div class="calc-panel-block" data-calc-panel="catalog">
+        <h2>Автомобиль из каталога</h2>
+        <p class="hint">
+          Марка → модель → мотор. Точный объём и мощность подставляются из базы растаможки.
+        </p>
         {% if customs_makes %}
           <div class="calc-grid">
             <label>
               Марка
-              <select name="make" data-calc-make>
+              <select name="make" data-calc-make required>
                 <option value="">Выберите марку</option>
                 {% for make in customs_makes %}
                   <option value="{{ make }}">{{ make }}</option>
@@ -66,29 +31,27 @@
             </label>
             <label>
               Модель
-              <select name="model_id" data-calc-model disabled>
+              <select name="model_id" data-calc-model required disabled>
                 <option value="">Сначала выберите марку</option>
               </select>
             </label>
-            <label>
-              Объём, л
-              <select name="liter_id" data-calc-liter disabled>
+            <label class="calc-span-2">
+              Мотор / конфигурация
+              <select name="engine_cc_id" data-calc-motor required disabled>
                 <option value="">Сначала выберите модель</option>
               </select>
             </label>
             <label>
-              Точный объём, см³
-              <select name="engine_cc_id" data-calc-cc disabled>
-                <option value="">Сначала выберите объём</option>
-              </select>
+              Объём двигателя, см³
+              <input type="text" name="catalog_volume" data-calc-volume readonly placeholder="из каталога" tabindex="-1" />
             </label>
             <label>
               Мощность, л.с.
-              <input type="number" name="catalog_power_hp" min="1" max="2000" step="0.1" value="150" data-calc-catalog-hp />
+              <input type="text" name="catalog_power_hp" data-calc-catalog-hp readonly placeholder="из каталога" tabindex="-1" />
             </label>
-            <label>
+            <label class="calc-span-2">
               Возраст автомобиля
-              <select name="catalog_age_band" required>
+              <select name="catalog_age_band" data-calc-age required>
                 <option value="under3">До 3 лет</option>
                 <option value="from3to5" selected>От 3 до 5 лет</option>
                 <option value="over5">Старше 5 лет</option>
@@ -98,8 +61,7 @@
           <p class="hint" data-calc-spec-meta></p>
         {% else %}
           <p class="hint">
-            База пока пуста. Добавьте марки во вкладке «База данных»
-            или воспользуйтесь ручным вводом.
+            База пока пуста. Добавьте марки, модели и моторы во вкладке «База данных».
           </p>
         {% endif %}
       </div>
@@ -139,7 +101,7 @@
       </div>
 
       <div class="calc-actions">
-        <button type="submit" class="btn-primary">Рассчитать</button>
+        <button type="submit" class="btn-primary"{% if not customs_makes %} disabled{% endif %}>Рассчитать</button>
         <p class="hint calc-status" data-calc-status hidden></p>
       </div>
     </form>
@@ -147,7 +109,7 @@
     <aside class="calc-panel calc-result" data-calc-result aria-live="polite">
       <h2>Результат</h2>
       <p class="hint" data-calc-empty>
-        Заполните параметры слева — покажем пошлину, таможенный сбор и утильсбор.
+        Выберите конфигурацию из каталога — покажем пошлину, таможенный сбор и утильсбор.
       </p>
       <div data-calc-result-body hidden>
         <p class="calc-vehicle-label" data-calc-vehicle hidden></p>

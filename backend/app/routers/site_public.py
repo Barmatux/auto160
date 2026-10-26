@@ -8,6 +8,8 @@ from app.customs_db import (
     get_cc,
     list_ccs,
     list_liters,
+    list_motors_for_model,
+    motor_label,
     public_make_names,
     public_models_for_make_name,
 )
@@ -27,6 +29,7 @@ from app.schemas import (
     CustomsDbCcOut,
     CustomsDbLiterOut,
     CustomsDbModelOut,
+    CustomsDbMotorOut,
     CustomsVehicleSpecOut,
     ImportDateLookupRequest,
     ImportDateLookupResponse,
@@ -100,6 +103,23 @@ def public_customs_db_liters(model_id: int = Query(...), db: Session = Depends(g
 @router.get("/customs-db/ccs", response_model=list[CustomsDbCcOut])
 def public_customs_db_ccs(liter_id: int = Query(...), db: Session = Depends(get_db)):
     return list_ccs(db, liter_id, active_only=True)
+
+
+@router.get("/customs-db/motors", response_model=list[CustomsDbMotorOut])
+def public_customs_db_motors(model_id: int = Query(...), db: Session = Depends(get_db)):
+    rows = list_motors_for_model(db, model_id, active_only=True)
+    return [
+        CustomsDbMotorOut(
+            id=row.id,
+            liter_id=row.liter_id,
+            liters=float(row.liter.liters) if row.liter is not None else 0.0,
+            engine_cc=int(row.engine_cc),
+            power_hp=float(row.power_hp) if row.power_hp is not None else None,
+            notes=row.notes,
+            label=motor_label(row),
+        )
+        for row in rows
+    ]
 
 
 @router.get("/customs-vehicles/makes", response_model=list[str])
