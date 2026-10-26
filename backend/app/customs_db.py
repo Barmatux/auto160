@@ -54,8 +54,16 @@ def list_makes(db: Session, *, active_only: bool = False) -> list[CustomsDbMake]
 
 
 def create_make(db: Session, *, name: str, sort_weight: int = 0) -> CustomsDbMake:
+    name_clean = _clean_name(name, "марку")
+    existing = (
+        db.query(CustomsDbMake)
+        .filter(func.lower(CustomsDbMake.name) == name_clean.lower())
+        .first()
+    )
+    if existing is not None:
+        return existing
     row = CustomsDbMake(
-        name=_clean_name(name, "марку"),
+        name=name_clean,
         sort_weight=int(sort_weight or 0),
         is_active=True,
         created_at=_now(),
@@ -65,6 +73,13 @@ def create_make(db: Session, *, name: str, sort_weight: int = 0) -> CustomsDbMak
         db.commit()
     except IntegrityError as exc:
         db.rollback()
+        raced = (
+            db.query(CustomsDbMake)
+            .filter(func.lower(CustomsDbMake.name) == name_clean.lower())
+            .first()
+        )
+        if raced is not None:
+            return raced
         raise ValueError("Такая марка уже есть") from exc
     db.refresh(row)
     return row
@@ -91,10 +106,22 @@ def list_models(db: Session, make_id: int, *, active_only: bool = False) -> list
 def create_model(db: Session, *, make_id: int, name: str, sort_weight: int = 0) -> CustomsDbModel:
     make = db.query(CustomsDbMake).filter(CustomsDbMake.id == make_id).first()
     if make is None:
-        raise ValueError("Сначала выберите марку")
+        raise ValueError("Сначала выберите марку — обновите страницу")
+    name_clean = _clean_name(name, "модель")
+    existing = (
+        db.query(CustomsDbModel)
+        .filter(
+            CustomsDbModel.make_id == make_id,
+            func.lower(CustomsDbModel.name) == name_clean.lower(),
+        )
+        .first()
+    )
+    if existing is not None:
+        # Idempotent: same name again (or double-click) returns the existing row.
+        return existing
     row = CustomsDbModel(
         make_id=make_id,
-        name=_clean_name(name, "модель"),
+        name=name_clean,
         sort_weight=int(sort_weight or 0),
         is_active=True,
         created_at=_now(),
@@ -104,7 +131,20 @@ def create_model(db: Session, *, make_id: int, name: str, sort_weight: int = 0) 
         db.commit()
     except IntegrityError as exc:
         db.rollback()
-        raise ValueError("Такая модель уже есть у этой марки") from exc
+        raced = (
+            db.query(CustomsDbModel)
+            .filter(
+                CustomsDbModel.make_id == make_id,
+                func.lower(CustomsDbModel.name) == name_clean.lower(),
+            )
+            .first()
+        )
+        if raced is not None:
+            return raced
+        detail = str(getattr(exc, "orig", exc))
+        if "foreign key" in detail.lower():
+            raise ValueError("Марка не найдена — обновите страницу и выберите марку снова") from exc
+        raise ValueError(f"Не удалось сохранить модель «{name_clean}»") from exc
     db.refresh(row)
     return row
 
@@ -134,10 +174,21 @@ def list_liters(db: Session, model_id: int, *, active_only: bool = False) -> lis
 def create_liter(db: Session, *, model_id: int, liters: float, sort_weight: int = 0) -> CustomsDbEngineLiter:
     model = db.query(CustomsDbModel).filter(CustomsDbModel.id == model_id).first()
     if model is None:
-        raise ValueError("Сначала выберите модель")
+        raise ValueError("Сначала выберите модель — обновите страницу")
+    liters_val = _parse_liters(liters)
+    existing = (
+        db.query(CustomsDbEngineLiter)
+        .filter(
+            CustomsDbEngineLiter.model_id == model_id,
+            CustomsDbEngineLiter.liters == liters_val,
+        )
+        .first()
+    )
+    if existing is not None:
+        return existing
     row = CustomsDbEngineLiter(
         model_id=model_id,
-        liters=_parse_liters(liters),
+        liters=liters_val,
         sort_weight=int(sort_weight or 0),
         is_active=True,
         created_at=_now(),
@@ -147,6 +198,16 @@ def create_liter(db: Session, *, model_id: int, liters: float, sort_weight: int 
         db.commit()
     except IntegrityError as exc:
         db.rollback()
+        raced = (
+            db.query(CustomsDbEngineLiter)
+            .filter(
+                CustomsDbEngineLiter.model_id == model_id,
+                CustomsDbEngineLiter.liters == liters_val,
+            )
+            .first()
+        )
+        if raced is not None:
+            return raced
         raise ValueError("Такой объём в литрах уже есть у этой модели") from exc
     db.refresh(row)
     return row
@@ -185,7 +246,18 @@ def create_cc(
 ) -> CustomsDbEngineCc:
     liter = db.query(CustomsDbEngineLiter).filter(CustomsDbEngineLiter.id == liter_id).first()
     if liter is None:
-        raise ValueError("Сначала выберите объём в литрах")
+        raise ValueError("Сначала выберите объём в литрах — обновите страницу")
+    cc_val = _parse_cc(engine_cc)
+    existing = (
+        db.query(CustomsDbEngineCc)
+        .filter(
+            CustomsDbEngineCc.liter_id == liter_id,
+            CustomsDbEngineCc.engine_cc == cc_val,
+        )
+        .first()
+    )
+    if existing is not None:
+        return existing
     hp = None
     if power_hp is not None and power_hp != "":
         try:
@@ -196,7 +268,7 @@ def create_cc(
             raise ValueError("Мощность должна быть больше 0")
     row = CustomsDbEngineCc(
         liter_id=liter_id,
-        engine_cc=_parse_cc(engine_cc),
+        engine_cc=cc_val,
         power_hp=hp,
         notes=(notes or "").strip() or None,
         sort_weight=int(sort_weight or 0),
@@ -208,6 +280,16 @@ def create_cc(
         db.commit()
     except IntegrityError as exc:
         db.rollback()
+        raced = (
+            db.query(CustomsDbEngineCc)
+            .filter(
+                CustomsDbEngineCc.liter_id == liter_id,
+                CustomsDbEngineCc.engine_cc == cc_val,
+            )
+            .first()
+        )
+        if raced is not None:
+            return raced
         raise ValueError("Такой объём в см³ уже есть") from exc
     db.refresh(row)
     return row

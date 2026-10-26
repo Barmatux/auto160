@@ -221,80 +221,96 @@
     }
   });
 
-  board.querySelector('[data-add="make"]').addEventListener("submit", async function (event) {
-    event.preventDefault();
-    var fd = new FormData(event.currentTarget);
-    try {
-      await api("/api/v1/admin/customs-db/makes", {
-        method: "POST",
-        body: JSON.stringify({ name: String(fd.get("name") || "") }),
-      });
-      window.location.reload();
-    } catch (err) {
-      setStatus(err.message || "Ошибка", true);
-    }
+  function bindAddForm(selector, handler) {
+    var form = board.querySelector(selector);
+    if (!form) return;
+    var busy = false;
+    form.addEventListener("submit", async function (event) {
+      event.preventDefault();
+      if (busy) return;
+      busy = true;
+      var btn = form.querySelector('button[type="submit"]');
+      if (btn) btn.disabled = true;
+      setStatus("Сохраняем…");
+      try {
+        await handler(form, event);
+        setStatus("");
+      } catch (err) {
+        setStatus(err.message || "Ошибка", true);
+      } finally {
+        busy = false;
+        // Re-enable only if the column is still active (parent selected).
+        if (btn && !btn.disabled) {
+          /* keep */
+        }
+        if (selector === '[data-add="make"]' && btn) btn.disabled = false;
+        if (selector === '[data-add="model"]' && btn && state.makeId) btn.disabled = false;
+        if (selector === '[data-add="liter"]' && btn && state.modelId) btn.disabled = false;
+        if (selector === '[data-add="cc"]' && btn && state.literId) btn.disabled = false;
+        enableForm(selector, true);
+        if (selector === '[data-add="model"]' && !state.makeId) enableForm(selector, false);
+        if (selector === '[data-add="liter"]' && !state.modelId) enableForm(selector, false);
+        if (selector === '[data-add="cc"]' && !state.literId) enableForm(selector, false);
+      }
+    });
+  }
+
+  bindAddForm('[data-add="make"]', async function (form) {
+    var fd = new FormData(form);
+    await api("/api/v1/admin/customs-db/makes", {
+      method: "POST",
+      body: JSON.stringify({ name: String(fd.get("name") || "") }),
+    });
+    window.location.reload();
   });
 
-  board.querySelector('[data-add="model"]').addEventListener("submit", async function (event) {
-    event.preventDefault();
-    if (!state.makeId) return;
-    var fd = new FormData(event.currentTarget);
-    try {
-      await api("/api/v1/admin/customs-db/models", {
-        method: "POST",
-        body: JSON.stringify({
-          make_id: state.makeId,
-          name: String(fd.get("name") || ""),
-        }),
-      });
-      event.currentTarget.reset();
-      board.querySelector("[data-parent-make]").value = String(state.makeId);
-      loadModels(state.makeId);
-    } catch (err) {
-      setStatus(err.message || "Ошибка", true);
-    }
+  bindAddForm('[data-add="model"]', async function (form) {
+    if (!state.makeId) throw new Error("Сначала выберите марку слева");
+    var fd = new FormData(form);
+    var created = await api("/api/v1/admin/customs-db/models", {
+      method: "POST",
+      body: JSON.stringify({
+        make_id: state.makeId,
+        name: String(fd.get("name") || ""),
+      }),
+    });
+    form.reset();
+    board.querySelector("[data-parent-make]").value = String(state.makeId);
+    await loadModels(state.makeId);
+    setStatus("Модель «" + (created && created.name ? created.name : "") + "» сохранена");
   });
 
-  board.querySelector('[data-add="liter"]').addEventListener("submit", async function (event) {
-    event.preventDefault();
-    if (!state.modelId) return;
-    var fd = new FormData(event.currentTarget);
-    try {
-      await api("/api/v1/admin/customs-db/liters", {
-        method: "POST",
-        body: JSON.stringify({
-          model_id: state.modelId,
-          liters: Number(fd.get("liters")),
-        }),
-      });
-      event.currentTarget.reset();
-      board.querySelector("[data-parent-model]").value = String(state.modelId);
-      loadLiters(state.modelId);
-    } catch (err) {
-      setStatus(err.message || "Ошибка", true);
-    }
+  bindAddForm('[data-add="liter"]', async function (form) {
+    if (!state.modelId) throw new Error("Сначала выберите модель");
+    var fd = new FormData(form);
+    await api("/api/v1/admin/customs-db/liters", {
+      method: "POST",
+      body: JSON.stringify({
+        model_id: state.modelId,
+        liters: Number(fd.get("liters")),
+      }),
+    });
+    form.reset();
+    board.querySelector("[data-parent-model]").value = String(state.modelId);
+    await loadLiters(state.modelId);
+    setStatus("Объём сохранён");
   });
 
-  board.querySelector('[data-add="cc"]').addEventListener("submit", async function (event) {
-    event.preventDefault();
-    if (!state.literId) return;
-    var fd = new FormData(event.currentTarget);
+  bindAddForm('[data-add="cc"]', async function (form) {
+    if (!state.literId) throw new Error("Сначала выберите объём в литрах");
+    var fd = new FormData(form);
     var powerRaw = fd.get("power_hp");
-    var body = {
-      liter_id: state.literId,
-      engine_cc: Number(fd.get("engine_cc")),
-      power_hp: powerRaw === "" || powerRaw == null ? null : Number(powerRaw),
-    };
-    try {
-      await api("/api/v1/admin/customs-db/ccs", {
-        method: "POST",
-        body: JSON.stringify(body),
-      });
-      event.currentTarget.reset();
-      board.querySelector("[data-parent-liter]").value = String(state.literId);
-      loadCcs(state.literId);
-    } catch (err) {
-      setStatus(err.message || "Ошибка", true);
-    }
+    await api("/api/v1/admin/customs-db/ccs", {
+      method: "POST",
+      body: JSON.stringify({
+        liter_id: state.literId,
+        engine_cc: Number(fd.get("engine_cc")),
+        power_hp: powerRaw === "" || powerRaw == null ? null : Number(powerRaw),
+      }),
+    });
+    form.reset();
+    board.querySelector("[data-parent-liter]").value = String(state.literId);
+    await loadCcs(state.literId);
+    setStatus("Точный объём сохранён");
   });
 })();
