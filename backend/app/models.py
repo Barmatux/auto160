@@ -172,6 +172,8 @@ class CatalogItem(Base):
     hidden_from_catalog: Mapped[bool] = mapped_column(default=False, index=True)
     # Include generation in /admin/arbitrage EU→BY niche scoring.
     arbitrage_track: Mapped[bool] = mapped_column(default=False, index=True)
+    # Include generation/model in customs calculator dropdowns.
+    customs_calc: Mapped[bool] = mapped_column(default=False, index=True)
     has_7_seats: Mapped[bool] = mapped_column(default=False, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
     photos: Mapped[list["CatalogItemPhoto"]] = relationship(back_populates="catalog_item", cascade="all, delete-orphan")

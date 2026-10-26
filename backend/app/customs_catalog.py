@@ -19,6 +19,7 @@ def _base_catalog_query(db: Session):
         CatalogItem.source_site == "av.by",
         CatalogItem.make.isnot(None),
         CatalogItem.model.isnot(None),
+        CatalogItem.customs_calc.is_(True),
     )
     return apply_visible_catalog_filter(q, include_hidden=False)
 

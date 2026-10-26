@@ -385,6 +385,21 @@ class CatalogGenerationArbitrageTrackResult(BaseModel):
     updated_items: int
 
 
+class CatalogGenerationCustomsCalcUpdate(BaseModel):
+    make: str = Field(min_length=1, max_length=80)
+    model: str = Field(min_length=1, max_length=120)
+    generation: str = ""
+    enabled: bool
+
+
+class CatalogGenerationCustomsCalcResult(BaseModel):
+    make: str
+    model: str
+    generation: str
+    enabled: bool
+    updated_items: int
+
+
 class CatalogGenerationYearsUpdate(BaseModel):
     make: str = Field(min_length=1, max_length=80)
     model: str = Field(min_length=1, max_length=120)
