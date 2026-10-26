@@ -245,9 +245,10 @@
     }
     var opt = motorSelect && motorSelect.selectedOptions[0];
     var payload = {
-      price: Number(fd.get("price")),
-      currency: String(fd.get("currency") || "EUR"),
-      importer: String(fd.get("importer") || "personal"),
+      // Defaults: personal import, EUR — price used for under-5 duty floor.
+      price: 12000,
+      currency: "EUR",
+      importer: "personal",
       engine_kind: (opt && opt.dataset.kind) || "ice",
       age_band: String(fd.get("catalog_age_band") || "from3to5"),
       engine_cc: opt ? Number(opt.dataset.cc || 0) : 0,

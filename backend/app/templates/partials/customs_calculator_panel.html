@@ -66,40 +66,6 @@
         {% endif %}
       </div>
 
-      <div class="calc-panel-block">
-        <h2>Стоимость и режим ввоза</h2>
-        <div class="calc-grid">
-          <label>
-            Таможенная стоимость
-            <input type="number" name="price" min="0" step="1" value="12000" required />
-          </label>
-          <label>
-            Валюта
-            <select name="currency">
-              <option value="EUR" selected>EUR</option>
-              <option value="USD">USD</option>
-              <option value="BYN">BYN</option>
-              <option value="RUB">RUB</option>
-            </select>
-          </label>
-          <label class="calc-span-2">
-            Кто ввозит
-            <select name="importer">
-              <option value="personal" selected>Физлицо для личного пользования</option>
-              <option value="commercial">Юрлицо / перепродажа</option>
-            </select>
-          </label>
-        </div>
-        {% if design_lab_rates %}
-          <p class="hint calc-fx">
-            Курсы myfin.by:
-            EUR {{ design_lab_rates.format_eur_rub() }} ₽ ·
-            USD {{ design_lab_rates.format_usd_rub() }} ₽ ·
-            BYN {{ design_lab_rates.format_byn_rub() }} ₽
-          </p>
-        {% endif %}
-      </div>
-
       <div class="calc-actions">
         <button type="submit" class="btn-primary"{% if not customs_makes %} disabled{% endif %}>Рассчитать</button>
         <p class="hint calc-status" data-calc-status hidden></p>

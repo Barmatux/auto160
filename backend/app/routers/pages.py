@@ -132,7 +132,7 @@ from app.manual_vin_check import (
     paginate_manual_vin_check_listings,
 )
 from app.customs_catalog import list_makes as list_customs_catalog_makes
-from app.customs_db import list_makes as list_customs_db_makes, public_make_names
+from app.customs_db import public_make_names
 from app.customs_vehicles import list_customs_vehicle_specs
 from app.featured import (
     FEATURED_HOME_LIMIT,
@@ -5249,15 +5249,6 @@ def admin_customs_page(request: Request, db: Session = Depends(get_db)):
     if redirect:
         return redirect
     context = _template_context(request, current_user)
-    context["customs_db_error"] = None
-    try:
-        context["customs_db_makes"] = list_customs_db_makes(db, active_only=False)
-    except Exception as exc:  # noqa: BLE001 — show migration/schema issues in admin UI
-        context["customs_db_makes"] = []
-        context["customs_db_error"] = (
-            "Не удалось загрузить базу растаможки. "
-            f"Возможно, миграция ещё не применена: {exc}"
-        )
     makes = list_customs_catalog_makes(db)
     if not makes:
         makes = public_make_names(db)
