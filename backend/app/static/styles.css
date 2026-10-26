@@ -6113,23 +6113,28 @@ body.listing-lightbox-open {
 }
 
 .home-hero-pane-head {
-  padding: 18px 20px 6px;
+  display: flex;
+  align-items: flex-end;
+  min-height: 4.6rem;
+  padding: 18px 20px 8px;
+  box-sizing: border-box;
 }
 
 .home-hero-pane-body {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: 6px 20px 18px;
+  padding: 8px 20px 18px;
 }
 
 .home-hero-pane-visual {
   position: relative;
   flex: 0 0 auto;
-  height: clamp(160px, 22vw, 220px);
+  height: clamp(220px, 28vw, 280px);
   margin: 0;
   background: #0b0e14;
   isolation: isolate;
+  overflow: hidden;
 }
 
 .home-hero-pane-visual::before,
@@ -6139,7 +6144,7 @@ body.listing-lightbox-open {
   left: 0;
   right: 0;
   z-index: 1;
-  height: 48px;
+  height: 64px;
   pointer-events: none;
 }
 
@@ -6155,27 +6160,27 @@ body.listing-lightbox-open {
 
 .home-hero-pane-media {
   position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  object-position: center center;
+  inset: -8% -4%;
+  width: 108%;
+  height: 116%;
+  object-fit: cover;
+  object-position: center 55%;
   display: block;
 }
 
 .home-hero-pane--by .home-hero-pane-media {
-  object-position: 42% center;
+  object-position: 40% 55%;
 }
 
 .home-hero-pane--eu .home-hero-pane-media {
-  object-position: 58% center;
+  object-position: 60% 55%;
 }
 
 .home-hero-pane h1,
 .home-hero-pane h2 {
   margin: 0;
   font-family: "Onest", "Segoe UI", sans-serif;
-  font-size: clamp(0.92rem, 1.1vw, 1.08rem);
+  font-size: clamp(0.88rem, 1.05vw, 1rem);
   line-height: 1.35;
   letter-spacing: -0.01em;
   font-weight: 700;
@@ -6190,8 +6195,8 @@ body.listing-lightbox-open {
 
 .home-hero-pane-lead {
   margin: 0;
-  font-size: 0.88rem;
-  line-height: 1.35;
+  font-size: 1rem;
+  line-height: 1.4;
   color: #cbd5e1;
   max-width: none;
 }
@@ -6201,15 +6206,15 @@ body.listing-lightbox-open {
   padding: 0;
   list-style: none;
   display: grid;
-  gap: 4px;
+  gap: 5px;
   max-width: none;
 }
 
 .home-hero-pane-list li {
   position: relative;
-  padding-left: 12px;
-  font-size: 0.82rem;
-  line-height: 1.35;
+  padding-left: 14px;
+  font-size: 0.95rem;
+  line-height: 1.4;
   color: #e2e8f0;
 }
 
@@ -6778,21 +6783,30 @@ body.theme-admin .home-hero.home-hero--split .home-hero-pane-lead {
   }
 
   .home-hero-pane-head {
-    padding: 14px 14px 4px;
+    min-height: 4.2rem;
+    padding: 14px 14px 6px;
   }
 
   .home-hero-pane-body {
-    padding: 4px 14px 14px;
+    padding: 6px 14px 14px;
     gap: 6px;
   }
 
   .home-hero-pane-visual {
-    height: 170px;
+    height: 200px;
   }
 
   .home-hero-pane h1,
   .home-hero-pane h2 {
+    font-size: 0.9rem;
+  }
+
+  .home-hero-pane-lead {
     font-size: 0.95rem;
+  }
+
+  .home-hero-pane-list li {
+    font-size: 0.9rem;
   }
 
   .home-hero h1 {
