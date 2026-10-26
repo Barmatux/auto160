@@ -489,6 +489,7 @@ class CatalogItemPublic(BaseModel):
     fuel_type: str | None = None
     engine_power_hp: int | None = None
     engine_volume_l: float | None = None
+    engine_capacity_cc: int | None = None
     drivetrain: str | None = None
     transmission: str | None = None
     source_site: str | None = None

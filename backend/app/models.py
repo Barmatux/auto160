@@ -162,6 +162,8 @@ class CatalogItem(Base):
     fuel_type: Mapped[str | None] = mapped_column(String(30), nullable=True, index=True)
     engine_power_hp: Mapped[int | None] = mapped_column(Integer, nullable=True)
     engine_volume_l: Mapped[float | None] = mapped_column(Numeric(4, 1), nullable=True)
+    # Exact displacement in cm³ (from av.by engineCapacity); preferred over liters*1000.
+    engine_capacity_cc: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     drivetrain: Mapped[str | None] = mapped_column(String(30), nullable=True)
     transmission: Mapped[str | None] = mapped_column(String(30), nullable=True)
     source_site: Mapped[str | None] = mapped_column(String(40), nullable=True, index=True)
