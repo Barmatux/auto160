@@ -1,4 +1,5 @@
-{# Shared manual VIN check UI. Expects manual_* context vars from the page route. #}
+{# Shared manual VIN check UI. Expects manual_* context vars from the page route.
+   Set manual_vin_defer_results=true to render only the form (results go elsewhere). #}
 <div
   class="catalog-page admin-vin-check-page admin-vin-check-manual-page{% if manual_vin_embedded|default(false) %} admin-vin-check-manual-page--embedded{% endif %}"
   data-admin-vin-check-manual-page
@@ -63,37 +64,14 @@
       {% endif %}
     </div>
 
-    {% if listings %}
-      <div class="catalog listings-feed admin-vin-check-feed">
-        {% set hide_vin_enter = true %}
-        {% for listing in listings %}
-          {% include "partials/listing_vin_check_card.html" %}
-        {% endfor %}
-      </div>
-    {% else %}
-      <p class="hint">Пока нет запусков ручной проверки.</p>
+    {% if not manual_vin_defer_results|default(false) %}
+      {% include "partials/manual_vin_check_results.html" %}
     {% endif %}
-
-    <div class="pager">
-      <div class="pager-nav pager-nav-prev">
-        {% if has_prev %}
-          <a class="page-link" href="{{ prev_url }}">← Назад</a>
-        {% else %}
-          <span class="page-link disabled">← Назад</span>
-        {% endif %}
-      </div>
-      <p class="pager-summary hint">Найдено объявлений: {{ total }} · Страница {{ page }} из {{ total_pages }}</p>
-      <div class="pager-nav pager-nav-next">
-        {% if has_next %}
-          <a class="page-link" href="{{ next_url }}">Вперед →</a>
-        {% else %}
-          <span class="page-link disabled">Вперед →</span>
-        {% endif %}
-      </div>
-    </div>
   </section>
 </div>
+{% if not manual_vin_defer_results|default(false) %}
 <div class="listing-description-backdrop" data-description-backdrop hidden></div>
+{% endif %}
 {% include "partials/listing_vin_check_script.html" %}
 <script>
 (function () {

@@ -4527,7 +4527,7 @@ def _populate_manual_vin_check_context(
         context["show_manual_account_labels"] = False
         context["manual_vin_run_api"] = "/api/v1/vin-check/manual/run"
         context["manual_vin_check_api_prefix"] = "/api/v1/vin-check/listings"
-        context["manual_vin_reload_url"] = f"{base_path}#manual" if base_path == "/inspection" else base_path
+        context["manual_vin_reload_url"] = f"{base_path}#results" if base_path == "/inspection" else base_path
         context["manual_vin_page_base"] = base_path
         context["manual_vin_requires_login"] = True
         context["total"] = 0
@@ -4571,7 +4571,7 @@ def _populate_manual_vin_check_context(
         account=account_raw if is_admin else None,
     )
     if base_path == "/inspection" and "#" not in reload_url:
-        reload_url = f"{reload_url}#manual"
+        reload_url = f"{reload_url}#results"
 
     context["listings"] = listings
     context["listing_gallery_urls"] = resolve_listing_gallery_urls_map(listings, limit=5)
@@ -4622,9 +4622,9 @@ def _populate_manual_vin_check_context(
     )
     if base_path == "/inspection":
         if context["prev_url"]:
-            context["prev_url"] = f"{context['prev_url']}#manual"
+            context["prev_url"] = f"{context['prev_url']}#results"
         if context["next_url"]:
-            context["next_url"] = f"{context['next_url']}#manual"
+            context["next_url"] = f"{context['next_url']}#results"
 
 
 @router.get("/admin/vin-check/manual")

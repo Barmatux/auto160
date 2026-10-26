@@ -1,0 +1,37 @@
+{# Listings + pager for manual VIN check. Expects listings/pager context vars. #}
+{% if listings %}
+  <div class="catalog listings-feed admin-vin-check-feed">
+    {% set hide_vin_enter = true %}
+    {% for listing in listings %}
+      {% include "partials/listing_vin_check_card.html" %}
+    {% endfor %}
+  </div>
+{% else %}
+  <p class="hint">
+    {% if manual_vin_requires_login|default(false) %}
+      После входа здесь появятся объявления, которые вы проверили.
+    {% else %}
+      Пока нет запусков ручной проверки.
+    {% endif %}
+  </p>
+{% endif %}
+
+{% if not manual_vin_requires_login|default(false) %}
+<div class="pager">
+  <div class="pager-nav pager-nav-prev">
+    {% if has_prev %}
+      <a class="page-link" href="{{ prev_url }}">← Назад</a>
+    {% else %}
+      <span class="page-link disabled">← Назад</span>
+    {% endif %}
+  </div>
+  <p class="pager-summary hint">Найдено объявлений: {{ total }} · Страница {{ page }} из {{ total_pages }}</p>
+  <div class="pager-nav pager-nav-next">
+    {% if has_next %}
+      <a class="page-link" href="{{ next_url }}">Вперед →</a>
+    {% else %}
+      <span class="page-link disabled">Вперед →</span>
+    {% endif %}
+  </div>
+</div>
+{% endif %}

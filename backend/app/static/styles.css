@@ -8090,25 +8090,72 @@ body.design-lab .inspection-combined > h1 {
   margin: 0 0 4px;
 }
 
-body.design-lab .inspection-combined-block {
-  padding: 18px 0 8px;
-  border-top: 1px solid rgba(15, 23, 42, 0.12);
+body.design-lab .inspection-tools {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  align-items: start;
 }
 
-body.design-lab .inspection-combined-block--customs {
-  border-top: none;
-  padding-top: 0;
+body.design-lab .inspection-combined-block {
+  padding: 18px 18px 16px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 16px;
+  background: rgba(248, 250, 252, 0.72);
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+body.theme-admin:not(.theme-admin-light) .inspection-combined-block {
+  background: rgba(15, 23, 42, 0.35);
+  border-color: rgba(148, 163, 184, 0.22);
 }
 
 body.design-lab .inspection-combined-block h2 {
   margin: 0 0 10px;
-  font-size: 1.25rem;
+  font-size: 1.2rem;
+}
+
+body.design-lab .inspection-combined-block .form,
+body.design-lab .inspection-combined-block .admin-manual-vin-form {
+  margin-top: 8px;
 }
 
 body.design-lab .admin-vin-check-manual-page--embedded {
   margin: 0;
 }
 
+body.design-lab .admin-vin-check-manual-page--embedded .catalog-page,
+body.design-lab .admin-vin-check-manual-page--embedded.catalog-page {
+  padding: 0;
+  max-width: none;
+}
+
 body.design-lab .admin-vin-check-manual-page--embedded .catalog-main-head {
   margin-top: 0;
+}
+
+body.design-lab .inspection-results {
+  padding-top: 8px;
+  border-top: 1px solid rgba(15, 23, 42, 0.12);
+}
+
+body.design-lab .inspection-results-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin-bottom: 14px;
+}
+
+body.design-lab .inspection-results-head h2 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+@media (max-width: 900px) {
+  body.design-lab .inspection-tools {
+    grid-template-columns: 1fr;
+  }
 }
