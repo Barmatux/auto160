@@ -131,6 +131,7 @@ from app.manual_vin_check import (
     list_manual_vin_check_account_options,
     paginate_manual_vin_check_listings,
 )
+from app.customs_vehicles import list_customs_vehicle_specs
 from app.featured import (
     FEATURED_HOME_LIMIT,
     FEATURED_POOL_LIMIT,
@@ -187,6 +188,7 @@ from app.seo import (
     guide_do_160_seo_meta,
     guide_vin_seo_meta,
     home_seo_meta,
+    calculator_seo_meta,
     inspection_seo_meta,
     listing_seo_meta,
     listings_feed_seo_meta,
@@ -2616,7 +2618,11 @@ def home(request: Request, db: Session = Depends(get_db)):
 @router.get("/calculator")
 def calculator_page(request: Request, db: Session = Depends(get_db)):
     current_user = _resolve_user_from_request(request, db)
-    context = _template_context(request, current_user)
+    context = _template_context(request, current_user, calculator_seo_meta())
+    vehicle_specs = list_customs_vehicle_specs(db, active_only=True)
+    makes = sorted({row.make for row in vehicle_specs}, key=lambda m: m.lower())
+    context["customs_makes"] = makes
+    context["customs_vehicle_count"] = len(vehicle_specs)
     return templates.TemplateResponse(request, "calculator.html", context)
 
 
@@ -5228,6 +5234,17 @@ def admin_messages_page(request: Request, db: Session = Depends(get_db)):
         return redirect
     context = _template_context(request, current_user)
     return templates.TemplateResponse(request, "admin_messages.html", context)
+
+
+@router.get("/admin/customs")
+def admin_customs_page(request: Request, db: Session = Depends(get_db)):
+    current_user = _resolve_user_from_request(request, db)
+    redirect = _admin_page_redirect(current_user)
+    if redirect:
+        return redirect
+    context = _template_context(request, current_user)
+    context["customs_specs"] = list_customs_vehicle_specs(db, active_only=False)
+    return templates.TemplateResponse(request, "admin_customs.html", context)
 
 
 @router.get("/admin/featured")

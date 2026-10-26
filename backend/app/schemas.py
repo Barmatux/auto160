@@ -632,3 +632,85 @@ class ImportDateLookupResponse(BaseModel):
     message: str | None = None
     listing_id: int | None = None
     avby_url: str | None = None
+
+
+class CustomsVehicleSpecOut(BaseModel):
+    id: int
+    make: str
+    model: str
+    generation: str | None = None
+    year_from: int | None = None
+    year_to: int | None = None
+    engine_cc: int
+    power_hp: float
+    engine_kind: str
+    fuel_label: str | None = None
+    notes: str | None = None
+    is_active: bool
+    sort_weight: int
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class CustomsVehicleSpecCreateRequest(BaseModel):
+    make: str
+    model: str
+    generation: str | None = None
+    year_from: int | None = None
+    year_to: int | None = None
+    engine_cc: int
+    power_hp: float
+    engine_kind: str = "ice"
+    fuel_label: str | None = None
+    notes: str | None = None
+    is_active: bool = True
+    sort_weight: int = 0
+
+
+class CustomsVehicleSpecUpdateRequest(BaseModel):
+    make: str | None = None
+    model: str | None = None
+    generation: str | None = None
+    year_from: int | None = None
+    year_to: int | None = None
+    engine_cc: int | None = None
+    power_hp: float | None = None
+    engine_kind: str | None = None
+    fuel_label: str | None = None
+    notes: str | None = None
+    is_active: bool | None = None
+    sort_weight: int | None = None
+
+
+class CustomsCalcRequest(BaseModel):
+    year: int
+    engine_cc: float = 0
+    power_hp: float
+    price: float
+    currency: str = "EUR"
+    importer: str = "personal"
+    engine_kind: str = "ice"
+    vehicle_spec_id: int | None = None
+
+
+class CustomsCalcResponse(BaseModel):
+    ok: bool
+    error: str | None = None
+    age_years: float | None = None
+    age_band: str | None = None
+    customs_value_rub: float | None = None
+    duty_rub: float | None = None
+    clearance_fee_rub: float | None = None
+    util_sbor_rub: float | None = None
+    util_coefficient: float | None = None
+    util_preferential: bool = False
+    total_rub: float | None = None
+    eur_rub: float | None = None
+    usd_rub: float | None = None
+    byn_rub: float | None = None
+    notes: list[str] = []
+    breakdown: dict = {}
+    vehicle_label: str | None = None

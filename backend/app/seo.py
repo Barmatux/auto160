@@ -57,6 +57,10 @@ STATIC_SEO: dict[str, tuple[str, str]] = {
         "Проверка VIN в базе таможни РБ — Auto160",
         "Проверка VIN по базе ввезённого автотранспорта ГТК Беларуси перед покупкой автомобиля.",
     ),
+    "/calculator": (
+        "Калькулятор растаможки и утильсбора — Auto160",
+        "Расчёт таможенной пошлины и утилизационного сбора при ввозе легкового авто в РФ: вручную или по марке и модели.",
+    ),
     "/guides/vin": (
         "Проверка VIN и таможня РБ: как пользоваться — Auto160",
         "Как проверить VIN автомобиля в Беларуси: база ГТК, что смотреть в отчёте и как не купить проблемное авто.",
@@ -608,6 +612,16 @@ def inspection_seo_meta(*, has_query: bool) -> SeoMeta:
     )
 
 
+def calculator_seo_meta() -> SeoMeta:
+    title, description = STATIC_SEO["/calculator"]
+    return SeoMeta(
+        title=title,
+        description=description,
+        path="/calculator",
+        h1="Калькулятор растаможки и утильсбора",
+    )
+
+
 def guide_vin_seo_meta(base: str) -> SeoMeta:
     title, description = STATIC_SEO["/guides/vin"]
     faq = [
@@ -743,6 +757,7 @@ def build_sitemap_sections(db: Session, base_url: str) -> dict[str, list[tuple[s
         "/listings",
         "/listings/eu",
         "/inspection",
+        "/calculator",
         "/guides/vin",
         "/guides/do-160-hp",
         "/privacy",

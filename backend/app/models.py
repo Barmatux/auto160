@@ -475,6 +475,28 @@ class SiteLead(Base):
     listing: Mapped["CarListing | None"] = relationship()
 
 
+class CustomsVehicleSpec(Base):
+    """Admin-curated make/model engine specs for the public customs calculator."""
+
+    __tablename__ = "customs_vehicle_specs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    make: Mapped[str] = mapped_column(String(80), index=True)
+    model: Mapped[str] = mapped_column(String(120), index=True)
+    generation: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    year_from: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    year_to: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    engine_cc: Mapped[int] = mapped_column(Integer)
+    power_hp: Mapped[float] = mapped_column(Numeric(8, 2))
+    engine_kind: Mapped[str] = mapped_column(String(20), default="ice")
+    fuel_label: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    is_active: Mapped[bool] = mapped_column(default=True, index=True)
+    sort_weight: Mapped[int] = mapped_column(Integer, default=0, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
 class AvbyPriceStatTarget(Base):
     """Catalog generation (rating=1) mapped to av.by ocenka IDs."""
 

@@ -35,6 +35,12 @@ from app.catalog_ratings import (
 from app.catalog_visibility import apply_generation_catalog_visibility
 from app.db import get_db
 from app.deps import require_admin, require_admin_flexible
+from app.customs_vehicles import (
+    create_customs_vehicle_spec,
+    delete_customs_vehicle_spec,
+    list_customs_vehicle_specs,
+    update_customs_vehicle_spec,
+)
 from app.featured import (
     add_featured_listing,
     list_featured_rows,
@@ -61,6 +67,9 @@ from app.schemas import (
     CatalogGenerationVisibilityUpdate,
     CatalogGenerationYearsResult,
     CatalogGenerationYearsUpdate,
+    CustomsVehicleSpecCreateRequest,
+    CustomsVehicleSpecOut,
+    CustomsVehicleSpecUpdateRequest,
     FeaturedListingActiveRequest,
     FeaturedListingCreateRequest,
     FeaturedListingOut,
@@ -640,6 +649,67 @@ def admin_remove_featured_listing(
 ):
     try:
         remove_featured_listing(db, featured_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return None
+
+
+@router.get("/customs-vehicles", response_model=list[CustomsVehicleSpecOut])
+def admin_list_customs_vehicles(
+    _: User = Depends(require_admin_flexible),
+    db: Session = Depends(get_db),
+):
+    return list_customs_vehicle_specs(db, active_only=False)
+
+
+@router.post("/customs-vehicles", response_model=CustomsVehicleSpecOut)
+def admin_create_customs_vehicle(
+    payload: CustomsVehicleSpecCreateRequest,
+    _: User = Depends(require_admin_flexible),
+    db: Session = Depends(get_db),
+):
+    try:
+        return create_customs_vehicle_spec(
+            db,
+            make=payload.make,
+            model=payload.model,
+            generation=payload.generation,
+            year_from=payload.year_from,
+            year_to=payload.year_to,
+            engine_cc=payload.engine_cc,
+            power_hp=payload.power_hp,
+            engine_kind=payload.engine_kind,
+            fuel_label=payload.fuel_label,
+            notes=payload.notes,
+            is_active=payload.is_active,
+            sort_weight=payload.sort_weight,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.patch("/customs-vehicles/{spec_id}", response_model=CustomsVehicleSpecOut)
+def admin_update_customs_vehicle(
+    spec_id: int,
+    payload: CustomsVehicleSpecUpdateRequest,
+    _: User = Depends(require_admin_flexible),
+    db: Session = Depends(get_db),
+):
+    try:
+        data = payload.model_dump(exclude_unset=True)
+        return update_customs_vehicle_spec(db, spec_id, **data)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.delete("/customs-vehicles/{spec_id}", status_code=204)
+def admin_delete_customs_vehicle(
+    spec_id: int,
+    _: User = Depends(require_admin_flexible),
+    db: Session = Depends(get_db),
+):
+    try:
+        delete_customs_vehicle_spec(db, spec_id)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     return None
