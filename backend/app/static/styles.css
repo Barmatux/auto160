@@ -6094,6 +6094,7 @@ body.listing-lightbox-open {
   min-height: 420px;
   overflow: hidden;
   color: #f8fafc;
+  background: #0b0e14;
 }
 
 .home-hero-pane + .home-hero-pane {
@@ -6105,17 +6106,25 @@ body.listing-lightbox-open {
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  object-position: center 60%;
+  object-fit: contain;
+  object-position: center 62%;
   display: block;
+}
+
+.home-hero-pane--by .home-hero-pane-media {
+  object-position: 42% 58%;
+}
+
+.home-hero-pane--eu .home-hero-pane-media {
+  object-position: 58% 58%;
 }
 
 .home-hero-pane-scrim {
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(180deg, rgba(8, 10, 16, 0.72) 0%, rgba(8, 10, 16, 0.42) 42%, rgba(8, 10, 16, 0.88) 100%),
-    linear-gradient(90deg, rgba(8, 10, 16, 0.55) 0%, rgba(8, 10, 16, 0.15) 100%);
+    linear-gradient(180deg, rgba(8, 10, 16, 0.55) 0%, rgba(8, 10, 16, 0.22) 38%, rgba(8, 10, 16, 0.82) 100%),
+    linear-gradient(90deg, rgba(8, 10, 16, 0.35) 0%, rgba(8, 10, 16, 0.08) 100%);
   pointer-events: none;
 }
 
