@@ -238,6 +238,24 @@ body.theme-admin .catalog-main-head a:hover {
   color: #0e7490;
 }
 
+/* Inspection two-column embed: do not force light catalog-head colors. */
+body.theme-admin .admin-vin-check-manual-page--embedded .catalog-main-head,
+body.theme-admin .admin-vin-check-manual-page--embedded .catalog-main-head .hint,
+body.theme-admin .admin-vin-check-manual-page--embedded .catalog-main-head .muted,
+body.theme-admin .admin-vin-check-manual-page--embedded .catalog-main-head label,
+body.theme-admin .admin-vin-check-manual-page--embedded .catalog-main-head .inline-checkbox,
+body.theme-admin .admin-vin-check-manual-page--embedded .catalog-main-head .admin-vin-stats-empty {
+  color: inherit;
+}
+
+body.theme-admin:not(.theme-admin-light) .admin-vin-check-manual-page--embedded .catalog-main-head a {
+  color: #38bdf8;
+}
+
+body.theme-admin:not(.theme-admin-light) .admin-vin-check-manual-page--embedded .catalog-main-head a:hover {
+  color: #7dd3fc;
+}
+
 body.theme-admin .admin-vin-check-stats {
   background: #ecfeff;
   color: #155e75;
