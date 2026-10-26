@@ -82,8 +82,6 @@
         opt.dataset.cc = String(row.engine_cc);
         opt.dataset.hp = String(row.power_hp);
         opt.dataset.kind = row.engine_kind || "ice";
-        opt.dataset.yearFrom = row.year_from != null ? String(row.year_from) : "";
-        opt.dataset.yearTo = row.year_to != null ? String(row.year_to) : "";
         opt.dataset.notes = row.notes || "";
         specSelect.appendChild(opt);
       });
@@ -115,17 +113,6 @@
       if (!opt || !opt.value) {
         if (specMeta) specMeta.textContent = "";
         return;
-      }
-      var yearInput = form.querySelector('[name="catalog_year"]');
-      if (yearInput && !yearInput.value) {
-        yearInput.value = opt.dataset.yearTo || opt.dataset.yearFrom || "";
-      } else if (yearInput && (opt.dataset.yearTo || opt.dataset.yearFrom)) {
-        var y = Number(yearInput.value);
-        var from = opt.dataset.yearFrom ? Number(opt.dataset.yearFrom) : null;
-        var to = opt.dataset.yearTo ? Number(opt.dataset.yearTo) : null;
-        if ((from && y < from) || (to && y > to)) {
-          yearInput.value = String(to || from);
-        }
       }
       if (specMeta) {
         var bits = [];
@@ -169,14 +156,8 @@
       }
     }
     if (ageEl) {
-      var band =
-        data.age_band === "under3"
-          ? "младше 3 лет"
-          : data.age_band === "from3to5"
-            ? "от 3 до 5 лет"
-            : "старше 5 лет";
       ageEl.textContent =
-        "Возраст ≈ " + data.age_years + " лет (" + band + ").";
+        "Возраст: " + (data.age_band_label || data.age_band || "—") + ".";
     }
     if (notesEl) {
       notesEl.innerHTML = "";
@@ -197,7 +178,7 @@
       currency: String(fd.get("currency") || "EUR"),
       importer: String(fd.get("importer") || "personal"),
       engine_kind: "ice",
-      year: 0,
+      age_band: "from3to5",
       engine_cc: 0,
       power_hp: 0,
       vehicle_spec_id: null,
@@ -210,7 +191,7 @@
         return;
       }
       payload.vehicle_spec_id = specId;
-      payload.year = Number(fd.get("catalog_year") || 0);
+      payload.age_band = String(fd.get("catalog_age_band") || "from3to5");
       payload.power_hp = 1;
       var opt = specSelect && specSelect.selectedOptions[0];
       if (opt) {
@@ -219,7 +200,7 @@
         payload.power_hp = Number(opt.dataset.hp || 1);
       }
     } else {
-      payload.year = Number(fd.get("year"));
+      payload.age_band = String(fd.get("age_band") || "from3to5");
       payload.engine_cc = Number(fd.get("engine_cc"));
       payload.power_hp = Number(fd.get("power_hp"));
       payload.engine_kind = String(fd.get("engine_kind") || "ice");

@@ -686,7 +686,7 @@ class CustomsVehicleSpecUpdateRequest(BaseModel):
 
 
 class CustomsCalcRequest(BaseModel):
-    year: int
+    age_band: str
     engine_cc: float = 0
     power_hp: float
     price: float
@@ -701,6 +701,7 @@ class CustomsCalcResponse(BaseModel):
     error: str | None = None
     age_years: float | None = None
     age_band: str | None = None
+    age_band_label: str | None = None
     customs_value_rub: float | None = None
     duty_rub: float | None = None
     clearance_fee_rub: float | None = None

@@ -3,7 +3,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
-from app.customs_duty_calc import CustomsCalcInput, calculate_customs
+from app.customs_duty_calc import CustomsCalcInput, calculate_customs, normalize_age_band
 from app.customs_vehicles import (
     get_customs_vehicle_spec,
     list_customs_vehicle_specs,
@@ -90,7 +90,11 @@ def public_customs_calc(payload: CustomsCalcRequest, db: Session = Depends(get_d
     engine_cc = payload.engine_cc
     power_hp = payload.power_hp
     engine_kind = payload.engine_kind if payload.engine_kind in {"ice", "electric"} else "ice"
-    year = payload.year
+
+    try:
+        age_band = normalize_age_band(payload.age_band)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     if payload.vehicle_spec_id:
         spec = get_customs_vehicle_spec(db, payload.vehicle_spec_id)
@@ -105,8 +109,6 @@ def public_customs_calc(payload: CustomsCalcRequest, db: Session = Depends(get_d
         parts.append(f"{int(spec.engine_cc)} см³")
         parts.append(f"{spec.power_hp:g} л.с.")
         vehicle_label = " · ".join(parts)
-        if year <= 0:
-            year = spec.year_to or spec.year_from or year
 
     if payload.importer not in {"personal", "commercial"}:
         raise HTTPException(status_code=400, detail="importer: personal или commercial")
@@ -116,7 +118,7 @@ def public_customs_calc(payload: CustomsCalcRequest, db: Session = Depends(get_d
     eur_rub, usd_rub, byn_rub = _fx_triplet()
     result = calculate_customs(
         CustomsCalcInput(
-            year=year,
+            age_band=age_band,
             engine_cc=float(engine_cc or 0),
             power_hp=float(power_hp),
             price=float(payload.price),

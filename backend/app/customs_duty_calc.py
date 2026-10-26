@@ -14,6 +14,20 @@ from typing import Any, Literal
 ImporterKind = Literal["personal", "commercial"]
 EngineKind = Literal["ice", "electric"]
 CurrencyCode = Literal["RUB", "EUR", "USD", "BYN"]
+AgeBand = Literal["under3", "from3to5", "over5"]
+
+AGE_BAND_LABELS: dict[str, str] = {
+    "under3": "до 3 лет",
+    "from3to5": "от 3 до 5 лет",
+    "over5": "старше 5 лет",
+}
+
+# Representative ages inside each duty/util band (for coefficient lookups).
+_AGE_BAND_YEARS: dict[str, float] = {
+    "under3": 1.5,
+    "from3to5": 4.0,
+    "over5": 6.0,
+}
 
 UTIL_BASE_RATE_RUB = 20_000.0
 PREFERENTIAL_HP_MAX = 160.0
@@ -121,14 +135,13 @@ _CLEARANCE_FEES: list[tuple[float, float]] = [
 
 @dataclass(frozen=True)
 class CustomsCalcInput:
-    year: int
+    age_band: AgeBand
     engine_cc: float
     power_hp: float
     price: float
     currency: CurrencyCode = "EUR"
     importer: ImporterKind = "personal"
     engine_kind: EngineKind = "ice"
-    as_of: date | None = None
 
 
 @dataclass(frozen=True)
@@ -137,6 +150,7 @@ class CustomsCalcResult:
     error: str | None
     age_years: float | None
     age_band: str | None
+    age_band_label: str | None
     customs_value_rub: float | None
     duty_rub: float | None
     clearance_fee_rub: float | None
@@ -154,13 +168,11 @@ class CustomsCalcResult:
         return asdict(self)
 
 
-def car_age_years(year: int, as_of: date | None = None) -> float:
-    today = as_of or date.today()
-    if year < 1950 or year > today.year + 1:
-        raise ValueError("Некорректный год выпуска")
-    # Approximate age from mid-year of manufacture (common customs practice for bands).
-    months = (today.year - year) * 12 + (today.month - 6)
-    return max(0.0, months / 12.0)
+def normalize_age_band(value: str | None) -> AgeBand:
+    key = (value or "").strip().lower()
+    if key not in _AGE_BAND_YEARS:
+        raise ValueError("Выберите возраст: до 3 лет, от 3 до 5 лет или старше 5 лет")
+    return key  # type: ignore[return-value]
 
 
 def age_band(age_years: float) -> str:
@@ -169,6 +181,15 @@ def age_band(age_years: float) -> str:
     if age_years < 5:
         return "from3to5"
     return "over5"
+
+
+def car_age_years(year: int, as_of: date | None = None) -> float:
+    """Legacy helper: approximate age from manufacture year (tests / admin tools)."""
+    today = as_of or date.today()
+    if year < 1950 or year > today.year + 1:
+        raise ValueError("Некорректный год выпуска")
+    months = (today.year - year) * 12 + (today.month - 6)
+    return max(0.0, months / 12.0)
 
 
 def util_age_is_new(age_years: float) -> bool:
@@ -316,8 +337,8 @@ def calculate_customs(
         if eur_rub <= 0 or usd_rub <= 0 or byn_rub <= 0:
             raise ValueError("Недоступны курсы валют для расчёта")
 
-        age = car_age_years(payload.year, payload.as_of)
-        band = age_band(age)
+        band = normalize_age_band(payload.age_band)
+        age = _AGE_BAND_YEARS[band]
         customs_value = price_to_rub(
             payload.price,
             payload.currency,
@@ -364,6 +385,7 @@ def calculate_customs(
             error=None,
             age_years=round(age, 2),
             age_band=band,
+            age_band_label=AGE_BAND_LABELS[band],
             customs_value_rub=round(customs_value, 2),
             duty_rub=round(duty, 2),
             clearance_fee_rub=round(fee, 2),
@@ -379,7 +401,7 @@ def calculate_customs(
                 "duty_rule": duty_note,
                 "importer": payload.importer,
                 "engine_kind": payload.engine_kind,
-                "year": payload.year,
+                "age_band": band,
                 "engine_cc": payload.engine_cc,
                 "power_hp": payload.power_hp,
             },
@@ -390,6 +412,7 @@ def calculate_customs(
             error=str(exc),
             age_years=None,
             age_band=None,
+            age_band_label=None,
             customs_value_rub=None,
             duty_rub=None,
             clearance_fee_rub=None,

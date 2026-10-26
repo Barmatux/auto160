@@ -1,11 +1,10 @@
-from datetime import date
-
 from app.customs_duty_calc import (
     CustomsCalcInput,
     age_band,
     calculate_customs,
     car_age_years,
     clearance_fee_rub,
+    normalize_age_band,
     preferential_util_eligible,
     util_coefficient,
 )
@@ -15,6 +14,16 @@ def test_age_bands():
     assert age_band(1.5) == "under3"
     assert age_band(3.2) == "from3to5"
     assert age_band(6.0) == "over5"
+
+
+def test_normalize_age_band():
+    assert normalize_age_band("under3") == "under3"
+    assert normalize_age_band("from3to5") == "from3to5"
+    try:
+        normalize_age_band("nope")
+        assert False, "expected ValueError"
+    except ValueError:
+        pass
 
 
 def test_preferential_util_for_personal_under_160():
@@ -72,20 +81,21 @@ def test_clearance_fee_brackets():
 def test_calculate_personal_preferential_duty_and_util():
     result = calculate_customs(
         CustomsCalcInput(
-            year=2021,
+            age_band="from3to5",
             engine_cc=1598,
             power_hp=150,
             price=10_000,
             currency="EUR",
             importer="personal",
             engine_kind="ice",
-            as_of=date(2026, 10, 26),
         ),
         eur_rub=100.0,
         usd_rub=90.0,
         byn_rub=30.0,
     )
     assert result.ok is True
+    assert result.age_band == "from3to5"
+    assert result.age_band_label == "от 3 до 5 лет"
     assert result.util_preferential is True
     assert result.util_sbor_rub == 5_200.0
     assert result.customs_value_rub == 1_000_000.0

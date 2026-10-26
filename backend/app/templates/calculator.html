@@ -26,8 +26,12 @@
         <h2>Параметры автомобиля</h2>
         <div class="calc-grid">
           <label>
-            Год выпуска
-            <input type="number" name="year" min="1980" max="2030" value="2021" required />
+            Возраст автомобиля
+            <select name="age_band" required>
+              <option value="under3">До 3 лет</option>
+              <option value="from3to5" selected>От 3 до 5 лет</option>
+              <option value="over5">Старше 5 лет</option>
+            </select>
           </label>
           <label>
             Объём двигателя, см³
@@ -67,8 +71,12 @@
               </select>
             </label>
             <label>
-              Год выпуска
-              <input type="number" name="catalog_year" min="1980" max="2030" value="2021" />
+              Возраст автомобиля
+              <select name="catalog_age_band" required>
+                <option value="under3">До 3 лет</option>
+                <option value="from3to5" selected>От 3 до 5 лет</option>
+                <option value="over5">Старше 5 лет</option>
+              </select>
             </label>
           </div>
           <p class="hint" data-calc-spec-meta></p>
@@ -171,5 +179,5 @@
     </div>
   </section>
 </section>
-<script src="/static/customs_calc.js?v=20261026-28" defer></script>
+<script src="/static/customs_calc.js?v=20261026-29" defer></script>
 {% endblock %}
