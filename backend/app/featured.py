@@ -20,7 +20,13 @@ from app.manual_vin_check import (
     parse_avby_url,
     upsert_advert_listing,
 )
-from app.customs_vin import CustomsVinError, lookup_customs_vin, normalize_vin, vin_is_valid
+from app.customs_vin import (
+    CustomsVinError,
+    is_explicit_not_found,
+    lookup_customs_vin,
+    normalize_vin,
+    vin_is_valid,
+)
 from app.models import CarListing, FeaturedListing, ListingStatus, SiteLead
 
 FEATURED_HOME_LIMIT = 10
@@ -216,9 +222,12 @@ class ImportDateLookupResult:
     vin: str | None = None
     release_date: str | None = None
     customs_found: bool | None = None
+    # found | not_found | unavailable — distinguishes GTK miss vs GTK downtime
+    customs_status: str | None = None
     message: str | None = None
     listing_id: int | None = None
     avby_url: str | None = None
+    query: str | None = None
 
 
 def _looks_like_vin(raw: str) -> bool:
@@ -272,7 +281,9 @@ def _resolve_vin_from_avby_url(db: Session, raw_url: str) -> tuple[str | None, C
 def lookup_public_import_date(db: Session, raw_input: str) -> ImportDateLookupResult:
     text = (raw_input or "").strip()
     if not text:
-        return ImportDateLookupResult(ok=False, input_kind="vin", message="Введите VIN или ссылку av.by")
+        return ImportDateLookupResult(
+            ok=False, input_kind="vin", message="Введите VIN или ссылку av.by", query=text
+        )
 
     if _looks_like_vin(text) and not _URL_HINT_RE.search(text):
         vin = normalize_vin(text)
@@ -280,26 +291,49 @@ def lookup_public_import_date(db: Session, raw_input: str) -> ImportDateLookupRe
             return ImportDateLookupResult(
                 ok=False,
                 input_kind="vin",
+                query=text,
                 message="Некорректный VIN. Используйте 17 символов без I, O, Q.",
             )
         try:
             result = lookup_customs_vin(db, vin)
-        except CustomsVinError as exc:
-            return ImportDateLookupResult(ok=False, input_kind="vin", vin=vin, message=str(exc))
-        if not result.found:
+        except CustomsVinError:
             return ImportDateLookupResult(
                 ok=True,
                 input_kind="vin",
                 vin=vin,
-                customs_found=False,
-                release_date=None,
-                message="В базе ГТК (физлица) запись не найдена",
+                query=text,
+                customs_found=None,
+                customs_status="unavailable",
+                message="Сайт таможни временно не отвечает",
+            )
+        if not result.found:
+            if is_explicit_not_found(result):
+                return ImportDateLookupResult(
+                    ok=True,
+                    input_kind="vin",
+                    vin=vin,
+                    query=text,
+                    customs_found=False,
+                    customs_status="not_found",
+                    release_date=None,
+                    message="В базе ГТК (физлица) запись не найдена",
+                )
+            return ImportDateLookupResult(
+                ok=True,
+                input_kind="vin",
+                vin=vin,
+                query=text,
+                customs_found=None,
+                customs_status="unavailable",
+                message="Сайт таможни временно не отвечает",
             )
         return ImportDateLookupResult(
             ok=True,
             input_kind="vin",
             vin=vin,
+            query=text,
             customs_found=True,
+            customs_status="found",
             release_date=result.release_date,
             message=None if result.release_date else "Найдено в ГТК, дата ввоза не распознана",
         )
@@ -308,13 +342,16 @@ def lookup_public_import_date(db: Session, raw_input: str) -> ImportDateLookupRe
     try:
         normalized = normalize_avby_url(text)
     except ManualVinCheckError as exc:
-        return ImportDateLookupResult(ok=False, input_kind="avby_url", message=str(exc))
+        return ImportDateLookupResult(
+            ok=False, input_kind="avby_url", query=text, message=str(exc)
+        )
 
     vin, listing, err = _resolve_vin_from_avby_url(db, text)
     if not vin:
         return ImportDateLookupResult(
             ok=False,
             input_kind="avby_url",
+            query=text,
             avby_url=normalized,
             listing_id=listing.id if listing else None,
             message=err or "Не удалось получить VIN по ссылке",
@@ -322,34 +359,53 @@ def lookup_public_import_date(db: Session, raw_input: str) -> ImportDateLookupRe
 
     try:
         result = lookup_customs_vin(db, vin)
-    except CustomsVinError as exc:
-        return ImportDateLookupResult(
-            ok=False,
-            input_kind="avby_url",
-            vin=vin,
-            avby_url=normalized,
-            listing_id=listing.id if listing else None,
-            message=str(exc),
-        )
-
-    if not result.found:
+    except CustomsVinError:
         return ImportDateLookupResult(
             ok=True,
             input_kind="avby_url",
             vin=vin,
+            query=text,
             avby_url=normalized,
             listing_id=listing.id if listing else None,
-            customs_found=False,
-            message="В базе ГТК (физлица) запись не найдена",
+            customs_found=None,
+            customs_status="unavailable",
+            message="Сайт таможни временно не отвечает",
+        )
+
+    if not result.found:
+        if is_explicit_not_found(result):
+            return ImportDateLookupResult(
+                ok=True,
+                input_kind="avby_url",
+                vin=vin,
+                query=text,
+                avby_url=normalized,
+                listing_id=listing.id if listing else None,
+                customs_found=False,
+                customs_status="not_found",
+                message="В базе ГТК (физлица) запись не найдена",
+            )
+        return ImportDateLookupResult(
+            ok=True,
+            input_kind="avby_url",
+            vin=vin,
+            query=text,
+            avby_url=normalized,
+            listing_id=listing.id if listing else None,
+            customs_found=None,
+            customs_status="unavailable",
+            message="Сайт таможни временно не отвечает",
         )
 
     return ImportDateLookupResult(
         ok=True,
         input_kind="avby_url",
         vin=vin,
+        query=text,
         avby_url=normalized,
         listing_id=listing.id if listing else None,
         customs_found=True,
+        customs_status="found",
         release_date=result.release_date,
         message=None if result.release_date else "Найдено в ГТК, дата ввоза не распознана",
     )
@@ -362,9 +418,11 @@ class PublicInspectionCheckResult:
     vin: str | None = None
     release_date: str | None = None
     customs_found: bool | None = None
+    customs_status: str | None = None
     message: str | None = None
     listing_id: int | None = None
     avby_url: str | None = None
+    query: str | None = None
     power_hp: float | None = None
     engine_capacity_l: float | None = None
     engine_cc: int | None = None
@@ -430,6 +488,7 @@ def run_public_inspection_check(
             ),
             input_kind=base.input_kind,
             customs_found=base.customs_found,
+            customs_status=base.customs_status,
         ).to_dict()
 
     # Hide VIN for URL checks unless admin; VIN typed by the user is always returned.
@@ -443,9 +502,11 @@ def run_public_inspection_check(
         vin=vin_out,
         release_date=base.release_date,
         customs_found=base.customs_found,
+        customs_status=base.customs_status,
         message=base.message,
         listing_id=base.listing_id,
         avby_url=base.avby_url,
+        query=base.query or raw_input.strip() or None,
         power_hp=power_hp if base.input_kind == "avby_url" else None,
         engine_capacity_l=engine_capacity_l if base.input_kind == "avby_url" else None,
         engine_cc=engine_cc if base.input_kind == "avby_url" else None,

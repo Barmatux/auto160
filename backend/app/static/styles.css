@@ -8405,6 +8405,7 @@ body.design-lab .inspection-query-clear {
   cursor: pointer;
   display: inline-grid;
   place-items: center;
+  z-index: 2;
 }
 
 body.design-lab .inspection-query-clear:hover,
@@ -8417,6 +8418,110 @@ body.design-lab .inspection-query-clear:focus-visible {
 body.design-lab .inspection-approx {
   color: #fbbf24;
   font-weight: 700;
+}
+
+body.design-lab .inspection-reasons {
+  margin-top: 10px;
+}
+
+body.design-lab .inspection-reasons ul {
+  margin: 6px 0 0;
+  padding-left: 1.15rem;
+}
+
+body.design-lab .inspection-reasons li {
+  margin: 0 0 4px;
+  line-height: 1.4;
+}
+
+body.design-lab .inspection-notify {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(148, 163, 184, 0.22);
+}
+
+body.design-lab .inspection-retry-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0 12px;
+  min-width: 0;
+}
+
+body.design-lab .inspection-retry-link {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #7dd3fc;
+  font-size: 0.92rem;
+}
+
+body.design-lab .inspection-copy-btn {
+  flex: 0 0 auto;
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.45);
+  color: #e2e8f0;
+  cursor: pointer;
+  display: inline-grid;
+  place-items: center;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+body.design-lab .inspection-copy-btn:hover,
+body.design-lab .inspection-copy-btn:focus-visible {
+  border-color: rgba(56, 189, 248, 0.55);
+  color: #7dd3fc;
+  outline: none;
+}
+
+body.design-lab .inspection-messenger-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 12px;
+}
+
+body.design-lab .inspection-messenger-link {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.4rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  color: #e2e8f0;
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+body.design-lab .inspection-messenger-link:hover {
+  border-color: rgba(56, 189, 248, 0.5);
+  color: #7dd3fc;
+}
+
+body.design-lab .inspection-notify-form {
+  display: grid;
+  gap: 8px;
+}
+
+body.design-lab .inspection-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  z-index: 80;
+  padding: 0.7rem 1rem;
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.92);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  color: #f8fafc;
+  font-size: 0.92rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
 }
 
 body.design-lab .inspection-promo {

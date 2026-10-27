@@ -237,6 +237,17 @@ def has_fresh_customs_check(
     return _cache_is_fresh(cached)
 
 
+def is_explicit_not_found(result: CustomsVinResult) -> bool:
+    """True when ГТК clearly answered that the VIN is absent (not a flaky/empty reply)."""
+    if result.found:
+        return False
+    note = (result.parse_error or "").strip().lower()
+    if not note:
+        # _parse_message_html returns parse_error=None for «ничего не найдено»
+        return True
+    return "ничего не найдено" in note
+
+
 def lookup_customs_vin(
     db: Session,
     vin: str,

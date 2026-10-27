@@ -3158,6 +3158,7 @@ def listing_item(request: Request, listing_id: int, db: Session = Depends(get_db
 def vin_inspection_page(
     request: Request,
     vin: str | None = Query(default=None),
+    q: str | None = Query(default=None),
     listing_id: int | None = Query(default=None),
     refresh: bool = Query(default=False),
     page: int = Query(default=1, ge=1),
@@ -3165,7 +3166,7 @@ def vin_inspection_page(
     db: Session = Depends(get_db),
 ):
     current_user = _resolve_user_from_request(request, db)
-    has_query = bool((vin or "").strip() or listing_id is not None or refresh)
+    has_query = bool((vin or "").strip() or (q or "").strip() or listing_id is not None or refresh)
     seo = SeoMeta(
         title="Проверка — Auto160",
         description="Проверка VIN или объявления av.by: дата ввоза в РБ и льготный утильсбор на РФ.",
@@ -3182,7 +3183,7 @@ def vin_inspection_page(
         if listing and _listing_is_belarus_source(listing) and not is_admin:
             listing = None
 
-    initial_query = (vin or "").strip()
+    initial_query = (q or vin or "").strip()
     if not initial_query and listing is not None:
         if listing.source_url:
             initial_query = listing.source_url.strip()
@@ -3195,6 +3196,9 @@ def vin_inspection_page(
     context["vin_error"] = None
     context["vin_report"] = None
     context["customs_result"] = None
+    context["inspection_messengers"] = [
+        item for item in header_messenger_links() if item.get("url") and item.get("url") != "#"
+    ]
 
     _populate_manual_vin_check_context(
         context=context,

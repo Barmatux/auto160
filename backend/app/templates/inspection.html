@@ -1,7 +1,12 @@
 {% extends "base.html" %}
 {% block title %}{{ seo_title | default("Проверка — Auto160") }}{% endblock %}
 {% block content %}
-<section class="inspection-combined" data-inspection-page data-is-admin="{{ '1' if is_admin else '0' }}">
+<section
+  class="inspection-combined"
+  data-inspection-page
+  data-is-admin="{{ '1' if is_admin else '0' }}"
+  data-messengers='{{ inspection_messengers | default([]) | tojson }}'
+>
   <div class="inspection-main">
     <div class="inspection-main-left">
       <header class="inspection-intro">
@@ -84,5 +89,6 @@
     <div class="listing-description-backdrop" data-description-backdrop hidden></div>
   </section>
 </section>
-<script src="/static/inspection_check.js?v=20261027-04" defer></script>
+<div class="inspection-toast" data-inspection-toast hidden role="status" aria-live="polite"></div>
+<script src="/static/inspection_check.js?v=20261027-05" defer></script>
 {% endblock %}

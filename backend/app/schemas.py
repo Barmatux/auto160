@@ -660,9 +660,11 @@ class InspectionCheckResponse(BaseModel):
     vin: str | None = None
     release_date: str | None = None
     customs_found: bool | None = None
+    customs_status: str | None = None
     message: str | None = None
     listing_id: int | None = None
     avby_url: str | None = None
+    query: str | None = None
     power_hp: float | None = None
     engine_capacity_l: float | None = None
     engine_cc: int | None = None

@@ -107,12 +107,164 @@
     promoActions.innerHTML = config.actionsHtml;
   }
 
+  var toastEl = root.querySelector("[data-inspection-toast]");
+  var toastTimer = null;
+  var messengers = [];
+  try {
+    messengers = JSON.parse(root.getAttribute("data-messengers") || "[]") || [];
+  } catch (_err) {
+    messengers = [];
+  }
+
   function applyPromoForCta(cta) {
-    if (cta === "inspect") {
+    if (cta === "inspect" || cta === "notify") {
       setPromo(INSPECT_PROMO);
       return;
     }
     setPromo(DEFAULT_PROMO);
+  }
+
+  function showToast(text) {
+    if (!toastEl) return;
+    toastEl.hidden = false;
+    toastEl.textContent = text;
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () {
+      toastEl.hidden = true;
+      toastEl.textContent = "";
+    }, 2000);
+  }
+
+  function buildRetryUrl(data) {
+    var raw = String(data.query || (queryInput && queryInput.value) || "").trim();
+    if (!raw) return window.location.origin + "/inspection";
+    return window.location.origin + "/inspection?q=" + encodeURIComponent(raw);
+  }
+
+  function renderReasons(reasons) {
+    if (!reasons || !reasons.length) return "";
+    return (
+      '<div class="inspection-reasons">' +
+      "<p><strong>Возможные причины:</strong></p>" +
+      "<ul>" +
+      reasons
+        .map(function (item) {
+          return "<li>" + escapeHtml(item) + "</li>";
+        })
+        .join("") +
+      "</ul></div>"
+    );
+  }
+
+  function renderNotifyBlock(data) {
+    var retryUrl = buildRetryUrl(data);
+    var messengerHtml = messengers
+      .map(function (item) {
+        return (
+          '<a class="inspection-messenger-link" href="' +
+          escapeHtml(item.url) +
+          '" target="_blank" rel="noopener noreferrer">' +
+          escapeHtml(item.label) +
+          "</a>"
+        );
+      })
+      .join("");
+    return (
+      '<div class="inspection-notify">' +
+      "<p>Сохраните прямую ссылку на эту проверку и зайдите позже:</p>" +
+      '<div class="inspection-retry-row">' +
+      '<a class="inspection-retry-link" href="' +
+      escapeHtml(retryUrl) +
+      '">' +
+      escapeHtml(retryUrl) +
+      "</a>" +
+      '<button type="button" class="inspection-copy-btn" data-copy-retry aria-label="Скопировать ссылку" title="Скопировать">' +
+      "<span aria-hidden=\"true\">⧉</span>" +
+      "</button></div>" +
+      "<p>Или пришлите эту ссылку нам в мессенджер / на email — сообщим результат, когда ГТК ответит.</p>" +
+      (messengerHtml
+        ? '<div class="inspection-messenger-row">' + messengerHtml + "</div>"
+        : "") +
+      '<form class="inspection-notify-form" data-inspection-notify-form>' +
+      "<label>Email или контакт в мессенджере" +
+      '<input type="text" name="contact" maxlength="200" placeholder="email@example.com или @username" required />' +
+      "</label>" +
+      '<input type="hidden" name="avby_url" value="' +
+      escapeHtml(data.avby_url || data.query || "") +
+      '" />' +
+      '<input type="hidden" name="listing_id" value="' +
+      escapeHtml(data.listing_id != null ? String(data.listing_id) : "") +
+      '" />' +
+      '<div class="actions-row"><button type="submit" class="btn-primary">Прислать результат</button></div>' +
+      '<p class="hint" data-notify-status hidden></p>' +
+      "</form></div>"
+    );
+  }
+
+  function bindResultActions(data) {
+    var copyBtn = resultEl.querySelector("[data-copy-retry]");
+    if (copyBtn) {
+      copyBtn.addEventListener("click", function () {
+        var url = buildRetryUrl(data);
+        var done = function () {
+          showToast("Ссылка скопирована в буфер обмена");
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(url).then(done).catch(function () {
+            window.prompt("Скопируйте ссылку:", url);
+          });
+        } else {
+          window.prompt("Скопируйте ссылку:", url);
+        }
+      });
+    }
+
+    var notifyForm = resultEl.querySelector("[data-inspection-notify-form]");
+    if (!notifyForm) return;
+    var notifyStatus = notifyForm.querySelector("[data-notify-status]");
+    notifyForm.addEventListener("submit", async function (event) {
+      event.preventDefault();
+      var fd = new FormData(notifyForm);
+      var contact = String(fd.get("contact") || "").trim();
+      if (!contact) return;
+      if (notifyStatus) {
+        notifyStatus.hidden = false;
+        notifyStatus.textContent = "Отправляем…";
+        notifyStatus.style.color = "";
+      }
+      try {
+        var res = await fetch("/api/v1/public/leads", {
+          method: "POST",
+          credentials: "same-origin",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contact_name: "Проверка ГТК",
+            contact: contact,
+            comment: "Нужен результат проверки: " + buildRetryUrl(data),
+            listing_id: data.listing_id || null,
+            avby_url: data.avby_url || null,
+            source: "inspection_customs_retry",
+          }),
+        });
+        var payload = await res.json().catch(function () {
+          return {};
+        });
+        if (!res.ok) {
+          throw new Error(
+            typeof payload.detail === "string" ? payload.detail : "Не удалось отправить"
+          );
+        }
+        if (notifyStatus) {
+          notifyStatus.textContent = "Приняли — напишем, когда появится ответ ГТК.";
+        }
+        notifyForm.querySelector('button[type="submit"]').disabled = true;
+      } catch (err) {
+        if (notifyStatus) {
+          notifyStatus.textContent = err.message || "Ошибка отправки";
+          notifyStatus.style.color = "#f87171";
+        }
+      }
+    });
   }
 
   function renderResult(data) {
@@ -183,6 +335,15 @@
     if (data.vin) {
       bits.push("<p><strong>VIN:</strong> <code>" + escapeHtml(data.vin) + "</code></p>");
     }
+    if (verdict.detail) {
+      bits.push('<p class="inspection-verdict-detail">' + escapeHtml(verdict.detail) + "</p>");
+    }
+    if (verdict.code === "not_found") {
+      bits.push(renderReasons(verdict.reasons));
+    }
+    if (verdict.code === "customs_unavailable" || data.customs_status === "unavailable") {
+      bits.push(renderNotifyBlock(data));
+    }
     if (data.message && !verdict.title) {
       bits.push("<p>" + escapeHtml(data.message) + "</p>");
     }
@@ -202,6 +363,8 @@
       "</h3>" +
       bits.join("") +
       "</div></div>";
+
+    bindResultActions(data);
 
     if (typeof reachMetrikaGoal === "function") {
       reachMetrikaGoal("inspection_check");
