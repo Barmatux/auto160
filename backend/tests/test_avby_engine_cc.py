@@ -1,6 +1,9 @@
+from types import SimpleNamespace
+
 from app.avby_engine_cc import (
     EngineCcResolution,
     pick_best_modification,
+    resolve_engine_cc_for_listing,
     resolve_exact_engine_cc_from_offer,
     score_modification_for_listing,
 )
@@ -75,3 +78,60 @@ def test_resolve_exact_engine_cc_from_offer(monkeypatch):
         modification_id=42368,
         source="avby_mod",
     )
+
+
+def test_resolve_engine_cc_for_listing_uses_catalog_not_live_avby(monkeypatch):
+    catalog_item = SimpleNamespace(
+        id=77,
+        engine_capacity_cc=999,
+        raw_specs={"modification_detail": {"engineCapacity": "999 см.куб."}},
+    )
+    listing = SimpleNamespace(
+        id=1,
+        brand="Audi",
+        model="A1",
+        catalog_item_id=77,
+        engine_capacity_l=1.0,
+        avby_id=12345,
+    )
+
+    class FakeDb:
+        def get(self, _model, item_id):
+            assert item_id == 77
+            return catalog_item
+
+    def _boom(*_args, **_kwargs):
+        raise AssertionError("live av.by fetch must not be called")
+
+    monkeypatch.setattr("app.avby_engine_cc.fetch_offer_json", _boom)
+    monkeypatch.setattr(
+        "app.listing_catalog_link.score_listing_catalog_match",
+        lambda _listing, _item: 100,
+    )
+
+    result = resolve_engine_cc_for_listing(FakeDb(), listing, engine_capacity_l=1.0)
+    assert result == EngineCcResolution(engine_cc=999, approximate=False, source="catalog")
+
+
+def test_resolve_engine_cc_for_listing_falls_back_to_liters(monkeypatch):
+    listing = SimpleNamespace(
+        id=2,
+        brand="Audi",
+        model="A1",
+        catalog_item_id=None,
+        engine_capacity_l=1.0,
+        avby_id=None,
+    )
+
+    class FakeDb:
+        def get(self, *_args, **_kwargs):
+            return None
+
+    monkeypatch.setattr(
+        "app.avby_engine_cc._catalog_candidates_for_listing",
+        lambda _db, _listing: [],
+    )
+    monkeypatch.setattr("app.avby_engine_cc.fetch_offer_json", lambda *_a, **_k: (_ for _ in ()).throw(AssertionError()))
+
+    result = resolve_engine_cc_for_listing(FakeDb(), listing)
+    assert result == EngineCcResolution(engine_cc=1000, approximate=True, source="liters")

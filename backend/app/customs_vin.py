@@ -41,6 +41,22 @@ class CustomsVinError(Exception):
     pass
 
 
+# Shown on /inspection when GTK is down / returns HTTP errors (not validation).
+CUSTOMS_SITE_UNAVAILABLE_MESSAGE = (
+    "На сайте таможни произошла ошибка. Попробуйте позже или свяжитесь с нами "
+    "в Telegram @auto160 — поможем проверить вручную."
+)
+
+
+def public_customs_error_message(exc: Exception) -> str:
+    """User-facing text for CustomsVinError; keep VIN validation wording as-is."""
+    text = str(exc or "").strip()
+    lowered = text.lower()
+    if "некорректный vin" in lowered:
+        return text or CUSTOMS_SITE_UNAVAILABLE_MESSAGE
+    return CUSTOMS_SITE_UNAVAILABLE_MESSAGE
+
+
 @dataclass
 class CustomsVinResult:
     vin: str

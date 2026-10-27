@@ -1,11 +1,8 @@
-"""Resolve exact engine displacement (cm³) from av.by modification catalog.
+"""Resolve exact engine displacement (cm³) for Проверка / util eligibility.
 
-Listing cards only show liters; exact cm³ lives on the «Все параметры» / modification
-page. We use the public JSON APIs (same data as that page):
-
-1. GET /offers/{id} → generationId + listing specs
-2. GET .../generations/{generationId}/modifications → match the car
-3. GET .../modifications/{modId} → engineCapacity like \"1461 см.куб.\"
+Prefer Auto160 ``CatalogItem.engine_capacity_cc`` (backfilled from av.by dump).
+Live av.by modification HTTP APIs are no longer used for inspection checks;
+helpers below remain for offline/tests that score modifications.
 """
 
 from __future__ import annotations
@@ -262,6 +259,45 @@ def resolve_exact_engine_cc_from_offer(advert: dict[str, Any]) -> EngineCcResolu
     )
 
 
+def _cc_from_catalog_item(item: "CatalogItem") -> int | None:
+    from app.catalog_engine_cc import engine_capacity_cc_from_raw_specs
+
+    if item.engine_capacity_cc is not None:
+        try:
+            cc = int(item.engine_capacity_cc)
+        except (TypeError, ValueError):
+            cc = None
+        else:
+            if 0 < cc <= 20000:
+                return cc
+    return engine_capacity_cc_from_raw_specs(
+        item.raw_specs if isinstance(item.raw_specs, dict) else None
+    )
+
+
+def _catalog_candidates_for_listing(db: "Session", listing: "CarListing") -> list["CatalogItem"]:
+    """Match candidates from our CatalogItem table (no live av.by calls)."""
+    from app.catalog_visibility import apply_visible_catalog_filter
+    from app.listing_catalog_link import canonical_model_name
+    from app.models import CatalogItem
+
+    make = (listing.brand or "").strip()
+    model = canonical_model_name(listing.model)
+    if not make or not model:
+        return []
+    return (
+        apply_visible_catalog_filter(
+            db.query(CatalogItem).filter(
+                CatalogItem.source_site == "av.by",
+                CatalogItem.make.ilike(make),
+                CatalogItem.model == model,
+            )
+        )
+        .order_by(CatalogItem.year_from.desc(), CatalogItem.id.asc())
+        .all()
+    )
+
+
 def resolve_engine_cc_for_listing(
     db: "Session",
     listing: "CarListing | None",
@@ -269,8 +305,15 @@ def resolve_engine_cc_for_listing(
     engine_capacity_l: float | None = None,
     advert: dict[str, Any] | None = None,
 ) -> EngineCcResolution:
-    """Prefer catalog / av.by modification cm³; fall back to liters×1000 as approximate."""
-    from app.catalog_engine_cc import engine_capacity_cc_from_raw_specs
+    """Prefer our CatalogItem cm³; fall back to liters×1000 as approximate.
+
+    Live av.by modification APIs are not used — exact capacity comes from
+    ``catalog_items.engine_capacity_cc`` / raw_specs after matching the listing.
+    ``advert`` is accepted for call-site compatibility and ignored.
+    """
+    del advert  # kept for signature compatibility; catalog-only resolution
+
+    from app.listing_catalog_link import find_best_catalog_item, score_listing_catalog_match, MIN_LINK_SCORE
     from app.models import CatalogItem
 
     liters = engine_capacity_l
@@ -280,31 +323,19 @@ def resolve_engine_cc_for_listing(
         except (TypeError, ValueError):
             liters = None
 
+    item: CatalogItem | None = None
     if listing is not None and listing.catalog_item_id:
-        item = db.get(CatalogItem, listing.catalog_item_id)
-        if item is not None:
-            if item.engine_capacity_cc is not None:
-                try:
-                    cc = int(item.engine_capacity_cc)
-                except (TypeError, ValueError):
-                    cc = None
-                else:
-                    if 0 < cc <= 20000:
-                        return EngineCcResolution(cc, False, source="catalog")
-            parsed = engine_capacity_cc_from_raw_specs(
-                item.raw_specs if isinstance(item.raw_specs, dict) else None
-            )
-            if parsed is not None:
-                return EngineCcResolution(parsed, False, source="catalog")
+        linked = db.get(CatalogItem, listing.catalog_item_id)
+        if linked is not None and score_listing_catalog_match(listing, linked) >= MIN_LINK_SCORE:
+            item = linked
 
-    offer = advert
-    avby_id = listing.avby_id if listing is not None else None
-    if offer is None and avby_id:
-        offer = fetch_offer_json(int(avby_id))
-    if isinstance(offer, dict):
-        exact = resolve_exact_engine_cc_from_offer(offer)
-        if exact is not None and exact.engine_cc is not None:
-            return exact
+    if item is None and listing is not None:
+        item = find_best_catalog_item(listing, _catalog_candidates_for_listing(db, listing))
+
+    if item is not None:
+        cc = _cc_from_catalog_item(item)
+        if cc is not None:
+            return EngineCcResolution(cc, False, source="catalog")
 
     approx = engine_capacity_cc_from_liters(liters)
     return EngineCcResolution(

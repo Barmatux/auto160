@@ -25,6 +25,7 @@ from app.customs_vin import (
     is_explicit_not_found,
     lookup_customs_vin,
     normalize_vin,
+    public_customs_error_message,
     vin_is_valid,
 )
 from app.models import CarListing, FeaturedListing, ListingStatus, SiteLead
@@ -296,7 +297,7 @@ def lookup_public_import_date(db: Session, raw_input: str) -> ImportDateLookupRe
             )
         try:
             result = lookup_customs_vin(db, vin)
-        except CustomsVinError:
+        except CustomsVinError as exc:
             return ImportDateLookupResult(
                 ok=True,
                 input_kind="vin",
@@ -304,7 +305,7 @@ def lookup_public_import_date(db: Session, raw_input: str) -> ImportDateLookupRe
                 query=text,
                 customs_found=None,
                 customs_status="unavailable",
-                message="Сайт таможни временно не отвечает",
+                message=public_customs_error_message(exc),
             )
         if not result.found:
             if is_explicit_not_found(result):
@@ -325,7 +326,7 @@ def lookup_public_import_date(db: Session, raw_input: str) -> ImportDateLookupRe
                 query=text,
                 customs_found=None,
                 customs_status="unavailable",
-                message="Сайт таможни временно не отвечает",
+                message=public_customs_error_message(CustomsVinError("empty")),
             )
         return ImportDateLookupResult(
             ok=True,
@@ -359,7 +360,7 @@ def lookup_public_import_date(db: Session, raw_input: str) -> ImportDateLookupRe
 
     try:
         result = lookup_customs_vin(db, vin)
-    except CustomsVinError:
+    except CustomsVinError as exc:
         return ImportDateLookupResult(
             ok=True,
             input_kind="avby_url",
@@ -369,7 +370,7 @@ def lookup_public_import_date(db: Session, raw_input: str) -> ImportDateLookupRe
             listing_id=listing.id if listing else None,
             customs_found=None,
             customs_status="unavailable",
-            message="Сайт таможни временно не отвечает",
+            message=public_customs_error_message(exc),
         )
 
     if not result.found:
@@ -394,7 +395,7 @@ def lookup_public_import_date(db: Session, raw_input: str) -> ImportDateLookupRe
             listing_id=listing.id if listing else None,
             customs_found=None,
             customs_status="unavailable",
-            message="Сайт таможни временно не отвечает",
+            message=public_customs_error_message(CustomsVinError("empty")),
         )
 
     return ImportDateLookupResult(
