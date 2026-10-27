@@ -154,7 +154,6 @@ def evaluate_rf_util_eligibility(
             code="fail_power",
             tone="red",
             title="Автомобиль не проходит на РФ под льготный утильсбор — мощность более 160 л.с.",
-            detail=f"В объявлении указано {power_hp:g} л.с.",
             cta="select",
         )
 
@@ -163,7 +162,6 @@ def evaluate_rf_util_eligibility(
             code="fail_volume",
             tone="red",
             title="Автомобиль не проходит на РФ под льготный утильсбор — объём двигателя более 3000 см³",
-            detail=f"Объём по объявлению: {cc} см³.",
             cta="select",
         )
 
@@ -195,9 +193,6 @@ def evaluate_rf_util_eligibility(
             code="pass_ready",
             tone="green",
             title="Автомобиль проходной на РФ под льготный утильсбор",
-            detail=f"Дата ввоза в РБ: {release_date}. Мощность {power_hp:g} л.с."
-            + (f", объём {cc} см³" if cc else "")
-            + ".",
             eligible_from_date=eligible,
             cta="inspect",
         )
@@ -207,7 +202,7 @@ def evaluate_rf_util_eligibility(
             code="pass_after_date",
             tone="yellow",
             title=f"Автомобиль проходной на РФ под льготный утильсбор после {eligible}",
-            detail=f"Дата ввоза в РБ: {release_date}. Сейчас авто в окне 10–12 месяцев.",
+            detail="Сейчас авто в окне 10–12 месяцев после ввоза.",
             eligible_from_date=eligible,
             cta="inspect",
         )
@@ -216,7 +211,7 @@ def evaluate_rf_util_eligibility(
         code="fail_until_date",
         tone="red",
         title=f"Автомобиль не проходит на РФ под льготный утильсбор до {eligible}",
-        detail=f"Дата ввоза в РБ: {release_date}. До льготного срока ещё не прошло 10 месяцев.",
+        detail="До льготного срока ещё не прошло 10 месяцев.",
         eligible_from_date=eligible,
         cta="select",
     )

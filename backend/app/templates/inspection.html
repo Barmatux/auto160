@@ -10,28 +10,55 @@
     </p>
   </header>
 
-  <section class="inspection-combined-block inspection-unified" id="check">
-    <form class="form inspection-unified-form" data-inspection-form>
-      <label>
-        VIN или ссылка av.by
-        <input
-          type="text"
-          name="query"
-          value="{{ initial_query or '' }}"
-          placeholder="WBAHT31030F123456 или https://cars.av.by/…"
-          maxlength="500"
-          autocomplete="off"
-          required
-        />
-      </label>
-      <div class="actions-row">
-        <button type="submit" class="btn-primary">Проверить</button>
-      </div>
-      <p class="hint" data-inspection-status hidden></p>
-    </form>
+  <div class="inspection-main">
+    <section class="inspection-combined-block inspection-unified" id="check">
+      <form class="form inspection-unified-form" data-inspection-form>
+        <label>
+          VIN или ссылка av.by
+          <input
+            type="text"
+            name="query"
+            value="{{ initial_query or '' }}"
+            placeholder="WBAHT31030F123456 или https://cars.av.by/…"
+            maxlength="500"
+            autocomplete="off"
+            required
+          />
+        </label>
+        <div class="actions-row">
+          <button type="submit" class="btn-primary">Проверить</button>
+        </div>
+        <p class="hint" data-inspection-status hidden></p>
+      </form>
 
-    <div class="inspection-verdict" data-inspection-result hidden></div>
-  </section>
+      <div class="inspection-verdict" data-inspection-result hidden></div>
+    </section>
+
+    <aside class="inspection-promo" data-inspection-promo data-promo-mode="select">
+      <a class="inspection-promo-visual" href="/listings" aria-label="Подбор авто под льготный утильсбор">
+        <img
+          class="inspection-promo-media"
+          src="/static/brand/design-lab/hero-peugeot-408x-gt.jpg?v=20261027-01"
+          alt="Peugeot 408 X GT"
+          width="1280"
+          height="720"
+          decoding="async"
+          loading="lazy"
+        />
+      </a>
+      <div class="inspection-promo-body" data-inspection-promo-body>
+        <h2 data-promo-title>Подберём авто под льготный утильсбор</h2>
+        <p data-promo-text>
+          Подбор в Беларуси и Европе: поиск, проверка истории, расчёт утильсбора
+          и доставка в Москву и регионы.
+        </p>
+        <div class="inspection-promo-actions" data-promo-actions>
+          <a class="home-hero-pane-cta" href="/listings">Авто из Беларуси</a>
+          <a class="home-hero-pane-cta home-hero-pane-cta--ghost" href="/listings/eu">Авто из Европы</a>
+        </div>
+      </div>
+    </aside>
+  </div>
 
   <section class="inspection-results" id="results">
     <div class="inspection-results-head">
@@ -44,5 +71,5 @@
     <div class="listing-description-backdrop" data-description-backdrop hidden></div>
   </section>
 </section>
-<script src="/static/inspection_check.js?v=20261027-01" defer></script>
+<script src="/static/inspection_check.js?v=20261027-02" defer></script>
 {% endblock %}

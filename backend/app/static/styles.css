@@ -8337,6 +8337,13 @@ body.design-lab .inspection-lede {
   line-height: 1.45;
 }
 
+body.design-lab .inspection-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(260px, 0.95fr);
+  gap: 22px;
+  align-items: start;
+}
+
 body.design-lab .inspection-tools {
   display: grid;
   grid-template-columns: 1fr;
@@ -8354,7 +8361,74 @@ body.design-lab .inspection-combined-block {
 }
 
 body.design-lab .inspection-unified {
-  max-width: 40rem;
+  max-width: none;
+}
+
+body.design-lab .inspection-promo {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: rgba(15, 23, 42, 0.42);
+}
+
+body.design-lab .inspection-promo-visual {
+  display: block;
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 16 / 10;
+  background: #0b1220;
+}
+
+body.design-lab .inspection-promo-media {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 55% 55%;
+  display: block;
+  transform: scale(1.02);
+  transition: transform 420ms ease;
+}
+
+body.design-lab .inspection-promo-visual:hover .inspection-promo-media,
+body.design-lab .inspection-promo-visual:focus-visible .inspection-promo-media {
+  transform: scale(1.05);
+}
+
+body.design-lab .inspection-promo-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 16px 18px;
+}
+
+body.design-lab .inspection-promo-body h2 {
+  margin: 0;
+  font-size: 1.15rem;
+  line-height: 1.3;
+  font-weight: 700;
+}
+
+body.design-lab .inspection-promo-body p {
+  margin: 0;
+  opacity: 0.88;
+  line-height: 1.45;
+  font-size: 0.95rem;
+}
+
+body.design-lab .inspection-promo-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+@media (max-width: 960px) {
+  body.design-lab .inspection-main {
+    grid-template-columns: 1fr;
+  }
 }
 
 body.theme-admin:not(.theme-admin-light) .inspection-combined-block {
@@ -8462,20 +8536,15 @@ body.design-lab .inspection-verdict-card.is-red h3 {
   color: #fca5a5;
 }
 
-body.design-lab .inspection-cta {
-  margin-top: 14px;
-  padding-top: 12px;
-  border-top: 1px solid rgba(148, 163, 184, 0.22);
+body.theme-admin.theme-admin-light.design-lab .inspection-promo {
+  background: #ffffff;
+  border-color: #c5d4ea;
+  color: #0f172a;
 }
 
-body.design-lab .inspection-cta p {
-  margin-bottom: 10px;
-}
-
-body.design-lab .inspection-cta-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
+body.theme-admin.theme-admin-light.design-lab .inspection-promo-body p {
+  color: #475569;
+  opacity: 1;
 }
 
 body.design-lab .admin-vin-check-manual-page--embedded {

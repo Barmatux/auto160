@@ -5,7 +5,31 @@
   var form = root.querySelector("[data-inspection-form]");
   var statusEl = root.querySelector("[data-inspection-status]");
   var resultEl = root.querySelector("[data-inspection-result]");
+  var promo = root.querySelector("[data-inspection-promo]");
+  var promoTitle = root.querySelector("[data-promo-title]");
+  var promoText = root.querySelector("[data-promo-text]");
+  var promoActions = root.querySelector("[data-promo-actions]");
   if (!form || !resultEl) return;
+
+  var DEFAULT_PROMO = {
+    mode: "select",
+    title: "Подберём авто под льготный утильсбор",
+    text:
+      "Подбор в Беларуси и Европе: поиск, проверка истории, расчёт утильсбора и доставка в Москву и регионы.",
+    actionsHtml:
+      '<a class="home-hero-pane-cta" href="/listings">Авто из Беларуси</a>' +
+      '<a class="home-hero-pane-cta home-hero-pane-cta--ghost" href="/listings/eu">Авто из Европы</a>',
+  };
+
+  var INSPECT_PROMO = {
+    mode: "inspect",
+    title: "Закажите проверку этого авто у Auto160",
+    text:
+      "Осмотр, история и риски перед покупкой — поможем принять решение по конкретной машине.",
+    actionsHtml:
+      '<a class="home-hero-pane-cta" href="/listings">Заказать проверку</a>' +
+      '<a class="home-hero-pane-cta home-hero-pane-cta--ghost" href="/#chat" data-open-chat>Написать менеджеру</a>',
+  };
 
   function setStatus(text, isError) {
     if (!statusEl) return;
@@ -29,33 +53,26 @@
     return "i";
   }
 
-  function renderCta(cta) {
+  function setPromo(config) {
+    if (!promo || !promoTitle || !promoText || !promoActions) return;
+    promo.setAttribute("data-promo-mode", config.mode);
+    promoTitle.textContent = config.title;
+    promoText.textContent = config.text;
+    promoActions.innerHTML = config.actionsHtml;
+  }
+
+  function applyPromoForCta(cta) {
     if (cta === "inspect") {
-      return (
-        '<div class="inspection-cta">' +
-        "<p>Можем проверить этот автомобиль для вас — осмотр, история, риски перед покупкой.</p>" +
-        '<div class="inspection-cta-actions">' +
-        '<a class="btn-primary" href="/listings">Заказать проверку у Auto160</a>' +
-        '<a class="btn-secondary" href="/#chat" data-open-chat>Написать менеджеру</a>' +
-        "</div></div>"
-      );
+      setPromo(INSPECT_PROMO);
+      return;
     }
-    if (cta === "select") {
-      return (
-        '<div class="inspection-cta">' +
-        "<p>Подберём автомобиль под льготный утильсбор в Беларуси или Европе.</p>" +
-        '<div class="inspection-cta-actions">' +
-        '<a class="btn-primary" href="/listings">Авто из Беларуси</a>' +
-        '<a class="btn-secondary" href="/listings/eu">Авто из Европы</a>' +
-        "</div></div>"
-      );
-    }
-    return "";
+    setPromo(DEFAULT_PROMO);
   }
 
   function renderResult(data) {
     resultEl.hidden = false;
     if (!data.ok) {
+      applyPromoForCta("select");
       resultEl.innerHTML =
         '<div class="inspection-verdict-card is-neutral">' +
         '<div class="inspection-verdict-mark" aria-hidden="true">i</div>' +
@@ -96,11 +113,13 @@
       bits.push("<p><strong>VIN:</strong> <code>" + escapeHtml(data.vin) + "</code></p>");
     }
     if (verdict.detail) {
-      bits.push("<p class=\"inspection-verdict-detail\">" + escapeHtml(verdict.detail) + "</p>");
+      bits.push('<p class="inspection-verdict-detail">' + escapeHtml(verdict.detail) + "</p>");
     }
     if (data.message && !verdict.title) {
       bits.push("<p>" + escapeHtml(data.message) + "</p>");
     }
+
+    applyPromoForCta(verdict.cta);
 
     resultEl.innerHTML =
       '<div class="inspection-verdict-card is-' +
@@ -114,7 +133,6 @@
       escapeHtml(verdict.title || "Результат проверки") +
       "</h3>" +
       bits.join("") +
-      renderCta(verdict.cta) +
       "</div></div>";
 
     if (typeof reachMetrikaGoal === "function") {
