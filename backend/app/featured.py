@@ -22,7 +22,6 @@ from app.manual_vin_check import (
 )
 from app.customs_vin import (
     CustomsVinError,
-    is_explicit_not_found,
     lookup_customs_vin,
     normalize_vin,
     public_customs_error_message,
@@ -223,7 +222,7 @@ class ImportDateLookupResult:
     vin: str | None = None
     release_date: str | None = None
     customs_found: bool | None = None
-    # found | not_found | unavailable — distinguishes GTK miss vs GTK downtime
+    # found | unavailable — GTK «не найдено» treated as unreliable/unavailable
     customs_status: str | None = None
     message: str | None = None
     listing_id: int | None = None
@@ -308,17 +307,7 @@ def lookup_public_import_date(db: Session, raw_input: str) -> ImportDateLookupRe
                 message=public_customs_error_message(exc),
             )
         if not result.found:
-            if is_explicit_not_found(result):
-                return ImportDateLookupResult(
-                    ok=True,
-                    input_kind="vin",
-                    vin=vin,
-                    query=text,
-                    customs_found=False,
-                    customs_status="not_found",
-                    release_date=None,
-                    message="В базе ГТК (физлица) запись не найдена",
-                )
+            # GTK often returns «ничего не найдено» during DB outages — do not trust it.
             return ImportDateLookupResult(
                 ok=True,
                 input_kind="vin",
@@ -374,18 +363,7 @@ def lookup_public_import_date(db: Session, raw_input: str) -> ImportDateLookupRe
         )
 
     if not result.found:
-        if is_explicit_not_found(result):
-            return ImportDateLookupResult(
-                ok=True,
-                input_kind="avby_url",
-                vin=vin,
-                query=text,
-                avby_url=normalized,
-                listing_id=listing.id if listing else None,
-                customs_found=False,
-                customs_status="not_found",
-                message="В базе ГТК (физлица) запись не найдена",
-            )
+        # GTK often returns «ничего не найдено» during DB outages — do not trust it.
         return ImportDateLookupResult(
             ok=True,
             input_kind="avby_url",

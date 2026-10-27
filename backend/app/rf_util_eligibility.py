@@ -157,8 +157,9 @@ def evaluate_rf_util_eligibility(
 
     status = customs_status
     if status is None:
+        # «Не найдено» from GTK is unreliable (DB flaps) — treat as unavailable.
         if customs_found is False:
-            status = "not_found"
+            status = "unavailable"
         elif customs_found is True:
             status = "found"
 
