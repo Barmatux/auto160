@@ -1,11 +1,18 @@
 from datetime import datetime, timedelta
 
+from unittest.mock import MagicMock
+
 from app.customs_vin import (
     CACHE_TTL_FOUND,
     CACHE_TTL_NOT_FOUND,
+    CUSTOMS_NOT_FOUND_MESSAGE,
+    CUSTOMS_REFERENCE_VIN,
+    CUSTOMS_SITE_UNAVAILABLE_MESSAGE,
+    CustomsVinError,
     _cache_is_fresh,
     _parse_message_html,
     normalize_vin,
+    public_not_found_message,
     vin_is_valid,
 )
 from app.models import VinCustomsCheck
@@ -70,3 +77,41 @@ def test_cache_ttl_differs_for_found_and_not_found():
     assert _cache_is_fresh(found_row, now=now) is True
     assert _cache_is_fresh(missing_row, now=now) is True
     assert _cache_is_fresh(stale_missing_row, now=now) is False
+
+
+def test_public_not_found_message_when_reference_found(monkeypatch):
+    class RefOk:
+        found = True
+
+    def fake_lookup(db, vin, **kwargs):
+        assert kwargs.get("force_refresh") is True
+        assert normalize_vin(vin) == CUSTOMS_REFERENCE_VIN
+        return RefOk()
+
+    monkeypatch.setattr("app.customs_vin.lookup_customs_vin", fake_lookup)
+    site_ok, message = public_not_found_message(MagicMock())
+    assert site_ok is True
+    assert message == CUSTOMS_NOT_FOUND_MESSAGE
+
+
+def test_public_not_found_message_when_reference_missing(monkeypatch):
+    class RefMissing:
+        found = False
+
+    monkeypatch.setattr(
+        "app.customs_vin.lookup_customs_vin",
+        lambda db, vin, **kwargs: RefMissing(),
+    )
+    site_ok, message = public_not_found_message(MagicMock())
+    assert site_ok is False
+    assert message == CUSTOMS_SITE_UNAVAILABLE_MESSAGE
+
+
+def test_public_not_found_message_when_reference_errors(monkeypatch):
+    monkeypatch.setattr(
+        "app.customs_vin.lookup_customs_vin",
+        lambda db, vin, **kwargs: (_ for _ in ()).throw(CustomsVinError("timeout")),
+    )
+    site_ok, message = public_not_found_message(MagicMock())
+    assert site_ok is False
+    assert message == CUSTOMS_SITE_UNAVAILABLE_MESSAGE

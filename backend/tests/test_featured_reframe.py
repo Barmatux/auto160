@@ -132,10 +132,65 @@ def test_lookup_public_import_date_customs_site_error(monkeypatch):
     monkeypatch.setattr("app.featured.normalize_vin", lambda vin: vin.upper())
 
     result = lookup_public_import_date(MagicMock(), "WBA3A5C50EF123456")
-    assert result.ok is False
+    assert result.ok is True
+    assert result.customs_status == "unavailable"
     assert result.message == CUSTOMS_SITE_UNAVAILABLE_MESSAGE
     assert "свяжитесь с нами" in (result.message or "").lower()
     assert "timeout" not in (result.message or "").lower()
+
+
+def test_lookup_public_import_date_not_found_when_reference_ok(monkeypatch):
+    from app.customs_vin import CUSTOMS_NOT_FOUND_MESSAGE, CUSTOMS_REFERENCE_VIN, normalize_vin
+
+    class FakeResult:
+        found = False
+        release_date = None
+
+    class RefResult:
+        found = True
+        release_date = "01.01.2020"
+
+    def fake_lookup(db, vin, **kwargs):
+        if normalize_vin(vin) == CUSTOMS_REFERENCE_VIN:
+            return RefResult()
+        return FakeResult()
+
+    monkeypatch.setattr("app.featured.lookup_customs_vin", fake_lookup)
+    monkeypatch.setattr("app.customs_vin.lookup_customs_vin", fake_lookup)
+    monkeypatch.setattr("app.featured.vin_is_valid", lambda vin: True)
+    monkeypatch.setattr("app.featured.normalize_vin", lambda vin: vin.upper())
+
+    result = lookup_public_import_date(MagicMock(), "WBA3A5C50EF123456")
+    assert result.ok is True
+    assert result.customs_found is False
+    assert result.customs_status == "not_found"
+    assert result.message == CUSTOMS_NOT_FOUND_MESSAGE
+
+
+def test_lookup_public_import_date_not_found_when_reference_also_missing(monkeypatch):
+    from app.customs_vin import CUSTOMS_SITE_UNAVAILABLE_MESSAGE
+
+    class FakeResult:
+        found = False
+        release_date = None
+
+    monkeypatch.setattr(
+        "app.featured.lookup_customs_vin",
+        lambda db, vin, **kwargs: FakeResult(),
+    )
+    monkeypatch.setattr(
+        "app.customs_vin.lookup_customs_vin",
+        lambda db, vin, **kwargs: FakeResult(),
+    )
+    monkeypatch.setattr("app.featured.vin_is_valid", lambda vin: True)
+    monkeypatch.setattr("app.featured.normalize_vin", lambda vin: vin.upper())
+
+    result = lookup_public_import_date(MagicMock(), "WBA3A5C50EF123456")
+    assert result.ok is True
+    assert result.customs_status == "unavailable"
+    assert result.customs_found is None
+    assert result.message == CUSTOMS_SITE_UNAVAILABLE_MESSAGE
+    assert "временно не работает" in (result.message or "").lower()
 
 
 def test_run_public_inspection_check_hides_vin_for_url(monkeypatch):
