@@ -192,6 +192,7 @@ def catalog_item_public_dict(item: CatalogItem) -> dict[str, Any]:
         "fuel_type": item.fuel_type,
         "engine_power_hp": item.engine_power_hp,
         "engine_volume_l": float(item.engine_volume_l) if item.engine_volume_l is not None else None,
+        "engine_capacity_cc": int(item.engine_capacity_cc) if item.engine_capacity_cc is not None else None,
         "drivetrain": item.drivetrain,
         "transmission": item.transmission,
         "source_site": item.source_site,

@@ -13,11 +13,10 @@
   var utilTag = root.querySelector("[data-calc-util-tag]");
   var makeSelect = root.querySelector("[data-calc-make]");
   var modelSelect = root.querySelector("[data-calc-model]");
-  var literSelect = root.querySelector("[data-calc-liter]");
-  var ccSelect = root.querySelector("[data-calc-cc]");
+  var motorSelect = root.querySelector("[data-calc-motor]");
+  var volumeInput = root.querySelector("[data-calc-volume]");
   var catalogHp = root.querySelector("[data-calc-catalog-hp]");
   var specMeta = root.querySelector("[data-calc-spec-meta]");
-  var mode = "manual";
 
   function money(value) {
     if (value == null || Number.isNaN(Number(value))) return "—";
@@ -35,24 +34,6 @@
     statusEl.style.color = isError ? "#f87171" : "";
   }
 
-  function setMode(next) {
-    mode = next;
-    root.querySelectorAll("[data-calc-mode]").forEach(function (btn) {
-      var active = btn.getAttribute("data-calc-mode") === next;
-      btn.classList.toggle("is-active", active);
-      btn.setAttribute("aria-selected", active ? "true" : "false");
-    });
-    root.querySelectorAll("[data-calc-panel]").forEach(function (panel) {
-      panel.hidden = panel.getAttribute("data-calc-panel") !== next;
-    });
-  }
-
-  root.querySelectorAll("[data-calc-mode]").forEach(function (btn) {
-    btn.addEventListener("click", function () {
-      setMode(btn.getAttribute("data-calc-mode"));
-    });
-  });
-
   function resetSelect(select, placeholder, disabled) {
     if (!select) return;
     select.disabled = !!disabled;
@@ -63,19 +44,55 @@
     select.appendChild(opt);
   }
 
-  function litersLabel(value) {
-    var n = Number(value);
-    return Number.isInteger(n) ? String(n) + " л" : n.toFixed(1) + " л";
+  function clearMotorFields() {
+    if (volumeInput) volumeInput.value = "";
+    if (catalogHp) catalogHp.value = "";
+    if (specMeta) {
+      specMeta.textContent = "";
+      specMeta.classList.remove("calc-spec-meta--under160");
+    }
+    if (motorSelect) motorSelect.classList.remove("calc-select--under160");
+  }
+
+  function syncUnder160Select(select) {
+    if (!select) return;
+    var opt = select.selectedOptions[0];
+    var under = !!(opt && opt.value && opt.dataset.under160 === "1");
+    select.classList.toggle("calc-select--under160", under);
+  }
+
+  async function loadMakes() {
+    if (!makeSelect) return;
+    try {
+      var res = await fetch("/api/v1/public/customs-catalog/makes", {
+        credentials: "same-origin",
+      });
+      var rows = await res.json();
+      if (!res.ok || !Array.isArray(rows)) return;
+      var current = makeSelect.value;
+      resetSelect(makeSelect, rows.length ? "Выберите марку" : "Нет марок в каталоге", !rows.length);
+      rows.forEach(function (name) {
+        var opt = document.createElement("option");
+        opt.value = name;
+        opt.textContent = name;
+        makeSelect.appendChild(opt);
+      });
+      if (current && rows.indexOf(current) >= 0) {
+        makeSelect.value = current;
+      }
+      if (rows.length) makeSelect.disabled = false;
+    } catch (_err) {
+      /* keep SSR options */
+    }
   }
 
   async function loadModels(make) {
     resetSelect(modelSelect, "Загрузка…", true);
-    resetSelect(literSelect, "Сначала выберите модель", true);
-    resetSelect(ccSelect, "Сначала выберите объём", true);
-    if (specMeta) specMeta.textContent = "";
+    resetSelect(motorSelect, "Сначала выберите модель", true);
+    clearMotorFields();
     try {
       var res = await fetch(
-        "/api/v1/public/customs-db/models?make=" + encodeURIComponent(make),
+        "/api/v1/public/customs-catalog/models?make=" + encodeURIComponent(make),
         { credentials: "same-origin" }
       );
       var rows = await res.json();
@@ -83,65 +100,86 @@
       resetSelect(modelSelect, rows.length ? "Выберите модель" : "Нет моделей", !rows.length);
       rows.forEach(function (row) {
         var opt = document.createElement("option");
-        opt.value = String(row.id);
-        opt.textContent = row.name;
+        opt.value = row.name;
+        opt.textContent = row.under_160 ? "● " + row.name + " · ≤160 л.с." : row.name;
+        if (row.under_160) {
+          opt.className = "calc-opt--under160";
+          opt.dataset.under160 = "1";
+        }
         modelSelect.appendChild(opt);
       });
       if (rows.length) modelSelect.disabled = false;
+      syncUnder160Select(modelSelect);
     } catch (err) {
       resetSelect(modelSelect, "Ошибка загрузки", true);
       setStatus(err.message || "Ошибка", true);
     }
   }
 
-  async function loadLiters(modelId) {
-    resetSelect(literSelect, "Загрузка…", true);
-    resetSelect(ccSelect, "Сначала выберите объём", true);
-    if (specMeta) specMeta.textContent = "";
+  async function loadMotors(make, model) {
+    resetSelect(motorSelect, "Загрузка…", true);
+    clearMotorFields();
     try {
       var res = await fetch(
-        "/api/v1/public/customs-db/liters?model_id=" + encodeURIComponent(modelId),
+        "/api/v1/public/customs-catalog/motors?make=" +
+          encodeURIComponent(make) +
+          "&model=" +
+          encodeURIComponent(model),
         { credentials: "same-origin" }
       );
       var rows = await res.json();
-      if (!res.ok) throw new Error("Не удалось загрузить объёмы");
-      resetSelect(literSelect, rows.length ? "Выберите объём" : "Нет объёмов", !rows.length);
+      if (!res.ok) throw new Error("Не удалось загрузить моторы");
+      resetSelect(
+        motorSelect,
+        rows.length ? "Выберите мотор / конфигурацию" : "Нет конфигураций в каталоге",
+        !rows.length
+      );
       rows.forEach(function (row) {
         var opt = document.createElement("option");
         opt.value = String(row.id);
-        opt.textContent = litersLabel(row.liters);
-        literSelect.appendChild(opt);
+        var under160 = Boolean(row.under_160) || (row.power_hp != null && Number(row.power_hp) <= 160);
+        opt.textContent = under160 ? "● " + row.label : row.label;
+        opt.dataset.cc = String(row.engine_cc || 0);
+        opt.dataset.hp = row.power_hp != null ? String(row.power_hp) : "";
+        opt.dataset.kind = row.engine_kind || "ice";
+        opt.dataset.label = row.label || "";
+        if (under160) {
+          opt.className = "calc-opt--under160";
+          opt.dataset.under160 = "1";
+        }
+        motorSelect.appendChild(opt);
       });
-      if (rows.length) literSelect.disabled = false;
+      if (rows.length) motorSelect.disabled = false;
+      syncUnder160Select(motorSelect);
     } catch (err) {
-      resetSelect(literSelect, "Ошибка загрузки", true);
+      resetSelect(motorSelect, "Ошибка загрузки", true);
       setStatus(err.message || "Ошибка", true);
     }
   }
 
-  async function loadCcs(literId) {
-    resetSelect(ccSelect, "Загрузка…", true);
-    if (specMeta) specMeta.textContent = "";
-    try {
-      var res = await fetch(
-        "/api/v1/public/customs-db/ccs?liter_id=" + encodeURIComponent(literId),
-        { credentials: "same-origin" }
-      );
-      var rows = await res.json();
-      if (!res.ok) throw new Error("Не удалось загрузить см³");
-      resetSelect(ccSelect, rows.length ? "Выберите точный объём" : "Нет записей", !rows.length);
-      rows.forEach(function (row) {
-        var opt = document.createElement("option");
-        opt.value = String(row.id);
-        opt.textContent = row.engine_cc + " см³";
-        opt.dataset.cc = String(row.engine_cc);
-        opt.dataset.hp = row.power_hp != null ? String(row.power_hp) : "";
-        ccSelect.appendChild(opt);
-      });
-      if (rows.length) ccSelect.disabled = false;
-    } catch (err) {
-      resetSelect(ccSelect, "Ошибка загрузки", true);
-      setStatus(err.message || "Ошибка", true);
+  function applyMotorSelection() {
+    var opt = motorSelect && motorSelect.selectedOptions[0];
+    if (!opt || !opt.value) {
+      clearMotorFields();
+      return;
+    }
+    if (volumeInput) {
+      volumeInput.value =
+        opt.dataset.kind === "electric" ? "электро" : opt.dataset.cc || "";
+    }
+    if (catalogHp) catalogHp.value = opt.dataset.hp || "";
+    syncUnder160Select(motorSelect);
+    if (specMeta) {
+      var bits = [];
+      if (opt.dataset.kind === "electric") bits.push("электро");
+      else if (opt.dataset.cc) bits.push(opt.dataset.cc + " см³");
+      if (opt.dataset.hp) bits.push(opt.dataset.hp + " л.с.");
+      var under160 = opt.dataset.under160 === "1";
+      if (under160) bits.push("льготный утиль ≤160 л.с.");
+      specMeta.textContent = bits.length
+        ? "В расчёт пойдёт " + bits.join(" · ")
+        : "";
+      specMeta.classList.toggle("calc-spec-meta--under160", under160);
     }
   }
 
@@ -150,8 +188,8 @@
       var make = makeSelect.value;
       if (!make) {
         resetSelect(modelSelect, "Сначала выберите марку", true);
-        resetSelect(literSelect, "Сначала выберите модель", true);
-        resetSelect(ccSelect, "Сначала выберите объём", true);
+        resetSelect(motorSelect, "Сначала выберите модель", true);
+        clearMotorFields();
         return;
       }
       loadModels(make);
@@ -160,44 +198,23 @@
 
   if (modelSelect) {
     modelSelect.addEventListener("change", function () {
-      var id = modelSelect.value;
-      if (!id) {
-        resetSelect(literSelect, "Сначала выберите модель", true);
-        resetSelect(ccSelect, "Сначала выберите объём", true);
+      syncUnder160Select(modelSelect);
+      var model = modelSelect.value;
+      var make = makeSelect ? makeSelect.value : "";
+      if (!model || !make) {
+        resetSelect(motorSelect, "Сначала выберите модель", true);
+        clearMotorFields();
         return;
       }
-      loadLiters(id);
+      loadMotors(make, model);
     });
   }
 
-  if (literSelect) {
-    literSelect.addEventListener("change", function () {
-      var id = literSelect.value;
-      if (!id) {
-        resetSelect(ccSelect, "Сначала выберите объём", true);
-        return;
-      }
-      loadCcs(id);
-    });
+  if (motorSelect) {
+    motorSelect.addEventListener("change", applyMotorSelection);
   }
 
-  if (ccSelect) {
-    ccSelect.addEventListener("change", function () {
-      var opt = ccSelect.selectedOptions[0];
-      if (!opt || !opt.value) {
-        if (specMeta) specMeta.textContent = "";
-        return;
-      }
-      if (opt.dataset.hp && catalogHp) {
-        catalogHp.value = opt.dataset.hp;
-      }
-      if (specMeta) {
-        specMeta.textContent =
-          "В расчёт пойдёт " + (opt.dataset.cc || "") + " см³" +
-          (opt.dataset.hp ? " · " + opt.dataset.hp + " л.с." : "");
-      }
-    });
-  }
+  loadMakes();
 
   function renderResult(data) {
     if (!data.ok) {
@@ -248,38 +265,25 @@
     event.preventDefault();
     setStatus("Считаем…");
     var fd = new FormData(form);
+    var itemId = Number(fd.get("catalog_item_id") || 0);
+    if (!itemId) {
+      setStatus("Выберите марку, модель и мотор из каталога", true);
+      return;
+    }
+    var opt = motorSelect && motorSelect.selectedOptions[0];
     var payload = {
-      price: Number(fd.get("price")),
-      currency: String(fd.get("currency") || "EUR"),
-      importer: String(fd.get("importer") || "personal"),
-      engine_kind: "ice",
-      age_band: "from3to5",
-      engine_cc: 0,
-      power_hp: 0,
+      // Defaults: personal import, EUR — price used for under-5 duty floor.
+      price: 12000,
+      currency: "EUR",
+      importer: "personal",
+      engine_kind: (opt && opt.dataset.kind) || "ice",
+      age_band: String(fd.get("catalog_age_band") || "from3to5"),
+      engine_cc: opt ? Number(opt.dataset.cc || 0) : 0,
+      power_hp: opt && opt.dataset.hp ? Number(opt.dataset.hp) : 0,
+      catalog_item_id: itemId,
       engine_cc_id: null,
       vehicle_spec_id: null,
     };
-
-    if (mode === "catalog") {
-      var ccId = Number(fd.get("engine_cc_id") || 0);
-      if (!ccId) {
-        setStatus("Выберите марку, модель, объём и точные см³", true);
-        return;
-      }
-      payload.engine_cc_id = ccId;
-      payload.age_band = String(fd.get("catalog_age_band") || "from3to5");
-      payload.power_hp = Number(fd.get("catalog_power_hp") || 0);
-      var opt = ccSelect && ccSelect.selectedOptions[0];
-      if (opt) {
-        payload.engine_cc = Number(opt.dataset.cc || 0);
-        if (opt.dataset.hp) payload.power_hp = Number(opt.dataset.hp);
-      }
-    } else {
-      payload.age_band = String(fd.get("age_band") || "from3to5");
-      payload.engine_cc = Number(fd.get("engine_cc"));
-      payload.power_hp = Number(fd.get("power_hp"));
-      payload.engine_kind = String(fd.get("engine_kind") || "ice");
-    }
 
     try {
       var res = await fetch("/api/v1/public/customs-calc", {
@@ -296,7 +300,7 @@
       }
       renderResult(data);
     } catch (err) {
-      setStatus(err.message || "Ошибка", true);
+      setStatus(err.message || "Ошибка расчёта", true);
     }
   });
 })();

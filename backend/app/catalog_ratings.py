@@ -34,6 +34,7 @@ class CatalogRatingRow:
     vin_check: bool
     hidden: bool
     arbitrage_track: bool
+    customs_calc: bool
     mods_url: str
     production_years: str
     year_from: int | None
@@ -174,6 +175,20 @@ def apply_generation_arbitrage_track(
     return items, len(items)
 
 
+def apply_generation_customs_calc(
+    db: Session,
+    *,
+    make: str,
+    model: str,
+    generation: str | None,
+    enabled: bool,
+) -> tuple[list[CatalogItem], int]:
+    items = matching_catalog_items(db, make=make, model=model, generation=generation)
+    for item in items:
+        item.customs_calc = bool(enabled)
+    return items, len(items)
+
+
 def _grouped_query(
     db: Session,
     *,
@@ -202,6 +217,9 @@ def _grouped_query(
             func.sum(case((CatalogItem.hidden_from_catalog.is_(True), 1), else_=0)).label("hidden_count"),
             func.sum(case((CatalogItem.arbitrage_track.is_(True), 1), else_=0)).label(
                 "arbitrage_track_count"
+            ),
+            func.sum(case((CatalogItem.customs_calc.is_(True), 1), else_=0)).label(
+                "customs_calc_count"
             ),
         )
         .filter(CatalogItem.source_site == "av.by")
@@ -287,6 +305,7 @@ def _row_from_group(row) -> CatalogRatingRow:
     item_count = int(row.item_count or 0)
     hidden_count = int(row.hidden_count or 0)
     arbitrage_track_count = int(getattr(row, "arbitrage_track_count", 0) or 0)
+    customs_calc_count = int(getattr(row, "customs_calc_count", 0) or 0)
     year_from = int(row.year_from_min) if row.year_from_min is not None else None
     year_to = int(row.year_to_max) if row.year_to_max is not None else None
     hp_min = int(row.hp_min) if getattr(row, "hp_min", None) is not None else None
@@ -304,6 +323,7 @@ def _row_from_group(row) -> CatalogRatingRow:
         vin_check=generation_has_vin_check(rating, mixed=mixed),
         hidden=item_count > 0 and hidden_count >= item_count,
         arbitrage_track=item_count > 0 and arbitrage_track_count >= item_count,
+        customs_calc=item_count > 0 and customs_calc_count >= item_count,
         mods_url="/catalog/modifications?" + urlencode(params),
         production_years=format_production_years(year_from, year_to),
         year_from=year_from,

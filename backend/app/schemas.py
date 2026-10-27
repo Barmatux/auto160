@@ -385,6 +385,21 @@ class CatalogGenerationArbitrageTrackResult(BaseModel):
     updated_items: int
 
 
+class CatalogGenerationCustomsCalcUpdate(BaseModel):
+    make: str = Field(min_length=1, max_length=80)
+    model: str = Field(min_length=1, max_length=120)
+    generation: str = ""
+    enabled: bool
+
+
+class CatalogGenerationCustomsCalcResult(BaseModel):
+    make: str
+    model: str
+    generation: str
+    enabled: bool
+    updated_items: int
+
+
 class CatalogGenerationYearsUpdate(BaseModel):
     make: str = Field(min_length=1, max_length=80)
     model: str = Field(min_length=1, max_length=120)
@@ -474,6 +489,7 @@ class CatalogItemPublic(BaseModel):
     fuel_type: str | None = None
     engine_power_hp: int | None = None
     engine_volume_l: float | None = None
+    engine_capacity_cc: int | None = None
     drivetrain: str | None = None
     transmission: str | None = None
     source_site: str | None = None
@@ -747,6 +763,34 @@ class CustomsDbCcOut(BaseModel):
         from_attributes = True
 
 
+class CustomsDbMotorOut(BaseModel):
+    """Flattened engine configuration for calculator: model → motor → exact cc."""
+
+    id: int
+    liter_id: int
+    liters: float
+    engine_cc: int
+    power_hp: float | None = None
+    notes: str | None = None
+    label: str
+
+
+class CustomsCatalogModelOut(BaseModel):
+    name: str
+    under_160: bool = False
+
+
+class CustomsCatalogMotorOut(BaseModel):
+    id: int
+    generation: str | None = None
+    liters: float | None = None
+    engine_cc: int
+    power_hp: float
+    engine_kind: str = "ice"
+    under_160: bool = False
+    label: str
+
+
 class CustomsDbCcCreateRequest(BaseModel):
     liter_id: int
     engine_cc: int
@@ -758,13 +802,14 @@ class CustomsDbCcCreateRequest(BaseModel):
 class CustomsCalcRequest(BaseModel):
     age_band: str
     engine_cc: float = 0
-    power_hp: float
+    power_hp: float = 0
     price: float
     currency: str = "EUR"
     importer: str = "personal"
     engine_kind: str = "ice"
     vehicle_spec_id: int | None = None
     engine_cc_id: int | None = None
+    catalog_item_id: int | None = None
 
 
 class CustomsCalcResponse(BaseModel):

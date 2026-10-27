@@ -316,6 +316,29 @@ def get_cc(db: Session, cc_id: int) -> CustomsDbEngineCc | None:
     )
 
 
+def list_motors_for_model(
+    db: Session, model_id: int, *, active_only: bool = False
+) -> list[CustomsDbEngineCc]:
+    """All exact engine configs (motors) for a model — every leaf in the catalog tree."""
+    q = (
+        db.query(CustomsDbEngineCc)
+        .join(CustomsDbEngineLiter, CustomsDbEngineCc.liter_id == CustomsDbEngineLiter.id)
+        .options(joinedload(CustomsDbEngineCc.liter))
+        .filter(CustomsDbEngineLiter.model_id == model_id)
+    )
+    if active_only:
+        q = q.filter(
+            CustomsDbEngineCc.is_active.is_(True),
+            CustomsDbEngineLiter.is_active.is_(True),
+        )
+    return q.order_by(
+        desc(CustomsDbEngineCc.sort_weight),
+        asc(CustomsDbEngineLiter.liters),
+        asc(CustomsDbEngineCc.engine_cc),
+        asc(CustomsDbEngineCc.id),
+    ).all()
+
+
 def public_make_names(db: Session) -> list[str]:
     return [row.name for row in list_makes(db, active_only=True)]
 
@@ -334,6 +357,19 @@ def public_models_for_make_name(db: Session, make_name: str) -> list[CustomsDbMo
     return list_models(db, make.id, active_only=True)
 
 
+def motor_label(row: CustomsDbEngineCc) -> str:
+    liter = row.liter
+    parts = []
+    if liter is not None:
+        parts.append(f"{float(liter.liters):g} л")
+    parts.append(f"{row.engine_cc} см³")
+    if row.power_hp:
+        parts.append(f"{float(row.power_hp):g} л.с.")
+    if row.notes:
+        parts.append(str(row.notes).strip())
+    return " · ".join(parts)
+
+
 def cc_label(row: CustomsDbEngineCc) -> str:
     liter = row.liter
     model = liter.model if liter else None
@@ -343,9 +379,5 @@ def cc_label(row: CustomsDbEngineCc) -> str:
         parts.append(make.name)
     if model:
         parts.append(model.name)
-    if liter:
-        parts.append(f"{float(liter.liters):g} л")
-    parts.append(f"{row.engine_cc} см³")
-    if row.power_hp:
-        parts.append(f"{float(row.power_hp):g} л.с.")
+    parts.append(motor_label(row))
     return " · ".join(parts)

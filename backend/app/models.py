@@ -162,6 +162,8 @@ class CatalogItem(Base):
     fuel_type: Mapped[str | None] = mapped_column(String(30), nullable=True, index=True)
     engine_power_hp: Mapped[int | None] = mapped_column(Integer, nullable=True)
     engine_volume_l: Mapped[float | None] = mapped_column(Numeric(4, 1), nullable=True)
+    # Exact displacement in cm³ (from av.by engineCapacity); preferred over liters*1000.
+    engine_capacity_cc: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     drivetrain: Mapped[str | None] = mapped_column(String(30), nullable=True)
     transmission: Mapped[str | None] = mapped_column(String(30), nullable=True)
     source_site: Mapped[str | None] = mapped_column(String(40), nullable=True, index=True)
@@ -172,6 +174,8 @@ class CatalogItem(Base):
     hidden_from_catalog: Mapped[bool] = mapped_column(default=False, index=True)
     # Include generation in /admin/arbitrage EU→BY niche scoring.
     arbitrage_track: Mapped[bool] = mapped_column(default=False, index=True)
+    # Include generation/model in customs calculator dropdowns.
+    customs_calc: Mapped[bool] = mapped_column(default=False, index=True)
     has_7_seats: Mapped[bool] = mapped_column(default=False, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
     photos: Mapped[list["CatalogItemPhoto"]] = relationship(back_populates="catalog_item", cascade="all, delete-orphan")

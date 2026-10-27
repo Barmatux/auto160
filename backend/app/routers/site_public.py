@@ -3,11 +3,23 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
+from app.customs_catalog import (
+    engine_cc_from_item,
+    engine_kind_from_item,
+    get_item as get_catalog_item,
+    list_makes as list_catalog_makes_for_customs,
+    list_models as list_catalog_models_for_customs,
+    list_motors as list_catalog_motors_for_customs,
+    motor_label as catalog_motor_label,
+    power_hp_from_item,
+)
 from app.customs_db import (
     cc_label,
     get_cc,
     list_ccs,
     list_liters,
+    list_motors_for_model,
+    motor_label as customs_db_motor_label,
     public_make_names,
     public_models_for_make_name,
 )
@@ -24,9 +36,12 @@ from app.myfin_rates import fetch_myfin_buy_rates
 from app.schemas import (
     CustomsCalcRequest,
     CustomsCalcResponse,
+    CustomsCatalogModelOut,
+    CustomsCatalogMotorOut,
     CustomsDbCcOut,
     CustomsDbLiterOut,
     CustomsDbModelOut,
+    CustomsDbMotorOut,
     CustomsVehicleSpecOut,
     ImportDateLookupRequest,
     ImportDateLookupResponse,
@@ -102,8 +117,47 @@ def public_customs_db_ccs(liter_id: int = Query(...), db: Session = Depends(get_
     return list_ccs(db, liter_id, active_only=True)
 
 
+@router.get("/customs-db/motors", response_model=list[CustomsDbMotorOut])
+def public_customs_db_motors(model_id: int = Query(...), db: Session = Depends(get_db)):
+    rows = list_motors_for_model(db, model_id, active_only=True)
+    return [
+        CustomsDbMotorOut(
+            id=row.id,
+            liter_id=row.liter_id,
+            liters=float(row.liter.liters) if row.liter is not None else 0.0,
+            engine_cc=int(row.engine_cc),
+            power_hp=float(row.power_hp) if row.power_hp is not None else None,
+            notes=row.notes,
+            label=customs_db_motor_label(row),
+        )
+        for row in rows
+    ]
+
+
+@router.get("/customs-catalog/makes", response_model=list[str])
+def public_customs_catalog_makes(db: Session = Depends(get_db)):
+    return list_catalog_makes_for_customs(db)
+
+
+@router.get("/customs-catalog/models", response_model=list[CustomsCatalogModelOut])
+def public_customs_catalog_models(make: str = Query(...), db: Session = Depends(get_db)):
+    return [CustomsCatalogModelOut(**row) for row in list_catalog_models_for_customs(db, make)]
+
+
+@router.get("/customs-catalog/motors", response_model=list[CustomsCatalogMotorOut])
+def public_customs_catalog_motors(
+    make: str = Query(...),
+    model: str = Query(...),
+    db: Session = Depends(get_db),
+):
+    return [CustomsCatalogMotorOut(**row) for row in list_catalog_motors_for_customs(db, make, model)]
+
+
 @router.get("/customs-vehicles/makes", response_model=list[str])
 def public_customs_makes(db: Session = Depends(get_db)):
+    names = list_catalog_makes_for_customs(db)
+    if names:
+        return names
     names = public_make_names(db)
     if names:
         return names
@@ -132,7 +186,29 @@ def public_customs_calc(payload: CustomsCalcRequest, db: Session = Depends(get_d
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
-    if payload.engine_cc_id:
+    if payload.catalog_item_id:
+        item = get_catalog_item(db, payload.catalog_item_id)
+        if item is None:
+            raise HTTPException(status_code=404, detail="Конфигурация каталога не найдена")
+        resolved_cc = engine_cc_from_item(item)
+        resolved_hp = power_hp_from_item(item)
+        if resolved_hp is None:
+            raise HTTPException(status_code=400, detail="У конфигурации нет мощности в каталоге")
+        engine_kind = engine_kind_from_item(item)
+        if engine_kind != "electric" and not resolved_cc:
+            raise HTTPException(status_code=400, detail="У конфигурации нет объёма двигателя в каталоге")
+        engine_cc = float(resolved_cc or 0)
+        power_hp = float(resolved_hp)
+        vehicle_label = " · ".join(
+            part
+            for part in [
+                item.make,
+                item.model,
+                catalog_motor_label(item, engine_cc=resolved_cc, power_hp=resolved_hp),
+            ]
+            if part
+        )
+    elif payload.engine_cc_id:
         row = get_cc(db, payload.engine_cc_id)
         if row is None or not row.is_active:
             raise HTTPException(status_code=404, detail="Объём двигателя не найден")

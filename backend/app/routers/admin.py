@@ -28,6 +28,7 @@ from app.catalog_generation_years import apply_generation_years, sync_generation
 from app.arbitrage_analytics import invalidate_arbitrage_cache
 from app.catalog_ratings import (
     apply_generation_arbitrage_track,
+    apply_generation_customs_calc,
     apply_generation_rating,
     format_production_years,
     generation_label,
@@ -75,6 +76,8 @@ from app.schemas import (
     AppLogTailResponse,
     CatalogGenerationArbitrageTrackResult,
     CatalogGenerationArbitrageTrackUpdate,
+    CatalogGenerationCustomsCalcResult,
+    CatalogGenerationCustomsCalcUpdate,
     CatalogGenerationRatingResult,
     CatalogGenerationRatingUpdate,
     CatalogGenerationVisibilityResult,
@@ -433,6 +436,34 @@ def update_catalog_generation_arbitrage_track(
     db.commit()
     invalidate_arbitrage_cache()
     return CatalogGenerationArbitrageTrackResult(
+        make=payload.make.strip(),
+        model=payload.model.strip(),
+        generation=generation_label(payload.generation),
+        enabled=bool(payload.enabled),
+        updated_items=updated,
+    )
+
+
+@router.patch(
+    "/catalog-generations/customs-calc",
+    response_model=CatalogGenerationCustomsCalcResult,
+)
+def update_catalog_generation_customs_calc(
+    payload: CatalogGenerationCustomsCalcUpdate,
+    _: User = Depends(require_admin_flexible),
+    db: Session = Depends(get_db),
+):
+    items, updated = apply_generation_customs_calc(
+        db,
+        make=payload.make,
+        model=payload.model,
+        generation=payload.generation,
+        enabled=payload.enabled,
+    )
+    if not items:
+        raise HTTPException(status_code=404, detail="Поколение не найдено в каталоге")
+    db.commit()
+    return CatalogGenerationCustomsCalcResult(
         make=payload.make.strip(),
         model=payload.model.strip(),
         generation=generation_label(payload.generation),

@@ -1,91 +1,18 @@
 {% extends "base.html" %}
-{% block title %}Админка — Растаможка / База данных{% endblock %}
+{% block title %}Админка — Растаможка / Калькулятор{% endblock %}
 {% block content %}
 {% set admin_section = "customs" %}
 {% include "partials/admin_nav.html" %}
 
-<h1>Растаможка — база данных</h1>
+<h1>Растаможка</h1>
 <p class="hint">
-  Марка → модель → объём в литрах → точный объём в см³.
-  Точный см³ потом подставляется в публичный калькулятор.
+  В выпадающих списках — поколения с флагом «Калькулятор растаможки».
+  Зелёным отмечены проходные модели (≤&nbsp;160&nbsp;л.с.).
 </p>
 
-<section class="admin-customs-pane" data-customs-pane="db">
-  <div class="customs-db-board" data-customs-db>
-    <div class="customs-db-col" data-col="makes">
-      <header class="customs-db-col-head">
-        <h2>1. Марки</h2>
-        <form class="customs-db-add" data-add="make">
-          <input type="text" name="name" placeholder="Toyota" required />
-          <button type="submit" class="btn-primary">+</button>
-        </form>
-      </header>
-      <ul class="customs-db-list" data-list="makes">
-        {% for make in customs_db_makes %}
-          <li>
-            <button type="button" class="customs-db-item" data-make-id="{{ make.id }}">
-              <span>{{ make.name }}</span>
-            </button>
-            <button type="button" class="btn-link customs-db-del" data-del-make="{{ make.id }}" title="Удалить">×</button>
-          </li>
-        {% else %}
-          <li class="customs-db-empty" data-empty="makes">Пока пусто — добавьте марку</li>
-        {% endfor %}
-      </ul>
-    </div>
+{% set calc_embedded = true %}
+{% set calc_default_mode = "catalog" %}
+{% include "partials/customs_calculator_panel.html" %}
 
-    <div class="customs-db-col" data-col="models">
-      <header class="customs-db-col-head">
-        <h2>2. Модели</h2>
-        <form class="customs-db-add" data-add="model">
-          <input type="hidden" name="make_id" value="" data-parent-make />
-          <input type="text" name="name" placeholder="RAV4" required disabled />
-          <button type="submit" class="btn-primary" disabled>+</button>
-        </form>
-      </header>
-      <ul class="customs-db-list" data-list="models">
-        <li class="customs-db-empty">Выберите марку</li>
-      </ul>
-    </div>
-
-    <div class="customs-db-col" data-col="liters">
-      <header class="customs-db-col-head">
-        <h2>3. Объём, л</h2>
-        <form class="customs-db-add" data-add="liter">
-          <input type="hidden" name="model_id" value="" data-parent-model />
-          <input type="number" name="liters" min="0.1" max="20" step="0.1" placeholder="1.6" required disabled />
-          <button type="submit" class="btn-primary" disabled>+</button>
-        </form>
-      </header>
-      <ul class="customs-db-list" data-list="liters">
-        <li class="customs-db-empty">Выберите модель</li>
-      </ul>
-    </div>
-
-    <div class="customs-db-col" data-col="ccs">
-      <header class="customs-db-col-head">
-        <h2>4. Точный объём, см³</h2>
-        <form class="customs-db-add customs-db-add--cc" data-add="cc">
-          <input type="hidden" name="liter_id" value="" data-parent-liter />
-          <input type="number" name="engine_cc" min="1" max="20000" step="1" placeholder="1598" required disabled />
-          <input type="number" name="power_hp" min="1" max="2000" step="0.1" placeholder="л.с. (опц.)" disabled />
-          <button type="submit" class="btn-primary" disabled>+</button>
-        </form>
-      </header>
-      <ul class="customs-db-list" data-list="ccs">
-        <li class="customs-db-empty">Выберите объём в литрах</li>
-      </ul>
-      <p class="hint customs-db-hint" data-cc-hint>
-        Выбранный см³ подставляется в калькулятор растаможки.
-      </p>
-    </div>
-  </div>
-  <p class="hint" data-customs-db-status hidden></p>
-</section>
-
-{% if customs_db_error %}
-  <p class="hint" style="color:#f87171; margin-top:12px;">{{ customs_db_error }}</p>
-{% endif %}
-
-<script src="/static/admin_customs.js?v=20261026-32" defer></script>
+<script src="/static/customs_calc.js?v=20261026-37" defer></script>
 {% endblock %}

@@ -18,6 +18,7 @@ if str(ROOT_DIR) not in sys.path:
 # Keep SQLite relative paths stable regardless of launch directory.
 os.chdir(ROOT_DIR)
 
+from app.catalog_engine_cc import resolve_engine_capacity_cc
 from app.db import SessionLocal
 from app.export_country_labels import export_country_for_avby
 from app.fuel_type_labels import preferred_fuel_type, resolved_catalog_fuel_type
@@ -236,6 +237,12 @@ def parse_generation_page(url: str, state: dict[str, Any], user_agent: str) -> l
             continue
 
         seats_raw = mod_detail.get("numberOfSeats")
+        volume_l = _engine_volume_from_detail(mod_detail, mod_name)
+        raw_specs = {
+            "landing": landing,
+            "modification": mod,
+            "modification_detail": mod_detail,
+        }
         payloads.append(
             {
                 "make": make,
@@ -249,17 +256,17 @@ def parse_generation_page(url: str, state: dict[str, Any], user_agent: str) -> l
                 "steering_wheel": full_steering,
                 "fuel_type": preferred_fuel_type(full_fuel, fuel_type),
                 "engine_power_hp": full_power or _extract_power_hp(mod_name),
-                "engine_volume_l": _engine_volume_from_detail(mod_detail, mod_name),
+                "engine_volume_l": volume_l,
+                "engine_capacity_cc": resolve_engine_capacity_cc(
+                    raw_specs=raw_specs,
+                    engine_volume_l=volume_l,
+                ),
                 "drivetrain": full_drive or drivetrain,
                 "transmission": full_transmission or transmission,
                 "has_7_seats": has_7_seats_from_raw(seats_raw),
                 "source_url": source_url,
                 "source_external_id": source_external_id,
-                "raw_specs": {
-                    "landing": landing,
-                    "modification": mod,
-                    "modification_detail": mod_detail,
-                },
+                "raw_specs": raw_specs,
             }
         )
     return payloads
@@ -408,6 +415,10 @@ def enrich_missing_spec_details(user_agent: str) -> None:
             if mod_detail.get("maxPowerHP") or mod_detail.get("enginePower"):
                 item.engine_power_hp = _to_int(mod_detail.get("maxPowerHP") or mod_detail.get("enginePower"))
             item.engine_volume_l = _engine_volume_from_detail(mod_detail, item.model)
+            item.engine_capacity_cc = resolve_engine_capacity_cc(
+                raw_specs=raw,
+                engine_volume_l=item.engine_volume_l,
+            )
             item.has_7_seats = has_7_seats_from_raw(mod_detail.get("numberOfSeats"))
             enriched += 1
             if enriched % 25 == 0:

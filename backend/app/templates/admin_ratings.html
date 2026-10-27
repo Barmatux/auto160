@@ -66,6 +66,7 @@
         <th class="admin-ratings-check-head">Показать<br />в каталоге</th>
         <th class="admin-ratings-check-head">VIN CHECK</th>
         <th class="admin-ratings-check-head">Аналитика<br />РБ</th>
+        <th class="admin-ratings-check-head">Калькулятор<br />растаможки</th>
         <th>Фото</th>
       </tr>
     </thead>
@@ -153,6 +154,20 @@
             </label>
             <div class="admin-arbitrage-track-status" hidden></div>
           </td>
+          <td class="admin-ratings-check-cell">
+            <label class="admin-ratings-check">
+              <input
+                type="checkbox"
+                class="admin-customs-calc-flag"
+                data-make="{{ row.make }}"
+                data-model="{{ row.model }}"
+                data-generation="{{ row.generation_key }}"
+                {% if row.customs_calc %}checked{% endif %}
+                aria-label="Калькулятор растаможки {{ row.make }} {{ row.model }} {{ row.generation }}"
+              />
+            </label>
+            <div class="admin-customs-calc-status" hidden></div>
+          </td>
           <td class="admin-ratings-photo-cell">
             {% if row.photo_item_id %}
               {% set cover_url = rating_cover_urls.get(row.photo_item_id) %}
@@ -192,7 +207,7 @@
           </td>
         </tr>
       {% else %}
-        <tr><td colspan="9">Поколений по этому фильтру нет.</td></tr>
+        <tr><td colspan="10">Поколений по этому фильтру нет.</td></tr>
       {% endfor %}
     </tbody>
   </table>
@@ -430,6 +445,46 @@
         cell,
         ".admin-arbitrage-track-status",
         data.enabled ? "В аналитике РБ" : "Убрано из аналитики",
+        false
+      );
+    });
+  });
+
+  document.querySelectorAll(".admin-customs-calc-flag").forEach(function (checkbox) {
+    checkbox.addEventListener("change", async function () {
+      const enabled = checkbox.checked;
+      const cell = checkbox.closest("td");
+      const payload = {
+        make: checkbox.dataset.make || "",
+        model: checkbox.dataset.model || "",
+        generation: checkbox.dataset.generation || "",
+        enabled: enabled,
+      };
+      checkbox.disabled = true;
+      setCellStatus(cell, ".admin-customs-calc-status", "Сохранение…", false);
+      const response = await adminFetch("/api/v1/admin/catalog-generations/customs-calc", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      checkbox.disabled = false;
+      if (!response) {
+        checkbox.checked = !enabled;
+        return;
+      }
+      const data = await response.json().catch(function () { return {}; });
+      if (!response.ok) {
+        checkbox.checked = !enabled;
+        const detail = data.detail;
+        const message = typeof detail === "string" ? detail : "Не удалось сохранить флаг калькулятора";
+        setCellStatus(cell, ".admin-customs-calc-status", message, true);
+        return;
+      }
+      checkbox.checked = Boolean(data.enabled);
+      setCellStatus(
+        cell,
+        ".admin-customs-calc-status",
+        data.enabled ? "В калькуляторе" : "Убрано из калькулятора",
         false
       );
     });
