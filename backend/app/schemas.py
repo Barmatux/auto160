@@ -666,6 +666,7 @@ class InspectionCheckResponse(BaseModel):
     power_hp: float | None = None
     engine_capacity_l: float | None = None
     engine_cc: int | None = None
+    engine_cc_approximate: bool | None = None
     brand: str | None = None
     model: str | None = None
     year: int | None = None

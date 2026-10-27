@@ -8375,6 +8375,50 @@ body.design-lab .inspection-unified {
   max-width: none;
 }
 
+body.design-lab .inspection-query-field {
+  position: relative;
+  display: block;
+}
+
+body.design-lab .inspection-query-field input {
+  width: 100%;
+  padding-right: 2.4rem;
+  box-sizing: border-box;
+}
+
+body.design-lab .inspection-query-clear {
+  position: absolute;
+  top: 50%;
+  right: 0.45rem;
+  transform: translateY(-50%);
+  width: 1.55rem;
+  height: 1.55rem;
+  border: none;
+  border-radius: 999px;
+  padding: 0;
+  margin: 0;
+  background: rgba(239, 68, 68, 0.18);
+  color: #f87171;
+  font-size: 0.85rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-grid;
+  place-items: center;
+}
+
+body.design-lab .inspection-query-clear:hover,
+body.design-lab .inspection-query-clear:focus-visible {
+  background: rgba(239, 68, 68, 0.32);
+  color: #fecaca;
+  outline: none;
+}
+
+body.design-lab .inspection-approx {
+  color: #fbbf24;
+  font-weight: 700;
+}
+
 body.design-lab .inspection-promo {
   display: flex;
   flex-direction: column;

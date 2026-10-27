@@ -16,15 +16,26 @@
         <form class="form inspection-unified-form" data-inspection-form>
           <label>
             VIN или ссылка av.by
-            <input
-              type="text"
-              name="query"
-              value="{{ initial_query or '' }}"
-              placeholder="WBAHT31030F123456 или https://cars.av.by/…"
-              maxlength="500"
-              autocomplete="off"
-              required
-            />
+            <span class="inspection-query-field">
+              <input
+                type="text"
+                name="query"
+                value="{{ initial_query or '' }}"
+                placeholder="WBAHT31030F123456 или https://cars.av.by/…"
+                maxlength="500"
+                autocomplete="off"
+                required
+                data-inspection-query
+              />
+              <button
+                type="button"
+                class="inspection-query-clear"
+                data-inspection-clear
+                aria-label="Очистить поле"
+                title="Очистить"
+                hidden
+              >✕</button>
+            </span>
           </label>
           <div class="actions-row">
             <button type="submit" class="btn-primary">Проверить</button>
@@ -73,5 +84,5 @@
     <div class="listing-description-backdrop" data-description-backdrop hidden></div>
   </section>
 </section>
-<script src="/static/inspection_check.js?v=20261027-03" defer></script>
+<script src="/static/inspection_check.js?v=20261027-04" defer></script>
 {% endblock %}

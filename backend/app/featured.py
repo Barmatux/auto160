@@ -368,6 +368,7 @@ class PublicInspectionCheckResult:
     power_hp: float | None = None
     engine_capacity_l: float | None = None
     engine_cc: int | None = None
+    engine_cc_approximate: bool | None = None
     brand: str | None = None
     model: str | None = None
     year: int | None = None
@@ -381,11 +382,14 @@ def run_public_inspection_check(
     reveal_vin: bool = False,
 ) -> PublicInspectionCheckResult:
     """Unified Проверка: VIN or av.by URL → customs date + RF util verdict."""
-    from app.rf_util_eligibility import evaluate_rf_util_eligibility, resolve_engine_cc
+    from app.avby_engine_cc import resolve_engine_cc_for_listing
+    from app.rf_util_eligibility import evaluate_rf_util_eligibility
 
     base = lookup_public_import_date(db, raw_input)
     power_hp: float | None = None
     engine_capacity_l: float | None = None
+    engine_cc: int | None = None
+    engine_cc_approximate: bool | None = None
     brand = model = None
     year = None
     listing = None
@@ -406,14 +410,24 @@ def run_public_inspection_check(
             model = listing.model
             year = listing.year
 
-    engine_cc = resolve_engine_cc(engine_capacity_l=engine_capacity_l)
+    if base.input_kind == "avby_url":
+        resolved = resolve_engine_cc_for_listing(
+            db,
+            listing,
+            engine_capacity_l=engine_capacity_l,
+        )
+        engine_cc = resolved.engine_cc
+        engine_cc_approximate = bool(resolved.approximate) if engine_cc is not None else None
+
     verdict = None
     if base.ok:
         verdict = evaluate_rf_util_eligibility(
             release_date=base.release_date,
             power_hp=power_hp if base.input_kind == "avby_url" else None,
             engine_cc=engine_cc if base.input_kind == "avby_url" else None,
-            engine_capacity_l=engine_capacity_l if base.input_kind == "avby_url" else None,
+            engine_capacity_l=None if engine_cc is not None else (
+                engine_capacity_l if base.input_kind == "avby_url" else None
+            ),
             input_kind=base.input_kind,
             customs_found=base.customs_found,
         ).to_dict()
@@ -435,6 +449,7 @@ def run_public_inspection_check(
         power_hp=power_hp if base.input_kind == "avby_url" else None,
         engine_capacity_l=engine_capacity_l if base.input_kind == "avby_url" else None,
         engine_cc=engine_cc if base.input_kind == "avby_url" else None,
+        engine_cc_approximate=engine_cc_approximate if base.input_kind == "avby_url" else None,
         brand=brand if base.input_kind == "avby_url" else None,
         model=model if base.input_kind == "avby_url" else None,
         year=year if base.input_kind == "avby_url" else None,

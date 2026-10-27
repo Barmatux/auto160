@@ -118,6 +118,7 @@ def public_inspection_check(
         power_hp=result.power_hp,
         engine_capacity_l=result.engine_capacity_l,
         engine_cc=result.engine_cc,
+        engine_cc_approximate=result.engine_cc_approximate,
         brand=result.brand,
         model=result.model,
         year=result.year,

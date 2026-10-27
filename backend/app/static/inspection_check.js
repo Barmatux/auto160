@@ -9,7 +9,31 @@
   var promoTitle = root.querySelector("[data-promo-title]");
   var promoText = root.querySelector("[data-promo-text]");
   var promoActions = root.querySelector("[data-promo-actions]");
+  var queryInput = root.querySelector("[data-inspection-query]");
+  var clearBtn = root.querySelector("[data-inspection-clear]");
   if (!form || !resultEl) return;
+
+  function syncClearButton() {
+    if (!clearBtn || !queryInput) return;
+    clearBtn.hidden = !String(queryInput.value || "").trim();
+  }
+
+  if (queryInput && clearBtn) {
+    syncClearButton();
+    queryInput.addEventListener("input", syncClearButton);
+    queryInput.addEventListener("change", syncClearButton);
+    clearBtn.addEventListener("click", function () {
+      queryInput.value = "";
+      syncClearButton();
+      resultEl.hidden = true;
+      resultEl.innerHTML = "";
+      if (statusEl) {
+        statusEl.hidden = true;
+        statusEl.textContent = "";
+      }
+      queryInput.focus();
+    });
+  }
 
   var DEFAULT_PROMO = {
     mode: "select",
@@ -134,15 +158,24 @@
         );
       }
       if (data.engine_cc != null) {
+        var ccPrefix = data.engine_cc_approximate
+          ? '<span class="inspection-approx" title="Приблизительно (литры × 1000)">≈</span> '
+          : "";
         bits.push(
-          paramRow(checks.volume, "Объём", escapeHtml(String(data.engine_cc)) + " см³")
+          paramRow(
+            checks.volume,
+            "Объём",
+            ccPrefix + escapeHtml(String(data.engine_cc)) + " см³"
+          )
         );
       } else if (data.engine_capacity_l != null) {
         bits.push(
           paramRow(
             checks.volume,
             "Объём",
-            escapeHtml(String(data.engine_capacity_l)) + " л"
+            '<span class="inspection-approx" title="Приблизительно">≈</span> ' +
+              escapeHtml(String(data.engine_capacity_l)) +
+              " л"
           )
         );
       }
