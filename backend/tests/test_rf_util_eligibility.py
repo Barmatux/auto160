@@ -19,6 +19,7 @@ def test_pass_ready_over_12_months():
     assert verdict.tone == "green"
     assert verdict.cta == "inspect"
     assert "проходной" in verdict.title.lower()
+    assert verdict.checks == {"import_date": True, "power": True, "volume": True}
 
 
 def test_pass_after_date_10_to_12_months():
@@ -35,6 +36,8 @@ def test_pass_after_date_10_to_12_months():
     assert verdict.cta == "inspect"
     assert "после" in verdict.title.lower()
     assert verdict.eligible_from_date == "15.12.2026"
+    assert verdict.detail is None
+    assert verdict.checks == {"import_date": False, "power": True, "volume": True}
 
 
 def test_fail_until_date_under_10_months():
@@ -50,6 +53,8 @@ def test_fail_until_date_under_10_months():
     assert verdict.tone == "red"
     assert verdict.cta == "select"
     assert "до" in verdict.title.lower()
+    assert verdict.detail is None
+    assert verdict.checks == {"import_date": False, "power": True, "volume": True}
 
 
 def test_fail_power():
@@ -64,6 +69,7 @@ def test_fail_power():
     assert verdict.code == "fail_power"
     assert verdict.tone == "red"
     assert "160" in verdict.title
+    assert verdict.checks == {"import_date": True, "power": False, "volume": True}
 
 
 def test_fail_volume():

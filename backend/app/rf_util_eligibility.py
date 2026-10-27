@@ -39,6 +39,8 @@ class RfUtilVerdict:
     detail: str | None = None
     eligible_from_date: str | None = None  # DD.MM.YYYY
     cta: Literal["inspect", "select", "none"] = "none"
+    # Per-parameter preferential checks: True=ok, False=fail, None=unknown/n/a
+    checks: dict[str, bool | None] | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -76,6 +78,39 @@ def months_since_release(release_date_raw: str | None, *, today: date | None = N
     return days / 30.4375
 
 
+def build_param_checks(
+    *,
+    release_date: str | None,
+    power_hp: float | None,
+    engine_cc: int | None,
+    today: date,
+) -> dict[str, bool | None]:
+    """Independent preferential checks for UI markers."""
+    power_ok: bool | None
+    if power_hp is None or power_hp <= 0:
+        power_ok = None
+    else:
+        power_ok = power_hp <= PREFERENTIAL_HP_MAX
+
+    volume_ok: bool | None
+    if engine_cc is None:
+        volume_ok = None
+    else:
+        volume_ok = engine_cc <= PREFERENTIAL_CC_MAX
+
+    date_ok: bool | None = None
+    parsed = parse_filter_date(release_date)
+    if parsed is not None:
+        cutoff_12 = add_calendar_months(today, -IMPORT_AGE_RF_MONTHS)
+        date_ok = parsed <= cutoff_12
+
+    return {
+        "import_date": date_ok,
+        "power": power_ok,
+        "volume": volume_ok,
+    }
+
+
 def evaluate_rf_util_eligibility(
     *,
     release_date: str | None,
@@ -96,6 +131,12 @@ def evaluate_rf_util_eligibility(
     """
     today_value = today or date.today()
     cc = resolve_engine_cc(engine_cc=engine_cc, engine_capacity_l=engine_capacity_l)
+    checks = build_param_checks(
+        release_date=release_date,
+        power_hp=power_hp,
+        engine_cc=cc,
+        today=today_value,
+    )
 
     if input_kind == "vin":
         # VIN-only: no power/volume from the advert — show customs date context only.
@@ -106,6 +147,7 @@ def evaluate_rf_util_eligibility(
                 title="В базе ГТК (физлица) запись не найдена",
                 detail="Это не означает нелегальный ввоз. Для оценки льготного утильсбора нужна ссылка на объявление av.by.",
                 cta="none",
+                checks={"import_date": False, "power": None, "volume": None},
             )
         if not release_date:
             return RfUtilVerdict(
@@ -114,6 +156,7 @@ def evaluate_rf_util_eligibility(
                 title="Дата ввоза не определена",
                 detail="Для оценки льготного утильсбора укажите ссылку на объявление av.by.",
                 cta="none",
+                checks={"import_date": None, "power": None, "volume": None},
             )
         eligible = eligible_from_date_label(release_date)
         return RfUtilVerdict(
@@ -121,12 +164,12 @@ def evaluate_rf_util_eligibility(
             tone="neutral",
             title="Дата ввоза найдена",
             detail=(
-                f"Дата ввоза в РБ: {release_date}. "
                 "Чтобы проверить льготный утильсбор (мощность и объём), вставьте ссылку на объявление av.by."
                 + (f" Льготный срок — с {eligible}." if eligible else "")
             ),
             eligible_from_date=eligible,
             cta="none",
+            checks=checks,
         )
 
     # av.by URL path
@@ -137,6 +180,7 @@ def evaluate_rf_util_eligibility(
             title="В базе ГТК (физлица) запись не найдена",
             detail="Без даты ввоза нельзя подтвердить проходной срок для льготного утильсбора.",
             cta="select",
+            checks={**checks, "import_date": False},
         )
 
     if power_hp is None or power_hp <= 0:
@@ -147,6 +191,7 @@ def evaluate_rf_util_eligibility(
             detail="В объявлении нет мощности двигателя — оценка льготного утильсбора недоступна.",
             eligible_from_date=eligible_from_date_label(release_date),
             cta="select",
+            checks=checks,
         )
 
     if power_hp > PREFERENTIAL_HP_MAX:
@@ -155,6 +200,7 @@ def evaluate_rf_util_eligibility(
             tone="red",
             title="Автомобиль не проходит на РФ под льготный утильсбор — мощность более 160 л.с.",
             cta="select",
+            checks=checks,
         )
 
     if cc is not None and cc > PREFERENTIAL_CC_MAX:
@@ -163,6 +209,7 @@ def evaluate_rf_util_eligibility(
             tone="red",
             title="Автомобиль не проходит на РФ под льготный утильсбор — объём двигателя более 3000 см³",
             cta="select",
+            checks=checks,
         )
 
     if not release_date:
@@ -172,6 +219,7 @@ def evaluate_rf_util_eligibility(
             title="Дата ввоза не определена",
             detail="Мощность подходит под льготу, но без даты ввоза из ГТК срок проходности неизвестен.",
             cta="inspect",
+            checks=checks,
         )
 
     parsed = parse_filter_date(release_date)
@@ -182,6 +230,7 @@ def evaluate_rf_util_eligibility(
             title="Дата ввоза не распознана",
             detail=f"Сырая дата из ГТК: {release_date}",
             cta="inspect",
+            checks=checks,
         )
 
     cutoff_12 = add_calendar_months(today_value, -IMPORT_AGE_RF_MONTHS)
@@ -195,6 +244,7 @@ def evaluate_rf_util_eligibility(
             title="Автомобиль проходной на РФ под льготный утильсбор",
             eligible_from_date=eligible,
             cta="inspect",
+            checks=checks,
         )
 
     if parsed <= cutoff_10:
@@ -202,16 +252,16 @@ def evaluate_rf_util_eligibility(
             code="pass_after_date",
             tone="yellow",
             title=f"Автомобиль проходной на РФ под льготный утильсбор после {eligible}",
-            detail="Сейчас авто в окне 10–12 месяцев после ввоза.",
             eligible_from_date=eligible,
             cta="inspect",
+            checks=checks,
         )
 
     return RfUtilVerdict(
         code="fail_until_date",
         tone="red",
         title=f"Автомобиль не проходит на РФ под льготный утильсбор до {eligible}",
-        detail="До льготного срока ещё не прошло 10 месяцев.",
         eligible_from_date=eligible,
         cta="select",
+        checks=checks,
     )

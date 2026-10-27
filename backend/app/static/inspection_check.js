@@ -53,6 +53,28 @@
     return "i";
   }
 
+  function paramMark(ok) {
+    if (ok === true) {
+      return '<span class="inspection-param-mark is-ok" aria-label="Подходит" title="Подходит">✓</span>';
+    }
+    if (ok === false) {
+      return '<span class="inspection-param-mark is-bad" aria-label="Не подходит" title="Не подходит">✕</span>';
+    }
+    return '<span class="inspection-param-mark is-na" aria-hidden="true"></span>';
+  }
+
+  function paramRow(ok, label, valueHtml) {
+    return (
+      '<p class="inspection-param-row">' +
+      paramMark(ok) +
+      "<span><strong>" +
+      escapeHtml(label) +
+      ":</strong> " +
+      valueHtml +
+      "</span></p>"
+    );
+  }
+
   function setPromo(config) {
     if (!promo || !promoTitle || !promoText || !promoActions) return;
     promo.setAttribute("data-promo-mode", config.mode);
@@ -86,10 +108,9 @@
 
     var verdict = data.verdict || {};
     var tone = verdict.tone || "neutral";
+    var checks = verdict.checks || {};
     var bits = [];
-    if (data.release_date) {
-      bits.push("<p><strong>Дата ввоза в РБ:</strong> " + escapeHtml(data.release_date) + "</p>");
-    }
+
     if (data.brand || data.model) {
       bits.push(
         "<p><strong>Авто:</strong> " +
@@ -97,23 +118,37 @@
           "</p>"
       );
     }
+    if (data.release_date) {
+      bits.push(
+        paramRow(
+          checks.import_date,
+          "Дата ввоза в РБ",
+          escapeHtml(data.release_date)
+        )
+      );
+    }
     if (data.input_kind === "avby_url") {
       if (data.power_hp != null) {
-        bits.push("<p><strong>Мощность:</strong> " + escapeHtml(String(data.power_hp)) + " л.с.</p>");
+        bits.push(
+          paramRow(checks.power, "Мощность", escapeHtml(String(data.power_hp)) + " л.с.")
+        );
       }
       if (data.engine_cc != null) {
-        bits.push("<p><strong>Объём:</strong> " + escapeHtml(String(data.engine_cc)) + " см³</p>");
+        bits.push(
+          paramRow(checks.volume, "Объём", escapeHtml(String(data.engine_cc)) + " см³")
+        );
       } else if (data.engine_capacity_l != null) {
         bits.push(
-          "<p><strong>Объём:</strong> " + escapeHtml(String(data.engine_capacity_l)) + " л</p>"
+          paramRow(
+            checks.volume,
+            "Объём",
+            escapeHtml(String(data.engine_capacity_l)) + " л"
+          )
         );
       }
     }
     if (data.vin) {
       bits.push("<p><strong>VIN:</strong> <code>" + escapeHtml(data.vin) + "</code></p>");
-    }
-    if (verdict.detail) {
-      bits.push('<p class="inspection-verdict-detail">' + escapeHtml(verdict.detail) + "</p>");
     }
     if (data.message && !verdict.title) {
       bits.push("<p>" + escapeHtml(data.message) + "</p>");

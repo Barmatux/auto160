@@ -2,37 +2,39 @@
 {% block title %}{{ seo_title | default("Проверка — Auto160") }}{% endblock %}
 {% block content %}
 <section class="inspection-combined" data-inspection-page data-is-admin="{{ '1' if is_admin else '0' }}">
-  <header class="inspection-intro">
-    <h1>Проверка</h1>
-    <p class="inspection-lede">
-      Вставьте VIN или ссылку на объявление av.by — покажем дату ввоза из базы ГТК
-      и оценим, проходит ли авто на РФ под льготный утильсбор.
-    </p>
-  </header>
-
   <div class="inspection-main">
-    <section class="inspection-combined-block inspection-unified" id="check">
-      <form class="form inspection-unified-form" data-inspection-form>
-        <label>
-          VIN или ссылка av.by
-          <input
-            type="text"
-            name="query"
-            value="{{ initial_query or '' }}"
-            placeholder="WBAHT31030F123456 или https://cars.av.by/…"
-            maxlength="500"
-            autocomplete="off"
-            required
-          />
-        </label>
-        <div class="actions-row">
-          <button type="submit" class="btn-primary">Проверить</button>
-        </div>
-        <p class="hint" data-inspection-status hidden></p>
-      </form>
+    <div class="inspection-main-left">
+      <header class="inspection-intro">
+        <h1>Проверка</h1>
+        <p class="inspection-lede">
+          Вставьте VIN или ссылку на объявление av.by — покажем дату ввоза из базы ГТК
+          и оценим, проходит ли авто на РФ под льготный утильсбор.
+        </p>
+      </header>
 
-      <div class="inspection-verdict" data-inspection-result hidden></div>
-    </section>
+      <section class="inspection-combined-block inspection-unified" id="check">
+        <form class="form inspection-unified-form" data-inspection-form>
+          <label>
+            VIN или ссылка av.by
+            <input
+              type="text"
+              name="query"
+              value="{{ initial_query or '' }}"
+              placeholder="WBAHT31030F123456 или https://cars.av.by/…"
+              maxlength="500"
+              autocomplete="off"
+              required
+            />
+          </label>
+          <div class="actions-row">
+            <button type="submit" class="btn-primary">Проверить</button>
+          </div>
+          <p class="hint" data-inspection-status hidden></p>
+        </form>
+
+        <div class="inspection-verdict" data-inspection-result hidden></div>
+      </section>
+    </div>
 
     <aside class="inspection-promo" data-inspection-promo data-promo-mode="select">
       <a class="inspection-promo-visual" href="/listings" aria-label="Подбор авто под льготный утильсбор">
@@ -71,5 +73,5 @@
     <div class="listing-description-backdrop" data-description-backdrop hidden></div>
   </section>
 </section>
-<script src="/static/inspection_check.js?v=20261027-02" defer></script>
+<script src="/static/inspection_check.js?v=20261027-03" defer></script>
 {% endblock %}
