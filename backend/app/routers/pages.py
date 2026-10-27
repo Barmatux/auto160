@@ -3168,7 +3168,7 @@ def vin_inspection_page(
     has_query = bool((vin or "").strip() or listing_id is not None or refresh)
     seo = SeoMeta(
         title="Проверка — Auto160",
-        description="Проверка VIN в базе таможни РБ и ручная проверка объявлений av.by.",
+        description="Проверка VIN или объявления av.by: дата ввоза в РБ и льготный утильсбор на РФ.",
         path="/inspection",
         noindex=has_query,
     )
@@ -3182,26 +3182,19 @@ def vin_inspection_page(
         if listing and _listing_is_belarus_source(listing) and not is_admin:
             listing = None
 
-    vin_input = (vin or (listing.vin if listing and listing.vin else "") or "").strip().upper()
-    normalized_vin = _normalize_vin(vin_input)
-    vin_error = None
-    vin_report = None
-    customs_result = None
-    if normalized_vin:
-        if not _vin_is_valid(normalized_vin):
-            vin_error = "Некорректный VIN. Используй 17 символов без I, O, Q."
-        else:
-            try:
-                customs_result = lookup_customs_vin(db, normalized_vin, force_refresh=refresh)
-                vin_report = report_rows(customs_result)
-            except CustomsVinError as exc:
-                vin_error = str(exc)
+    initial_query = (vin or "").strip()
+    if not initial_query and listing is not None:
+        if listing.source_url:
+            initial_query = listing.source_url.strip()
+        elif is_admin and listing.vin:
+            initial_query = listing.vin.strip().upper()
 
     context["listing"] = listing
-    context["vin"] = vin_input
-    context["vin_error"] = vin_error
-    context["vin_report"] = vin_report
-    context["customs_result"] = customs_result
+    context["vin"] = initial_query
+    context["initial_query"] = initial_query
+    context["vin_error"] = None
+    context["vin_report"] = None
+    context["customs_result"] = None
 
     _populate_manual_vin_check_context(
         context=context,

@@ -1,0 +1,222 @@
+"""RF preferential util-sbor eligibility verdict for the public Проверка page."""
+
+from __future__ import annotations
+
+from dataclasses import asdict, dataclass
+from datetime import date
+from typing import Any, Literal
+
+from app.catalog_engine_cc import engine_capacity_cc_from_liters
+from app.listing_import_age import (
+    IMPORT_AGE_OVER_10M_MONTHS,
+    IMPORT_AGE_RF_MONTHS,
+    add_calendar_months,
+)
+from app.vin_analytics import parse_filter_date
+
+PREFERENTIAL_HP_MAX = 160.0
+PREFERENTIAL_CC_MAX = 3000
+
+VerdictTone = Literal["green", "yellow", "red", "neutral"]
+VerdictCode = Literal[
+    "pass_ready",
+    "pass_after_date",
+    "fail_power",
+    "fail_volume",
+    "fail_until_date",
+    "no_date",
+    "no_power",
+    "vin_only",
+    "not_found",
+]
+
+
+@dataclass(frozen=True)
+class RfUtilVerdict:
+    code: VerdictCode
+    tone: VerdictTone
+    title: str
+    detail: str | None = None
+    eligible_from_date: str | None = None  # DD.MM.YYYY
+    cta: Literal["inspect", "select", "none"] = "none"
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+
+def format_display_date(value: date) -> str:
+    return value.strftime("%d.%m.%Y")
+
+
+def eligible_from_date_label(release_date_raw: str | None) -> str | None:
+    parsed = parse_filter_date(release_date_raw)
+    if parsed is None:
+        return None
+    return format_display_date(add_calendar_months(parsed, IMPORT_AGE_RF_MONTHS))
+
+
+def resolve_engine_cc(*, engine_cc: float | int | None = None, engine_capacity_l: float | None = None) -> int | None:
+    if engine_cc is not None:
+        try:
+            cc = int(round(float(engine_cc)))
+        except (TypeError, ValueError):
+            cc = None
+        else:
+            if 0 < cc <= 20000:
+                return cc
+    return engine_capacity_cc_from_liters(engine_capacity_l)
+
+
+def months_since_release(release_date_raw: str | None, *, today: date | None = None) -> float | None:
+    parsed = parse_filter_date(release_date_raw)
+    if parsed is None:
+        return None
+    today_value = today or date.today()
+    days = (today_value - parsed).days
+    return days / 30.4375
+
+
+def evaluate_rf_util_eligibility(
+    *,
+    release_date: str | None,
+    power_hp: float | None,
+    engine_cc: int | None = None,
+    engine_capacity_l: float | None = None,
+    input_kind: str = "avby_url",
+    customs_found: bool | None = None,
+    today: date | None = None,
+) -> RfUtilVerdict:
+    """Classify a car for preferential RF util-sbor messaging.
+
+    Rules (av.by URL path with specs):
+    1. power ≤160, cc ≤3000, age ≥12m → green pass
+    2. power ≤160, cc ≤3000, age 10–12m → yellow after (release+1y)
+    3. power >160 or cc >3000 → red fail (reason)
+    4. power ≤160, cc ≤3000, age <10m → red until (release+1y)
+    """
+    today_value = today or date.today()
+    cc = resolve_engine_cc(engine_cc=engine_cc, engine_capacity_l=engine_capacity_l)
+
+    if input_kind == "vin":
+        # VIN-only: no power/volume from the advert — show customs date context only.
+        if customs_found is False:
+            return RfUtilVerdict(
+                code="not_found",
+                tone="neutral",
+                title="В базе ГТК (физлица) запись не найдена",
+                detail="Это не означает нелегальный ввоз. Для оценки льготного утильсбора нужна ссылка на объявление av.by.",
+                cta="none",
+            )
+        if not release_date:
+            return RfUtilVerdict(
+                code="no_date",
+                tone="neutral",
+                title="Дата ввоза не определена",
+                detail="Для оценки льготного утильсбора укажите ссылку на объявление av.by.",
+                cta="none",
+            )
+        eligible = eligible_from_date_label(release_date)
+        return RfUtilVerdict(
+            code="vin_only",
+            tone="neutral",
+            title="Дата ввоза найдена",
+            detail=(
+                f"Дата ввоза в РБ: {release_date}. "
+                "Чтобы проверить льготный утильсбор (мощность и объём), вставьте ссылку на объявление av.by."
+                + (f" Льготный срок — с {eligible}." if eligible else "")
+            ),
+            eligible_from_date=eligible,
+            cta="none",
+        )
+
+    # av.by URL path
+    if customs_found is False:
+        return RfUtilVerdict(
+            code="not_found",
+            tone="neutral",
+            title="В базе ГТК (физлица) запись не найдена",
+            detail="Без даты ввоза нельзя подтвердить проходной срок для льготного утильсбора.",
+            cta="select",
+        )
+
+    if power_hp is None or power_hp <= 0:
+        return RfUtilVerdict(
+            code="no_power",
+            tone="neutral",
+            title="Не удалось определить мощность",
+            detail="В объявлении нет мощности двигателя — оценка льготного утильсбора недоступна.",
+            eligible_from_date=eligible_from_date_label(release_date),
+            cta="select",
+        )
+
+    if power_hp > PREFERENTIAL_HP_MAX:
+        return RfUtilVerdict(
+            code="fail_power",
+            tone="red",
+            title="Автомобиль не проходит на РФ под льготный утильсбор — мощность более 160 л.с.",
+            detail=f"В объявлении указано {power_hp:g} л.с.",
+            cta="select",
+        )
+
+    if cc is not None and cc > PREFERENTIAL_CC_MAX:
+        return RfUtilVerdict(
+            code="fail_volume",
+            tone="red",
+            title="Автомобиль не проходит на РФ под льготный утильсбор — объём двигателя более 3000 см³",
+            detail=f"Объём по объявлению: {cc} см³.",
+            cta="select",
+        )
+
+    if not release_date:
+        return RfUtilVerdict(
+            code="no_date",
+            tone="neutral",
+            title="Дата ввоза не определена",
+            detail="Мощность подходит под льготу, но без даты ввоза из ГТК срок проходности неизвестен.",
+            cta="inspect",
+        )
+
+    parsed = parse_filter_date(release_date)
+    if parsed is None:
+        return RfUtilVerdict(
+            code="no_date",
+            tone="neutral",
+            title="Дата ввоза не распознана",
+            detail=f"Сырая дата из ГТК: {release_date}",
+            cta="inspect",
+        )
+
+    cutoff_12 = add_calendar_months(today_value, -IMPORT_AGE_RF_MONTHS)
+    cutoff_10 = add_calendar_months(today_value, -IMPORT_AGE_OVER_10M_MONTHS)
+    eligible = format_display_date(add_calendar_months(parsed, IMPORT_AGE_RF_MONTHS))
+
+    if parsed <= cutoff_12:
+        return RfUtilVerdict(
+            code="pass_ready",
+            tone="green",
+            title="Автомобиль проходной на РФ под льготный утильсбор",
+            detail=f"Дата ввоза в РБ: {release_date}. Мощность {power_hp:g} л.с."
+            + (f", объём {cc} см³" if cc else "")
+            + ".",
+            eligible_from_date=eligible,
+            cta="inspect",
+        )
+
+    if parsed <= cutoff_10:
+        return RfUtilVerdict(
+            code="pass_after_date",
+            tone="yellow",
+            title=f"Автомобиль проходной на РФ под льготный утильсбор после {eligible}",
+            detail=f"Дата ввоза в РБ: {release_date}. Сейчас авто в окне 10–12 месяцев.",
+            eligible_from_date=eligible,
+            cta="inspect",
+        )
+
+    return RfUtilVerdict(
+        code="fail_until_date",
+        tone="red",
+        title=f"Автомобиль не проходит на РФ под льготный утильсбор до {eligible}",
+        detail=f"Дата ввоза в РБ: {release_date}. До льготного срока ещё не прошло 10 месяцев.",
+        eligible_from_date=eligible,
+        cta="select",
+    )

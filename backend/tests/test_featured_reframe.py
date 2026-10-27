@@ -119,6 +119,47 @@ def test_lookup_public_import_date_empty():
     assert "VIN" in (result.message or "")
 
 
+def test_run_public_inspection_check_hides_vin_for_url(monkeypatch):
+    from app.featured import ImportDateLookupResult, run_public_inspection_check
+
+    monkeypatch.setattr(
+        "app.featured.lookup_public_import_date",
+        lambda db, raw: ImportDateLookupResult(
+            ok=True,
+            input_kind="avby_url",
+            vin="WBA3A5C50EF123456",
+            release_date="15.08.2024",
+            customs_found=True,
+            listing_id=None,
+            avby_url="https://cars.av.by/bmw/1",
+        ),
+    )
+    hidden = run_public_inspection_check(MagicMock(), "https://cars.av.by/bmw/1", reveal_vin=False)
+    assert hidden.vin is None
+    assert hidden.verdict is not None
+
+    shown = run_public_inspection_check(MagicMock(), "https://cars.av.by/bmw/1", reveal_vin=True)
+    assert shown.vin == "WBA3A5C50EF123456"
+
+
+def test_run_public_inspection_check_keeps_typed_vin(monkeypatch):
+    from app.featured import ImportDateLookupResult, run_public_inspection_check
+
+    monkeypatch.setattr(
+        "app.featured.lookup_public_import_date",
+        lambda db, raw: ImportDateLookupResult(
+            ok=True,
+            input_kind="vin",
+            vin="WBA3A5C50EF123456",
+            release_date="15.08.2024",
+            customs_found=True,
+        ),
+    )
+    result = run_public_inspection_check(MagicMock(), "WBA3A5C50EF123456", reveal_vin=False)
+    assert result.vin == "WBA3A5C50EF123456"
+    assert result.verdict["code"] == "vin_only"
+
+
 def test_create_site_lead_persists(monkeypatch):
     stored = {}
 

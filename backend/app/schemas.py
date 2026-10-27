@@ -650,6 +650,28 @@ class ImportDateLookupResponse(BaseModel):
     avby_url: str | None = None
 
 
+class InspectionCheckRequest(BaseModel):
+    query: str
+
+
+class InspectionCheckResponse(BaseModel):
+    ok: bool
+    input_kind: str
+    vin: str | None = None
+    release_date: str | None = None
+    customs_found: bool | None = None
+    message: str | None = None
+    listing_id: int | None = None
+    avby_url: str | None = None
+    power_hp: float | None = None
+    engine_capacity_l: float | None = None
+    engine_cc: int | None = None
+    brand: str | None = None
+    model: str | None = None
+    year: int | None = None
+    verdict: dict | None = None
+
+
 class CustomsVehicleSpecOut(BaseModel):
     id: int
     make: str

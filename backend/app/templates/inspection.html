@@ -1,112 +1,48 @@
 {% extends "base.html" %}
-{% block title %}Проверка — Auto160{% endblock %}
+{% block title %}{{ seo_title | default("Проверка — Auto160") }}{% endblock %}
 {% block content %}
-<section class="inspection-combined">
-  <h1>Проверка</h1>
+<section class="inspection-combined" data-inspection-page data-is-admin="{{ '1' if is_admin else '0' }}">
+  <header class="inspection-intro">
+    <h1>Проверка</h1>
+    <p class="inspection-lede">
+      Вставьте VIN или ссылку на объявление av.by — покажем дату ввоза из базы ГТК
+      и оценим, проходит ли авто на РФ под льготный утильсбор.
+    </p>
+  </header>
 
-  <div class="inspection-tools">
-    <section class="inspection-combined-block inspection-combined-block--customs" id="vin">
-      <h2>Проверка VIN в базе таможни РБ</h2>
-      <p class="hint">
-        Данные из
-        <a href="https://www.customs.gov.by/baza-dannykh-vvezyennogo-avtotransporta/" target="_blank" rel="noopener">
-          базы ввезённого автотранспорта ГТК
-        </a>
-        — физлица, выпуск в свободное обращение (база 1).
-      </p>
+  <section class="inspection-combined-block inspection-unified" id="check">
+    <form class="form inspection-unified-form" data-inspection-form>
+      <label>
+        VIN или ссылка av.by
+        <input
+          type="text"
+          name="query"
+          value="{{ initial_query or '' }}"
+          placeholder="WBAHT31030F123456 или https://cars.av.by/…"
+          maxlength="500"
+          autocomplete="off"
+          required
+        />
+      </label>
+      <div class="actions-row">
+        <button type="submit" class="btn-primary">Проверить</button>
+      </div>
+      <p class="hint" data-inspection-status hidden></p>
+    </form>
 
-      {% if listing %}
-        <div class="detail">
-          <p><strong>Объявление:</strong> <a href="/listings/{{ listing.id }}">{{ listing.title }}</a></p>
-          <p><strong>Авто:</strong> {{ listing.brand }} {{ listing.model }} · {{ listing.year }}</p>
-          {% if listing.vin %}
-            <p class="hint">VIN из объявления подставлен ниже.</p>
-          {% else %}
-            <p class="hint">VIN в объявлении не сохранён — введи его вручную.</p>
-          {% endif %}
-        </div>
-      {% endif %}
-
-      <form class="form" method="get" action="/inspection">
-        {% if listing %}
-          <input type="hidden" name="listing_id" value="{{ listing.id }}" />
-        {% endif %}
-        {% if manual_check_account %}
-          <input type="hidden" name="account" value="{{ manual_check_account }}" />
-        {% endif %}
-        <label>
-          VIN номер
-          <input
-            type="text"
-            name="vin"
-            value="{{ vin or (listing.vin if listing and listing.vin else '') }}"
-            placeholder="Например: WBAHT31030F123456"
-            maxlength="24"
-            autocomplete="off"
-            required
-          />
-        </label>
-        <div class="actions-row">
-          <button type="submit">Проверить в базе ГТК</button>
-          {% if vin %}
-            <button type="submit" name="refresh" value="1">Обновить у ГТК</button>
-          {% endif %}
-        </div>
-      </form>
-
-      {% if vin_error %}
-        <p class="hint" style="color:#b91c1c; margin-top: 10px;">{{ vin_error }}</p>
-      {% endif %}
-
-      {% if vin_report %}
-        <div class="specs-wrap">
-          <h3>Результат проверки</h3>
-          {% if customs_result and customs_result.found %}
-            <p class="hint" style="color:#166534;">Автомобиль найден в базе таможни — есть сведения о выпуске в РБ.</p>
-          {% elif customs_result %}
-            <p class="hint">В базе 1 (физлица) записи нет. Это не означает нелегальный ввоз.</p>
-            {% if customs_result.cached %}
-              <p class="hint">Ответ из кэша. Если на сайте таможни уже есть запись — нажмите «Обновить у ГТК».</p>
-            {% endif %}
-          {% endif %}
-          <div class="detail spec-section-body">
-            {% for label, value in vin_report.items() %}
-              <p>
-                <strong>{{ label }}:</strong>
-                {% if label == "Официальный источник" %}
-                  <a href="{{ value }}" target="_blank" rel="noopener">{{ value }}</a>
-                {% else %}
-                  {{ value }}
-                {% endif %}
-              </p>
-            {% endfor %}
-          </div>
-          <p class="hint">
-            Сведения официальные, но носят справочный характер. Для юридически значимого подтверждения обращайтесь в таможню.
-          </p>
-        </div>
-        {% if yandex_metrika_id %}
-          <script>if (typeof reachMetrikaGoal === "function") reachMetrikaGoal("vin_check");</script>
-        {% endif %}
-      {% endif %}
-    </section>
-
-    <section class="inspection-combined-block inspection-combined-block--manual">
-      {% set manual_vin_embedded = true %}
-      {% set manual_vin_defer_results = true %}
-      {% include "partials/manual_vin_check_section.html" %}
-    </section>
-  </div>
+    <div class="inspection-verdict" data-inspection-result hidden></div>
+  </section>
 
   <section class="inspection-results" id="results">
     <div class="inspection-results-head">
       <h2>Проверенные объявления</h2>
       {% if show_manual_account_filter and not manual_vin_requires_login|default(false) %}
-        <p class="hint">Результаты ручных проверок по ссылкам av.by.</p>
+        <p class="hint">История ручных проверок по ссылкам av.by.</p>
       {% endif %}
     </div>
     {% include "partials/manual_vin_check_results.html" %}
     <div class="listing-description-backdrop" data-description-backdrop hidden></div>
   </section>
 </section>
+<script src="/static/inspection_check.js?v=20261027-01" defer></script>
 {% endblock %}

@@ -353,3 +353,90 @@ def lookup_public_import_date(db: Session, raw_input: str) -> ImportDateLookupRe
         release_date=result.release_date,
         message=None if result.release_date else "Найдено в ГТК, дата ввоза не распознана",
     )
+
+
+@dataclass
+class PublicInspectionCheckResult:
+    ok: bool
+    input_kind: str
+    vin: str | None = None
+    release_date: str | None = None
+    customs_found: bool | None = None
+    message: str | None = None
+    listing_id: int | None = None
+    avby_url: str | None = None
+    power_hp: float | None = None
+    engine_capacity_l: float | None = None
+    engine_cc: int | None = None
+    brand: str | None = None
+    model: str | None = None
+    year: int | None = None
+    verdict: dict | None = None
+
+
+def run_public_inspection_check(
+    db: Session,
+    raw_input: str,
+    *,
+    reveal_vin: bool = False,
+) -> PublicInspectionCheckResult:
+    """Unified Проверка: VIN or av.by URL → customs date + RF util verdict."""
+    from app.rf_util_eligibility import evaluate_rf_util_eligibility, resolve_engine_cc
+
+    base = lookup_public_import_date(db, raw_input)
+    power_hp: float | None = None
+    engine_capacity_l: float | None = None
+    brand = model = None
+    year = None
+    listing = None
+    if base.listing_id:
+        listing = db.get(CarListing, base.listing_id)
+        if listing is not None:
+            if listing.engine_power_hp is not None:
+                try:
+                    power_hp = float(listing.engine_power_hp)
+                except (TypeError, ValueError):
+                    power_hp = None
+            if listing.engine_capacity_l is not None:
+                try:
+                    engine_capacity_l = float(listing.engine_capacity_l)
+                except (TypeError, ValueError):
+                    engine_capacity_l = None
+            brand = listing.brand
+            model = listing.model
+            year = listing.year
+
+    engine_cc = resolve_engine_cc(engine_capacity_l=engine_capacity_l)
+    verdict = None
+    if base.ok:
+        verdict = evaluate_rf_util_eligibility(
+            release_date=base.release_date,
+            power_hp=power_hp if base.input_kind == "avby_url" else None,
+            engine_cc=engine_cc if base.input_kind == "avby_url" else None,
+            engine_capacity_l=engine_capacity_l if base.input_kind == "avby_url" else None,
+            input_kind=base.input_kind,
+            customs_found=base.customs_found,
+        ).to_dict()
+
+    # Hide VIN for URL checks unless admin; VIN typed by the user is always returned.
+    vin_out = base.vin
+    if base.input_kind == "avby_url" and not reveal_vin:
+        vin_out = None
+
+    return PublicInspectionCheckResult(
+        ok=base.ok,
+        input_kind=base.input_kind,
+        vin=vin_out,
+        release_date=base.release_date,
+        customs_found=base.customs_found,
+        message=base.message,
+        listing_id=base.listing_id,
+        avby_url=base.avby_url,
+        power_hp=power_hp if base.input_kind == "avby_url" else None,
+        engine_capacity_l=engine_capacity_l if base.input_kind == "avby_url" else None,
+        engine_cc=engine_cc if base.input_kind == "avby_url" else None,
+        brand=brand if base.input_kind == "avby_url" else None,
+        model=model if base.input_kind == "avby_url" else None,
+        year=year if base.input_kind == "avby_url" else None,
+        verdict=verdict,
+    )

@@ -31,7 +31,9 @@ from app.customs_vehicles import (
     list_models_for_make as list_legacy_models_for_make,
 )
 from app.db import get_db
-from app.featured import create_site_lead, lookup_public_import_date
+from app.deps import get_optional_user_flexible
+from app.featured import create_site_lead, lookup_public_import_date, run_public_inspection_check
+from app.models import User, UserRole
 from app.myfin_rates import fetch_myfin_buy_rates
 from app.schemas import (
     CustomsCalcRequest,
@@ -45,6 +47,8 @@ from app.schemas import (
     CustomsVehicleSpecOut,
     ImportDateLookupRequest,
     ImportDateLookupResponse,
+    InspectionCheckRequest,
+    InspectionCheckResponse,
     SiteLeadCreateRequest,
     SiteLeadOut,
 )
@@ -91,6 +95,33 @@ def lookup_import_date(payload: ImportDateLookupRequest, db: Session = Depends(g
         message=result.message,
         listing_id=result.listing_id,
         avby_url=result.avby_url,
+    )
+
+
+@router.post("/inspection-check", response_model=InspectionCheckResponse)
+def public_inspection_check(
+    payload: InspectionCheckRequest,
+    db: Session = Depends(get_db),
+    current_user: User | None = Depends(get_optional_user_flexible),
+):
+    reveal_vin = bool(current_user and current_user.role == UserRole.admin)
+    result = run_public_inspection_check(db, payload.query, reveal_vin=reveal_vin)
+    return InspectionCheckResponse(
+        ok=result.ok,
+        input_kind=result.input_kind,
+        vin=result.vin,
+        release_date=result.release_date,
+        customs_found=result.customs_found,
+        message=result.message,
+        listing_id=result.listing_id,
+        avby_url=result.avby_url,
+        power_hp=result.power_hp,
+        engine_capacity_l=result.engine_capacity_l,
+        engine_cc=result.engine_cc,
+        brand=result.brand,
+        model=result.model,
+        year=result.year,
+        verdict=result.verdict,
     )
 
 

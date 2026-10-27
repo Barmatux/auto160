@@ -473,6 +473,42 @@ body.theme-admin.theme-admin-light.design-lab .inspection-results {
   border-top-color: #c5d4ea;
 }
 
+body.theme-admin.theme-admin-light.design-lab .inspection-verdict-card {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+body.theme-admin.theme-admin-light.design-lab .inspection-verdict-card.is-green {
+  background: #f0fdf4;
+  border-color: #86efac;
+}
+
+body.theme-admin.theme-admin-light.design-lab .inspection-verdict-card.is-green h3,
+body.theme-admin.theme-admin-light.design-lab .inspection-verdict-card.is-green .inspection-verdict-mark {
+  color: #15803d;
+}
+
+body.theme-admin.theme-admin-light.design-lab .inspection-verdict-card.is-yellow {
+  background: #fefce8;
+  border-color: #fde047;
+}
+
+body.theme-admin.theme-admin-light.design-lab .inspection-verdict-card.is-yellow h3,
+body.theme-admin.theme-admin-light.design-lab .inspection-verdict-card.is-yellow .inspection-verdict-mark {
+  color: #a16207;
+}
+
+body.theme-admin.theme-admin-light.design-lab .inspection-verdict-card.is-red {
+  background: #fef2f2;
+  border-color: #fca5a5;
+}
+
+body.theme-admin.theme-admin-light.design-lab .inspection-verdict-card.is-red h3,
+body.theme-admin.theme-admin-light.design-lab .inspection-verdict-card.is-red .inspection-verdict-mark {
+  color: #b91c1c;
+}
+
 @media (max-width: 760px) {
   .site-topline-inner {
     grid-template-columns: minmax(0, 1fr) auto;
@@ -8289,13 +8325,21 @@ body.design-lab .inspection-combined {
   gap: 28px;
 }
 
+body.design-lab .inspection-intro h1,
 body.design-lab .inspection-combined > h1 {
-  margin: 0 0 4px;
+  margin: 0 0 8px;
+}
+
+body.design-lab .inspection-lede {
+  margin: 0;
+  max-width: 40rem;
+  opacity: 0.88;
+  line-height: 1.45;
 }
 
 body.design-lab .inspection-tools {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   gap: 20px;
   align-items: start;
 }
@@ -8307,6 +8351,10 @@ body.design-lab .inspection-combined-block {
   background: rgba(248, 250, 252, 0.72);
   box-sizing: border-box;
   min-width: 0;
+}
+
+body.design-lab .inspection-unified {
+  max-width: 40rem;
 }
 
 body.theme-admin:not(.theme-admin-light) .inspection-combined-block {
@@ -8322,6 +8370,112 @@ body.design-lab .inspection-combined-block h2 {
 body.design-lab .inspection-combined-block .form,
 body.design-lab .inspection-combined-block .admin-manual-vin-form {
   margin-top: 8px;
+}
+
+body.design-lab .inspection-verdict {
+  margin-top: 16px;
+}
+
+body.design-lab .inspection-verdict-card {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 16px 16px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: rgba(15, 23, 42, 0.28);
+}
+
+body.design-lab .inspection-verdict-mark {
+  flex: 0 0 auto;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: 1.05rem;
+  line-height: 1;
+  background: rgba(148, 163, 184, 0.2);
+  color: #e2e8f0;
+}
+
+body.design-lab .inspection-verdict-body {
+  min-width: 0;
+  flex: 1;
+}
+
+body.design-lab .inspection-verdict-body h3 {
+  margin: 0 0 8px;
+  font-size: 1.05rem;
+  line-height: 1.35;
+}
+
+body.design-lab .inspection-verdict-body p {
+  margin: 0 0 6px;
+  line-height: 1.4;
+}
+
+body.design-lab .inspection-verdict-detail {
+  opacity: 0.9;
+}
+
+body.design-lab .inspection-verdict-card.is-green {
+  border-color: rgba(34, 197, 94, 0.45);
+  background: rgba(22, 163, 74, 0.12);
+}
+
+body.design-lab .inspection-verdict-card.is-green .inspection-verdict-mark {
+  background: rgba(34, 197, 94, 0.22);
+  color: #4ade80;
+}
+
+body.design-lab .inspection-verdict-card.is-green h3 {
+  color: #86efac;
+}
+
+body.design-lab .inspection-verdict-card.is-yellow {
+  border-color: rgba(234, 179, 8, 0.45);
+  background: rgba(202, 138, 4, 0.12);
+}
+
+body.design-lab .inspection-verdict-card.is-yellow .inspection-verdict-mark {
+  background: rgba(234, 179, 8, 0.22);
+  color: #facc15;
+}
+
+body.design-lab .inspection-verdict-card.is-yellow h3 {
+  color: #fde047;
+}
+
+body.design-lab .inspection-verdict-card.is-red {
+  border-color: rgba(239, 68, 68, 0.45);
+  background: rgba(220, 38, 38, 0.12);
+}
+
+body.design-lab .inspection-verdict-card.is-red .inspection-verdict-mark {
+  background: rgba(239, 68, 68, 0.22);
+  color: #f87171;
+}
+
+body.design-lab .inspection-verdict-card.is-red h3 {
+  color: #fca5a5;
+}
+
+body.design-lab .inspection-cta {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(148, 163, 184, 0.22);
+}
+
+body.design-lab .inspection-cta p {
+  margin-bottom: 10px;
+}
+
+body.design-lab .inspection-cta-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 body.design-lab .admin-vin-check-manual-page--embedded {
@@ -8404,11 +8558,6 @@ body.design-lab .inspection-results-head h2 {
   font-size: 1.25rem;
 }
 
-@media (max-width: 900px) {
-  body.design-lab .inspection-tools {
-    grid-template-columns: 1fr;
-  }
-}
 
 /* —— Customs calculator (растаможка) —— */
 .calc-page {

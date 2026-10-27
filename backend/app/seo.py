@@ -54,8 +54,8 @@ STATIC_SEO: dict[str, tuple[str, str]] = {
         "Подбор автомобилей в Беларуси: дата ввоза по VIN или ссылке av.by, заказ подбора у Auto160.",
     ),
     "/inspection": (
-        "Проверка VIN в базе таможни РБ — Auto160",
-        "Проверка VIN по базе ввезённого автотранспорта ГТК Беларуси перед покупкой автомобиля.",
+        "Проверка — Auto160",
+        "Проверка VIN или объявления av.by: дата ввоза в РБ и льготный утильсбор на РФ.",
     ),
     "/calculator": (
         "Калькулятор растаможки и утильсбора — Auto160",
@@ -608,7 +608,7 @@ def inspection_seo_meta(*, has_query: bool) -> SeoMeta:
         description=description,
         path="/inspection",
         noindex=has_query,
-        h1="Проверка VIN в базе таможни РБ",
+        h1="Проверка",
     )
 
 
