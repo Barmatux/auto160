@@ -119,6 +119,25 @@ def test_lookup_public_import_date_empty():
     assert "VIN" in (result.message or "")
 
 
+def test_lookup_public_import_date_customs_site_error(monkeypatch):
+    from app.customs_vin import CUSTOMS_SITE_UNAVAILABLE_MESSAGE, CustomsVinError
+
+    monkeypatch.setattr(
+        "app.featured.lookup_customs_vin",
+        lambda db, vin, **kwargs: (_ for _ in ()).throw(
+            CustomsVinError("Не удалось связаться с сайтом таможни: timeout")
+        ),
+    )
+    monkeypatch.setattr("app.featured.vin_is_valid", lambda vin: True)
+    monkeypatch.setattr("app.featured.normalize_vin", lambda vin: vin.upper())
+
+    result = lookup_public_import_date(MagicMock(), "WBA3A5C50EF123456")
+    assert result.ok is False
+    assert result.message == CUSTOMS_SITE_UNAVAILABLE_MESSAGE
+    assert "свяжитесь с нами" in (result.message or "").lower()
+    assert "timeout" not in (result.message or "").lower()
+
+
 def test_run_public_inspection_check_hides_vin_for_url(monkeypatch):
     from app.featured import ImportDateLookupResult, run_public_inspection_check
 

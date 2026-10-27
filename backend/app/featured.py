@@ -20,7 +20,13 @@ from app.manual_vin_check import (
     parse_avby_url,
     upsert_advert_listing,
 )
-from app.customs_vin import CustomsVinError, lookup_customs_vin, normalize_vin, vin_is_valid
+from app.customs_vin import (
+    CustomsVinError,
+    lookup_customs_vin,
+    normalize_vin,
+    public_customs_error_message,
+    vin_is_valid,
+)
 from app.models import CarListing, FeaturedListing, ListingStatus, SiteLead
 
 FEATURED_HOME_LIMIT = 10
@@ -285,7 +291,12 @@ def lookup_public_import_date(db: Session, raw_input: str) -> ImportDateLookupRe
         try:
             result = lookup_customs_vin(db, vin)
         except CustomsVinError as exc:
-            return ImportDateLookupResult(ok=False, input_kind="vin", vin=vin, message=str(exc))
+            return ImportDateLookupResult(
+                ok=False,
+                input_kind="vin",
+                vin=vin,
+                message=public_customs_error_message(exc),
+            )
         if not result.found:
             return ImportDateLookupResult(
                 ok=True,
@@ -329,7 +340,7 @@ def lookup_public_import_date(db: Session, raw_input: str) -> ImportDateLookupRe
             vin=vin,
             avby_url=normalized,
             listing_id=listing.id if listing else None,
-            message=str(exc),
+            message=public_customs_error_message(exc),
         )
 
     if not result.found:
