@@ -44,7 +44,7 @@
       </div>
 
       <div class="site-topline-end">
-        {% if is_authenticated %}
+        {% if design_lab_messengers %}
           <div class="header-messengers site-topline-messengers" aria-label="Мессенджеры">
             {% for m in design_lab_messengers %}
               <a
@@ -65,6 +65,8 @@
               </a>
             {% endfor %}
           </div>
+        {% endif %}
+        {% if is_authenticated %}
           <span class="user-badge site-topline-user">{{ current_user.email }}</span>
           <a class="site-topline-link" href="/logout">Выход</a>
         {% else %}
