@@ -8440,8 +8440,11 @@ body.design-lab .inspection-share {
   border-top: 1px solid rgba(148, 163, 184, 0.22);
 }
 
-body.design-lab .inspection-share > p {
-  margin: 0 0 8px;
+body.design-lab .inspection-share-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 body.design-lab .inspection-notify {

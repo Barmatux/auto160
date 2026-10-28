@@ -183,16 +183,10 @@
   }
 
   function renderShareBlock(data) {
-    var shareUrl = buildShareUrl(data);
     return (
       '<div class="inspection-share">' +
-      "<p><strong>Ссылка на эту проверку</strong> — можно отправить другу:</p>" +
-      '<div class="inspection-retry-row">' +
-      '<a class="inspection-retry-link" href="' +
-      escapeHtml(shareUrl) +
-      '">' +
-      escapeHtml(shareUrl) +
-      "</a>" +
+      '<div class="inspection-share-row">' +
+      "<span>Ссылка на эту проверку</span>" +
       '<button type="button" class="inspection-copy-btn" data-copy-share aria-label="Скопировать ссылку" title="Скопировать">' +
       '<span aria-hidden="true">⧉</span>' +
       "</button></div></div>"
