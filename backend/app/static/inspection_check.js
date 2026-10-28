@@ -44,7 +44,7 @@
     text:
       "Подбор в Беларуси и Европе: поиск, проверка истории, расчёт утильсбора и доставка в Москву и регионы.",
     actionsHtml:
-      '<a class="home-hero-pane-cta" href="/listings">Авто из Беларуси</a>' +
+      '<a class="home-hero-pane-cta" href="/by">Авто из Беларуси</a>' +
       '<a class="home-hero-pane-cta home-hero-pane-cta--ghost" href="/listings/eu">Авто из Европы</a>',
   };
 
@@ -54,7 +54,7 @@
     text:
       "Осмотр, история и риски перед покупкой — поможем принять решение по конкретной машине.",
     actionsHtml:
-      '<a class="home-hero-pane-cta" href="/listings">Заказать проверку</a>' +
+      '<a class="home-hero-pane-cta" href="/by">Заказать проверку</a>' +
       '<a class="home-hero-pane-cta home-hero-pane-cta--ghost" href="/#chat" data-open-chat>Написать менеджеру</a>',
   };
 

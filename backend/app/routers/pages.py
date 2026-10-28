@@ -179,6 +179,7 @@ from app.models import (
 from app.security import decode_token, is_token_revoked
 from app.seo import (
     INDEXABLE_CITIES,
+    STATIC_SEO,
     SeoMeta,
     build_robots_txt,
     build_seo_context,
@@ -2584,7 +2585,7 @@ def _home_popular_directions() -> list[dict]:
     return [
         {
             "label": "Авто из Беларуси",
-            "url": "/listings",
+            "url": "/by",
             "flag_key": "by",
             "flag_src": "/static/flags/by-wide.svg?v=20261002-05",
         },
@@ -2713,6 +2714,16 @@ def listings_europe_country_redirect():
     return RedirectResponse(url="/listings/eu", status_code=302)
 
 
+@router.get("/by")
+def belarus_landing_page(request: Request, db: Session = Depends(get_db)):
+    """Public Belarus landing (consultation / import-date / lead capture)."""
+    current_user = _resolve_user_from_request(request, db)
+    title, description = STATIC_SEO["/by"]
+    seo = SeoMeta(title=title, description=description, path="/by")
+    context = _template_context(request, current_user, seo)
+    return templates.TemplateResponse(request, "belarus_landing.html", context)
+
+
 @router.get("/listings")
 @router.get("/listings/eu")
 def listings_page(
@@ -2737,18 +2748,9 @@ def listings_page(
         listings_base_path = "/listings"
     current_user = _resolve_user_from_request(request, db)
     is_admin = _is_admin_user(current_user)
-    # Guests see Belarus landing instead of the av.by mirror feed.
+    # Guests: public Belarus page lives at /by (keep old /listings bookmarks working).
     if listings_market == "by" and not is_admin:
-        seo = SeoMeta(
-            title="Авто из Беларуси для РФ — подбор и проверка — Auto160",
-            description=(
-                "Подбор автомобилей в Беларуси для ввоза в РФ: дата ввоза по VIN или ссылке av.by, "
-                "заказ подбора у Auto160. Объявления смотрите на av.by."
-            ),
-            path="/listings",
-        )
-        context = _template_context(request, current_user, seo)
-        return templates.TemplateResponse(request, "belarus_landing.html", context)
+        return RedirectResponse(url="/by", status_code=301)
 
     is_authenticated = current_user is not None
     import_age_selection = parse_import_age_filters(False, False)

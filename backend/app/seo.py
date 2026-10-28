@@ -49,9 +49,13 @@ STATIC_SEO: dict[str, tuple[str, str]] = {
         "Каталог авто до 160 л.с. — Auto160",
         "Комплектации автомобилей до 160 л.с.: марки, модели, поколения, характеристики и фото.",
     ),
-    "/listings": (
+    "/by": (
         "Авто из Беларуси под льготный утильсбор — Auto160",
         "Подбор автомобилей в Беларуси: дата ввоза по VIN или ссылке av.by, заказ подбора у Auto160.",
+    ),
+    "/listings": (
+        "Лента объявлений авто под льготный утильсбор (до 160 л.с.) — Auto160",
+        "Актуальные объявления автомобилей до 160 л.с. в Беларуси: фильтры по марке, городу и параметрам.",
     ),
     "/inspection": (
         "Проверка — Auto160",
@@ -361,7 +365,7 @@ def listing_seo_meta(
     )
     crumbs = [
         ("Главная", "/"),
-        ("Авто из Беларуси", "/listings"),
+        ("Авто из Беларуси", "/by"),
         (f"{listing.brand} {listing.model}", f"/listings/{listing.id}"),
     ]
     return SeoMeta(
@@ -754,7 +758,7 @@ def build_sitemap_sections(db: Session, base_url: str) -> dict[str, list[tuple[s
     for path in (
         "/",
         "/catalog",
-        "/listings",
+        "/by",
         "/listings/eu",
         "/inspection",
         "/calculator",

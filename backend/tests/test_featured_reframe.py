@@ -64,11 +64,17 @@ def test_assert_listing_eligible_rejects_unpublished(monkeypatch):
 
 
 def test_guest_belarus_listings_is_landing():
-    response = client.get("/listings")
+    response = client.get("/by")
     assert response.status_code == 200
-    assert "Авто из Беларуси для РФ" in response.text
+    assert "льготный утильсбор" in response.text
     assert "Узнать дату ввоза" in response.text
     assert "data-import-date-form" in response.text
+
+
+def test_guest_listings_redirects_to_by():
+    response = client.get("/listings", follow_redirects=False)
+    assert response.status_code == 301
+    assert response.headers["location"] == "/by"
 
 
 def test_guest_belarus_listing_detail_hidden():
@@ -286,6 +292,6 @@ def test_home_shows_featured_section():
 def test_static_seo_listings_is_landing_copy():
     from app.seo import STATIC_SEO
 
-    title, description = STATIC_SEO["/listings"]
+    title, description = STATIC_SEO["/by"]
     assert "подбор" in title.lower() or "Беларуси" in title
     assert "лента объявлений" not in title.lower()

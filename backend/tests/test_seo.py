@@ -120,7 +120,7 @@ def test_build_sitemap_entries_resolves_models():
     entries = build_sitemap_entries(db, "https://auto160.ru")
     locs = {loc for loc, _lastmod in entries}
     assert "https://auto160.ru/" in locs
-    assert "https://auto160.ru/listings" in locs
+    assert "https://auto160.ru/by" in locs
     assert "https://auto160.ru/catalog" in locs
 
 

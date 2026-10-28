@@ -39,7 +39,7 @@
         {{ nav_logo('/static/brand/logo-v1-horizontal.png') }}
         <nav>
           <a href="/catalog">Каталог</a>
-          <a href="/listings">Объявления</a>
+          <a href="/by">Объявления</a>
           <a href="/inspection">Проверка VIN</a>
           <a href="/login">Вход</a>
         </nav>
@@ -55,7 +55,7 @@
             <p>Каталог комплектаций av.by, актуальные объявления и проверка VIN в базе таможни — всё в одном месте.</p>
             <div class="dp-a-actions">
               <a class="dp-btn dp-btn-primary" href="/catalog">Открыть каталог</a>
-              <a class="dp-btn dp-btn-secondary" href="/listings">Лента объявлений</a>
+              <a class="dp-btn dp-btn-secondary" href="/by">Лента объявлений</a>
             </div>
           </div>
           <div class="dp-a-stats">
@@ -71,7 +71,7 @@
             <p>Марка → модель → поколение → комплектация. Только авто до 160 л.с.</p>
             <span class="dp-link">Подробнее →</span>
           </a>
-          <a class="dp-card" href="/listings">
+          <a class="dp-card" href="/by">
             <h3>Объявления</h3>
             <p>Цена, пробег, город и ссылка на av.by. Фильтры по марке и году.</p>
             <span class="dp-link">Смотреть →</span>
@@ -108,7 +108,7 @@
         {{ nav_logo('/static/brand/logo-v2-horizontal.png') }}
         <nav>
           <a href="/catalog">Каталог</a>
-          <a href="/listings">Объявления</a>
+          <a href="/by">Объявления</a>
           <a href="/inspection">Проверка VIN</a>
           <a href="/login">Вход</a>
         </nav>
@@ -120,7 +120,7 @@
           <h2>Честный подбор б/у авто до 160 л.с.</h2>
           <p>Каталог av.by, лента объявлений и проверка VIN — без лишнего шума.</p>
           <a class="dp-btn dp-btn-primary" href="/catalog">Начать подбор</a>
-          <a class="dp-btn dp-btn-secondary" href="/listings">Лента объявлений</a>
+          <a class="dp-btn dp-btn-secondary" href="/by">Лента объявлений</a>
         </div>
       </div>
       <div class="dp-b-stats-bar">
@@ -164,7 +164,7 @@
         </a>
         <nav>
           <a href="/catalog">Каталог</a>
-          <a href="/listings">Объявления</a>
+          <a href="/by">Объявления</a>
           <a href="/inspection">VIN</a>
           <a href="/login">Вход</a>
         </nav>
@@ -183,7 +183,7 @@
         <p class="dp-d-hero-lead">Каталог, объявления av.by и проверка VIN — всё для безопасной покупки.</p>
         <div class="dp-a-actions dp-d-actions">
           <a class="dp-btn dp-btn-primary" href="/catalog">Открыть каталог</a>
-          <a class="dp-btn dp-btn-secondary" href="/listings">Лента объявлений</a>
+          <a class="dp-btn dp-btn-secondary" href="/by">Лента объявлений</a>
         </div>
         <div class="dp-d-hero-stats">
           <div class="dp-d-hero-stat"><strong>{{ listings_count }}</strong><span>объявлений</span></div>
@@ -197,7 +197,7 @@
         <aside class="dp-d-sidebar">
           <p class="dp-d-sidebar-label">Разделы</p>
           <a class="dp-d-tile dp-d-tile-primary" href="/catalog"><strong>Каталог</strong><span>{{ catalog_items_count }} комплектаций</span></a>
-          <a class="dp-d-tile" href="/listings"><strong>Объявления</strong><span>{{ listings_count }} в ленте</span></a>
+          <a class="dp-d-tile" href="/by"><strong>Объявления</strong><span>{{ listings_count }} в ленте</span></a>
           <a class="dp-d-tile" href="/listings?passable=1"><strong>Проходные</strong><span>{{ passable_year_from }}–{{ passable_year_to }} г.в.</span></a>
           <a class="dp-d-tile" href="/inspection"><strong>Проверка VIN</strong><span>База ГТК РБ</span></a>
         </aside>
