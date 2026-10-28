@@ -4086,7 +4086,7 @@ def register_page(request: Request, db: Session = Depends(get_db)):
     current_user = _resolve_user_from_request(request, db)
     if current_user:
         return RedirectResponse(url="/", status_code=302)
-    return templates.TemplateResponse(request, "register.html", _template_context(request, current_user))
+    return RedirectResponse(url="/login?tab=register", status_code=301)
 
 
 @router.get("/create-listing")

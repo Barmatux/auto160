@@ -177,6 +177,70 @@ body {
   color: #fff;
 }
 
+.site-cabinet-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  padding: 4px 14px 4px 5px;
+  border-radius: 999px;
+  background: var(--brand-cta, #00a8ff);
+  color: #041018;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+.site-cabinet-btn:hover,
+.site-cabinet-btn:focus-visible {
+  filter: brightness(1.08);
+  color: #041018;
+}
+.site-cabinet-btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  background: #fff;
+  color: var(--brand-cta, #00a8ff);
+  flex: 0 0 auto;
+}
+.site-cabinet-btn-label {
+  padding-right: 2px;
+}
+
+.auth-cabinet {
+  max-width: 420px;
+}
+.auth-cabinet-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 14px 0 16px;
+}
+.auth-cabinet-tab {
+  min-height: 2.5rem;
+  border-radius: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.auth-cabinet-tab.is-active {
+  background: var(--brand-cta, #00a8ff);
+  border-color: transparent;
+  color: #041018;
+}
+.auth-cabinet-panel .form {
+  margin-top: 8px;
+}
+
 .site-topline-user {
   max-width: 180px;
   overflow: hidden;

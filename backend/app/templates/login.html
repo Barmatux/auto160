@@ -1,36 +1,102 @@
 {% extends "base.html" %}
-{% block title %}Вход - Auto160{% endblock %}
+{% block title %}Личный кабинет - Auto160{% endblock %}
 {% block body_class %}page-login{% endblock %}
 {% block content %}
-<h1>Вход в кабинет</h1>
-<p class="hint">Можно войти по логину или email. После входа вы будете перенаправлены на главную.</p>
-<p id="verified-banner" class="hint" hidden role="status">Email подтверждён — теперь можно войти.</p>
+<section class="auth-cabinet" data-auth-cabinet>
+  <h1>Личный кабинет</h1>
+  <p class="hint">Войдите в аккаунт или зарегистрируйтесь по email.</p>
 
-<form class="form" onsubmit="event.preventDefault(); loginByApi();">
-  <label>Логин или email <input id="login" required autocomplete="username" /></label>
-  <label>Пароль <input id="password" type="password" required autocomplete="current-password" /></label>
-  <button type="submit">Войти</button>
-</form>
+  <div class="auth-cabinet-tabs" role="tablist" aria-label="Вход или регистрация">
+    <button type="button" class="auth-cabinet-tab is-active" role="tab" aria-selected="true" data-auth-tab="login">Вход</button>
+    <button type="button" class="auth-cabinet-tab" role="tab" aria-selected="false" data-auth-tab="register">Регистрация</button>
+  </div>
 
-<div id="unverified-box" hidden>
-  <p class="hint">Аккаунт ещё не подтверждён. Запросите письмо ещё раз:</p>
-  <button type="button" class="btn-secondary" onclick="resendFromLogin()">Отправить письмо ещё раз</button>
-</div>
+  <div class="auth-cabinet-panel" data-auth-panel="login">
+    <p class="hint">Можно войти по логину или email. После входа вы будете перенаправлены на главную.</p>
+    <p id="verified-banner" class="hint" hidden role="status">Email подтверждён — теперь можно войти.</p>
 
-<p id="form-message" class="hint" hidden role="alert"></p>
+    <form class="form" onsubmit="event.preventDefault(); loginByApi();">
+      <label>Логин или email <input id="login" required autocomplete="username" /></label>
+      <label>Пароль <input id="login-password" type="password" required autocomplete="current-password" /></label>
+      <button type="submit">Войти</button>
+    </form>
+
+    <div id="unverified-box" hidden>
+      <p class="hint">Аккаунт ещё не подтверждён. Запросите письмо ещё раз:</p>
+      <button type="button" class="btn-secondary" onclick="resendFromLogin()">Отправить письмо ещё раз</button>
+    </div>
+
+    <p id="login-form-message" class="hint" hidden role="alert"></p>
+  </div>
+
+  <div class="auth-cabinet-panel" data-auth-panel="register" hidden>
+    <p class="hint">Регистрация по email. После создания аккаунта нужно подтвердить почту по ссылке из письма — без этого вход недоступен.</p>
+
+    <form class="form" id="register-form" onsubmit="event.preventDefault(); registerByApi();">
+      <label>Имя <input id="register-name" required autocomplete="name" /></label>
+      <label>Email <input id="register-email" type="email" required autocomplete="email" /></label>
+      <label>Пароль <input id="register-password" type="password" required minlength="6" autocomplete="new-password" /></label>
+      <label>Повторите пароль <input id="register-password-confirm" type="password" required minlength="6" autocomplete="new-password" /></label>
+      <button type="submit">Создать аккаунт</button>
+    </form>
+
+    <div id="register-done" hidden>
+      <p id="register-form-message" class="hint" role="status"></p>
+      <p class="hint">Не пришло письмо? Проверьте «Спам» или отправьте ещё раз.</p>
+      <button type="button" class="btn-secondary" id="resend-btn" onclick="resendVerification()">Отправить ещё раз</button>
+      <p><button type="button" class="btn-secondary" data-auth-show-login>Перейти ко входу</button></p>
+    </div>
+
+    <p id="register-form-error" class="hint" hidden role="alert"></p>
+    <p id="register-form-error-actions" class="hint" hidden>
+      <button type="button" class="btn-secondary" data-auth-show-login>Перейти ко входу</button>
+      <button type="button" class="btn-secondary" id="error-resend-btn" onclick="resendVerification()">Отправить письмо ещё раз</button>
+    </p>
+  </div>
+</section>
 
 {% include "partials/auth_script.html" %}
 <script>
   (function () {
+    const root = document.querySelector("[data-auth-cabinet]");
+    if (!root) return;
+    const tabs = Array.from(root.querySelectorAll("[data-auth-tab]"));
+    const panels = Array.from(root.querySelectorAll("[data-auth-panel]"));
+
+    function showTab(name) {
+      tabs.forEach((tab) => {
+        const active = tab.getAttribute("data-auth-tab") === name;
+        tab.classList.toggle("is-active", active);
+        tab.setAttribute("aria-selected", active ? "true" : "false");
+      });
+      panels.forEach((panel) => {
+        panel.hidden = panel.getAttribute("data-auth-panel") !== name;
+      });
+      const url = new URL(window.location.href);
+      if (name === "register") url.searchParams.set("tab", "register");
+      else url.searchParams.delete("tab");
+      window.history.replaceState({}, "", url.pathname + url.search + url.hash);
+    }
+
+    tabs.forEach((tab) => {
+      tab.addEventListener("click", () => showTab(tab.getAttribute("data-auth-tab")));
+    });
+    root.querySelectorAll("[data-auth-show-login]").forEach((btn) => {
+      btn.addEventListener("click", () => showTab("login"));
+    });
+
     const params = new URLSearchParams(window.location.search);
     if (params.get("verified") === "1") {
       const banner = document.getElementById("verified-banner");
-      banner.hidden = false;
+      if (banner) banner.hidden = false;
+      showTab("login");
+    } else if (params.get("tab") === "register" || window.location.hash === "#register") {
+      showTab("register");
     }
   })();
 
   async function loginByApi() {
-    const messageEl = document.getElementById("form-message");
+    const messageEl = document.getElementById("login-form-message");
     const unverifiedBox = document.getElementById("unverified-box");
     messageEl.hidden = true;
     messageEl.textContent = "";
@@ -38,7 +104,7 @@
 
     const payload = {
       login: document.getElementById("login").value.trim(),
-      password: document.getElementById("password").value,
+      password: document.getElementById("login-password").value,
     };
     const response = await fetch("/api/v1/auth/login", {
       method: "POST",
@@ -66,7 +132,7 @@
     const login = document.getElementById("login").value.trim();
     const email = login.includes("@") ? login : "";
     if (!email) {
-      const messageEl = document.getElementById("form-message");
+      const messageEl = document.getElementById("login-form-message");
       messageEl.textContent = "Для повторной отправки укажите email (не логин) в поле входа.";
       messageEl.hidden = false;
       return;
@@ -77,13 +143,104 @@
       body: JSON.stringify({ email }),
     });
     const data = await response.json();
-    const messageEl = document.getElementById("form-message");
+    const messageEl = document.getElementById("login-form-message");
     let detail = data.message || data.detail || (response.ok ? "Готово" : "Не удалось отправить");
     if (Array.isArray(detail)) {
       detail = detail.map((item) => item.msg || JSON.stringify(item)).join("; ");
     }
     messageEl.textContent = detail;
     messageEl.hidden = false;
+  }
+
+  let lastEmail = "";
+
+  function hideErrorActions() {
+    const actions = document.getElementById("register-form-error-actions");
+    actions.hidden = true;
+    document.getElementById("error-resend-btn").hidden = true;
+  }
+
+  function showError(text, { showLogin = false, showResend = false } = {}) {
+    const el = document.getElementById("register-form-error");
+    el.textContent = text;
+    el.hidden = false;
+    const actions = document.getElementById("register-form-error-actions");
+    const resendBtn = document.getElementById("error-resend-btn");
+    actions.hidden = !(showLogin || showResend);
+    resendBtn.hidden = !showResend;
+  }
+
+  async function registerByApi() {
+    const errorEl = document.getElementById("register-form-error");
+    errorEl.hidden = true;
+    errorEl.textContent = "";
+    hideErrorActions();
+
+    const password = document.getElementById("register-password").value;
+    const passwordConfirm = document.getElementById("register-password-confirm").value;
+    if (password !== passwordConfirm) {
+      showError("Пароли не совпадают");
+      return;
+    }
+
+    const payload = {
+      name: document.getElementById("register-name").value,
+      email: document.getElementById("register-email").value,
+      password: password,
+      password_confirm: passwordConfirm,
+      role: "seller",
+    };
+    lastEmail = payload.email;
+    const response = await fetch("/api/v1/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      let detail = data.detail || "Не удалось создать аккаунт";
+      if (Array.isArray(detail)) {
+        detail = detail.map((item) => item.msg || JSON.stringify(item)).join("; ");
+      }
+      const text = String(detail);
+      const unverified = text.includes("не подтвержд");
+      const exists = text.includes("уже использует") || text.includes("уже зарегистрирован");
+      showError(text, { showLogin: exists, showResend: unverified });
+      return;
+    }
+
+    document.getElementById("register-form").hidden = true;
+    const done = document.getElementById("register-done");
+    done.hidden = false;
+    document.getElementById("register-form-message").textContent =
+      data.message || `Аккаунт создан. Логин: ${data.username}. Подтвердите email.`;
+  }
+
+  async function resendVerification() {
+    const email = lastEmail || document.getElementById("register-email").value;
+    if (!email) {
+      showError("Укажите email");
+      return;
+    }
+    const btn = document.getElementById("resend-btn");
+    btn.disabled = true;
+    try {
+      const response = await fetch("/api/v1/auth/resend-verification", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const data = await response.json();
+      const msg = data.message || data.detail || (response.ok ? "Готово" : "Не удалось отправить");
+      const target = document.getElementById("register-form-message");
+      if (target && !document.getElementById("register-done").hidden) {
+        target.textContent = typeof msg === "string" ? msg : JSON.stringify(msg);
+      } else {
+        showError(typeof msg === "string" ? msg : JSON.stringify(msg));
+      }
+    } finally {
+      btn.disabled = false;
+    }
   }
 </script>
 {% endblock %}

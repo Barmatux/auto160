@@ -70,8 +70,14 @@
           <span class="user-badge site-topline-user">{{ current_user.email }}</span>
           <a class="site-topline-link" href="/logout">Выход</a>
         {% else %}
-          <a class="site-topline-link" href="/login">Вход</a>
-          <a class="site-topline-link" href="/register">Регистрация</a>
+          <a class="site-cabinet-btn" href="/login" aria-label="Личный кабинет">
+            <span class="site-cabinet-btn-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="14" height="14" focusable="false">
+                <path fill="currentColor" d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v1.2c0 .7.5 1.2 1.2 1.2h16.8c.7 0 1.2-.5 1.2-1.2v-1.2c0-3.2-6.4-4.8-9.6-4.8z"/>
+              </svg>
+            </span>
+            <span class="site-cabinet-btn-label">Личный кабинет</span>
+          </a>
         {% endif %}
       </div>
     </div>
