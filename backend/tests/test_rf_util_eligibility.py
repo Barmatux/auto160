@@ -98,7 +98,8 @@ def test_vin_only_neutral():
     assert verdict.tone == "neutral"
 
 
-def test_gtk_not_found_treated_as_unavailable():
+def test_gtk_not_found_without_status_treated_as_unavailable():
+    """Legacy callers that only pass customs_found=False → unavailable."""
     verdict = evaluate_rf_util_eligibility(
         release_date=None,
         power_hp=110,
@@ -109,6 +110,20 @@ def test_gtk_not_found_treated_as_unavailable():
     )
     assert verdict.code == "customs_unavailable"
     assert verdict.cta == "notify"
+
+
+def test_gtk_not_found_confirmed_by_canary():
+    verdict = evaluate_rf_util_eligibility(
+        release_date=None,
+        power_hp=110,
+        engine_cc=1461,
+        input_kind="avby_url",
+        customs_found=False,
+        customs_status="not_found",
+        today=TODAY,
+    )
+    assert verdict.code == "not_found"
+    assert verdict.cta == "select"
 
 
 def test_customs_unavailable():

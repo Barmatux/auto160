@@ -25,6 +25,7 @@ from app.customs_vin import (
     lookup_customs_vin,
     normalize_vin,
     public_customs_error_message,
+    public_not_found_message,
     vin_is_valid,
 )
 from app.models import CarListing, FeaturedListing, ListingStatus, SiteLead
@@ -222,7 +223,7 @@ class ImportDateLookupResult:
     vin: str | None = None
     release_date: str | None = None
     customs_found: bool | None = None
-    # found | unavailable — GTK «не найдено» treated as unreliable/unavailable
+    # found | not_found | unavailable — «не найдено» confirmed via reference VIN canary
     customs_status: str | None = None
     message: str | None = None
     listing_id: int | None = None
@@ -307,15 +308,27 @@ def lookup_public_import_date(db: Session, raw_input: str) -> ImportDateLookupRe
                 message=public_customs_error_message(exc),
             )
         if not result.found:
-            # GTK often returns «ничего не найдено» during DB outages — do not trust it.
+            # GTK may return «не найдено» during outages — confirm with reference VIN.
+            site_ok, message = public_not_found_message(db)
+            if not site_ok:
+                return ImportDateLookupResult(
+                    ok=True,
+                    input_kind="vin",
+                    vin=vin,
+                    query=text,
+                    customs_found=None,
+                    customs_status="unavailable",
+                    message=message,
+                )
             return ImportDateLookupResult(
                 ok=True,
                 input_kind="vin",
                 vin=vin,
                 query=text,
-                customs_found=None,
-                customs_status="unavailable",
-                message=public_customs_error_message(CustomsVinError("empty")),
+                customs_found=False,
+                customs_status="not_found",
+                release_date=None,
+                message=message,
             )
         return ImportDateLookupResult(
             ok=True,
@@ -363,7 +376,20 @@ def lookup_public_import_date(db: Session, raw_input: str) -> ImportDateLookupRe
         )
 
     if not result.found:
-        # GTK often returns «ничего не найдено» during DB outages — do not trust it.
+        # GTK may return «не найдено» during outages — confirm with reference VIN.
+        site_ok, message = public_not_found_message(db)
+        if not site_ok:
+            return ImportDateLookupResult(
+                ok=True,
+                input_kind="avby_url",
+                vin=vin,
+                query=text,
+                avby_url=normalized,
+                listing_id=listing.id if listing else None,
+                customs_found=None,
+                customs_status="unavailable",
+                message=message,
+            )
         return ImportDateLookupResult(
             ok=True,
             input_kind="avby_url",
@@ -371,9 +397,9 @@ def lookup_public_import_date(db: Session, raw_input: str) -> ImportDateLookupRe
             query=text,
             avby_url=normalized,
             listing_id=listing.id if listing else None,
-            customs_found=None,
-            customs_status="unavailable",
-            message=public_customs_error_message(CustomsVinError("empty")),
+            customs_found=False,
+            customs_status="not_found",
+            message=message,
         )
 
     return ImportDateLookupResult(

@@ -41,9 +41,14 @@ class CustomsVinError(Exception):
     pass
 
 
+# Known-good VIN in GTK (personal). Used as a live canary after a public "not found".
+CUSTOMS_REFERENCE_VIN = "VF3MRHNSULS192570"
+
+CUSTOMS_NOT_FOUND_MESSAGE = "В базе ГТК (физлица) запись не найдена"
+
 # Shown on /inspection when GTK is down / returns HTTP errors (not validation).
 CUSTOMS_SITE_UNAVAILABLE_MESSAGE = (
-    "На сайте таможни произошла ошибка. Попробуйте позже или свяжитесь с нами "
+    "Сайт таможни временно не работает. Попробуйте позже или свяжитесь с нами "
     "в Telegram @auto160 — поможем проверить вручную."
 )
 
@@ -55,6 +60,38 @@ def public_customs_error_message(exc: Exception) -> str:
     if "некорректный vin" in lowered:
         return text or CUSTOMS_SITE_UNAVAILABLE_MESSAGE
     return CUSTOMS_SITE_UNAVAILABLE_MESSAGE
+
+
+def reference_customs_is_reachable(
+    db: Session,
+    *,
+    database: str = DATABASE_PERSONAL,
+) -> bool:
+    """Live canary: True only if the reference VIN is found on GTK right now."""
+    try:
+        result = lookup_customs_vin(
+            db,
+            CUSTOMS_REFERENCE_VIN,
+            database=database,
+            force_refresh=True,
+        )
+    except CustomsVinError:
+        return False
+    return bool(result.found)
+
+
+def public_not_found_message(
+    db: Session,
+    *,
+    database: str = DATABASE_PERSONAL,
+) -> tuple[bool, str]:
+    """After a user VIN was not found: (site_ok, user_message).
+
+    If the reference VIN is also missing (or GTK errors), treat the site as down.
+    """
+    if reference_customs_is_reachable(db, database=database):
+        return True, CUSTOMS_NOT_FOUND_MESSAGE
+    return False, CUSTOMS_SITE_UNAVAILABLE_MESSAGE
 
 
 @dataclass
