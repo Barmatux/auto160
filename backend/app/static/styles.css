@@ -185,6 +185,19 @@ body {
   font-size: 11px;
 }
 
+body.design-lab .site-topline .user-badge.site-topline-user {
+  margin-left: 0;
+  background: rgba(148, 163, 184, 0.16);
+  color: #e2e8f0;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+}
+
+body.theme-admin:not(.theme-admin-light).design-lab .site-topline .user-badge.site-topline-user {
+  background: rgba(71, 85, 105, 0.55);
+  color: #e2e8f0;
+  border-color: rgba(148, 163, 184, 0.32);
+}
+
 .site-topline-messengers {
   margin-right: 2px;
 }
