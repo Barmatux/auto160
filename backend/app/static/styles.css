@@ -8269,10 +8269,12 @@ body.theme-admin .home-hero.home-hero--split .home-hero-pane-lead {
   border: 1px solid rgba(0, 0, 0, 0.18);
   border-radius: 8px;
 }
-.belarus-consult-submit {
+.belarus-cta-btn {
   min-height: 3rem;
   padding: 0.85rem 1.25rem;
   font-size: 1.05rem;
+  width: 100%;
+  box-sizing: border-box;
 }
 .belarus-consult-dialog {
   border: none;
