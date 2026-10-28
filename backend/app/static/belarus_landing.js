@@ -76,14 +76,21 @@
 
   function openConsultDialog(avbyUrl) {
     if (!consultDialog) return;
-    if (consultUrlPreview) consultUrlPreview.textContent = avbyUrl;
-    if (consultAvbyInput) consultAvbyInput.value = avbyUrl;
+    if (consultUrlPreview) {
+      if (avbyUrl) {
+        consultUrlPreview.hidden = false;
+        consultUrlPreview.textContent = avbyUrl;
+      } else {
+        consultUrlPreview.hidden = true;
+        consultUrlPreview.textContent = "";
+      }
+    }
     if (consultLeadStatus) {
       consultLeadStatus.hidden = true;
       consultLeadStatus.textContent = "";
     }
     if (consultLeadForm) consultLeadForm.reset();
-    if (consultAvbyInput) consultAvbyInput.value = avbyUrl;
+    if (consultAvbyInput) consultAvbyInput.value = avbyUrl || "";
     if (typeof consultDialog.showModal === "function") {
       consultDialog.showModal();
     } else {
@@ -105,13 +112,6 @@
       event.preventDefault();
       const fd = new FormData(consultForm);
       const avbyUrl = String(fd.get("avby_url") || "").trim();
-      if (!avbyUrl) {
-        if (consultStatus) {
-          consultStatus.hidden = false;
-          consultStatus.textContent = "Вставьте ссылку на объявление";
-        }
-        return;
-      }
       if (consultStatus) consultStatus.hidden = true;
       openConsultDialog(avbyUrl);
     });
