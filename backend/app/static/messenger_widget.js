@@ -213,18 +213,32 @@
     stopPoll();
   }
 
-  function openModal(listingId) {
-    pendingListingId = listingId;
+  let pendingAvbyUrl = null;
+
+  function openModal(listingId, options) {
+    pendingListingId = listingId || null;
+    pendingAvbyUrl = (options && options.avby_url) || null;
     startError.hidden = true;
     startForm.reset();
-    const defaultMsg = "Здравствуйте! Интересует это объявление. Подскажите, пожалуйста, актуальные детали.";
+    const defaultMsg =
+      (options && options.message) ||
+      "Здравствуйте! Интересует это объявление. Подскажите, пожалуйста, актуальные детали.";
     startForm.querySelector('[name="message"]').value = defaultMsg;
     modal.hidden = false;
+  }
+
+  function openChatFromExternal(detail) {
+    const payload = detail || {};
+    openModal(payload.listing_id || null, {
+      message: payload.message || "Здравствуйте! Нужна консультация.",
+      avby_url: payload.avby_url || null,
+    });
   }
 
   function closeModal() {
     modal.hidden = true;
     pendingListingId = null;
+    pendingAvbyUrl = null;
   }
 
   fab.addEventListener("click", () => {
@@ -267,23 +281,53 @@
 
   startForm.addEventListener("submit", async (event) => {
     event.preventDefault();
-    if (!pendingListingId) return;
     const fd = new FormData(startForm);
     startError.hidden = true;
+    const name = String(fd.get("name") || "").trim();
+    const phone = String(fd.get("phone") || "").trim();
+    const message = String(fd.get("message") || "").trim();
     try {
-      const detail = await api("/threads", {
+      if (pendingListingId) {
+        const detail = await api("/threads", {
+          method: "POST",
+          body: JSON.stringify({
+            listing_id: pendingListingId,
+            name,
+            phone,
+            message,
+          }),
+        });
+        closeModal();
+        openPanel();
+        await openThread(detail.id);
+        await refreshBadge();
+        return;
+      }
+      // General inquiry (no listing): store as public lead, then show messenger panel.
+      const commentParts = [message];
+      if (pendingAvbyUrl) commentParts.push("Ссылка: " + pendingAvbyUrl);
+      const leadRes = await fetch("/api/v1/public/leads", {
         method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          listing_id: pendingListingId,
-          name: String(fd.get("name") || ""),
-          phone: String(fd.get("phone") || ""),
-          message: String(fd.get("message") || ""),
+          contact_name: name,
+          contact: phone,
+          comment: commentParts.join("\n"),
+          avby_url: pendingAvbyUrl || null,
+          source: "site_chat",
         }),
       });
+      const leadData = await leadRes.json().catch(() => ({}));
+      if (!leadRes.ok) {
+        throw new Error(
+          typeof leadData.detail === "string" ? leadData.detail : "Не удалось отправить"
+        );
+      }
       closeModal();
       openPanel();
-      await openThread(detail.id);
-      await refreshBadge();
+      listEl.innerHTML =
+        '<p class="hint a160-msg-empty">Сообщение отправлено менеджеру. Ответ появится здесь или мы свяжемся по указанному контакту.</p>';
     } catch (err) {
       startError.hidden = false;
       startError.textContent = err.message || "Не удалось отправить";
@@ -291,12 +335,22 @@
   });
 
   document.addEventListener("click", (event) => {
+    const openChatEl = event.target.closest("[data-open-chat]");
+    if (openChatEl) {
+      event.preventDefault();
+      openChatFromExternal({});
+      return;
+    }
     const startBtn = event.target.closest("[data-messenger-start]");
     if (!startBtn) return;
     const cta = startBtn.closest("[data-listing-contact-cta]");
     const listingId = Number(cta && cta.getAttribute("data-listing-id"));
     if (!listingId) return;
     openModal(listingId);
+  });
+
+  window.addEventListener("auto160:open-chat", (event) => {
+    openChatFromExternal((event && event.detail) || {});
   });
 
   function startPoll() {

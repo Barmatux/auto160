@@ -947,9 +947,21 @@ body.theme-admin:not(.theme-admin-light) .belarus-landing-path-note {
   border-top-color: var(--border);
   color: var(--muted);
 }
+body.theme-admin:not(.theme-admin-light) .belarus-consult-dialog-inner {
+  background: #0f172a;
+  border-color: rgba(148, 163, 184, 0.22);
+  color: #e2e8f0;
+}
+body.theme-admin:not(.theme-admin-light) .belarus-consult-dialog-close {
+  background: rgba(148, 163, 184, 0.16);
+  color: #e2e8f0;
+}
 body.theme-admin:not(.theme-admin-light) .belarus-lead-form input,
 body.theme-admin:not(.theme-admin-light) .belarus-lead-form textarea,
-body.theme-admin:not(.theme-admin-light) .belarus-import-form input {
+body.theme-admin:not(.theme-admin-light) .belarus-import-form input,
+body.theme-admin:not(.theme-admin-light) .belarus-consult-form input,
+body.theme-admin:not(.theme-admin-light) .belarus-consult-lead-form input,
+body.theme-admin:not(.theme-admin-light) .belarus-consult-lead-form textarea {
   background: #141821;
   border-color: var(--border);
   color: var(--text);
