@@ -412,6 +412,12 @@ body.theme-admin.theme-admin-light.design-lab .site-topline-user {
   color: #0f172a;
 }
 
+body.theme-admin.theme-admin-light.design-lab .site-topline .user-badge.site-topline-user {
+  background: rgba(15, 23, 42, 0.08);
+  color: #0f172a;
+  border-color: rgba(15, 23, 42, 0.14);
+}
+
 body.theme-admin.theme-admin-light.design-lab .site-topline-link:hover,
 body.theme-admin.theme-admin-light.design-lab .site-topline-link:focus-visible,
 body.theme-admin.theme-admin-light.design-lab .site-topline-theme:hover,
