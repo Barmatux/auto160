@@ -8434,6 +8434,16 @@ body.design-lab .inspection-reasons li {
   line-height: 1.4;
 }
 
+body.design-lab .inspection-share {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(148, 163, 184, 0.22);
+}
+
+body.design-lab .inspection-share > p {
+  margin: 0 0 8px;
+}
+
 body.design-lab .inspection-notify {
   margin-top: 12px;
   padding-top: 12px;

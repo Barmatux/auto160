@@ -31,6 +31,9 @@
         statusEl.hidden = true;
         statusEl.textContent = "";
       }
+      if (window.history && window.history.replaceState) {
+        window.history.replaceState({}, "", "/inspection");
+      }
       queryInput.focus();
     });
   }
@@ -135,10 +138,65 @@
     }, 2000);
   }
 
-  function buildRetryUrl(data) {
+  function buildShareUrl(data) {
+    var origin = window.location.origin;
+    if (!data) return origin + "/inspection";
+    if (data.input_kind === "vin") {
+      var vin = String(data.vin || (queryInput && queryInput.value) || "")
+        .trim()
+        .toUpperCase()
+        .replace(/[^A-Z0-9]/g, "");
+      if (vin.length === 17) {
+        return origin + "/inspection?vin=" + encodeURIComponent(vin);
+      }
+    }
+    // Prefer the public av.by URL so the shared page can re-run for any visitor.
+    if (data.avby_url) {
+      return origin + "/inspection?q=" + encodeURIComponent(String(data.avby_url));
+    }
     var raw = String(data.query || (queryInput && queryInput.value) || "").trim();
-    if (!raw) return window.location.origin + "/inspection";
-    return window.location.origin + "/inspection?q=" + encodeURIComponent(raw);
+    if (!raw) return origin + "/inspection";
+    return origin + "/inspection?q=" + encodeURIComponent(raw);
+  }
+
+  function syncShareUrl(data) {
+    if (!window.history || !window.history.replaceState) return;
+    var url = buildShareUrl(data);
+    var nextPath = url.replace(window.location.origin, "");
+    var currentPath = window.location.pathname + window.location.search;
+    if (nextPath !== currentPath) {
+      window.history.replaceState({ inspectionShare: true }, "", nextPath);
+    }
+  }
+
+  function copyText(text, okMessage) {
+    var done = function () {
+      showToast(okMessage || "Ссылка скопирована в буфер обмена");
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done).catch(function () {
+        window.prompt("Скопируйте ссылку:", text);
+      });
+    } else {
+      window.prompt("Скопируйте ссылку:", text);
+    }
+  }
+
+  function renderShareBlock(data) {
+    var shareUrl = buildShareUrl(data);
+    return (
+      '<div class="inspection-share">' +
+      "<p><strong>Ссылка на эту проверку</strong> — можно отправить другу:</p>" +
+      '<div class="inspection-retry-row">' +
+      '<a class="inspection-retry-link" href="' +
+      escapeHtml(shareUrl) +
+      '">' +
+      escapeHtml(shareUrl) +
+      "</a>" +
+      '<button type="button" class="inspection-copy-btn" data-copy-share aria-label="Скопировать ссылку" title="Скопировать">' +
+      '<span aria-hidden="true">⧉</span>' +
+      "</button></div></div>"
+    );
   }
 
   function renderReasons(reasons) {
@@ -157,7 +215,6 @@
   }
 
   function renderNotifyBlock(data) {
-    var retryUrl = buildRetryUrl(data);
     var messengerHtml = messengers
       .map(function (item) {
         return (
@@ -171,17 +228,7 @@
       .join("");
     return (
       '<div class="inspection-notify">' +
-      "<p>Сохраните прямую ссылку на эту проверку и зайдите позже:</p>" +
-      '<div class="inspection-retry-row">' +
-      '<a class="inspection-retry-link" href="' +
-      escapeHtml(retryUrl) +
-      '">' +
-      escapeHtml(retryUrl) +
-      "</a>" +
-      '<button type="button" class="inspection-copy-btn" data-copy-retry aria-label="Скопировать ссылку" title="Скопировать">' +
-      "<span aria-hidden=\"true\">⧉</span>" +
-      "</button></div>" +
-      "<p>Или пришлите эту ссылку нам в мессенджер / на email — сообщим результат, когда ГТК ответит.</p>" +
+      "<p>Зайдите позже по ссылке выше или пришлите её нам — сообщим результат, когда ГТК ответит.</p>" +
       (messengerHtml
         ? '<div class="inspection-messenger-row">' + messengerHtml + "</div>"
         : "") +
@@ -202,22 +249,12 @@
   }
 
   function bindResultActions(data) {
-    var copyBtn = resultEl.querySelector("[data-copy-retry]");
-    if (copyBtn) {
-      copyBtn.addEventListener("click", function () {
-        var url = buildRetryUrl(data);
-        var done = function () {
-          showToast("Ссылка скопирована в буфер обмена");
-        };
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(url).then(done).catch(function () {
-            window.prompt("Скопируйте ссылку:", url);
-          });
-        } else {
-          window.prompt("Скопируйте ссылку:", url);
-        }
+    var copyBtns = resultEl.querySelectorAll("[data-copy-share]");
+    Array.prototype.forEach.call(copyBtns, function (btn) {
+      btn.addEventListener("click", function () {
+        copyText(buildShareUrl(data), "Ссылка скопирована в буфер обмена");
       });
-    }
+    });
 
     var notifyForm = resultEl.querySelector("[data-inspection-notify-form]");
     if (!notifyForm) return;
@@ -240,7 +277,7 @@
           body: JSON.stringify({
             contact_name: "Проверка ГТК",
             contact: contact,
-            comment: "Нужен результат проверки: " + buildRetryUrl(data),
+            comment: "Нужен результат проверки: " + buildShareUrl(data),
             listing_id: data.listing_id || null,
             avby_url: data.avby_url || null,
             source: "inspection_customs_retry",
@@ -341,6 +378,7 @@
     if (verdict.code === "not_found") {
       bits.push(renderReasons(verdict.reasons));
     }
+    bits.push(renderShareBlock(data));
     if (verdict.code === "customs_unavailable" || data.customs_status === "unavailable") {
       bits.push(renderNotifyBlock(data));
     }
@@ -364,6 +402,7 @@
       bits.join("") +
       "</div></div>";
 
+    syncShareUrl(data);
     bindResultActions(data);
 
     if (typeof reachMetrikaGoal === "function") {
