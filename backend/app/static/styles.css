@@ -221,6 +221,7 @@ body {
 
 .auth-cabinet {
   max-width: 420px;
+  margin-inline: auto;
 }
 .auth-cabinet-tabs {
   display: grid;
