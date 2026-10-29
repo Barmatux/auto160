@@ -64,7 +64,7 @@ class CarListing(Base):
     body_type: Mapped[str | None] = mapped_column(String(60), nullable=True, index=True)
     drive_type: Mapped[str | None] = mapped_column(String(40), nullable=True)
     transmission_type: Mapped[str | None] = mapped_column(String(40), nullable=True)
-    engine_type: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    engine_type: Mapped[str | None] = mapped_column(String(80), nullable=True)
     engine_capacity_l: Mapped[float | None] = mapped_column(Numeric(4, 1), nullable=True)
     engine_power_hp: Mapped[int | None] = mapped_column(Integer, nullable=True)
     vin_indicated: Mapped[bool | None] = mapped_column(nullable=True)

@@ -2,6 +2,7 @@ from decimal import Decimal
 
 from app.autoplius_map import (
     EurRate,
+    extract_engine_capacity_l,
     extract_engine_power_hp,
     map_autoplius_row,
     parse_brand_model,
@@ -31,6 +32,44 @@ def test_extract_hp_from_raw_parameters():
         },
     }
     assert extract_engine_power_hp(row) == 160
+
+
+def test_extract_engine_capacity_from_parameters_when_column_missing():
+    row = {
+        "engine_liters": None,
+        "engine": "",
+        "parameters": {
+            "Двигатель": "1300 см³, 136 Л.С. (100кВ)",
+        },
+    }
+    assert extract_engine_capacity_l(row) == 1.3
+
+
+def test_map_recovers_engine_l_from_parameters():
+    rate = EurRate(rate=3.5, scale=1, rate_date=__import__("datetime").date(2026, 9, 14))
+    row = {
+        "external_id": "32808850",
+        "title": "Toyota Yaris, 1.3 l., Хетчбэк 2022 m.",
+        "year": "2022-04",
+        "price_eur": 15000,
+        "mileage_km": 40000,
+        "city": "Вильнюс",
+        "body_type": "Хетчбэк",
+        "fuel": "Бензин",
+        "transmission": "Автоматическая",
+        "engine_liters": None,
+        "engine": "",
+        "url": "https://example.test/32808850",
+        "photo_url": "/media/object?key=autoplius%2F32808850%2F000_a.jpg",
+        "photo_urls": ["/media/object?key=autoplius%2F32808850%2F000_a.jpg"],
+        "detail_scraped": True,
+        "parameters": {"Двигатель": "1300 см³, 136 Л.С. (100кВ)"},
+        "raw": {},
+    }
+    mapped = map_autoplius_row(row, eur_rate=rate, max_hp=160, max_age_years=5, max_engine_l=1.9)
+    assert mapped.skip_reason is None
+    assert mapped.engine_capacity_l == 1.3
+    assert mapped.engine_power_hp == 136
 
 
 def test_map_skips_overpowered():

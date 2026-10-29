@@ -120,7 +120,9 @@ def _apply_mapped(
     listing.mileage = int(mapped.mileage or 0)
     listing.city = (mapped.city or "Литва")[:80]
     listing.body_type = mapped.body_type
-    listing.engine_type = mapped.engine_type
+    listing.engine_type = ((mapped.engine_type or "").strip() or None)
+    if listing.engine_type and len(listing.engine_type) > 80:
+        listing.engine_type = listing.engine_type[:80]
     listing.transmission_type = mapped.transmission_type
     listing.engine_capacity_l = mapped.engine_capacity_l
     listing.engine_power_hp = mapped.engine_power_hp
