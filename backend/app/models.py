@@ -86,6 +86,9 @@ class CarListing(Base):
     # Multi-source identity: "av.by" | "autoplius" | "auto24" | "mobile_de" (+ external_id).
     source: Mapped[str | None] = mapped_column(String(40), nullable=True, index=True)
     external_id: Mapped[str | None] = mapped_column(String(120), nullable=True, index=True)
+    # EU (LT/EE) manual review when hp/engine liters are missing: pending | approved | rejected.
+    eu_check_status: Mapped[str | None] = mapped_column(String(20), nullable=True, index=True)
+    eu_check_reason: Mapped[str | None] = mapped_column(String(80), nullable=True)
 
     seller: Mapped[User] = relationship(back_populates="listings")
     catalog_item_id: Mapped[int | None] = mapped_column(ForeignKey("catalog_items.id"), nullable=True, index=True)

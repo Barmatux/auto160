@@ -31,6 +31,7 @@ from app.auto24_map import (
 from app.body_type_labels import is_hidden_body_type
 from app.config import settings
 from app.db import SessionLocal
+from app.eu_listing_check import apply_eu_check_on_import, archive_eu_listing_on_hard_skip
 from app.listing_catalog_link import link_listing_to_catalog
 from app.listing_missing_byn import apply_import_byn_price_state
 from app.listing_source_time import apply_scrape_source_timestamps, detect_bulk_first_seen
@@ -140,7 +141,11 @@ def _apply_mapped(
     price_byn = float(mapped.price_byn) if mapped.price_byn is not None else None
     price_missing = price_byn is None
     apply_import_byn_price_state(listing, price_byn=price_byn, price_byn_missing=price_missing)
-    listing.status = ListingStatus.draft if price_missing else ListingStatus.published
+    apply_eu_check_on_import(
+        listing,
+        check_reason=getattr(mapped, "check_reason", None),
+        price_missing=price_missing,
+    )
     if scrape_row is not None:
         apply_scrape_source_timestamps(listing, scrape_row, bulk_first_seen=bulk_first_seen)
 
@@ -188,7 +193,7 @@ def main() -> int:
     print(f"fetched={len(rows)} bulk_first_seen_keys={len(bulk_first_seen)}")
 
     db = SessionLocal()
-    created = updated = skipped = archived = 0
+    created = updated = skipped = archived = check_queued = 0
     skip_reasons: dict[str, int] = {}
     active_external_ids: set[str] = set()
     try:
@@ -209,6 +214,9 @@ def main() -> int:
             if mapped.skip_reason:
                 skipped += 1
                 skip_reasons[mapped.skip_reason] = skip_reasons.get(mapped.skip_reason, 0) + 1
+                existing = by_external.get(mapped.external_id) if mapped.external_id else None
+                if existing and not args.dry_run and archive_eu_listing_on_hard_skip(existing):
+                    archived += 1
                 continue
             if is_hidden_body_type(mapped.body_type):
                 skipped += 1
@@ -228,6 +236,8 @@ def main() -> int:
                 continue
 
             active_external_ids.add(mapped.external_id)
+            if mapped.check_reason:
+                check_queued += 1
             existing = by_external.get(mapped.external_id)
             if existing is None:
                 if args.no_create:
@@ -299,7 +309,7 @@ def main() -> int:
 
     print(
         f"done dry_run={args.dry_run} created={created} updated={updated} "
-        f"skipped={skipped} archived={archived}"
+        f"skipped={skipped} archived={archived} check_queued={check_queued}"
     )
     if skip_reasons:
         print("skip_reasons:")

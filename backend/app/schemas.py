@@ -607,6 +607,16 @@ class FeaturedListingActiveRequest(BaseModel):
     is_active: bool
 
 
+class EuCheckListingOut(BaseModel):
+    id: int
+    status: str
+    eu_check_status: str | None = None
+    eu_check_reason: str | None = None
+
+    class Config:
+        from_attributes = True
+
+
 class SiteLeadCreateRequest(BaseModel):
     contact_name: str
     contact: str

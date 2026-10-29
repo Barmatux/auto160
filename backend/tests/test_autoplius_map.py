@@ -121,12 +121,55 @@ def test_map_skips_age_and_engine_limits():
     }
     ok = map_autoplius_row(base, eur_rate=rate, max_hp=160)
     assert ok.skip_reason is None
+    assert ok.check_reason is None
 
     old = {**base, "year": "2018"}
     assert map_autoplius_row(old, eur_rate=rate).skip_reason == "age_over_5"
 
     big_engine = {**base, "engine_liters": 2.0}
     assert map_autoplius_row(big_engine, eur_rate=rate).skip_reason == "engine_l_over_1.9"
+
+
+def test_map_ambiguous_missing_hp_or_engine_goes_to_check():
+    rate = EurRate(rate=3.5, scale=1, rate_date=__import__("datetime").date(2026, 9, 14))
+    base = {
+        "external_id": "3",
+        "title": "Toyota Yaris, Хетчбэк 2023 m.",
+        "year": "2023",
+        "price_eur": 12000,
+        "mileage_km": 20000,
+        "city": "Вильнюс",
+        "body_type": "Хетчбэк",
+        "fuel": "Бензин",
+        "transmission": "Механическая",
+        "engine_liters": 1.5,
+        "url": "https://example.test/3",
+        "photo_url": "/media/object?key=listings%2F3%2F000_a.jpg",
+        "photo_urls": ["/media/object?key=listings%2F3%2F000_a.jpg"],
+        "detail_scraped": True,
+        "raw": {},
+        "parameters": {},
+    }
+    no_hp = map_autoplius_row(base, eur_rate=rate, max_hp=160, max_age_years=5, max_engine_l=1.9)
+    assert no_hp.skip_reason is None
+    assert no_hp.check_reason == "hp_missing"
+
+    no_engine = map_autoplius_row(
+        {**base, "engine_liters": None},
+        eur_rate=rate,
+        max_hp=160,
+        max_age_years=5,
+        max_engine_l=1.9,
+    )
+    # still no hp in raw/params
+    assert no_engine.skip_reason is None
+    assert "engine_l_missing" in (no_engine.check_reason or "")
+    assert "hp_missing" in (no_engine.check_reason or "")
+
+    # Known over-age still hard-skips even if hp missing.
+    old = {**base, "year": "2018", "engine_liters": None}
+    assert map_autoplius_row(old, eur_rate=rate).skip_reason == "age_over_5"
+    assert map_autoplius_row(old, eur_rate=rate).check_reason is None
 
 
 def test_extract_storage_key_from_media_proxy():

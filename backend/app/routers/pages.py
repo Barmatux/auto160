@@ -2790,14 +2790,11 @@ def listings_page(
     if not is_admin:
         query = query.filter(CarListing.status == ListingStatus.published)
     if listings_market == "eu":
-        from app.autoplius_map import DEFAULT_MAX_AGE_YEARS, DEFAULT_MAX_ENGINE_L, min_year_for_max_age
+        from app.eu_listing_check import public_eu_listing_predicate
 
-        eu_year_min = min_year_for_max_age(DEFAULT_MAX_AGE_YEARS)
         query = query.filter(
             _listings_market_source_predicate("eu"),
-            CarListing.year >= eu_year_min,
-            CarListing.engine_capacity_l.isnot(None),
-            CarListing.engine_capacity_l <= DEFAULT_MAX_ENGINE_L,
+            public_eu_listing_predicate(),
         )
     else:
         query = query.filter(_listings_market_source_predicate("by"))
@@ -5004,6 +5001,78 @@ def admin_archived_listings_page(
         }
     )
     return templates.TemplateResponse(request, "admin_archived_listings.html", context)
+
+
+@router.get("/admin/eu-check")
+def admin_eu_check_page(
+    request: Request,
+    q: str = Query(default=""),
+    page: int = Query(default=1, ge=1),
+    db: Session = Depends(get_db),
+):
+    from app.eu_listing_check import (
+        count_eu_check_pending,
+        format_eu_check_reason,
+        paginate_eu_check_pending,
+    )
+
+    current_user = _resolve_user_from_request(request, db)
+    if not current_user:
+        return RedirectResponse(url="/login", status_code=302)
+    if current_user.role != UserRole.admin:
+        return RedirectResponse(url="/", status_code=302)
+
+    per_page = 48
+    listings, filtered_total = paginate_eu_check_pending(
+        db,
+        q=q,
+        page=page,
+        per_page=per_page,
+    )
+    pending_total = count_eu_check_pending(db)
+    total_pages = max(1, (filtered_total + per_page - 1) // per_page)
+    if page > total_pages and filtered_total:
+        pairs = [("page", str(total_pages))]
+        if q.strip():
+            pairs.insert(0, ("q", q.strip()))
+        return RedirectResponse(url="/admin/eu-check?" + urlencode(pairs), status_code=302)
+
+    def _eu_check_url(**params) -> str:
+        pairs: list[tuple[str, str]] = []
+        next_q = params.get("q", q.strip())
+        next_page = params.get("page", page)
+        if next_q:
+            pairs.append(("q", str(next_q)))
+        if int(next_page or 1) > 1:
+            pairs.append(("page", str(next_page)))
+        query = urlencode(pairs)
+        return "/admin/eu-check" + (f"?{query}" if query else "")
+
+    listing_rows = [
+        {
+            "listing": listing,
+            "reason_label": format_eu_check_reason(listing.eu_check_reason),
+            "source_label": "autoplius.lt" if listing.source == "autoplius" else "auto24.ee",
+        }
+        for listing in listings
+    ]
+
+    context = _template_context(request, current_user)
+    context.update(
+        {
+            "listing_rows": listing_rows,
+            "eu_check_total": pending_total,
+            "eu_check_total_filtered": filtered_total,
+            "eu_check_q": q.strip(),
+            "eu_check_page": page,
+            "eu_check_total_pages": total_pages,
+            "eu_check_has_prev": page > 1,
+            "eu_check_has_next": page < total_pages,
+            "eu_check_prev_url": _eu_check_url(page=page - 1) if page > 1 else None,
+            "eu_check_next_url": _eu_check_url(page=page + 1) if page < total_pages else None,
+        }
+    )
+    return templates.TemplateResponse(request, "admin_eu_check.html", context)
 
 
 @router.get("/admin/listings-without-byn")

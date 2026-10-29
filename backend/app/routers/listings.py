@@ -58,10 +58,13 @@ def list_listings(
     query = exclude_hidden_body_type(db.query(CarListing), CarListing.body_type)
 
     if current_user is None or current_user.role != UserRole.admin:
+        from app.eu_listing_check import public_eu_listing_predicate
+
         query = query.filter(
             CarListing.status == ListingStatus.published,
             # Guests only see Europe listings via API (Belarus feed is admin-only).
             CarListing.source.in_(_PUBLIC_EU_LISTING_SOURCES),
+            public_eu_listing_predicate(),
         )
 
     if brand:

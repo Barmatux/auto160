@@ -95,6 +95,7 @@ from app.schemas import (
     CustomsVehicleSpecCreateRequest,
     CustomsVehicleSpecOut,
     CustomsVehicleSpecUpdateRequest,
+    EuCheckListingOut,
     FeaturedListingActiveRequest,
     FeaturedListingCreateRequest,
     FeaturedListingOut,
@@ -705,6 +706,46 @@ def admin_remove_featured_listing(
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     return None
+
+
+@router.post("/eu-check/{listing_id}/show", response_model=EuCheckListingOut)
+def admin_eu_check_show(
+    listing_id: int,
+    _: User = Depends(require_admin_flexible),
+    db: Session = Depends(get_db),
+):
+    from app.eu_listing_check import approve_eu_check_listing
+
+    try:
+        listing = approve_eu_check_listing(db, listing_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return EuCheckListingOut(
+        id=listing.id,
+        status=listing.status.value if hasattr(listing.status, "value") else str(listing.status),
+        eu_check_status=listing.eu_check_status,
+        eu_check_reason=listing.eu_check_reason,
+    )
+
+
+@router.post("/eu-check/{listing_id}/hide", response_model=EuCheckListingOut)
+def admin_eu_check_hide(
+    listing_id: int,
+    _: User = Depends(require_admin_flexible),
+    db: Session = Depends(get_db),
+):
+    from app.eu_listing_check import reject_eu_check_listing
+
+    try:
+        listing = reject_eu_check_listing(db, listing_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return EuCheckListingOut(
+        id=listing.id,
+        status=listing.status.value if hasattr(listing.status, "value") else str(listing.status),
+        eu_check_status=listing.eu_check_status,
+        eu_check_reason=listing.eu_check_reason,
+    )
 
 
 @router.get("/customs-db/makes", response_model=list[CustomsDbMakeOut])

@@ -121,6 +121,8 @@ class Auto24MappedListing:
     vin_masked: str | None = None
     detail_scraped: bool = False
     skip_reason: str | None = None
+    # Ambiguous vs EU filters (missing hp and/or engine liters) → admin CHECK queue.
+    check_reason: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         payload = asdict(self)
@@ -541,6 +543,7 @@ def map_auto24_row(
     transmission_type = _normalize_lookup(row.get("transmission"), TRANSMISSION_MAP)
 
     skip: str | None = None
+    check_reason: str | None = None
     if not external_id:
         skip = "missing_external_id"
     elif require_detail and not row.get("detail_scraped"):
@@ -551,16 +554,20 @@ def map_auto24_row(
         skip = "year_parse_failed"
     elif price_eur_i is None or price_eur_i <= 0:
         skip = "missing_price_eur"
-    elif max_hp is not None and hp is None:
-        skip = "hp_missing"
     elif max_hp is not None and hp is not None and hp > max_hp:
         skip = f"hp_over_{max_hp}"
     elif max_age_years is not None and year < min_year_for_max_age(max_age_years):
         skip = f"age_over_{max_age_years}"
-    elif max_engine_l is not None and engine_l is None:
-        skip = "engine_l_missing"
     elif max_engine_l is not None and engine_l is not None and engine_l > max_engine_l:
         skip = f"engine_l_over_{max_engine_l}"
+    else:
+        ambiguous: list[str] = []
+        if max_hp is not None and hp is None:
+            ambiguous.append("hp_missing")
+        if max_engine_l is not None and engine_l is None:
+            ambiguous.append("engine_l_missing")
+        if ambiguous:
+            check_reason = ",".join(ambiguous)
 
     description = (row.get("description_ru") or row.get("description") or "").strip() or None
 
@@ -597,4 +604,5 @@ def map_auto24_row(
         vin_masked=(row.get("vin_masked") or None),
         detail_scraped=bool(row.get("detail_scraped")),
         skip_reason=skip,
+        check_reason=check_reason,
     )
