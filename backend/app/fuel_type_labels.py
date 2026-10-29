@@ -61,6 +61,7 @@ _PURE_ELECTRIC_PREFIXES = (
 )
 
 HYBRID_MARKERS = ("гибрид", "hybrid", "phev", "mhev")
+_HYBRID_ELECTRIC_MARKERS = ("электр", "electric", "elekter", "hybrid", "гибрид", "phev", "mhev")
 _HYBRID_COMBUSTION_MARKERS = ("бензин", "дизель", "diesel", "petrol", "gasoline", "газ")
 
 # Higher rank wins when av.by stores octane (АИ-95) separately from engine type.
@@ -87,6 +88,20 @@ def normalize_fuel_type_key(value: str) -> str:
     return " ".join(cleaned.split())
 
 
+def is_hybrid_fuel(value: str | None) -> bool:
+    """True for mild/full/PHEV hybrids, including «Бензин / электричество» labels."""
+    if value is None:
+        return False
+    key = normalize_fuel_type_key(value)
+    if not key:
+        return False
+    if any(marker in key for marker in HYBRID_MARKERS):
+        return True
+    has_electric = any(marker in key for marker in _HYBRID_ELECTRIC_MARKERS)
+    has_combustion = any(marker in key for marker in _HYBRID_COMBUSTION_MARKERS)
+    return has_electric and has_combustion
+
+
 def is_pure_electric_fuel(value: str | None) -> bool:
     """True for battery-electric only (sanctions / we do not ship EVs).
 
@@ -97,9 +112,7 @@ def is_pure_electric_fuel(value: str | None) -> bool:
     key = normalize_fuel_type_key(value)
     if not key:
         return False
-    if any(marker in key for marker in HYBRID_MARKERS):
-        return False
-    if any(marker in key for marker in _HYBRID_COMBUSTION_MARKERS):
+    if is_hybrid_fuel(value):
         return False
     if key in ELECTRIC_EXACT_KEYS:
         return True
@@ -115,7 +128,7 @@ def classify_fuel_type(value: str | None) -> str | None:
 
     key = normalize_fuel_type_key(trimmed)
 
-    if any(marker in key for marker in HYBRID_MARKERS):
+    if is_hybrid_fuel(trimmed):
         return FUEL_GROUP_HYBRID
 
     if "газ" in key:

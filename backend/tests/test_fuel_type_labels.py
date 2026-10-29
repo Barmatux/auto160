@@ -29,10 +29,24 @@ def test_groups_gas_petrol_by_gaz_word():
 
 
 def test_groups_hybrids_before_petrol_or_diesel():
-    for value in ("гибрид", "Гибрид", "hybrid", "бензин (гибрид)", "дизель (гибрид)", "PHEV"):
+    from app.fuel_type_labels import is_hybrid_fuel
+
+    for value in (
+        "гибрид",
+        "Гибрид",
+        "hybrid",
+        "бензин (гибрид)",
+        "дизель (гибрид)",
+        "PHEV",
+        "Бензин / электричество",
+        "Дизель / электричество",
+    ):
+        assert is_hybrid_fuel(value)
         assert classify_fuel_type(value) == FUEL_GROUP_HYBRID
     assert classify_fuel_type("бензин (гибрид)") != FUEL_GROUP_PETROL
     assert classify_fuel_type("дизель (гибрид)") != FUEL_GROUP_DIESEL
+    assert not is_hybrid_fuel("Бензин")
+    assert not is_hybrid_fuel("Электричество")
 
 
 def test_groups_electric():

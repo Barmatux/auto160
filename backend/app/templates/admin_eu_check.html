@@ -6,9 +6,9 @@
 
 <h1>CHECK LT+EE</h1>
 <p class="hint">
-  Объявления autoplius / auto24, у которых не хватает мощности или объёма двигателя,
-  поэтому фильтры ≤160 л.с. / ≤1.9 л нельзя применить однозначно.
-  «Показать» — в публичную ленту EU, «Скрыть» — убрать и больше не возвращать в очередь.
+  Очередь ручной проверки LT/EE: объявления с неполными данными (мощность/объём)
+  и все гибриды (в т.ч. уже в выдаче — их можно оставить или скрыть).
+  «Показать» — оставить/вернуть в ленту EU, «Скрыть» — убрать и больше не возвращать в очередь.
 </p>
 
 <section class="admin-stats-grid">
@@ -44,8 +44,10 @@
           <th>Марка / модель</th>
           <th>Год</th>
           <th>Цена</th>
+          <th>Топливо</th>
           <th>Мощность</th>
           <th>Объём</th>
+          <th>В выдаче</th>
           <th>Причина</th>
           <th>Ссылки</th>
           <th>Решение</th>
@@ -60,8 +62,10 @@
             <td>{{ listing.brand }} {{ listing.model }}</td>
             <td>{{ listing.year }}</td>
             <td>{% if listing.price is not none %}{{ listing.price }} BYN{% else %}—{% endif %}</td>
+            <td>{{ listing.engine_type or "—" }}</td>
             <td>{% if listing.engine_power_hp %}{{ listing.engine_power_hp }} л.с.{% else %}—{% endif %}</td>
             <td>{% if listing.engine_capacity_l is not none %}{{ listing.engine_capacity_l }} л{% else %}—{% endif %}</td>
+            <td>{% if listing.status == "published" %}да{% else %}нет{% endif %}</td>
             <td><span class="status-pill">{{ row.reason_label }}</span></td>
             <td>
               <a class="btn-link" href="/listings/{{ listing.id }}">Просмотр</a>

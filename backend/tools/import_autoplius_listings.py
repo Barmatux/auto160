@@ -148,6 +148,7 @@ def _apply_mapped(
         listing,
         check_reason=getattr(mapped, "check_reason", None),
         price_missing=price_missing,
+        engine_type=getattr(mapped, "engine_type", None),
     )
     if scrape_row is not None:
         apply_scrape_source_timestamps(listing, scrape_row, bulk_first_seen=bulk_first_seen)

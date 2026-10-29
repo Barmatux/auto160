@@ -1,4 +1,4 @@
-"""EU (LT/EE) listing policy helpers: ambiguous fields → admin CHECK queue."""
+"""EU (LT/EE) listing policy helpers: ambiguous fields / hybrids → admin CHECK queue."""
 
 from __future__ import annotations
 
@@ -11,14 +11,21 @@ if TYPE_CHECKING:
     from app.models import CarListing
 
 EU_CHECK_PENDING = "pending"
+EU_CHECK_REVIEW = "review"
 EU_CHECK_APPROVED = "approved"
 EU_CHECK_REJECTED = "rejected"
 
+# pending = missing hp/engine (draft, not in feed); review = hybrid soft-check (may stay published).
+EU_CHECK_QUEUE_STATUSES = (EU_CHECK_PENDING, EU_CHECK_REVIEW)
+
 EU_CHECK_SOURCES = ("autoplius", "auto24")
+
+EU_CHECK_REASON_HYBRID = "hybrid"
 
 EU_CHECK_REASON_LABELS = {
     "hp_missing": "нет мощности",
     "engine_l_missing": "нет объёма",
+    EU_CHECK_REASON_HYBRID: "гибрид",
 }
 
 
@@ -52,9 +59,13 @@ def apply_eu_check_on_import(
     *,
     check_reason: str | None,
     price_missing: bool,
+    engine_type: str | None = None,
 ) -> None:
     """Set status / eu_check_* after mapped fields and BYN price were applied."""
+    from app.fuel_type_labels import is_hybrid_fuel
+
     previous = (listing.eu_check_status or "").strip() or None
+    hybrid = is_hybrid_fuel(engine_type)
 
     if check_reason:
         if previous == EU_CHECK_REJECTED:
@@ -72,7 +83,32 @@ def apply_eu_check_on_import(
         listing.status = "draft"
         return
 
-    # Unambiguous pass — clear any prior check state (including rejected).
+    # Unambiguous vs hard filters.
+    if previous == EU_CHECK_REJECTED and not hybrid:
+        listing.eu_check_status = None
+        listing.eu_check_reason = None
+        listing.status = "draft" if price_missing else "published"
+        return
+
+    if previous == EU_CHECK_APPROVED:
+        listing.eu_check_status = EU_CHECK_APPROVED
+        listing.eu_check_reason = EU_CHECK_REASON_HYBRID if hybrid else None
+        listing.status = "draft" if price_missing else "published"
+        return
+
+    if previous == EU_CHECK_REJECTED and hybrid:
+        # Stay hidden until admin explicitly shows again.
+        listing.eu_check_status = EU_CHECK_REJECTED
+        listing.eu_check_reason = EU_CHECK_REASON_HYBRID
+        listing.status = "archived"
+        return
+
+    if hybrid:
+        listing.eu_check_status = EU_CHECK_REVIEW
+        listing.eu_check_reason = EU_CHECK_REASON_HYBRID
+        listing.status = "draft" if price_missing else "published"
+        return
+
     listing.eu_check_status = None
     listing.eu_check_reason = None
     listing.status = "draft" if price_missing else "published"
@@ -81,7 +117,7 @@ def apply_eu_check_on_import(
 def archive_eu_listing_on_hard_skip(listing: Any) -> bool:
     """Archive a previously imported EU row that now hard-fails filters. Returns True if changed."""
     changed = False
-    if listing.eu_check_status in (EU_CHECK_PENDING, EU_CHECK_APPROVED):
+    if listing.eu_check_status in (*EU_CHECK_QUEUE_STATUSES, EU_CHECK_APPROVED):
         listing.eu_check_status = None
         listing.eu_check_reason = None
         changed = True
@@ -137,17 +173,21 @@ def reject_eu_check_listing(db: Session, listing_id: int) -> CarListing:
     return listing
 
 
-def count_eu_check_pending(db: Session) -> int:
+def _eu_check_queue_query(db: Session):
     from app.brand_exclusions import exclude_excluded_brands
     from app.models import CarListing
 
     return exclude_excluded_brands(
         db.query(CarListing).filter(
             CarListing.source.in_(EU_CHECK_SOURCES),
-            CarListing.eu_check_status == EU_CHECK_PENDING,
+            CarListing.eu_check_status.in_(EU_CHECK_QUEUE_STATUSES),
         ),
         CarListing.brand,
-    ).count()
+    )
+
+
+def count_eu_check_pending(db: Session) -> int:
+    return _eu_check_queue_query(db).count()
 
 
 def paginate_eu_check_pending(
@@ -159,16 +199,9 @@ def paginate_eu_check_pending(
 ) -> tuple[list[CarListing], int]:
     from sqlalchemy import or_
 
-    from app.brand_exclusions import exclude_excluded_brands
     from app.models import CarListing
 
-    query = exclude_excluded_brands(
-        db.query(CarListing).filter(
-            CarListing.source.in_(EU_CHECK_SOURCES),
-            CarListing.eu_check_status == EU_CHECK_PENDING,
-        ),
-        CarListing.brand,
-    )
+    query = _eu_check_queue_query(db)
     needle = (q or "").strip()
     if needle:
         like = f"%{needle}%"
