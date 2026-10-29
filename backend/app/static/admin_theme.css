@@ -385,6 +385,18 @@ body.theme-admin .btn-link-like {
   color: #8fd9ff;
 }
 
+/* EU check: keep «Просмотр» / «Источник» readable (black on brand CTA). */
+body.theme-admin .eu-check-table .eu-check-links a.btn-link {
+  background: var(--brand-cta);
+  color: #000;
+  font-weight: 700;
+}
+
+body.theme-admin .eu-check-table .eu-check-links a.btn-link:hover {
+  color: #000;
+  filter: brightness(1.08);
+}
+
 /* Chat “Помощник” — light text on pale button was unreadable in dark theme */
 body.theme-admin:not(.theme-admin-light) .a160-chat-toggle {
   background: var(--brand-cta);

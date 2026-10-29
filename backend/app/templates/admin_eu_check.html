@@ -67,11 +67,11 @@
             <td>{% if listing.engine_capacity_l is not none %}{{ listing.engine_capacity_l }} л{% else %}—{% endif %}</td>
             <td>{% if listing.status == "published" %}да{% else %}нет{% endif %}</td>
             <td><span class="status-pill">{{ row.reason_label }}</span></td>
-            <td>
+            <td class="eu-check-links">
               <a class="btn-link" href="/listings/{{ listing.id }}">Просмотр</a>
               {% set source_href = listing | listing_source_href %}
               {% if source_href %}
-                · <a class="btn-link" href="{{ source_href }}" target="_blank" rel="noopener">Источник</a>
+              <a class="btn-link" href="{{ source_href }}" target="_blank" rel="noopener">Источник</a>
               {% endif %}
             </td>
             <td class="eu-check-actions">

@@ -223,6 +223,32 @@ body {
   max-width: 420px;
   margin-inline: auto;
 }
+
+.eu-check-table .eu-check-links,
+.eu-check-table .eu-check-actions {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.eu-check-table .eu-check-links .btn-link,
+.eu-check-table .eu-check-actions .btn-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 6px 10px;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.eu-check-table .eu-check-links a.btn-link {
+  color: #000;
+}
 .auth-cabinet-tabs {
   display: grid;
   grid-template-columns: 1fr 1fr;
