@@ -3127,15 +3127,15 @@ def listings_page(
         seo = build_seo_context(
             request,
             SeoMeta(
-                title="Авто из Европы до 5 лет и 1.9 л — Auto160"
+                title="Авто из Европы до 8 лет и 1.9 л — Auto160"
                 + (f", стр. {page}" if page > 1 else ""),
                 description=(
-                    "Объявления из Европы (autoplius.lt, auto24.ee): возраст до 5 лет, "
+                    "Объявления из Европы (autoplius.lt, auto24.ee): возраст до 8 лет, "
                     "двигатель до 1.9 л, мощность до 160 л.с. Цены в BYN по курсу НБ РБ."
                 ),
                 path=listings_base_path,
-                h1="Европа — до 5 лет и 1.9 л",
-                intro="Литва и Эстония: авто не старше 5 лет, двигатель до 1.9 л, до 160 л.с.",
+                h1="Европа — до 8 лет и 1.9 л",
+                intro="Литва и Эстония: авто не старше 8 лет, двигатель до 1.9 л, до 160 л.с.",
                 noindex=page > 1 or noisy_filters or (brand == "__multi__"),
             ),
         )

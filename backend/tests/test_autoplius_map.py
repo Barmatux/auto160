@@ -178,8 +178,8 @@ def test_map_skips_age_and_engine_limits():
     assert ok.skip_reason is None
     assert ok.check_reason is None
 
-    old = {**base, "year": "2018"}
-    assert map_autoplius_row(old, eur_rate=rate).skip_reason == "age_over_5"
+    old = {**base, "year": "2016"}
+    assert map_autoplius_row(old, eur_rate=rate).skip_reason == "age_over_8"
 
     big_engine = {**base, "engine_liters": 2.0}
     assert map_autoplius_row(big_engine, eur_rate=rate).skip_reason == "engine_l_over_1.9"
@@ -222,8 +222,8 @@ def test_map_ambiguous_missing_hp_or_engine_goes_to_check():
     assert "hp_missing" in (no_engine.check_reason or "")
 
     # Known over-age still hard-skips even if hp missing.
-    old = {**base, "year": "2018", "engine_liters": None}
-    assert map_autoplius_row(old, eur_rate=rate).skip_reason == "age_over_5"
+    old = {**base, "year": "2016", "engine_liters": None}
+    assert map_autoplius_row(old, eur_rate=rate).skip_reason == "age_over_8"
     assert map_autoplius_row(old, eur_rate=rate).check_reason is None
 
 

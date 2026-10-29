@@ -128,7 +128,7 @@ services:
       python tools/schedule_autoplius_listings_sync.py
       --interval-minutes 45
       --max-hp 160
-      --max-age-years 5
+      --max-age-years 8
       --max-engine-l 1.9
 
   auto24-sync:
@@ -152,7 +152,7 @@ services:
       python tools/schedule_auto24_listings_sync.py
       --interval-minutes 45
       --max-hp 160
-      --max-age-years 5
+      --max-age-years 8
       --max-engine-l 1.9
 
   mobile-de-sync:
@@ -176,7 +176,7 @@ services:
       python tools/schedule_mobile_de_listings_sync.py
       --interval-minutes 45
       --max-hp 160
-      --max-age-years 5
+      --max-age-years 8
       --max-engine-l 1.9
 
   listing-embeddings:

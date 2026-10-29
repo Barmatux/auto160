@@ -23,8 +23,8 @@ _SCRAPE_PLATFORM_KEY_PREFIXES = ("auto24/", "autoplius/", "mobile_de/", "avby/")
 _LEGACY_AUTOPLIUS_KEY_PREFIXES = ("listings/",)
 _KNOWN_STORAGE_KEY_PREFIXES = _SCRAPE_PLATFORM_KEY_PREFIXES + _LEGACY_AUTOPLIUS_KEY_PREFIXES
 
-# Lithuania / Baltics feed policy: cars up to 5 years with modest engines (in addition to ≤160 hp).
-DEFAULT_MAX_AGE_YEARS = 5
+# Lithuania / Baltics / Europe feed policy: cars up to 8 years with modest engines (in addition to ≤160 hp).
+DEFAULT_MAX_AGE_YEARS = 8
 DEFAULT_MAX_ENGINE_L = 1.9
 
 
