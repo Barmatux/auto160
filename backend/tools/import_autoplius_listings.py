@@ -31,6 +31,7 @@ from app.autoplius_map import (
 )
 from app.body_type_labels import is_hidden_body_type
 from app.brand_exclusions import is_excluded_brand
+from app.full_hybrid_exclusions import listing_is_full_hybrid
 from app.model_exclusions import is_excluded_model
 from app.config import settings
 from app.db import SessionLocal
@@ -255,6 +256,13 @@ def main() -> int:
             if is_pure_electric_fuel(mapped.engine_type):
                 skipped += 1
                 skip_reasons["electric_excluded"] = skip_reasons.get("electric_excluded", 0) + 1
+                existing = by_external.get(mapped.external_id) if mapped.external_id else None
+                if existing and not args.dry_run and archive_eu_listing_on_hard_skip(existing):
+                    archived += 1
+                continue
+            if listing_is_full_hybrid(mapped):
+                skipped += 1
+                skip_reasons["full_hybrid_excluded"] = skip_reasons.get("full_hybrid_excluded", 0) + 1
                 existing = by_external.get(mapped.external_id) if mapped.external_id else None
                 if existing and not args.dry_run and archive_eu_listing_on_hard_skip(existing):
                     archived += 1
