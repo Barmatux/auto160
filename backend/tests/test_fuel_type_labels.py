@@ -36,8 +36,21 @@ def test_groups_hybrids_before_petrol_or_diesel():
 
 
 def test_groups_electric():
-    for value in ("электро", "Электро", "electric"):
+    for value in ("электро", "Электро", "electric", "Электричество", "Электричество, 82 кВт·ч", "Elektra, 98 kWh"):
         assert classify_fuel_type(value) == FUEL_GROUP_ELECTRIC
+
+
+def test_pure_electric_excludes_hybrids_and_city_false_positives():
+    from app.fuel_type_labels import is_pure_electric_fuel
+
+    assert is_pure_electric_fuel("Электричество")
+    assert is_pure_electric_fuel("Электричество, 50 кВт·ч")
+    assert is_pure_electric_fuel("Elektra, 82 kWh")
+    assert not is_pure_electric_fuel("Бензин / электричество")
+    assert not is_pure_electric_fuel("Дизель / электричество")
+    assert not is_pure_electric_fuel("бензин (гибрид)")
+    assert not is_pure_electric_fuel("Elektrėnai")
+    assert not is_pure_electric_fuel("Бензин")
 
 
 def test_filter_options_deduplicate_groups():

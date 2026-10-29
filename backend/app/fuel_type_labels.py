@@ -44,10 +44,24 @@ ELECTRIC_EXACT_KEYS = frozenset(
         "электричество",
         "electric",
         "ev",
+        "elekter",
+        "elektra",
+        "elektriline",
     }
 )
 
+# Pure BEV labels (not mild/full hybrid dual-fuel strings).
+_PURE_ELECTRIC_PREFIXES = (
+    "электро",
+    "электричество",
+    "electric",
+    "elekter",
+    "elektra",
+    "elektriline",
+)
+
 HYBRID_MARKERS = ("гибрид", "hybrid", "phev", "mhev")
+_HYBRID_COMBUSTION_MARKERS = ("бензин", "дизель", "diesel", "petrol", "gasoline", "газ")
 
 # Higher rank wins when av.by stores octane (АИ-95) separately from engine type.
 _FUEL_GROUP_RANK = {
@@ -60,8 +74,36 @@ _FUEL_GROUP_RANK = {
 
 
 def normalize_fuel_type_key(value: str) -> str:
-    cleaned = value.strip().lower().replace("ё", "е").replace("\xa0", " ")
+    cleaned = (
+        value.strip()
+        .lower()
+        .replace("ё", "е")
+        .replace("ė", "e")
+        .replace("ä", "a")
+        .replace("ö", "o")
+        .replace("ü", "u")
+        .replace("\xa0", " ")
+    )
     return " ".join(cleaned.split())
+
+
+def is_pure_electric_fuel(value: str | None) -> bool:
+    """True for battery-electric only (sanctions / we do not ship EVs).
+
+    Dual labels like «Бензин / электричество» stay non-electric here.
+    """
+    if value is None:
+        return False
+    key = normalize_fuel_type_key(value)
+    if not key:
+        return False
+    if any(marker in key for marker in HYBRID_MARKERS):
+        return False
+    if any(marker in key for marker in _HYBRID_COMBUSTION_MARKERS):
+        return False
+    if key in ELECTRIC_EXACT_KEYS:
+        return True
+    return any(key.startswith(prefix) for prefix in _PURE_ELECTRIC_PREFIXES)
 
 
 def classify_fuel_type(value: str | None) -> str | None:
@@ -88,7 +130,7 @@ def classify_fuel_type(value: str | None) -> str | None:
     if key.startswith("аи"):
         return FUEL_GROUP_PETROL
 
-    if key in ELECTRIC_EXACT_KEYS or key.startswith("электро"):
+    if is_pure_electric_fuel(trimmed):
         return FUEL_GROUP_ELECTRIC
 
     return trimmed[0].upper() + trimmed[1:] if trimmed else trimmed

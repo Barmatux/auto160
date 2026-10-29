@@ -32,6 +32,7 @@ from app.body_type_labels import is_hidden_body_type
 from app.config import settings
 from app.db import SessionLocal
 from app.eu_listing_check import apply_eu_check_on_import, archive_eu_listing_on_hard_skip
+from app.fuel_type_labels import is_pure_electric_fuel
 from app.listing_catalog_link import link_listing_to_catalog
 from app.listing_missing_byn import apply_import_byn_price_state
 from app.listing_source_time import apply_scrape_source_timestamps, detect_bulk_first_seen
@@ -221,6 +222,16 @@ def main() -> int:
             if is_hidden_body_type(mapped.body_type):
                 skipped += 1
                 skip_reasons["hidden_body_type"] = skip_reasons.get("hidden_body_type", 0) + 1
+                existing = by_external.get(mapped.external_id) if mapped.external_id else None
+                if existing and not args.dry_run and archive_eu_listing_on_hard_skip(existing):
+                    archived += 1
+                continue
+            if is_pure_electric_fuel(mapped.engine_type):
+                skipped += 1
+                skip_reasons["electric_excluded"] = skip_reasons.get("electric_excluded", 0) + 1
+                existing = by_external.get(mapped.external_id) if mapped.external_id else None
+                if existing and not args.dry_run and archive_eu_listing_on_hard_skip(existing):
+                    archived += 1
                 continue
             if listing_is_util_sbor_exclusion(mapped):
                 skipped += 1

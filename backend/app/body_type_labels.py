@@ -45,9 +45,28 @@ BODY_TYPE_ALIASES: dict[str, str] = {
     "микроавтобус пассажирский": "Микроавтобус пассажирский",
 }
 
-# Commercial / cargo types that are out of scope for Auto160.
-HIDDEN_BODY_TYPE_LABELS = frozenset({"Пикап"})
-HIDDEN_BODY_TYPE_MARKERS = ("пикап", "pickup")
+# Commercial / cargo / non-car types that are out of scope for Auto160 (EU + BY feeds).
+HIDDEN_BODY_TYPE_LABELS = frozenset({"Пикап", "Другое"})
+HIDDEN_BODY_TYPE_MARKERS = (
+    "пикап",
+    "pickup",
+    "другое",
+    "other",
+    "коммерческ",
+    "грузов",
+    "микроавтобус",
+    "мотоцикл",
+    "motorcycle",
+    "эндуро",
+    "enduro",
+    "затяжел",
+    "трактор",
+    "tractor",
+    "сельхоз",
+    "квадроцикл",
+    "прицеп",
+    "туринг",
+)
 
 
 def normalize_body_type_key(value: str) -> str:

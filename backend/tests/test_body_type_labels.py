@@ -42,3 +42,20 @@ def test_detects_pickup_body_types():
         assert is_hidden_body_type(value)
     assert not is_hidden_body_type("седан")
     assert not is_hidden_body_type(None)
+
+
+def test_hides_non_car_and_commercial_body_types():
+    from app.body_type_labels import is_hidden_body_type
+
+    for value in (
+        "Другое",
+        "Коммерческий",
+        "Грузовые микроавтобусы",
+        "Пассажирский микроавтобус",
+        "Мотоцикл для кросса",
+        "Эндуро / аdventure",
+        "Затяжелитель",
+    ):
+        assert is_hidden_body_type(value), value
+    assert not is_hidden_body_type("Универсал")
+    assert not is_hidden_body_type("Внедорожник / Кроссовер")
