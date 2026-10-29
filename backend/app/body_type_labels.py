@@ -64,6 +64,12 @@ HIDDEN_BODY_TYPE_MARKERS = (
     "tractor",
     "сельхоз",
     "квадроцикл",
+    "atv",
+    "utv",
+    "багги",
+    "buggy",
+    "скутер",
+    "scooter",
     "прицеп",
     "туринг",
 )

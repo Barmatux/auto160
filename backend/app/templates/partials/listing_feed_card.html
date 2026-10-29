@@ -28,7 +28,9 @@
   <h3><a href="/listings/{{ listing.id }}">{{ listing | listing_feed_heading }}</a></h3>
   <p><strong>Пробег:</strong> {{ listing.mileage | format_mileage_km }} км</p>
   <p><strong>Местонахождение:</strong> {{ listing | listing_location_display }}</p>
+  {% if listings_market != 'eu' %}
   <p><strong>Продавец:</strong> {{ listing.seller_name | listing_seller_label }}</p>
+  {% endif %}
   <div class="listing-spec-tags">
     {% if listing.engine_capacity_l %}<span>{{ listing.engine_capacity_l }} л</span>{% endif %}
     {% if listing.engine_power_hp %}<span>{{ listing.engine_power_hp }} л.с.</span>{% endif %}
