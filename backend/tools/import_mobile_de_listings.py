@@ -23,7 +23,7 @@ if str(ROOT_DIR) not in sys.path:
 os.chdir(ROOT_DIR)
 
 from app.body_type_labels import is_hidden_body_type
-from app.full_hybrid_exclusions import listing_is_full_hybrid
+from app.full_hybrid_exclusions import listing_is_banned_eu_hybrid
 from app.model_exclusions import is_excluded_model
 from app.config import settings
 from app.db import SessionLocal
@@ -223,9 +223,9 @@ def main() -> int:
                     existing.status = ListingStatus.archived
                     archived += 1
                 continue
-            if listing_is_full_hybrid(mapped):
+            if listing_is_banned_eu_hybrid(mapped):
                 skipped += 1
-                skip_reasons["full_hybrid_excluded"] = skip_reasons.get("full_hybrid_excluded", 0) + 1
+                skip_reasons["banned_hybrid_excluded"] = skip_reasons.get("banned_hybrid_excluded", 0) + 1
                 existing = by_external.get(mapped.external_id) if mapped.external_id else None
                 if existing and existing.status == ListingStatus.published and not args.dry_run:
                     existing.status = ListingStatus.archived

@@ -1,4 +1,8 @@
-from app.full_hybrid_exclusions import is_full_hybrid_listing
+from app.full_hybrid_exclusions import (
+    is_banned_eu_hybrid_listing,
+    is_full_hybrid_listing,
+    is_phev_listing,
+)
 
 
 def test_toyota_family_is_full_hev():
@@ -12,26 +16,26 @@ def test_toyota_family_is_full_hev():
 
 
 def test_keeps_mild_renault_and_dacia():
-    assert not is_full_hybrid_listing(
+    assert not is_banned_eu_hybrid_listing(
         brand="Renault", model="Arkana", engine_type="Бензин / электричество", engine_capacity_l=1.3, engine_power_hp=140
     )
-    assert not is_full_hybrid_listing(
+    assert not is_banned_eu_hybrid_listing(
         brand="Renault", model="Arkana", engine_type="Гибрид (бензин / электричество)", engine_capacity_l=1.3, engine_power_hp=158
     )
-    assert not is_full_hybrid_listing(
+    assert not is_banned_eu_hybrid_listing(
         brand="Renault", model="Austral", engine_type="бензин (гибрид)", engine_capacity_l=1.3, engine_power_hp=160
     )
-    assert not is_full_hybrid_listing(
+    assert not is_banned_eu_hybrid_listing(
         brand="Renault", model="Captur", engine_type="Бензин / электричество", engine_capacity_l=1.3, engine_power_hp=140
     )
-    assert not is_full_hybrid_listing(
+    assert not is_banned_eu_hybrid_listing(
         brand="Dacia",
         model="Bigster",
         engine_type="Бензин / электричество / газ",
         engine_capacity_l=1.2,
         engine_power_hp=140,
     )
-    assert not is_full_hybrid_listing(
+    assert not is_banned_eu_hybrid_listing(
         brand="Dacia",
         model="Duster",
         engine_type="Бензин / электричество / газ",
@@ -46,32 +50,94 @@ def test_renault_e_tech_full_is_banned():
     )
 
 
-def test_keeps_ford_vw_diesel_mild_and_phev():
-    assert not is_full_hybrid_listing(
+def test_keeps_ford_vw_diesel_mild():
+    assert not is_banned_eu_hybrid_listing(
         brand="Ford", model="Focus", engine_type="Бензин / электричество", engine_capacity_l=1.0, engine_power_hp=125
     )
-    assert not is_full_hybrid_listing(
+    assert not is_banned_eu_hybrid_listing(
         brand="Volkswagen", model="Golf", engine_type="Бензин / электричество", engine_capacity_l=1.5
     )
-    assert not is_full_hybrid_listing(
+    assert not is_banned_eu_hybrid_listing(
         brand="Kia", model="Sportage", engine_type="Дизель / электричество", engine_capacity_l=1.6
     )
-    assert not is_full_hybrid_listing(
+
+
+def test_phev_explicit_and_vw_group_14():
+    assert is_phev_listing(
         brand="Kia",
         model="XCeed",
         title="Kia XCeed Plug-In",
         engine_type="Подключаемый гибрид (бензин / электричество)",
         engine_capacity_l=1.6,
     )
+    assert is_phev_listing(
+        brand="MINI",
+        model="Countryman",
+        title="MINI Countryman Cooper SE All4",
+        engine_type="Подключаемый гибрид (бензин / электричество)",
+        engine_capacity_l=1.5,
+    )
+    assert is_phev_listing(
+        brand="Volkswagen",
+        model="Passat",
+        engine_type="Бензин / электричество",
+        engine_capacity_l=1.4,
+        engine_power_hp=156,
+    )
+    assert is_phev_listing(
+        brand="Skoda",
+        model="Superb",
+        engine_type="Бензин / электричество",
+        engine_capacity_l=1.4,
+        engine_power_hp=156,
+    )
+    assert is_phev_listing(
+        brand="Volkswagen",
+        model="Golf",
+        engine_type="Бензин / электричество",
+        engine_capacity_l=1.4,
+        engine_power_hp=150,
+    )
+    assert is_phev_listing(
+        brand="Volkswagen",
+        model="Tiguan",
+        engine_type="Бензин / электричество",
+        engine_capacity_l=1.4,
+    )
+    assert is_banned_eu_hybrid_listing(
+        brand="Mercedes-Benz",
+        model="CLA250",
+        engine_type="Бензин / электричество",
+        engine_capacity_l=1.3,
+        engine_power_hp=160,
+    )
+    assert is_phev_listing(
+        brand="BMW",
+        model="225 Active Tourer",
+        engine_type="Бензин / электричество",
+        engine_capacity_l=1.5,
+        engine_power_hp=136,
+    )
+    assert is_phev_listing(
+        brand="Audi",
+        model="A3",
+        engine_type="Бензин / электричество",
+    )
 
 
-def test_keeps_ambiguous_tucson_sportage_petrol_hybrid():
-    # Could be mild or HEV — do not ban.
-    assert not is_full_hybrid_listing(
+def test_keeps_ambiguous_tucson_sportage_and_bmw_x1():
+    # Could be mild or HEV/PHEV — do not ban without markers.
+    assert not is_banned_eu_hybrid_listing(
         brand="Hyundai", model="Tucson", engine_type="Бензин / электричество", engine_capacity_l=1.6
     )
-    assert not is_full_hybrid_listing(
+    assert not is_banned_eu_hybrid_listing(
         brand="Kia", model="Sportage", engine_type="Бензин / электричество", engine_capacity_l=1.6
+    )
+    assert not is_banned_eu_hybrid_listing(
+        brand="BMW", model="X1", engine_type="Бензин / электричество", engine_capacity_l=1.5, engine_power_hp=136
+    )
+    assert not is_banned_eu_hybrid_listing(
+        brand="Volvo", model="XC40", engine_type="Бензин / электричество", engine_capacity_l=1.5
     )
 
 
@@ -91,10 +157,10 @@ def test_honda_and_niro():
 
 
 def test_keeps_xtrail_mild_and_epower_marker():
-    assert not is_full_hybrid_listing(
+    assert not is_banned_eu_hybrid_listing(
         brand="Nissan", model="X-Trail", engine_type="Бензин / электричество", engine_capacity_l=1.5, engine_power_hp=158
     )
-    assert not is_full_hybrid_listing(
+    assert not is_banned_eu_hybrid_listing(
         brand="Nissan",
         model="Qashqai",
         title="Nissan Qashqai e-Power",

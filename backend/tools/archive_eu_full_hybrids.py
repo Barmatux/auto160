@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Archive published EU listings that are confirmed full HEV (sanctions).
+"""Archive published EU listings that are confirmed full HEV or PHEV (sanctions).
 
   python tools/archive_eu_full_hybrids.py --dry-run
   python tools/archive_eu_full_hybrids.py
@@ -21,7 +21,7 @@ os.chdir(ROOT_DIR)
 from app.db import SessionLocal
 from app.eu_listing_check import archive_eu_listing_on_hard_skip
 from app.fuel_type_labels import is_hybrid_fuel, is_pure_electric_fuel
-from app.full_hybrid_exclusions import listing_is_full_hybrid
+from app.full_hybrid_exclusions import listing_is_banned_eu_hybrid, listing_is_full_hybrid, listing_is_phev
 from app.models import CarListing, ListingStatus
 
 EU_SOURCES = ("autoplius", "auto24", "mobile_de")
@@ -50,28 +50,38 @@ def main() -> int:
             .all()
         )
         hybridish = [l for l in rows if _is_hybridish(l)]
-        ban = [l for l in hybridish if listing_is_full_hybrid(l)]
-        keep = [l for l in hybridish if not listing_is_full_hybrid(l)]
+        ban = [l for l in hybridish if listing_is_banned_eu_hybrid(l)]
+        keep = [l for l in hybridish if not listing_is_banned_eu_hybrid(l)]
+        ban_phev = [l for l in ban if listing_is_phev(l)]
+        ban_hev = [l for l in ban if listing_is_full_hybrid(l) and not listing_is_phev(l)]
 
         ban_by: dict[str, int] = defaultdict(int)
         keep_by: dict[str, int] = defaultdict(int)
         for l in ban:
-            ban_by[f"{l.brand} {l.model}"] += 1
+            kind = "PHEV" if listing_is_phev(l) else "HEV"
+            ban_by[f"{kind} | {l.brand} {l.model}"] += 1
         for l in keep:
             keep_by[f"{l.brand} {l.model}"] += 1
 
         print(f"eu_non_archived={len(rows)}")
         print(f"hybridish={len(hybridish)}")
-        print(f"full_hev_ban={len(ban)}")
+        print(f"ban_total={len(ban)} (phev={len(ban_phev)} hev={len(ban_hev)})")
         print(f"hybrid_keep={len(keep)}")
-        print("\nBAN (full HEV):")
+        print("\nBAN (full HEV / PHEV):")
         for name, n in sorted(ban_by.items(), key=lambda x: (-x[1], x[0])):
             print(f"  {n:3} {name}")
-        print("\nKEEP (mild/PHEV/ambiguous/e-Power):")
+        print("\nKEEP (mild/ambiguous/e-Power):")
         for name, n in sorted(keep_by.items(), key=lambda x: (-x[1], x[0])):
             print(f"  {n:3} {name}")
 
         if args.dry_run:
+            print("\nDETAIL BAN:")
+            for l in sorted(ban, key=lambda x: (x.brand or "", x.model or "", x.id)):
+                kind = "PHEV" if listing_is_phev(l) else "HEV"
+                print(
+                    f"  {kind}\t{l.id}\t{l.brand} {l.model}\t{l.year}\t"
+                    f"{l.engine_capacity_l}\t{l.engine_power_hp}\t{l.engine_type}\t{l.title}"
+                )
             print("\ndry-run: no changes")
             return 0
 
