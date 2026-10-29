@@ -175,17 +175,24 @@ def reject_eu_check_listing(db: Session, listing_id: int) -> CarListing:
 
 def _eu_check_queue_query(db: Session):
     from app.brand_exclusions import exclude_excluded_brands
+    from app.full_hybrid_exclusions import listing_is_banned_eu_hybrid
     from app.model_exclusions import exclude_excluded_models
-    from app.models import CarListing
+    from app.models import CarListing, ListingStatus
 
     query = exclude_excluded_brands(
         db.query(CarListing).filter(
             CarListing.source.in_(EU_CHECK_SOURCES),
+            CarListing.status != ListingStatus.archived,
             CarListing.eu_check_status.in_(EU_CHECK_QUEUE_STATUSES),
         ),
         CarListing.brand,
     )
-    return exclude_excluded_models(query, CarListing.model, CarListing.title)
+    query = exclude_excluded_models(query, CarListing.model, CarListing.title)
+    # Full HEV / PHEV are hard-banned — drop leftovers from the CHECK queue.
+    banned_ids = [row.id for row in query.all() if listing_is_banned_eu_hybrid(row)]
+    if banned_ids:
+        query = query.filter(~CarListing.id.in_(banned_ids))
+    return query
 
 
 def count_eu_check_pending(db: Session) -> int:
