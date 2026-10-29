@@ -55,8 +55,10 @@ HIDDEN_BODY_TYPE_MARKERS = (
     "other",
     "коммерческ",
     "грузов",  # грузовой / грузовые микроавтобусы
+    "krovininis",  # LT cargo van / minibus
     "мотоцикл",
     "motorcycle",
+    "motorrad",
     "круизер",
     "чоппер",
     "chopper",
@@ -74,6 +76,15 @@ HIDDEN_BODY_TYPE_MARKERS = (
     "buggy",
     "скутер",
     "scooter",
+    "роллер",  # EE/auto24 scooter label
+    "roller",
+    "мопед",
+    "moped",
+    "мотороллер",
+    "байк",
+    "седло",  # truck tractor unit (EE)
+    "снегоход",
+    "snowmobile",
     "прицеп",
     "туринг",
 )

@@ -23,6 +23,7 @@ if str(ROOT_DIR) not in sys.path:
 os.chdir(ROOT_DIR)
 
 from app.body_type_labels import is_hidden_body_type
+from app.brand_exclusions import is_excluded_brand
 from app.full_hybrid_exclusions import listing_is_banned_eu_hybrid
 from app.model_exclusions import is_excluded_model
 from app.config import settings
@@ -211,9 +212,21 @@ def main() -> int:
                 skipped += 1
                 skip_reasons[mapped.skip_reason] = skip_reasons.get(mapped.skip_reason, 0) + 1
                 continue
+            if is_excluded_brand(mapped.brand):
+                skipped += 1
+                skip_reasons["brand_excluded"] = skip_reasons.get("brand_excluded", 0) + 1
+                existing = by_external.get(mapped.external_id) if mapped.external_id else None
+                if existing and existing.status == ListingStatus.published and not args.dry_run:
+                    existing.status = ListingStatus.archived
+                    archived += 1
+                continue
             if is_hidden_body_type(mapped.body_type):
                 skipped += 1
                 skip_reasons["hidden_body_type"] = skip_reasons.get("hidden_body_type", 0) + 1
+                existing = by_external.get(mapped.external_id) if mapped.external_id else None
+                if existing and existing.status == ListingStatus.published and not args.dry_run:
+                    existing.status = ListingStatus.archived
+                    archived += 1
                 continue
             if is_excluded_model(mapped.model, title=mapped.title):
                 skipped += 1
