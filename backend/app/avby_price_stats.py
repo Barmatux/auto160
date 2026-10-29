@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
+import itertools
 import logging
 import random
 import re
 import time
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any
+from typing import Any, Iterator
 from urllib.parse import parse_qs, urlencode
 
 from curl_cffi import requests
@@ -17,11 +18,19 @@ from sqlalchemy.orm import Session
 
 from app.avby_session import AVBY_PUBLIC_API_KEY
 from app.models import (
+    AvbyPriceConfigStat,
     AvbyPriceHistoryPoint,
     AvbyPriceSoldAdvert,
     AvbyPriceStatTarget,
     AvbyPriceYearStat,
     CatalogItem,
+)
+
+CONFIG_FILTER_PROPS = (
+    "engine_type",
+    "engine_capacity",
+    "transmission_type",
+    "drive_type",
 )
 
 logger = logging.getLogger(__name__)
@@ -457,3 +466,245 @@ def fetch_and_store_year_stat(
     db.commit()
     db.refresh(row)
     return row
+
+
+@dataclass(frozen=True)
+class FilterOption:
+    id: int
+    label: str
+    name: str | None = None
+
+
+@dataclass(frozen=True)
+class ConfigCombo:
+    engine_type: FilterOption
+    engine_capacity: FilterOption
+    transmission_type: FilterOption
+    drive_type: FilterOption
+
+
+def _walk_filter_properties(node: Any, acc: dict[str, list[FilterOption]]) -> None:
+    if isinstance(node, dict):
+        prop_name = node.get("name")
+        options = node.get("options")
+        if isinstance(prop_name, str) and isinstance(options, list):
+            parsed: list[FilterOption] = []
+            seen: set[int] = set()
+            for opt in options:
+                if not isinstance(opt, dict) or opt.get("disabled"):
+                    continue
+                raw_id = opt.get("id")
+                if raw_id is None:
+                    raw_id = opt.get("intValue")
+                try:
+                    oid = int(raw_id)
+                except (TypeError, ValueError):
+                    continue
+                if oid in seen:
+                    continue
+                seen.add(oid)
+                label = str(opt.get("label") or opt.get("name") or oid).strip()
+                parsed.append(
+                    FilterOption(
+                        id=oid,
+                        label=label,
+                        name=(str(opt["name"]) if opt.get("name") is not None else None),
+                    )
+                )
+            if parsed:
+                # Prefer first non-empty encounter; later duplicates ignored.
+                acc.setdefault(prop_name, parsed)
+        for value in node.values():
+            _walk_filter_properties(value, acc)
+    elif isinstance(node, list):
+        for item in node:
+            _walk_filter_properties(item, acc)
+
+
+def fetch_filter_options(
+    client: AvbyPriceStatsClient,
+    *,
+    brand_id: int,
+    model_id: int,
+    generation_id: int,
+    year: int,
+) -> dict[str, list[FilterOption]]:
+    """Load ocenka dropdown options for a generation/year from filter init."""
+    payload = client.get_json(
+        "/offer-types/cars/filters/price-statistics/init",
+        params={
+            "brand": brand_id,
+            "model": model_id,
+            "generation": generation_id,
+            "year": year,
+            "available_year": year,
+        },
+    )
+    found: dict[str, list[FilterOption]] = {}
+    _walk_filter_properties(payload, found)
+    wanted = set(CONFIG_FILTER_PROPS) | {"available_year"}
+    return {name: opts for name, opts in found.items() if name in wanted}
+
+
+def available_years_from_filter_options(options: dict[str, list[FilterOption]]) -> list[int]:
+    years = [opt.id for opt in options.get("available_year", []) if opt.id]
+    return sorted(set(years))
+
+
+def iter_config_combos(options: dict[str, list[FilterOption]]) -> Iterator[ConfigCombo]:
+    engines = options.get("engine_type") or []
+    capacities = options.get("engine_capacity") or []
+    transmissions = options.get("transmission_type") or []
+    drives = options.get("drive_type") or []
+    if not (engines and capacities and transmissions and drives):
+        return
+    for eng, cap, tr, drv in itertools.product(engines, capacities, transmissions, drives):
+        yield ConfigCombo(
+            engine_type=eng,
+            engine_capacity=cap,
+            transmission_type=tr,
+            drive_type=drv,
+        )
+
+
+def fetch_and_store_config_stat(
+    db: Session,
+    client: AvbyPriceStatsClient,
+    year_stat: AvbyPriceYearStat,
+    combo: ConfigCombo,
+    *,
+    refresh: bool = False,
+) -> AvbyPriceConfigStat:
+    existing = (
+        db.query(AvbyPriceConfigStat)
+        .filter(
+            AvbyPriceConfigStat.year_stat_id == year_stat.id,
+            AvbyPriceConfigStat.engine_type_id == combo.engine_type.id,
+            AvbyPriceConfigStat.engine_capacity_id == combo.engine_capacity.id,
+            AvbyPriceConfigStat.transmission_type_id == combo.transmission_type.id,
+            AvbyPriceConfigStat.drive_type_id == combo.drive_type.id,
+        )
+        .first()
+    )
+    if existing and existing.fetch_status == "ok" and not refresh:
+        return existing
+
+    params = {
+        "brand": year_stat.brand_id,
+        "model": year_stat.model_id,
+        "generation": year_stat.generation_id,
+        "year": year_stat.year,
+        "available_year": year_stat.year,
+        "engine_type": combo.engine_type.id,
+        "engine_capacity": combo.engine_capacity.id,
+        "transmission_type": combo.transmission_type.id,
+        "drive_type": combo.drive_type.id,
+    }
+    payload = client.get_json("/offer-types/cars/price-statistics", params=params)
+    medium = payload.get("mediumPrice") or {}
+
+    row = existing or AvbyPriceConfigStat(
+        year_stat_id=year_stat.id,
+        engine_type_id=combo.engine_type.id,
+        engine_capacity_id=combo.engine_capacity.id,
+        transmission_type_id=combo.transmission_type.id,
+        drive_type_id=combo.drive_type.id,
+    )
+    row.engine_type_label = combo.engine_type.label
+    row.engine_capacity_label = combo.engine_capacity.label
+    row.transmission_type_label = combo.transmission_type.label
+    row.drive_type_label = combo.drive_type.label
+    row.price_usd = medium.get("priceUsd")
+    row.price_byn = medium.get("priceByn")
+    row.min_price_usd = medium.get("minPriceUsd")
+    row.max_price_usd = medium.get("maxPriceUsd")
+    row.advert_count = medium.get("advertCount")
+    row.raw_payload = payload
+    row.fetch_status = "ok"
+    row.fetch_error = None
+    row.fetched_at = datetime.utcnow()
+    if existing is None:
+        db.add(row)
+    db.commit()
+    db.refresh(row)
+    return row
+
+
+def fetch_and_store_year_configs(
+    db: Session,
+    client: AvbyPriceStatsClient,
+    year_stat: AvbyPriceYearStat,
+    *,
+    refresh: bool = False,
+    limit: int | None = None,
+) -> dict[str, int]:
+    """Fetch all dropdown combos for one year snapshot. Returns counters."""
+    options = fetch_filter_options(
+        client,
+        brand_id=year_stat.brand_id,
+        model_id=year_stat.model_id,
+        generation_id=year_stat.generation_id,
+        year=year_stat.year,
+    )
+    fetched = skipped = errors = 0
+    for combo in iter_config_combos(options):
+        if limit is not None and fetched >= limit:
+            break
+        existing = (
+            db.query(AvbyPriceConfigStat)
+            .filter(
+                AvbyPriceConfigStat.year_stat_id == year_stat.id,
+                AvbyPriceConfigStat.engine_type_id == combo.engine_type.id,
+                AvbyPriceConfigStat.engine_capacity_id == combo.engine_capacity.id,
+                AvbyPriceConfigStat.transmission_type_id == combo.transmission_type.id,
+                AvbyPriceConfigStat.drive_type_id == combo.drive_type.id,
+                AvbyPriceConfigStat.fetch_status == "ok",
+            )
+            .first()
+        )
+        if existing is not None and not refresh:
+            skipped += 1
+            continue
+        try:
+            fetch_and_store_config_stat(db, client, year_stat, combo, refresh=refresh)
+            fetched += 1
+        except Exception as exc:
+            errors += 1
+            err_row = (
+                db.query(AvbyPriceConfigStat)
+                .filter(
+                    AvbyPriceConfigStat.year_stat_id == year_stat.id,
+                    AvbyPriceConfigStat.engine_type_id == combo.engine_type.id,
+                    AvbyPriceConfigStat.engine_capacity_id == combo.engine_capacity.id,
+                    AvbyPriceConfigStat.transmission_type_id == combo.transmission_type.id,
+                    AvbyPriceConfigStat.drive_type_id == combo.drive_type.id,
+                )
+                .first()
+            )
+            if err_row is None:
+                err_row = AvbyPriceConfigStat(
+                    year_stat_id=year_stat.id,
+                    engine_type_id=combo.engine_type.id,
+                    engine_capacity_id=combo.engine_capacity.id,
+                    transmission_type_id=combo.transmission_type.id,
+                    drive_type_id=combo.drive_type.id,
+                    engine_type_label=combo.engine_type.label,
+                    engine_capacity_label=combo.engine_capacity.label,
+                    transmission_type_label=combo.transmission_type.label,
+                    drive_type_label=combo.drive_type.label,
+                )
+                db.add(err_row)
+            err_row.fetch_status = "error"
+            err_row.fetch_error = str(exc)[:2000]
+            err_row.fetched_at = datetime.utcnow()
+            db.commit()
+            logger.warning(
+                "config fail year=%s eng=%s cap=%s tr=%s drv=%s: %s",
+                year_stat.year,
+                combo.engine_type.id,
+                combo.engine_capacity.id,
+                combo.transmission_type.id,
+                combo.drive_type.id,
+                exc,
+            )
+    return {"fetched": fetched, "skipped": skipped, "errors": errors}

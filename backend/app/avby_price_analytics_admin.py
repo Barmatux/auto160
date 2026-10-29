@@ -13,7 +13,13 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload
 
 from app.listing_display import format_money_amount
-from app.models import AvbyPriceHistoryPoint, AvbyPriceSoldAdvert, AvbyPriceStatTarget, AvbyPriceYearStat
+from app.models import (
+    AvbyPriceConfigStat,
+    AvbyPriceHistoryPoint,
+    AvbyPriceSoldAdvert,
+    AvbyPriceStatTarget,
+    AvbyPriceYearStat,
+)
 
 RESOLVE_STATUS_LABELS = {
     "pending": "Ожидает",
@@ -352,12 +358,16 @@ def build_target_detail(
 
     activity_years = sorted(year_activity.keys())
     chosen_year = _pick_activity_year(year_rows, activity_years, selected_year)
-    activity_months = year_activity.get(chosen_year, []) if chosen_year else []
-    activity_chart = _activity_bars(activity_months)
+    if chosen_year is None and selected_year and any(r.year == selected_year for r in year_rows):
+        chosen_year = selected_year
+    elif chosen_year is None and year_rows:
+        chosen_year = max(r.year for r in year_rows)
     for item in years:
         item["is_selected"] = item["year"] == chosen_year
-
     selected_row = next((r for r in year_rows if r.year == chosen_year), None)
+    activity_months = year_activity.get(chosen_year, []) if chosen_year else []
+    activity_chart = _activity_bars(activity_months)
+
     activity_summary = {
         "year": chosen_year,
         "new_60d": selected_row.activity_new_60d if selected_row else None,
@@ -374,6 +384,37 @@ def build_target_detail(
             for y in activity_years
         ],
     }
+
+    config_rows: list[dict[str, Any]] = []
+    if selected_row is not None:
+        configs = (
+            db.query(AvbyPriceConfigStat)
+            .filter(AvbyPriceConfigStat.year_stat_id == selected_row.id)
+            .order_by(
+                AvbyPriceConfigStat.engine_type_label.asc(),
+                AvbyPriceConfigStat.engine_capacity_id.asc(),
+                AvbyPriceConfigStat.transmission_type_label.asc(),
+                AvbyPriceConfigStat.drive_type_label.asc(),
+            )
+            .all()
+        )
+        for cfg in configs:
+            config_rows.append(
+                {
+                    "engine_type": cfg.engine_type_label or cfg.engine_type_id,
+                    "engine_capacity": cfg.engine_capacity_label or cfg.engine_capacity_id,
+                    "transmission": cfg.transmission_type_label or cfg.transmission_type_id,
+                    "drive": cfg.drive_type_label or cfg.drive_type_id,
+                    "price_usd": _usd(cfg.price_usd),
+                    "price_byn": _byn(cfg.price_byn),
+                    "min_price_usd": _usd(cfg.min_price_usd),
+                    "max_price_usd": _usd(cfg.max_price_usd),
+                    "advert_count": cfg.advert_count if cfg.advert_count is not None else "—",
+                    "fetch_status": cfg.fetch_status,
+                    "fetch_status_label": FETCH_STATUS_LABELS.get(cfg.fetch_status, cfg.fetch_status),
+                    "fetched_at": cfg.fetched_at,
+                }
+            )
 
     return {
         "target": target,
@@ -396,6 +437,8 @@ def build_target_detail(
         "activity": activity_summary,
         "activity_chart": activity_chart,
         "selected_year": chosen_year,
+        "config_rows": config_rows,
+        "config_year": chosen_year,
         "ocenka_url": (
             f"https://av.by/ocenka-avto/{target.catalog_slug}_{chosen_year or target.year_from}"
             if (chosen_year or target.year_from)

@@ -662,6 +662,49 @@ class AvbyPriceYearStat(Base):
     sold_adverts: Mapped[list["AvbyPriceSoldAdvert"]] = relationship(
         back_populates="year_stat", cascade="all, delete-orphan"
     )
+    config_stats: Mapped[list["AvbyPriceConfigStat"]] = relationship(
+        back_populates="year_stat", cascade="all, delete-orphan"
+    )
+
+
+class AvbyPriceConfigStat(Base):
+    """av.by ocenka snapshot for one year × engine/capacity/transmission/drive combo."""
+
+    __tablename__ = "avby_price_config_stats"
+    __table_args__ = (
+        UniqueConstraint(
+            "year_stat_id",
+            "engine_type_id",
+            "engine_capacity_id",
+            "transmission_type_id",
+            "drive_type_id",
+            name="uq_avby_price_config_stats_combo",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    year_stat_id: Mapped[int] = mapped_column(
+        ForeignKey("avby_price_year_stats.id", ondelete="CASCADE"), index=True
+    )
+    engine_type_id: Mapped[int] = mapped_column(Integer, index=True)
+    engine_type_label: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    engine_capacity_id: Mapped[int] = mapped_column(Integer, index=True)
+    engine_capacity_label: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    transmission_type_id: Mapped[int] = mapped_column(Integer, index=True)
+    transmission_type_label: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    drive_type_id: Mapped[int] = mapped_column(Integer, index=True)
+    drive_type_label: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    price_usd: Mapped[float | None] = mapped_column(Numeric(12, 2), nullable=True)
+    price_byn: Mapped[float | None] = mapped_column(Numeric(12, 2), nullable=True)
+    min_price_usd: Mapped[float | None] = mapped_column(Numeric(12, 2), nullable=True)
+    max_price_usd: Mapped[float | None] = mapped_column(Numeric(12, 2), nullable=True)
+    advert_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    raw_payload: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    fetch_status: Mapped[str] = mapped_column(String(20), default="ok", index=True)
+    fetch_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    fetched_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+
+    year_stat: Mapped["AvbyPriceYearStat"] = relationship(back_populates="config_stats")
 
 
 class AvbyPriceHistoryPoint(Base):

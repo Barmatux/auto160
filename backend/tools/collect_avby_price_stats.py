@@ -30,13 +30,14 @@ from app.avby_price_stats import (  # noqa: E402
     SoftRateLimit,
     AvbyPriceStatsClient,
     build_catalog_generation_rows,
+    fetch_and_store_year_configs,
     fetch_and_store_year_stat,
     resolve_target,
     upsert_targets_from_catalog,
     years_for_target,
 )
 from app.db import SessionLocal  # noqa: E402
-from app.models import AvbyPriceStatTarget, AvbyPriceYearStat  # noqa: E402
+from app.models import AvbyPriceConfigStat, AvbyPriceStatTarget, AvbyPriceYearStat  # noqa: E402
 
 logging.basicConfig(
     level=logging.INFO,
@@ -89,6 +90,17 @@ def main() -> None:
     parser.add_argument("--max-delay", type=float, default=9.0)
     parser.add_argument("--refresh", action="store_true", help="Re-fetch year rows that are already ok")
     parser.add_argument("--skip-active", action="store_true", help="Skip active-adverts endpoint (fewer requests)")
+    parser.add_argument(
+        "--with-configs",
+        action="store_true",
+        help="Also fetch all engine/capacity/transmission/drive combos per year",
+    )
+    parser.add_argument(
+        "--limit-configs",
+        type=int,
+        default=None,
+        help="Max config-stat fetches this run (across all years)",
+    )
     parser.add_argument("--resolve-only", action="store_true", help="Only resolve landing IDs")
     parser.add_argument("--slug", type=str, default=None, help="Process a single catalog slug")
     parser.add_argument(
@@ -204,6 +216,9 @@ def main() -> None:
         fetched = 0
         skipped = 0
         errors = 0
+        configs_fetched = 0
+        configs_skipped = 0
+        configs_errors = 0
 
         for idx, target in enumerate(targets, start=1):
             if target.resolve_status != "ready" or not target.generation_id:
@@ -276,6 +291,32 @@ def main() -> None:
                     )
                     if existing is not None:
                         skipped += 1
+                        if args.with_configs:
+                            remaining = None
+                            if args.limit_configs is not None:
+                                remaining = max(0, args.limit_configs - configs_fetched)
+                                if remaining == 0:
+                                    continue
+                            cfg = fetch_and_store_year_configs(
+                                db,
+                                client,
+                                existing,
+                                refresh=args.refresh,
+                                limit=remaining,
+                            )
+                            configs_fetched += cfg["fetched"]
+                            configs_skipped += cfg["skipped"]
+                            configs_errors += cfg["errors"]
+                            if cfg["fetched"] or cfg["errors"]:
+                                logger.info(
+                                    "[%s/%s] year=%s (cached) configs fetched=%s skipped=%s errors=%s",
+                                    idx,
+                                    len(targets),
+                                    year,
+                                    cfg["fetched"],
+                                    cfg["skipped"],
+                                    cfg["errors"],
+                                )
                         continue
 
                 try:
@@ -299,6 +340,35 @@ def main() -> None:
                         row.active_advert_count,
                         target.catalog_slug,
                     )
+                    if args.with_configs:
+                        remaining = None
+                        if args.limit_configs is not None:
+                            remaining = max(0, args.limit_configs - configs_fetched)
+                        if remaining != 0:
+                            cfg = fetch_and_store_year_configs(
+                                db,
+                                client,
+                                row,
+                                refresh=args.refresh,
+                                limit=remaining,
+                            )
+                            configs_fetched += cfg["fetched"]
+                            configs_skipped += cfg["skipped"]
+                            configs_errors += cfg["errors"]
+                            logger.info(
+                                "[%s/%s] year=%s configs fetched=%s skipped=%s errors=%s",
+                                idx,
+                                len(targets),
+                                year,
+                                cfg["fetched"],
+                                cfg["skipped"],
+                                cfg["errors"],
+                            )
+                        else:
+                            logger.info(
+                                "limit-configs reached (%s); skipping further configs",
+                                args.limit_configs,
+                            )
                     if args.pause_every > 0 and fetched % args.pause_every == 0:
                         logger.info(
                             "cool-down pause %.0fs after %s fetches (WAF hygiene)",
@@ -354,13 +424,19 @@ def main() -> None:
                         return
 
         logger.info(
-            "done resolved=%s fetched=%s skipped=%s errors=%s elapsed=%.0fs progress=%s",
+            "done resolved=%s fetched=%s skipped=%s errors=%s "
+            "configs_fetched=%s configs_skipped=%s configs_errors=%s "
+            "elapsed=%.0fs progress=%s config_rows=%s",
             resolved,
             fetched,
             skipped,
             errors,
+            configs_fetched,
+            configs_skipped,
+            configs_errors,
             time.time() - started,
             _progress(db, makes=makes),
+            db.query(AvbyPriceConfigStat).count(),
         )
     finally:
         db.close()

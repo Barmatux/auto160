@@ -163,6 +163,51 @@
 </section>
 
 <section class="admin-vin-table-wrap">
+  <h2>
+    Конфигурации
+    {% if detail.config_year %}· {{ detail.config_year }}{% endif %}
+  </h2>
+  <p class="hint">
+    Тип двигателя × объём × КПП × привод из dropdown ocenka.
+    {% if detail.config_rows %}Загружено {{ detail.config_rows|length }}.{% else %}Пока нет срезов конфигураций для выбранного года.{% endif %}
+  </p>
+  <table class="users-table admin-vin-table price-stats-table">
+    <thead>
+      <tr>
+        <th>Двигатель</th>
+        <th>Объём</th>
+        <th>КПП</th>
+        <th>Привод</th>
+        <th>Медиана USD</th>
+        <th>Медиана BYN</th>
+        <th>Min–Max USD</th>
+        <th>Продано*</th>
+        <th>Статус</th>
+        <th>Обновлено</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in detail.config_rows %}
+        <tr>
+          <td>{{ row.engine_type }}</td>
+          <td>{{ row.engine_capacity }}</td>
+          <td>{{ row.transmission }}</td>
+          <td>{{ row.drive }}</td>
+          <td>{{ row.price_usd }}</td>
+          <td>{{ row.price_byn }}</td>
+          <td>{{ row.min_price_usd }} – {{ row.max_price_usd }}</td>
+          <td class="num">{{ row.advert_count }}</td>
+          <td><span class="status-pill {{ 'success' if row.fetch_status == 'ok' else 'failed' }}">{{ row.fetch_status_label }}</span></td>
+          <td>{{ row.fetched_at.strftime('%d.%m.%Y %H:%M') if row.fetched_at else '—' }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="10">Конфигурации ещё не загружены. Запуск: collect_avby_price_stats.py --with-configs</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<section class="admin-vin-table-wrap">
   <h2>Примеры проданных объявлений</h2>
   <p class="hint">Показано {{ detail.sold_rows|length }} из {{ detail.sold_total }} в снимках.</p>
   <table class="users-table admin-vin-table price-stats-table">
