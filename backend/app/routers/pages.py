@@ -23,6 +23,7 @@ from app.body_type_labels import (
     normalize_body_type_label,
 )
 from app.brand_exclusions import exclude_excluded_brands, is_excluded_brand
+from app.model_exclusions import exclude_excluded_models, is_excluded_model
 from app.fuel_type_labels import (
     FUEL_GROUP_HYBRID,
     HYBRID_MARKERS,
@@ -972,6 +973,7 @@ def _listing_brand_model_map(
         CarListing.body_type,
     )
     query = exclude_excluded_brands(query, CarListing.brand)
+    query = exclude_excluded_models(query, CarListing.model)
     if published_only:
         query = query.filter(CarListing.status == ListingStatus.published)
     query = _apply_listings_market_source_filter(query, listings_market)
@@ -982,7 +984,7 @@ def _listing_brand_model_map(
     rows = query.distinct().order_by(CarListing.brand.asc(), CarListing.model.asc()).all()
     mapping: dict[str, list[str]] = {}
     for brand, model in rows:
-        if not brand or not model or is_excluded_brand(brand):
+        if not brand or not model or is_excluded_brand(brand) or is_excluded_model(model):
             continue
         mapping.setdefault(brand, []).append(_canonical_model_name(model))
     for brand, models in mapping.items():
@@ -1005,6 +1007,7 @@ def _listing_brand_model_generation_map(
         CarListing.body_type,
     )
     query = exclude_excluded_brands(query, CarListing.brand)
+    query = exclude_excluded_models(query, CarListing.model)
     if published_only:
         query = query.filter(CarListing.status == ListingStatus.published)
     query = _apply_listings_market_source_filter(query, listings_market)
@@ -1015,7 +1018,7 @@ def _listing_brand_model_generation_map(
     rows = query.distinct().all()
     mapping: dict[str, dict[str, set[str]]] = {}
     for brand, model, generation in rows:
-        if not brand or not model or not generation or is_excluded_brand(brand):
+        if not brand or not model or not generation or is_excluded_brand(brand) or is_excluded_model(model):
             continue
         canonical_model = _canonical_model_name(model)
         mapping.setdefault(brand, {}).setdefault(canonical_model, set()).add(generation)
@@ -1477,8 +1480,9 @@ def _merged_listing_brand_model_map(db: Session, *, published_only: bool = True)
     for brand in set(listing_map) | set(catalog_map):
         if is_excluded_brand(brand):
             continue
-        merged[brand] = set(listing_map.get(brand, [])) | set(catalog_map.get(brand, []))
-    return {brand: sorted(models) for brand, models in merged.items()}
+        models = set(listing_map.get(brand, [])) | set(catalog_map.get(brand, []))
+        merged[brand] = {m for m in models if not is_excluded_model(m)}
+    return {brand: sorted(models) for brand, models in merged.items() if models}
 
 
 def _parse_vehicle_filter_rows(
@@ -2853,6 +2857,7 @@ def listings_page(
     price_range = parse_listing_price_range(request.query_params.get("price_range"))
     query = exclude_hidden_body_type(db.query(CarListing), CarListing.body_type)
     query = exclude_excluded_brands(query, CarListing.brand)
+    query = exclude_excluded_models(query, CarListing.model, CarListing.title)
     if not is_admin:
         query = query.filter(CarListing.status == ListingStatus.published)
     if listings_market == "eu":

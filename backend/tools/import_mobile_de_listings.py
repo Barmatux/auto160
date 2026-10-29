@@ -23,6 +23,7 @@ if str(ROOT_DIR) not in sys.path:
 os.chdir(ROOT_DIR)
 
 from app.body_type_labels import is_hidden_body_type
+from app.model_exclusions import is_excluded_model
 from app.config import settings
 from app.db import SessionLocal
 from app.listing_catalog_link import link_listing_to_catalog
@@ -212,6 +213,14 @@ def main() -> int:
             if is_hidden_body_type(mapped.body_type):
                 skipped += 1
                 skip_reasons["hidden_body_type"] = skip_reasons.get("hidden_body_type", 0) + 1
+                continue
+            if is_excluded_model(mapped.model, title=mapped.title):
+                skipped += 1
+                skip_reasons["model_excluded"] = skip_reasons.get("model_excluded", 0) + 1
+                existing = by_external.get(mapped.external_id) if mapped.external_id else None
+                if existing and existing.status == ListingStatus.published and not args.dry_run:
+                    existing.status = ListingStatus.archived
+                    archived += 1
                 continue
             if listing_is_util_sbor_exclusion(mapped):
                 skipped += 1

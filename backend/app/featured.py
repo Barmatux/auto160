@@ -75,12 +75,17 @@ def active_featured_listings(db: Session, *, today: date | None = None) -> list[
         )
         .all()
     )
+    from app.brand_exclusions import is_excluded_brand
+    from app.model_exclusions import is_excluded_model
+
     by_id = {item.id: item for item in listings}
     customs_map = build_listing_customs_map(db, listings)
     eligible: list[CarListing] = []
     for row in rows:
         listing = by_id.get(row.listing_id)
         if listing is None:
+            continue
+        if is_excluded_brand(listing.brand) or is_excluded_model(listing.model, title=listing.title):
             continue
         customs = customs_map.get(listing.id)
         if not customs or not customs.found or not customs.release_date:

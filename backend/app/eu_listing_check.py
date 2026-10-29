@@ -175,15 +175,17 @@ def reject_eu_check_listing(db: Session, listing_id: int) -> CarListing:
 
 def _eu_check_queue_query(db: Session):
     from app.brand_exclusions import exclude_excluded_brands
+    from app.model_exclusions import exclude_excluded_models
     from app.models import CarListing
 
-    return exclude_excluded_brands(
+    query = exclude_excluded_brands(
         db.query(CarListing).filter(
             CarListing.source.in_(EU_CHECK_SOURCES),
             CarListing.eu_check_status.in_(EU_CHECK_QUEUE_STATUSES),
         ),
         CarListing.brand,
     )
+    return exclude_excluded_models(query, CarListing.model, CarListing.title)
 
 
 def count_eu_check_pending(db: Session) -> int:
