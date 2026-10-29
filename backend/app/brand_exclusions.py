@@ -8,6 +8,7 @@ from sqlalchemy import and_, or_
 EXCLUDED_BRAND_KEYS = frozenset(
     {
         "aixam",
+        "chatenet",
     }
 )
 
