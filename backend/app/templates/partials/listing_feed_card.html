@@ -37,7 +37,7 @@
     {% if listing.engine_type %}<span>{{ listing.engine_type }}</span>{% endif %}
     {% if listing.transmission_type %}<span>{{ listing.transmission_type }}</span>{% endif %}
     {% if listing.drive_type %}<span>{{ listing.drive_type }}</span>{% endif %}
-    {% if listing.body_type %}<span>{{ listing.body_type | body_type_label }}</span>{% endif %}
+    {% if listings_market != 'eu' and listing.body_type %}<span>{{ listing.body_type | body_type_label }}</span>{% endif %}
   </div>
   {% set show_description = (listings_market is not defined or listings_market in ('by', 'lt', 'ee')) and (listing.source or '') != 'mobile_de' %}
   {% set clean_description = listing.description | listing_display_description %}
