@@ -75,7 +75,6 @@ SELECT
 FROM listings
 WHERE source = %s
   AND status = 'active'
-  AND detail_scraped IS TRUE
 ORDER BY id DESC
 """
 
@@ -217,6 +216,11 @@ def main() -> int:
             if mapped.skip_reason:
                 skipped += 1
                 skip_reasons[mapped.skip_reason] = skip_reasons.get(mapped.skip_reason, 0) + 1
+                # Incomplete scrape detail is temporary — keep the listing and do not
+                # let archive_sync treat it as removed from Auto24.
+                if mapped.skip_reason == "detail_not_scraped" and mapped.external_id:
+                    active_external_ids.add(mapped.external_id)
+                    continue
                 existing = by_external.get(mapped.external_id) if mapped.external_id else None
                 if existing and not args.dry_run and archive_eu_listing_on_hard_skip(existing):
                     archived += 1
