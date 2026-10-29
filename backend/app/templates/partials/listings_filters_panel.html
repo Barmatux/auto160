@@ -11,6 +11,35 @@
     {% set selected_location_regions = listings_filters.filters.location_regions %}
     {% set selected_location_cities = listings_filters.filters.location_cities %}
     <div class="catalog-filter-group">
+      {% if listings_market == "eu" %}
+      <label class="catalog-filter-field inline-checkbox{% if listings_filters.filters.passable %} is-active{% endif %}">
+        <input
+          type="checkbox"
+          name="passable"
+          value="1"
+          {% if listings_filters.filters.passable %}checked{% endif %}
+          onchange="this.form.requestSubmit()"
+        />
+        <span>Проходные (3-5 лет)</span>
+      </label>
+      {% endif %}
+      <div class="catalog-filter-field catalog-filter-year-range{% if listings_filters.filters.year_from or listings_filters.filters.year_to %} is-active{% endif %}">
+        <span class="catalog-filter-field-label">Год</span>
+        <div class="catalog-filter-year-range-inputs">
+          <select name="year_from">
+            <option value="" {% if listings_filters.filters.year_from == "" %}selected{% endif %}>от</option>
+            {% for year in listings_filters.options.years %}
+              <option value="{{ year }}" {% if listings_filters.filters.year_from == year %}selected{% endif %}>{{ year }}</option>
+            {% endfor %}
+          </select>
+          <select name="year_to">
+            <option value="" {% if listings_filters.filters.year_to == "" %}selected{% endif %}>до</option>
+            {% for year in listings_filters.options.years %}
+              <option value="{{ year }}" {% if listings_filters.filters.year_to == year %}selected{% endif %}>{{ year }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
       <div
         class="catalog-filter-field catalog-multi-select{% if selected_location_regions or selected_location_cities %} is-active{% endif %}"
         data-catalog-multi-select
@@ -225,23 +254,6 @@
           {% endfor %}
         </div>
         <div class="catalog-multi-select-values"></div>
-      </div>
-      <div class="catalog-filter-field catalog-filter-year-range{% if listings_filters.filters.year_from or listings_filters.filters.year_to %} is-active{% endif %}">
-        <span class="catalog-filter-field-label">Год</span>
-        <div class="catalog-filter-year-range-inputs">
-          <select name="year_from">
-            <option value="" {% if listings_filters.filters.year_from == "" %}selected{% endif %}>от</option>
-            {% for year in listings_filters.options.years %}
-              <option value="{{ year }}" {% if listings_filters.filters.year_from == year %}selected{% endif %}>{{ year }}</option>
-            {% endfor %}
-          </select>
-          <select name="year_to">
-            <option value="" {% if listings_filters.filters.year_to == "" %}selected{% endif %}>до</option>
-            {% for year in listings_filters.options.years %}
-              <option value="{{ year }}" {% if listings_filters.filters.year_to == year %}selected{% endif %}>{{ year }}</option>
-            {% endfor %}
-          </select>
-        </div>
       </div>
       <div class="catalog-filter-field catalog-filter-year-range{% if listings_filters.filters.mileage_from != "" or listings_filters.filters.mileage_to != "" %} is-active{% endif %}">
         <span class="catalog-filter-field-label">Пробег</span>

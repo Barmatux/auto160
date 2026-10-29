@@ -223,6 +223,9 @@ from app.listing_import_age import (
     parse_import_age_filters,
     paginate_query_with_import_age,
 )
+from app.listing_passable_age import (
+    paginate_query_with_passable_age,
+)
 from app.listing_price_filter import (
     apply_listings_price_range_filter,
     listing_price_range_options,
@@ -2991,7 +2994,8 @@ def listings_page(
     if parsed_mileage_to is not None:
         query = query.filter(CarListing.mileage <= parsed_mileage_to)
     query = apply_listings_price_range_filter(query, price_range)
-    if passable:
+    # BY / legacy: calendar-year passable band. EU uses first-registration age window below.
+    if passable and listings_market != "eu":
         year_min, year_max = _passable_year_bounds()
         query = query.filter(CarListing.year >= year_min, CarListing.year <= year_max)
     query = _apply_freshness_filter(query, freshness)
@@ -3015,6 +3019,13 @@ def listings_page(
             db,
             query,
             selection=import_age_selection,
+            page=page,
+            page_size=page_size,
+        )
+        offset = (page - 1) * page_size
+    elif passable and listings_market == "eu":
+        listings, total = paginate_query_with_passable_age(
+            query,
             page=page,
             page_size=page_size,
         )
