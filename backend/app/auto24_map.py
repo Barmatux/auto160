@@ -428,9 +428,30 @@ def extract_registration_ym(row: dict[str, Any]) -> str | None:
     return parse_registration_ym(row.get("title"))
 
 
+_TITLE_UI_NOISE_RE = re.compile(
+    r"\b(?:Salvestatud|Сохранено|Saved|Добавлено в избранное|Added to favorites|"
+    r"Lisatud lemmikutesse)\b.*$",
+    re.IGNORECASE,
+)
+_TITLE_UPDATED_RE = re.compile(
+    r"\s*(?:Обновлено|Updated|Uuendatud)\b.*$",
+    re.IGNORECASE,
+)
+
+
+def clean_auto24_title(title: str | None) -> str:
+    """Strip Auto24 UI chrome glued into the listing h1."""
+    cleaned = (title or "").strip()
+    if not cleaned:
+        return ""
+    cleaned = _TITLE_UI_NOISE_RE.sub("", cleaned).strip()
+    cleaned = _TITLE_UPDATED_RE.sub("", cleaned).strip(" -–—")
+    return cleaned.strip()
+
+
 def _title_with_registration_ym(title: str, reg_ym: str | None) -> str:
     """Persist YYYY-MM in title (Autoplius-compatible «2023-01 m.» marker)."""
-    cleaned = (title or "").strip()
+    cleaned = clean_auto24_title(title)
     if not reg_ym:
         return cleaned
     if _REG_YM_IN_TITLE.search(cleaned):

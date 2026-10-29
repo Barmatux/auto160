@@ -118,3 +118,32 @@ def test_map_embeds_registration_month_in_title():
     assert mapped.photo_storage_keys == ["auto24/123/000_abc.jpg"]
     assert mapped.cover_photo_url == "/media/object?key=auto24%2F123%2F000_abc.jpg"
     assert mapped.photo_urls == ["/media/object?key=auto24%2F123%2F000_abc.jpg"]
+
+
+def test_map_uses_first_reg_and_strips_title_chrome():
+    from app.auto24_map import clean_auto24_title
+
+    assert (
+        clean_auto24_title(
+            "Kia Sportage LX 1.6 110кВ - Viking Motors Добавлено в избранное 0 раз(a) Обновлено 19 мин. назад"
+        )
+        == "Kia Sportage LX 1.6 110кВ - Viking Motors"
+    )
+    row = {
+        "external_id": "4365743",
+        "title": "Kia Sportage 1.6 110кВ Добавлено в избранное 0 раз(a) Обновлено -1 дн. назад",
+        "year": 2022,
+        "price_eur": 19900,
+        "mileage_km": 40000,
+        "body_type": "универсал",
+        "fuel": "бензин",
+        "transmission": "механическая КП",
+        "engine": "1.6 110кВ",
+        "url": "https://rus.auto24.ee/vehicles/4365743",
+        "detail_scraped": True,
+        "parameters": {"first_reg": "10/2022", "location": "Tallinn"},
+    }
+    mapped = map_auto24_row(row, eur_rate=None, max_hp=None, max_age_years=None, max_engine_l=None)
+    assert mapped.skip_reason is None
+    assert mapped.title == "Kia Sportage 1.6 110кВ 2022-10 m."
+    assert "избранное" not in mapped.title
