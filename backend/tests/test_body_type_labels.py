@@ -51,11 +51,12 @@ def test_hides_non_car_and_commercial_body_types():
         "Другое",
         "Коммерческий",
         "Грузовые микроавтобусы",
-        "Пассажирский микроавтобус",
+        "Грузовой микроавтобус",
         "Мотоцикл для кросса",
         "Эндуро / аdventure",
         "Затяжелитель",
     ):
         assert is_hidden_body_type(value), value
+    assert not is_hidden_body_type("Пассажирский микроавтобус")
     assert not is_hidden_body_type("Универсал")
     assert not is_hidden_body_type("Внедорожник / Кроссовер")

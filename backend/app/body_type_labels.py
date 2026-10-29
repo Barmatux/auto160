@@ -47,14 +47,14 @@ BODY_TYPE_ALIASES: dict[str, str] = {
 
 # Commercial / cargo / non-car types that are out of scope for Auto160 (EU + BY feeds).
 HIDDEN_BODY_TYPE_LABELS = frozenset({"Пикап", "Другое"})
+# Passenger minibuses («пассажирский микроавтобус») are allowed — do not use bare «микроавтобус».
 HIDDEN_BODY_TYPE_MARKERS = (
     "пикап",
     "pickup",
     "другое",
     "other",
     "коммерческ",
-    "грузов",
-    "микроавтобус",
+    "грузов",  # грузовой / грузовые микроавтобусы
     "мотоцикл",
     "motorcycle",
     "эндуро",
