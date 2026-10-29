@@ -3315,7 +3315,7 @@ body.vin-enter-modal-open {
 
 .catalog-page .vehicle-hierarchy-label {
   font-weight: 600;
-  color: #334155;
+  color: var(--text, #334155);
 }
 
 .catalog-page .vehicle-hierarchy-field select {

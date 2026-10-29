@@ -620,6 +620,10 @@ body.theme-admin .catalog-page .vehicle-hierarchy-field select:disabled {
   color: var(--text);
 }
 
+body.theme-admin:not(.theme-admin-light) .catalog-page .vehicle-hierarchy-label {
+  color: #fff;
+}
+
 body.theme-admin .catalog-make-card .make-logo-wrap:hover,
 body.theme-admin .catalog-make-card .make-logo-wrap:focus-visible {
   background: rgba(0, 168, 255, 0.12);

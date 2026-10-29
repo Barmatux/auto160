@@ -957,13 +957,26 @@ def _apply_passable_catalog_filter(query):
     )
 
 
-def _listing_brand_model_map(db: Session, *, published_only: bool = True) -> dict[str, list[str]]:
-    query = db.query(CarListing.brand, CarListing.model).filter(
-        CarListing.brand.isnot(None),
-        CarListing.model.isnot(None),
+def _listing_brand_model_map(
+    db: Session,
+    *,
+    published_only: bool = True,
+    listings_market: str | None = None,
+) -> dict[str, list[str]]:
+    query = exclude_hidden_body_type(
+        db.query(CarListing.brand, CarListing.model).filter(
+            CarListing.brand.isnot(None),
+            CarListing.model.isnot(None),
+        ),
+        CarListing.body_type,
     )
     if published_only:
         query = query.filter(CarListing.status == ListingStatus.published)
+    query = _apply_listings_market_source_filter(query, listings_market)
+    if listings_market == "eu":
+        from app.eu_listing_check import public_eu_listing_predicate
+
+        query = query.filter(public_eu_listing_predicate())
     rows = query.distinct().order_by(CarListing.brand.asc(), CarListing.model.asc()).all()
     mapping: dict[str, list[str]] = {}
     for brand, model in rows:
@@ -973,6 +986,40 @@ def _listing_brand_model_map(db: Session, *, published_only: bool = True) -> dic
     for brand, models in mapping.items():
         mapping[brand] = sorted(set(models))
     return mapping
+
+
+def _listing_brand_model_generation_map(
+    db: Session,
+    *,
+    published_only: bool = True,
+    listings_market: str | None = None,
+) -> dict[str, dict[str, list[str]]]:
+    query = exclude_hidden_body_type(
+        db.query(CarListing.brand, CarListing.model, CarListing.generation).filter(
+            CarListing.brand.isnot(None),
+            CarListing.model.isnot(None),
+            CarListing.generation.isnot(None),
+        ),
+        CarListing.body_type,
+    )
+    if published_only:
+        query = query.filter(CarListing.status == ListingStatus.published)
+    query = _apply_listings_market_source_filter(query, listings_market)
+    if listings_market == "eu":
+        from app.eu_listing_check import public_eu_listing_predicate
+
+        query = query.filter(public_eu_listing_predicate())
+    rows = query.distinct().all()
+    mapping: dict[str, dict[str, set[str]]] = {}
+    for brand, model, generation in rows:
+        if not brand or not model or not generation:
+            continue
+        canonical_model = _canonical_model_name(model)
+        mapping.setdefault(brand, {}).setdefault(canonical_model, set()).add(generation)
+    return {
+        brand: {model: sorted(generations) for model, generations in models.items()}
+        for brand, models in mapping.items()
+    }
 
 
 FOREIGN_LISTING_SOURCES = ("autoplius", "auto24", "mobile_de")
@@ -1184,8 +1231,21 @@ def _listings_filters_payload(
             model = _canonical_model_name(catalog_item.model) or model
             generation = catalog_item.generation or generation
     vehicle_rows = _parse_vehicle_filter_rows(query, make_key="brand", model_key="model", generation_key="generation")
-    brand_model_map = _merged_listing_brand_model_map(db, published_only=published_only)
-    brand_model_generation_map = _make_model_generation_map(db)
+    if listings_market == "eu":
+        # Europe feed: only brands/models present in published EU listings (not full catalog).
+        brand_model_map = _listing_brand_model_map(
+            db,
+            published_only=published_only,
+            listings_market="eu",
+        )
+        brand_model_generation_map = _listing_brand_model_generation_map(
+            db,
+            published_only=published_only,
+            listings_market="eu",
+        )
+    else:
+        brand_model_map = _merged_listing_brand_model_map(db, published_only=published_only)
+        brand_model_generation_map = _make_model_generation_map(db)
     model_options = brand_model_map.get(brand, []) if brand else []
     generation_options = brand_model_generation_map.get(brand, {}).get(model, []) if brand and model else []
     body_type_raw = _listing_body_type_values(
@@ -1408,7 +1468,7 @@ def _generation_listings_url(db: Session, item: CatalogItem) -> str | None:
 
 
 def _merged_listing_brand_model_map(db: Session, *, published_only: bool = True) -> dict[str, list[str]]:
-    listing_map = _listing_brand_model_map(db, published_only=published_only)
+    listing_map = _listing_brand_model_map(db, published_only=published_only, listings_market="by")
     catalog_map = _make_model_map(db)
     merged: dict[str, set[str]] = {}
     for brand in set(listing_map) | set(catalog_map):
