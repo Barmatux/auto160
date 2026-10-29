@@ -29,6 +29,7 @@ from app.auto24_map import (
     map_auto24_row,
 )
 from app.body_type_labels import is_hidden_body_type
+from app.brand_exclusions import is_excluded_brand
 from app.config import settings
 from app.db import SessionLocal
 from app.eu_listing_check import apply_eu_check_on_import, archive_eu_listing_on_hard_skip
@@ -215,6 +216,13 @@ def main() -> int:
             if mapped.skip_reason:
                 skipped += 1
                 skip_reasons[mapped.skip_reason] = skip_reasons.get(mapped.skip_reason, 0) + 1
+                existing = by_external.get(mapped.external_id) if mapped.external_id else None
+                if existing and not args.dry_run and archive_eu_listing_on_hard_skip(existing):
+                    archived += 1
+                continue
+            if is_excluded_brand(mapped.brand):
+                skipped += 1
+                skip_reasons["brand_excluded"] = skip_reasons.get("brand_excluded", 0) + 1
                 existing = by_external.get(mapped.external_id) if mapped.external_id else None
                 if existing and not args.dry_run and archive_eu_listing_on_hard_skip(existing):
                     archived += 1

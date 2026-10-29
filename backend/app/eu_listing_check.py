@@ -138,16 +138,16 @@ def reject_eu_check_listing(db: Session, listing_id: int) -> CarListing:
 
 
 def count_eu_check_pending(db: Session) -> int:
+    from app.brand_exclusions import exclude_excluded_brands
     from app.models import CarListing
 
-    return (
-        db.query(CarListing)
-        .filter(
+    return exclude_excluded_brands(
+        db.query(CarListing).filter(
             CarListing.source.in_(EU_CHECK_SOURCES),
             CarListing.eu_check_status == EU_CHECK_PENDING,
-        )
-        .count()
-    )
+        ),
+        CarListing.brand,
+    ).count()
 
 
 def paginate_eu_check_pending(
@@ -159,11 +159,15 @@ def paginate_eu_check_pending(
 ) -> tuple[list[CarListing], int]:
     from sqlalchemy import or_
 
+    from app.brand_exclusions import exclude_excluded_brands
     from app.models import CarListing
 
-    query = db.query(CarListing).filter(
-        CarListing.source.in_(EU_CHECK_SOURCES),
-        CarListing.eu_check_status == EU_CHECK_PENDING,
+    query = exclude_excluded_brands(
+        db.query(CarListing).filter(
+            CarListing.source.in_(EU_CHECK_SOURCES),
+            CarListing.eu_check_status == EU_CHECK_PENDING,
+        ),
+        CarListing.brand,
     )
     needle = (q or "").strip()
     if needle:
