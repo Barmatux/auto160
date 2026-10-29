@@ -145,35 +145,8 @@ def test_lookup_public_import_date_customs_site_error(monkeypatch):
     assert "timeout" not in (result.message or "").lower()
 
 
-def test_lookup_public_import_date_not_found_when_reference_ok(monkeypatch):
-    from app.customs_vin import CUSTOMS_NOT_FOUND_MESSAGE, CUSTOMS_REFERENCE_VIN, normalize_vin
-
-    class FakeResult:
-        found = False
-        release_date = None
-
-    class RefResult:
-        found = True
-        release_date = "01.01.2020"
-
-    def fake_lookup(db, vin, **kwargs):
-        if normalize_vin(vin) == CUSTOMS_REFERENCE_VIN:
-            return RefResult()
-        return FakeResult()
-
-    monkeypatch.setattr("app.featured.lookup_customs_vin", fake_lookup)
-    monkeypatch.setattr("app.customs_vin.lookup_customs_vin", fake_lookup)
-    monkeypatch.setattr("app.featured.vin_is_valid", lambda vin: True)
-    monkeypatch.setattr("app.featured.normalize_vin", lambda vin: vin.upper())
-
-    result = lookup_public_import_date(MagicMock(), "WBA3A5C50EF123456")
-    assert result.ok is True
-    assert result.customs_found is False
-    assert result.customs_status == "not_found"
-    assert result.message == CUSTOMS_NOT_FOUND_MESSAGE
-
-
-def test_lookup_public_import_date_not_found_when_reference_also_missing(monkeypatch):
+def test_lookup_public_import_date_miss_always_unavailable(monkeypatch):
+    """Public Проверка: GTK miss → unavailable, never definitive not-found."""
     from app.customs_vin import CUSTOMS_SITE_UNAVAILABLE_MESSAGE
 
     class FakeResult:
@@ -182,10 +155,6 @@ def test_lookup_public_import_date_not_found_when_reference_also_missing(monkeyp
 
     monkeypatch.setattr(
         "app.featured.lookup_customs_vin",
-        lambda db, vin, **kwargs: FakeResult(),
-    )
-    monkeypatch.setattr(
-        "app.customs_vin.lookup_customs_vin",
         lambda db, vin, **kwargs: FakeResult(),
     )
     monkeypatch.setattr("app.featured.vin_is_valid", lambda vin: True)

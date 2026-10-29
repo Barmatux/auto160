@@ -369,9 +369,6 @@
     if (verdict.detail) {
       bits.push('<p class="inspection-verdict-detail">' + escapeHtml(verdict.detail) + "</p>");
     }
-    if (verdict.code === "not_found") {
-      bits.push(renderReasons(verdict.reasons));
-    }
     bits.push(renderShareBlock(data));
     if (verdict.code === "customs_unavailable" || data.customs_status === "unavailable") {
       bits.push(renderNotifyBlock(data));

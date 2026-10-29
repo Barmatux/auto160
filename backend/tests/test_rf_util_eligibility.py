@@ -112,7 +112,8 @@ def test_gtk_not_found_without_status_treated_as_unavailable():
     assert verdict.cta == "notify"
 
 
-def test_gtk_not_found_confirmed_by_canary():
+def test_gtk_not_found_confirmed_shown_as_unavailable():
+    """Public page never shows definitive «не найдено» — same as downtime."""
     verdict = evaluate_rf_util_eligibility(
         release_date=None,
         power_hp=110,
@@ -122,8 +123,8 @@ def test_gtk_not_found_confirmed_by_canary():
         customs_status="not_found",
         today=TODAY,
     )
-    assert verdict.code == "not_found"
-    assert verdict.cta == "select"
+    assert verdict.code == "customs_unavailable"
+    assert verdict.cta == "notify"
 
 
 def test_customs_unavailable():

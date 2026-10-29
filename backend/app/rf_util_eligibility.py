@@ -27,7 +27,6 @@ VerdictCode = Literal[
     "no_date",
     "no_power",
     "vin_only",
-    "not_found",
     "customs_unavailable",
 ]
 
@@ -46,20 +45,6 @@ class RfUtilVerdict:
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
-
-
-def not_found_reasons(*, input_kind: str) -> list[str]:
-    first = (
-        "в объявлении указан неверный VIN (ошибка или намеренно)"
-        if input_kind == "avby_url"
-        else "неправильно введён VIN"
-    )
-    return [
-        first,
-        "автомобиль продан новым на территории Беларуси",
-        "автомобиль ввезён из РФ",
-        "автомобиль оформлен в особом порядке без растаможки на территории ЕАЭС",
-    ]
 
 
 def format_display_date(value: date) -> str:
@@ -157,11 +142,15 @@ def evaluate_rf_util_eligibility(
 
     status = customs_status
     if status is None:
-        # «Не найдено» from GTK is unreliable (DB flaps) — treat as unavailable.
         if customs_found is False:
             status = "unavailable"
         elif customs_found is True:
             status = "found"
+
+    # Public Проверка: never show a definitive «не найдено» — GTK flaps / incomplete
+    # personal DB make it unreliable. Same retry/notify UX as downtime.
+    if status == "not_found" or (status is None and customs_found is False):
+        status = "unavailable"
 
     if status == "unavailable":
         return RfUtilVerdict(
@@ -179,16 +168,6 @@ def evaluate_rf_util_eligibility(
 
     if input_kind == "vin":
         # VIN-only: no power/volume from the advert — show customs date context only.
-        if status == "not_found" or customs_found is False:
-            return RfUtilVerdict(
-                code="not_found",
-                tone="neutral",
-                title="В базе ГТК (физлица) запись не найдена",
-                detail="Это не означает нелегальный ввоз.",
-                cta="none",
-                checks={"import_date": False, "power": None, "volume": None},
-                reasons=not_found_reasons(input_kind="vin"),
-            )
         if not release_date:
             return RfUtilVerdict(
                 code="no_date",
@@ -213,17 +192,6 @@ def evaluate_rf_util_eligibility(
         )
 
     # av.by URL path
-    if status == "not_found" or customs_found is False:
-        return RfUtilVerdict(
-            code="not_found",
-            tone="neutral",
-            title="В базе ГТК (физлица) запись не найдена",
-            detail="Без даты ввоза нельзя подтвердить проходной срок для льготного утильсбора.",
-            cta="select",
-            checks={**checks, "import_date": False},
-            reasons=not_found_reasons(input_kind="avby_url"),
-        )
-
     if power_hp is None or power_hp <= 0:
         return RfUtilVerdict(
             code="no_power",
