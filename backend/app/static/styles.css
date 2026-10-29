@@ -249,6 +249,16 @@ body {
 .eu-check-table .eu-check-links a.btn-link {
   color: #000;
 }
+
+.eu-check-table .eu-check-btn-show {
+  background: linear-gradient(180deg, #22c55e, #16a34a);
+  color: #fff;
+}
+
+.eu-check-table .eu-check-btn-hide {
+  background: linear-gradient(180deg, #ef4444, #dc2626);
+  color: #fff;
+}
 .auth-cabinet-tabs {
   display: grid;
   grid-template-columns: 1fr 1fr;

@@ -397,6 +397,23 @@ body.theme-admin .eu-check-table .eu-check-links a.btn-link:hover {
   filter: brightness(1.08);
 }
 
+body.theme-admin .eu-check-table .eu-check-btn-show {
+  background: #22c55e;
+  color: #041018;
+  font-weight: 700;
+}
+
+body.theme-admin .eu-check-table .eu-check-btn-hide {
+  background: #ef4444;
+  color: #fff;
+  font-weight: 700;
+}
+
+body.theme-admin .eu-check-table .eu-check-btn-show:hover,
+body.theme-admin .eu-check-table .eu-check-btn-hide:hover {
+  filter: brightness(1.08);
+}
+
 /* Chat “Помощник” — light text on pale button was unreadable in dark theme */
 body.theme-admin:not(.theme-admin-light) .a160-chat-toggle {
   background: var(--brand-cta);
