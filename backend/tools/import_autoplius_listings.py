@@ -120,7 +120,11 @@ def _apply_mapped(
     listing.brand = mapped.brand or ""
     listing.model = mapped.model or ""
     listing.year = int(mapped.year or 0)
-    listing.mileage = int(mapped.mileage or 0)
+    # Incomplete Autoplius detail often lacks mileage_km — do not wipe a known value with 0.
+    if mapped.mileage is not None:
+        listing.mileage = int(mapped.mileage)
+    elif not listing.mileage:
+        listing.mileage = 0
     listing.city = (mapped.city or "Литва")[:80]
     listing.body_type = mapped.body_type
     listing.engine_type = ((mapped.engine_type or "").strip() or None)
