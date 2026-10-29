@@ -45,6 +45,61 @@ def test_extract_engine_capacity_from_parameters_when_column_missing():
     assert extract_engine_capacity_l(row) == 1.3
 
 
+def test_extract_engine_capacity_from_autoplius_url_slug():
+    row = {
+        "engine_liters": None,
+        "engine": "",
+        "parameters": {},
+        "title": "Mercedes-Benz E220",
+        "url": (
+            "https://ru.autoplius.lt/objavlenija/"
+            "mercedes-benz-e220-2-1-l-universal-2022-dizel-elyektrichyestvo-31826761.html"
+        ),
+    }
+    assert extract_engine_capacity_l(row) == 2.1
+
+
+def test_extract_hp_from_kw_in_description():
+    row = {
+        "parameters": {},
+        "title": "Mercedes-Benz E220",
+        "description_ru": "гибридной силовой установкой мощностью 147 kW. Отличное сочетание",
+    }
+    assert extract_engine_power_hp(row) == 200  # round(147 * 1.35962)
+
+
+def test_map_skips_over_engine_from_url_when_params_empty():
+    rate = EurRate(rate=3.5, scale=1, rate_date=__import__("datetime").date(2026, 9, 14))
+    row = {
+        "external_id": "31826761",
+        "title": "Mercedes-Benz E220",
+        "year": "2022",
+        "price_eur": 15900,
+        "mileage_km": 224300,
+        "city": "Вильнюс",
+        "body_type": "Универсал",
+        "fuel": "Дизель / электричество",
+        "transmission": "Автоматическая",
+        "engine_liters": None,
+        "engine": "",
+        "url": (
+            "https://ru.autoplius.lt/objavlenija/"
+            "mercedes-benz-e220-2-1-l-universal-2022-dizel-elyektrichyestvo-31826761.html"
+        ),
+        "photo_url": "/media/object?key=autoplius%2F31826761%2F000_a.jpg",
+        "photo_urls": ["/media/object?key=autoplius%2F31826761%2F000_a.jpg"],
+        "detail_scraped": True,
+        "parameters": {},
+        "raw": {},
+        "description_ru": "силовой установкой мощностью 147 kW",
+    }
+    mapped = map_autoplius_row(row, eur_rate=rate, max_hp=160, max_age_years=5, max_engine_l=1.9)
+    assert mapped.engine_capacity_l == 2.1
+    assert mapped.engine_power_hp == 200
+    assert mapped.check_reason is None
+    assert mapped.skip_reason == "hp_over_160"
+
+
 def test_map_recovers_engine_l_from_parameters():
     rate = EurRate(rate=3.5, scale=1, rate_date=__import__("datetime").date(2026, 9, 14))
     row = {

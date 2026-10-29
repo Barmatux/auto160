@@ -38,13 +38,23 @@ _TITLE_SPLIT_RE = re.compile(r"\s*,\s*")
 _YEAR_RE = re.compile(r"(19|20)\d{2}")
 _HP_RE = re.compile(r"(\d+)\s*\u041b\.?\s*\u0421", re.IGNORECASE)
 _HP_LATIN_RE = re.compile(r"(\d+)\s*(?:HP|hp|PS|ps)\b")
-_ENGINE_L_RE = re.compile(r"(\d+[.,]\d+)\s*l\b", re.IGNORECASE)
+_KW_RE = re.compile(
+    r"(\d+(?:[.,]\d+)?)\s*(?:k\s*w|к\s*в(?:\s*т)?)\b",
+    re.IGNORECASE,
+)
+_ENGINE_L_RE = re.compile(
+    r"(\d+[.,]\d+)\s*(?:l|л)\b",
+    re.IGNORECASE,
+)
+# Autoplius slug: mercedes-benz-e220-2-1-l-universal-...
+_ENGINE_L_SLUG_RE = re.compile(r"(?<![\d])(\d+)-(\d+)-l(?=-|_|\.|/|$)", re.IGNORECASE)
 _ENGINE_CC_RE = re.compile(
     r"(\d{3,4})\s*(?:cm\u00b3|cm3|\u0441\u043c\u00b3|\u0441\u043c\s*\u00b3|\u0441\u043c\.?\s*\u043a\u0443\u0431)",
     re.IGNORECASE,
 )
 _ENGINE_KEY = "\u0414\u0432\u0438\u0433\u0430\u0442\u0435\u043b\u044c"  # Двигатель
 _ENGINE_CC_KEY = "\u041e\u0431\u044a\u0451\u043c \u0434\u0432\u0438\u0433\u0430\u0442\u0435\u043b\u044f, \u0441\u043c\u00b3"  # Объём двигателя, см³
+KW_TO_HP = 1.35962
 
 MULTI_WORD_BRANDS = (
     "Mercedes-Benz",
@@ -174,6 +184,24 @@ def _param_maps(row: dict[str, Any]) -> list[dict[str, Any]]:
     return maps
 
 
+def _hp_from_text(text: str | None) -> int | None:
+    if not text:
+        return None
+    cleaned = str(text)
+    match = _HP_RE.search(cleaned) or _HP_LATIN_RE.search(cleaned)
+    if match:
+        hp = int(match.group(1))
+        if 1 <= hp <= 2000:
+            return hp
+    match = _KW_RE.search(cleaned)
+    if match:
+        kw = float(match.group(1).replace(",", "."))
+        hp = int(round(kw * KW_TO_HP))
+        if 1 <= hp <= 2000:
+            return hp
+    return None
+
+
 def extract_engine_power_hp(row: dict[str, Any]) -> int | None:
     for params in _param_maps(row):
         engine = params.get(_ENGINE_KEY)
@@ -185,12 +213,14 @@ def extract_engine_power_hp(row: dict[str, Any]) -> int | None:
                     break
         if not engine:
             continue
-        text = str(engine)
-        match = _HP_RE.search(text) or _HP_LATIN_RE.search(text)
-        if match:
-            hp = int(match.group(1))
-            if 1 <= hp <= 2000:
-                return hp
+        hp = _hp_from_text(str(engine))
+        if hp is not None:
+            return hp
+
+    for key in ("title", "description_ru", "description", "url"):
+        hp = _hp_from_text(row.get(key))
+        if hp is not None:
+            return hp
     return None
 
 
@@ -205,6 +235,11 @@ def _liters_from_text(text: str | None) -> float | None:
         liters = float(match.group(1).replace(",", "."))
         if 0.4 <= liters <= 10:
             return liters
+    match = _ENGINE_L_SLUG_RE.search(cleaned)
+    if match:
+        liters = float(f"{match.group(1)}.{match.group(2)}")
+        if 0.4 <= liters <= 10:
+            return liters
     match = _ENGINE_CC_RE.search(cleaned)
     if match:
         liters = round(int(match.group(1)) / 1000.0, 3)
@@ -214,7 +249,7 @@ def _liters_from_text(text: str | None) -> float | None:
 
 
 def extract_engine_capacity_l(row: dict[str, Any]) -> float | None:
-    """Prefer scrape ``engine_liters``, else parse liters/cm³ from parameters / engine text."""
+    """Prefer scrape ``engine_liters``, else parse liters/cm³ from parameters / title / URL."""
     raw = row.get("engine_liters")
     if raw is not None and str(raw).strip() != "":
         try:
@@ -238,9 +273,12 @@ def extract_engine_capacity_l(row: dict[str, Any]) -> float | None:
                 text = str(value).strip()
                 if text and text not in candidates:
                     candidates.append(text)
-    engine_col = row.get("engine")
-    if engine_col is not None and str(engine_col).strip():
-        candidates.append(str(engine_col).strip())
+    for key in ("engine", "title", "url"):
+        value = row.get(key)
+        if value is not None and str(value).strip():
+            text = str(value).strip()
+            if text not in candidates:
+                candidates.append(text)
 
     for text in candidates:
         liters = _liters_from_text(text)
