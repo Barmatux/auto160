@@ -460,12 +460,17 @@ def _title_with_registration_ym(title: str, reg_ym: str | None) -> str:
 
 
 def _cdn_photo_urls(row: dict[str, Any]) -> list[str]:
-    """Original Auto24 CDN URLs from parameters (fallback when S3 keys are missing)."""
-    urls: list[str] = []
+    """Original Auto24 CDN URLs from parameters (fallback when S3 keys are missing).
+
+    Prefer the longest gallery across param maps: scrape ``raw.parameters`` often keeps
+    only the cover, while top-level ``parameters.source_photo_urls`` has the full set.
+    """
+    best: list[str] = []
     for params in _param_maps(row):
         raw_list = params.get("source_photo_urls")
         if not isinstance(raw_list, list):
             continue
+        urls: list[str] = []
         for item in raw_list:
             if not isinstance(item, str):
                 continue
@@ -473,9 +478,9 @@ def _cdn_photo_urls(row: dict[str, Any]) -> list[str]:
             if cleaned.startswith("http://") or cleaned.startswith("https://"):
                 if cleaned not in urls:
                     urls.append(cleaned)
-        if urls:
-            break
-    return urls
+        if len(urls) > len(best):
+            best = urls
+    return best
 
 
 def map_auto24_row(

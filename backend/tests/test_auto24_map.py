@@ -73,6 +73,30 @@ def test_cdn_photo_urls_from_parameters():
     ]
 
 
+def test_cdn_photo_urls_prefers_longest_gallery_over_raw_cover_only():
+    urls = _cdn_photo_urls(
+        {
+            "raw": {
+                "parameters": {
+                    "source_photo_urls": ["https://img13.img-bcg.eu/h30/abc/s1/cover.jpg"],
+                }
+            },
+            "parameters": {
+                "source_photo_urls": [
+                    "https://img13.img-bcg.eu/h30/abc/s1/1.jpg",
+                    "https://img13.img-bcg.eu/h30/abc/s1/2.jpg",
+                    "https://img13.img-bcg.eu/h30/abc/s1/3.jpg",
+                ]
+            },
+        }
+    )
+    assert urls == [
+        "https://img13.img-bcg.eu/h30/abc/s1/1.jpg",
+        "https://img13.img-bcg.eu/h30/abc/s1/2.jpg",
+        "https://img13.img-bcg.eu/h30/abc/s1/3.jpg",
+    ]
+
+
 def test_city_from_parameters_location():
     assert _city({"city": None, "parameters": {"location": "Tallinn"}}) == "Tallinn"
     assert _city({"city": "Эстония", "parameters": {"Asukoht": "Tartu"}}) == "Tartu"
