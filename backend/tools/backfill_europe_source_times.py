@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Backfill Europe listing feed timestamps from scrape first_seen_at.
 
-Sets avby_published_at / avby_renewed_at so /listings/eu sorts by source appearance
+Sets avby_published_at / avby_renewed_at so /eu sorts by source appearance
 across auto24 / autoplius / mobile_de instead of local import batch time.
 
 Bulk-seed first_seen values (same timestamp on many scrape rows) fall back to

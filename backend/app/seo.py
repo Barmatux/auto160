@@ -17,7 +17,7 @@ from app.config import settings
 from app.listing_display import build_listing_price_display
 from app.models import CarListing, CatalogItem, ListingStatus
 
-# Europe sources shown on the public /listings/eu feed (Belarus/av.by detail URLs stay out of sitemap).
+# Europe sources shown on the public /eu feed (Belarus/av.by detail URLs stay out of sitemap).
 _SITEMAP_PUBLIC_LISTING_SOURCES = ("autoplius", "auto24")
 
 SITE_NAME = "Auto160"
@@ -759,7 +759,7 @@ def build_sitemap_sections(db: Session, base_url: str) -> dict[str, list[tuple[s
         "/",
         "/catalog",
         "/by",
-        "/listings/eu",
+        "/eu",
         "/inspection",
         "/calculator",
         "/guides/vin",

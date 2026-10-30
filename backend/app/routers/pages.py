@@ -1340,6 +1340,7 @@ def _listings_filters_payload(
             "mileage_to": parsed_mileage_to if parsed_mileage_to is not None else "",
             "price_range": parse_listing_price_range(query.get("price_range")) or "",
             "passable": query.get("passable") in ("1", "true", "on"),
+            "hide_skoda": query.get("hide_skoda") in ("1", "true", "on"),
             "freshness": query.get("freshness") or "all",
             "sort": query.get("sort") or "newest",
         },
@@ -2663,7 +2664,7 @@ def _home_popular_directions() -> list[dict]:
         },
         {
             "label": "Авто из Европы",
-            "url": "/listings/eu",
+            "url": "/eu",
             "flag_key": "eu",
             "flag_src": "/static/flags/eu-wide.svg?v=20261002-05",
         },
@@ -2783,7 +2784,14 @@ def listings_coming_soon_page(request: Request, db: Session = Depends(get_db)):
 @router.get("/listings/de", include_in_schema=False)
 def listings_europe_country_redirect():
     """Legacy country tabs → unified Europe feed."""
-    return RedirectResponse(url="/listings/eu", status_code=302)
+    return RedirectResponse(url="/eu", status_code=301)
+
+
+@router.get("/listings/eu", include_in_schema=False)
+def listings_eu_legacy_redirect(request: Request):
+    """Old Europe feed URL → /eu."""
+    qs = request.url.query
+    return RedirectResponse(url="/eu" + (f"?{qs}" if qs else ""), status_code=301)
 
 
 @router.get("/by")
@@ -2797,13 +2805,14 @@ def belarus_landing_page(request: Request, db: Session = Depends(get_db)):
 
 
 @router.get("/listings")
-@router.get("/listings/eu")
+@router.get("/eu")
 def listings_page(
     request: Request,
     year_from: str | None = Query(default=None),
     year_to: str | None = Query(default=None),
     catalog_item_id: int | None = Query(default=None),
     passable: bool = Query(default=False),
+    hide_skoda: bool = Query(default=False),
     rf_passable: str | None = Query(default=None),
     import_over_10m: str | None = Query(default=None),
     freshness: str = Query(default="all"),
@@ -2812,9 +2821,9 @@ def listings_page(
     db: Session = Depends(get_db),
 ):
     path = request.url.path.rstrip("/")
-    if path.endswith("/listings/eu"):
+    if path == "/eu" or path.endswith("/listings/eu"):
         listings_market = "eu"
-        listings_base_path = "/listings/eu"
+        listings_base_path = "/eu"
     else:
         listings_market = "by"
         listings_base_path = "/listings"
@@ -2870,6 +2879,11 @@ def listings_page(
             _listings_market_source_predicate("eu"),
             public_eu_listing_predicate(),
         )
+        if hide_skoda:
+            query = query.filter(
+                ~CarListing.brand.ilike("skoda%"),
+                ~CarListing.brand.ilike("škoda%"),
+            )
     else:
         query = query.filter(_listings_market_source_predicate("by"))
 
@@ -3085,6 +3099,8 @@ def listings_page(
         query_params.append(("price_range", price_range))
     if passable:
         query_params.append(("passable", "1"))
+    if hide_skoda and listings_market == "eu":
+        query_params.append(("hide_skoda", "1"))
     if import_age_selection.rf_passable:
         query_params.append(("rf_passable", "1"))
     if import_age_selection.months_10_12:
@@ -3122,6 +3138,7 @@ def listings_page(
         or parsed_mileage_to is not None
         or price_range
         or passable
+        or (hide_skoda and listings_market == "eu")
         or import_age_selection.active
         or (freshness and freshness != "all")
         or (sort and sort != "newest")

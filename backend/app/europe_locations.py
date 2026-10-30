@@ -1,4 +1,4 @@
-"""Europe country location filter for /listings/eu."""
+"""Europe country location filter for /eu."""
 
 from __future__ import annotations
 

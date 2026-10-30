@@ -22,6 +22,16 @@
         />
         <span>Проходные (3-5 лет)</span>
       </label>
+      <label class="catalog-filter-field inline-checkbox{% if listings_filters.filters.hide_skoda %} is-active{% endif %}">
+        <input
+          type="checkbox"
+          name="hide_skoda"
+          value="1"
+          {% if listings_filters.filters.hide_skoda %}checked{% endif %}
+          onchange="this.form.requestSubmit()"
+        />
+        <span>Скрыть Skoda</span>
+      </label>
       {% endif %}
       <div class="catalog-filter-field catalog-filter-year-range{% if listings_filters.filters.year_from or listings_filters.filters.year_to %} is-active{% endif %}">
         <span class="catalog-filter-field-label">Год</span>
