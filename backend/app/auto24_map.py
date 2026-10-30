@@ -520,7 +520,9 @@ def map_auto24_row(
     if engine_l is None:
         engine_l = parse_displacement_liters(*_displacement_texts(row))
 
-    # Prefer uploaded S3 keys from scrape-platform; CDN only if keys are absent.
+    # S3 keys from scrape-platform vs original Auto24 CDN URLs in parameters.
+    # Scrape often uploads only the cover to S3 while source_photo_urls keeps the full gallery —
+    # prefer the longer set so listing pages do not show a single photo.
     photo_urls_raw = row.get("photo_urls") or []
     if not isinstance(photo_urls_raw, list):
         photo_urls_raw = []
@@ -529,35 +531,40 @@ def map_auto24_row(
     if cover_key and cover_key not in photo_keys:
         photo_keys = [cover_key, *photo_keys]
 
-    if photo_keys:
-        photo_urls = [
-            u
-            for u in (
-                absolute_media_url(
-                    key,
-                    media_base=media_base,
-                    media_bucket=media_bucket,
-                    media_endpoint=media_endpoint,
-                    use_app_proxy=use_app_proxy,
-                )
-                for key in photo_keys
-            )
-            if u
-        ]
-        cover = (
+    s3_urls = [
+        u
+        for u in (
             absolute_media_url(
-                cover_key or (photo_keys[0] if photo_keys else None),
+                key,
                 media_base=media_base,
                 media_bucket=media_bucket,
                 media_endpoint=media_endpoint,
                 use_app_proxy=use_app_proxy,
             )
-            or (photo_urls[0] if photo_urls else None)
+            for key in photo_keys
         )
-    else:
-        cdn_urls = _cdn_photo_urls(row)
+        if u
+    ]
+    cdn_urls = _cdn_photo_urls(row)
+
+    if s3_urls and (not cdn_urls or len(s3_urls) >= len(cdn_urls)):
+        photo_urls = s3_urls
+    elif cdn_urls:
         photo_urls = cdn_urls
-        cover = cdn_urls[0] if cdn_urls else None
+    else:
+        photo_urls = s3_urls
+
+    cover = (
+        absolute_media_url(
+            cover_key,
+            media_base=media_base,
+            media_bucket=media_bucket,
+            media_endpoint=media_endpoint,
+            use_app_proxy=use_app_proxy,
+        )
+        if cover_key
+        else None
+    ) or (photo_urls[0] if photo_urls else None)
 
     body_type = _normalize_lookup(row.get("body_type"), BODY_MAP)
     engine_type = _normalize_lookup(row.get("fuel"), FUEL_MAP)
