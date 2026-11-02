@@ -7421,6 +7421,13 @@ body.theme-admin .home-hero.home-hero--split .home-hero-pane-lead {
     font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
   }
 
+  .site-mobile-dock-icon--app img {
+    display: block;
+    width: 22px;
+    height: 22px;
+    border-radius: 5px;
+  }
+
   .site-mobile-dock-label {
     font-size: 9px;
     font-weight: 600;
