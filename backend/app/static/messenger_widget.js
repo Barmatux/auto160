@@ -62,7 +62,9 @@
     root.setAttribute("data-a160-messenger", "");
     root.innerHTML = `
       <button type="button" class="a160-msg-fab" data-a160-msg-fab aria-label="Сообщения">
-        <span class="a160-msg-fab-icon" aria-hidden="true">💬</span>
+        <span class="a160-msg-fab-icon" aria-hidden="true">
+          <img src="/static/icons/dock-messages.png?v=20261102-01" alt="" width="52" height="52" decoding="async" />
+        </span>
         <span class="a160-msg-fab-badge" data-a160-msg-badge hidden>0</span>
       </button>
       <div class="a160-msg-panel" data-a160-msg-panel hidden>
