@@ -79,6 +79,24 @@
     }
   });
 
+  var dock = document.querySelector("[data-mobile-dock]");
+  if (dock) {
+    var dockItems = Array.prototype.slice.call(dock.querySelectorAll("a[href]"));
+    var best = null;
+    var bestLen = -1;
+    dockItems.forEach(function (link) {
+      var href = link.getAttribute("href");
+      if (!href || href.charAt(0) !== "/") return;
+      if (path === href || (href !== "/" && path.indexOf(href) === 0)) {
+        if (href.length > bestLen) {
+          best = link;
+          bestLen = href.length;
+        }
+      }
+    });
+    if (best) best.classList.add("is-active");
+  }
+
   var THEME_COOKIE = "auto160_site_theme";
 
   function setSiteThemeCookie(theme) {
