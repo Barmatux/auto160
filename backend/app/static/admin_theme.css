@@ -794,6 +794,12 @@ body.theme-admin .catalog-main-head label {
   body.theme-admin .header-menu-line {
     background: #e2e8f0;
   }
+
+  body.header-nav-open.theme-admin .site-chrome,
+  body.header-nav-open.theme-admin.theme-admin-graphite .site-chrome {
+    z-index: 4000;
+    overflow: visible;
+  }
 }
 
 @media (max-width: 860px) {

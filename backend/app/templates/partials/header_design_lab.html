@@ -47,12 +47,10 @@
         {% if design_lab_messengers %}
           <div class="header-messengers site-topline-messengers" aria-label="Мессенджеры">
             {% for m in design_lab_messengers %}
-              {% if m.url and m.url != '#' %}
               <a
                 class="header-messenger header-messenger--{{ m.id }}"
                 href="{{ m.url }}"
-                target="_blank"
-                rel="noopener noreferrer"
+                {% if m.url != '#' %}target="_blank" rel="noopener noreferrer"{% endif %}
                 aria-label="{{ m.label }}"
                 title="{{ m.label }}"
                 data-messenger="{{ m.id }}"
@@ -65,7 +63,6 @@
                   <img class="header-messenger-logo" src="/static/icons/messengers/whatsapp.svg?v=20261023-02" alt="" width="28" height="28" decoding="async" />
                 {% endif %}
               </a>
-              {% endif %}
             {% endfor %}
           </div>
         {% endif %}
@@ -201,25 +198,11 @@
     <span class="site-mobile-dock-label">Каталог</span>
   </a>
   <a class="site-mobile-dock-item" href="/by" data-dock="by" aria-label="Авто из Беларуси">
-    <span class="site-mobile-dock-icon" aria-hidden="true">
-      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M4 15.5h16"/>
-        <path d="M6.5 15.5 8 9.5h8l1.5 6"/>
-        <circle cx="8" cy="17.5" r="1.5"/>
-        <circle cx="16" cy="17.5" r="1.5"/>
-        <path d="M9.2 12.2h5.6"/>
-      </svg>
-    </span>
+    <span class="site-mobile-dock-icon site-mobile-dock-icon--emoji" aria-hidden="true">🇧🇾</span>
     <span class="site-mobile-dock-label">Беларусь</span>
   </a>
   <a class="site-mobile-dock-item" href="/eu" data-dock="eu" aria-label="Авто из Европы">
-    <span class="site-mobile-dock-icon" aria-hidden="true">
-      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="12" cy="12" r="8.2"/>
-        <path d="M4.5 12h15"/>
-        <path d="M12 3.8c2.2 2.2 3.4 5 3.4 8.2S14.2 18 12 20.2C9.8 18 8.6 15.2 8.6 12S9.8 6 12 3.8z"/>
-      </svg>
-    </span>
+    <span class="site-mobile-dock-icon site-mobile-dock-icon--emoji" aria-hidden="true">🇪🇺</span>
     <span class="site-mobile-dock-label">Европа</span>
   </a>
   <a class="site-mobile-dock-item" href="/inspection" data-dock="inspection" aria-label="Проверка">
