@@ -659,9 +659,9 @@ body.theme-admin.theme-admin-light.design-lab .inspection-verdict-card.is-red .i
     grid-template-areas:
       "brand end"
       "rates rates";
-    align-items: start;
-    padding: 8px 10px 6px;
-    gap: 8px 10px;
+    align-items: center;
+    padding: 4px 8px 3px;
+    gap: 4px 8px;
     min-height: 0;
   }
 
@@ -681,13 +681,16 @@ body.theme-admin.theme-admin-light.design-lab .inspection-verdict-card.is-red .i
     justify-content: flex-start;
     padding: 0;
     z-index: 1;
+    font-size: 10px;
+    line-height: 1.1;
   }
 
   .site-topline-end {
     grid-area: end;
     display: flex;
-    flex-direction: column;
-    align-items: flex-end;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-end;
     gap: 6px;
   }
 
@@ -717,9 +720,9 @@ body.theme-admin.theme-admin-light.design-lab .inspection-verdict-card.is-red .i
   }
 
   body.design-lab .site-topline .brand-logo {
-    height: 40px;
+    height: 34px;
     width: auto;
-    max-width: min(180px, 48vw);
+    max-width: min(150px, 42vw);
   }
 
   /* Burger lives in topline; collapse empty second header row */
@@ -732,23 +735,23 @@ body.theme-admin.theme-admin-light.design-lab .inspection-verdict-card.is-red .i
   }
 
   body.design-lab .header-messengers {
-    height: 28px;
-    gap: 8px;
+    height: 26px;
+    gap: 5px;
     margin-right: 0;
   }
 
   body.design-lab .header-messenger,
   body.design-lab .header-messenger-logo {
-    width: 28px;
-    height: 28px;
+    width: 26px;
+    height: 26px;
   }
 
   body.design-lab .header-messenger {
-    flex-basis: 28px;
+    flex-basis: 26px;
   }
 
   body.design-lab .header-messenger--max {
-    border-radius: 8px;
+    border-radius: 7px;
   }
 }
 
@@ -7167,8 +7170,13 @@ body.theme-admin .home-hero.home-hero--split .home-hero-pane-lead {
     display: inline-flex;
     position: relative;
     z-index: 4010;
-    width: 38px;
-    height: 38px;
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+  }
+
+  .header-menu-line {
+    width: 15px;
   }
 
   .header-theme-toggle {

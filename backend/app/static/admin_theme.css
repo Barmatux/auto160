@@ -84,9 +84,9 @@ body.theme-admin.design-lab .site-topline .brand-logo {
 
 @media (max-width: 760px) {
   body.theme-admin.design-lab .site-topline .brand-logo {
-    height: 52px;
+    height: 34px;
     width: auto;
-    max-width: none;
+    max-width: min(150px, 42vw);
   }
 }
 
