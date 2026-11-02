@@ -642,7 +642,9 @@ body.theme-admin.theme-admin-light.design-lab .inspection-verdict-card.is-red .i
 }
 
 .header-nav-panel-head,
-.header-nav-mobile-only {
+.header-nav-mobile-only,
+.header-nav-operator,
+.header-actions--topline {
   display: none;
 }
 
@@ -657,7 +659,7 @@ body.theme-admin.theme-admin-light.design-lab .inspection-verdict-card.is-red .i
     grid-template-areas:
       "brand end"
       "rates rates";
-    align-items: center;
+    align-items: start;
     padding: 8px 10px 6px;
     gap: 8px 10px;
     min-height: 0;
@@ -683,6 +685,10 @@ body.theme-admin.theme-admin-light.design-lab .inspection-verdict-card.is-red .i
 
   .site-topline-end {
     grid-area: end;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
   }
 
   .site-topline-source,
@@ -696,6 +702,16 @@ body.theme-admin.theme-admin-light.design-lab .inspection-verdict-card.is-red .i
     display: inline-flex !important;
   }
 
+  .header-actions--topline {
+    display: flex;
+    position: relative;
+    top: auto;
+    right: auto;
+    margin: 0;
+    align-items: center;
+    z-index: 4010;
+  }
+
   body.design-lab .site-topline .brand--topline {
     top: 0;
   }
@@ -706,8 +722,13 @@ body.theme-admin.theme-admin-light.design-lab .inspection-verdict-card.is-red .i
     max-width: min(180px, 48vw);
   }
 
+  /* Burger lives in topline; collapse empty second header row */
   body.design-lab .header.header--design-lab {
-    padding: 4px 10px;
+    padding: 0;
+    min-height: 0;
+    height: 0;
+    overflow: visible;
+    border: none;
   }
 
   body.design-lab .header-messengers {
@@ -7146,17 +7167,8 @@ body.theme-admin .home-hero.home-hero--split .home-hero-pane-lead {
     display: inline-flex;
     position: relative;
     z-index: 4010;
-  }
-
-  /* Keep theme + burger on the top row; open nav is a full-screen panel */
-  .header-actions {
-    order: 2;
-    position: relative;
-    top: auto;
-    right: auto;
-    margin-left: auto;
-    align-items: center;
-    z-index: 4010;
+    width: 38px;
+    height: 38px;
   }
 
   .header-theme-toggle {
@@ -7165,7 +7177,6 @@ body.theme-admin .home-hero.home-hero--split .home-hero-pane-lead {
   }
 
   .header-nav-wrap {
-    order: 3;
     display: none;
     position: fixed;
     inset: 0;
@@ -7179,7 +7190,7 @@ body.theme-admin .home-hero.home-hero--split .home-hero-pane-lead {
     flex-direction: column;
     align-items: stretch;
     gap: 10px;
-    padding: 64px 16px calc(96px + env(safe-area-inset-bottom, 0px));
+    padding: 72px 16px calc(96px + env(safe-area-inset-bottom, 0px));
     border: none;
     border-radius: 0;
     overflow-y: auto;
@@ -7212,6 +7223,51 @@ body.theme-admin .home-hero.home-hero--split .home-hero-pane-lead {
 
   .header-nav-mobile-only {
     display: block;
+  }
+
+  .header-nav-operator {
+    display: block;
+    margin-top: auto;
+    padding: 16px 12px 8px;
+    border-top: 1px solid rgba(148, 163, 184, 0.22);
+  }
+
+  .header-nav-operator-kicker {
+    margin: 0 0 8px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: rgba(226, 232, 240, 0.5);
+  }
+
+  .header-nav-operator-name {
+    margin: 0 0 4px;
+    font-size: 15px;
+    font-weight: 700;
+    color: #f8fafc;
+  }
+
+  .header-nav-operator-meta {
+    margin: 0 0 2px;
+    font-size: 13px;
+    line-height: 1.35;
+    color: rgba(226, 232, 240, 0.72);
+  }
+
+  .header-nav-operator-link {
+    display: inline-block;
+    margin-top: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #38bdf8;
+    text-decoration: none;
+  }
+
+  .header-nav-operator-link:hover,
+  .header-nav-operator-link:focus-visible {
+    color: #7dd3fc;
+    text-decoration: underline;
   }
 
   .header-nav-row,
@@ -7292,15 +7348,23 @@ body.theme-admin .home-hero.home-hero--split .home-hero-pane-lead {
   .site-mobile-dock {
     display: flex;
     position: fixed;
-    left: 50%;
+    left: 10px;
+    right: 10px;
     bottom: calc(12px + env(safe-area-inset-bottom, 0px));
     z-index: 70;
-    transform: translateX(-50%);
-    width: min(520px, calc(100vw - 20px));
+    width: auto;
+    max-width: none;
+    transform: none;
     align-items: stretch;
-    justify-content: space-between;
+    justify-content: flex-start;
     gap: 2px;
-    padding: 8px 8px;
+    padding: 8px 64px 8px 6px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
     border-radius: 999px;
     background: rgba(12, 16, 24, 0.78);
     border: 1px solid rgba(255, 255, 255, 0.1);
@@ -7309,18 +7373,24 @@ body.theme-admin .home-hero.home-hero--split .home-hero-pane-lead {
     -webkit-backdrop-filter: blur(18px) saturate(1.2);
   }
 
+  .site-mobile-dock::-webkit-scrollbar {
+    display: none;
+  }
+
   .site-mobile-dock-item {
-    flex: 1 1 0;
+    flex: 0 0 auto;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     gap: 3px;
-    min-width: 0;
+    width: 58px;
+    min-width: 58px;
     padding: 6px 2px;
     border-radius: 999px;
     color: rgba(226, 232, 240, 0.72);
     text-decoration: none;
+    scroll-snap-align: start;
     transition: color 0.15s ease, background-color 0.15s ease;
   }
 
@@ -7358,9 +7428,18 @@ body.theme-admin .home-hero.home-hero--split .home-hero-pane-lead {
     pointer-events: none;
   }
 
+  /* Keep chat FAB pinned over the dock so Calculator peeks from under it */
   .a160-chat,
   .a160-msg {
-    bottom: calc(78px + env(safe-area-inset-bottom, 0px));
+    right: 12px;
+    bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+    z-index: 85;
+  }
+
+  .a160-msg-fab,
+  .a160-chat-fab {
+    width: 52px;
+    height: 52px;
   }
 
   .a160-chat-panel,

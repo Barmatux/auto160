@@ -79,6 +79,20 @@
             <span class="site-cabinet-btn-label">Личный кабинет</span>
           </a>
         {% endif %}
+        <div class="header-actions header-actions--topline">
+          <button
+            class="header-menu-toggle"
+            type="button"
+            data-header-menu-toggle
+            aria-expanded="false"
+            aria-controls="site-nav"
+            aria-label="Открыть меню"
+          >
+            <span class="header-menu-line" aria-hidden="true"></span>
+            <span class="header-menu-line" aria-hidden="true"></span>
+            <span class="header-menu-line" aria-hidden="true"></span>
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -89,6 +103,11 @@
         <span class="header-nav-panel-title">Меню</span>
       </div>
       <nav class="header-nav header-nav-row">
+        {% if is_authenticated %}
+          <a class="header-nav-mobile-only" href="/logout">Выход</a>
+        {% else %}
+          <a class="header-nav-mobile-only" href="/login">Личный кабинет</a>
+        {% endif %}
         <a href="/">Главная</a>
         <a href="/catalog">Каталог</a>
         {% if is_admin %}
@@ -98,11 +117,7 @@
         <a href="/eu">Авто из Европы</a>
         <a href="/inspection">Проверка</a>
         <a href="/calculator">Калькулятор</a>
-        {% if is_authenticated %}
-          <a class="header-nav-mobile-only" href="/logout">Выход</a>
-        {% else %}
-          <a class="header-nav-mobile-only" href="/login">Личный кабинет</a>
-        {% endif %}
+        <a class="header-nav-mobile-only" href="/requisites">Контакты</a>
         {% if is_admin %}
           <a href="/admin/users">Пользователи</a>
           <a href="/admin/avby-accounts">Аккаунты</a>
@@ -159,20 +174,13 @@
           <a href="/admin/logs">Логи</a>
         </nav>
       {% endif %}
-    </div>
-    <div class="header-actions">
-      <button
-        class="header-menu-toggle"
-        type="button"
-        data-header-menu-toggle
-        aria-expanded="false"
-        aria-controls="site-nav"
-        aria-label="Открыть меню"
-      >
-        <span class="header-menu-line" aria-hidden="true"></span>
-        <span class="header-menu-line" aria-hidden="true"></span>
-        <span class="header-menu-line" aria-hidden="true"></span>
-      </button>
+      <aside class="header-nav-operator" aria-label="Реквизиты оператора">
+        <p class="header-nav-operator-kicker">Реквизиты оператора</p>
+        <p class="header-nav-operator-name">{{ company_short_name }}</p>
+        <p class="header-nav-operator-meta">УНП {{ company_unp }}</p>
+        <p class="header-nav-operator-meta">{{ company_legal_address }}</p>
+        <a class="header-nav-operator-link" href="/requisites">Полные реквизиты</a>
+      </aside>
     </div>
   </header>
 </div>
@@ -222,6 +230,15 @@
         <path d="M8.5 12.2h.01M12 12.2h.01M15.5 12.2h.01M8.5 15.8h.01M12 15.8h.01M15.5 15.8h.01"/>
       </svg>
     </span>
-    <span class="site-mobile-dock-label">Расчёт</span>
+    <span class="site-mobile-dock-label">Калькулятор</span>
+  </a>
+  <a class="site-mobile-dock-item" href="/requisites" data-dock="contacts" aria-label="Контакты">
+    <span class="site-mobile-dock-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M8 4.5h8a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2v-11a2 2 0 0 1 2-2z"/>
+        <path d="M10 8.5h4M10 12h4M10 15.5h2.5"/>
+      </svg>
+    </span>
+    <span class="site-mobile-dock-label">Контакты</span>
   </a>
 </nav>
