@@ -16,8 +16,8 @@ SITE_THEMES = {
 SITE_THEMES_PUBLIC = {SITE_THEME_LOGO, SITE_THEME_LOGO_GRAPHITE}
 SITE_THEME_DEFAULT = SITE_THEME_LOGO
 
-# Pure black plaque of logo-admin-v8-horizontal.png
-LOGO_PLAQUE_BLACK = "#000000"
+# Match sticky chrome background so the logo plaque has no visible edge.
+LOGO_PLAQUE_BLACK = "#0b0e14"
 # Softened charcoal header used before / graphite logo fill
 LOGO_PLAQUE_GRAPHITE = "#10131a"
 
@@ -28,8 +28,8 @@ SITE_THEME_LABELS = {
 }
 
 SITE_THEME_LOGO_SRC = {
-    SITE_THEME_LOGO: "/static/brand/logo-admin-v8-header.png?v=20261022-black",
-    SITE_THEME_LOGO_GRAPHITE: "/static/brand/logo-admin-v8-header-graphite.png?v=20261022-01",
+    SITE_THEME_LOGO: "/static/brand/logo-admin-v8-header.png?v=20261103-chrome",
+    SITE_THEME_LOGO_GRAPHITE: "/static/brand/logo-admin-v8-header-graphite.png?v=20261103-chrome",
 }
 
 

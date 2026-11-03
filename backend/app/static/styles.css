@@ -652,27 +652,29 @@ body.theme-admin.theme-admin-light.design-lab .inspection-verdict-card.is-red .i
   display: none;
 }
 
-/* Phones + tablets (incl. iPad): rates on top, large logo, burger + messengers */
+/* Phones + tablets: logo left (full header height), rates top-right, actions under rates */
 @media (max-width: 1100px) {
   .site-topline-inner {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: auto auto;
     grid-template-areas:
-      "rates rates"
+      "brand rates"
       "brand end";
     align-items: center;
-    padding: 2px 8px 2px;
-    gap: 0 8px;
+    padding: 0 8px;
+    gap: 2px 8px;
     min-height: 0;
   }
 
   .site-topline .brand--topline {
     position: relative;
     grid-area: brand;
+    grid-row: 1 / span 2;
     top: 0;
     left: auto;
     z-index: 1;
-    align-self: center;
+    align-self: stretch;
     display: inline-flex;
     align-items: center;
     padding: 0;
@@ -680,14 +682,16 @@ body.theme-admin.theme-admin-light.design-lab .inspection-verdict-card.is-red .i
 
   .site-topline-rates {
     grid-area: rates;
-    justify-self: stretch;
-    justify-content: flex-start;
-    padding: 3px 0 0;
+    justify-self: end;
+    justify-content: flex-end;
+    align-self: end;
+    padding: 2px 0 0;
     margin: 0;
     border: none;
     z-index: 1;
     font-size: 10px;
     line-height: 1.1;
+    max-width: min(58vw, 280px);
   }
 
   .site-topline-end {
@@ -696,8 +700,9 @@ body.theme-admin.theme-admin-light.design-lab .inspection-verdict-card.is-red .i
     flex-direction: row;
     align-items: center;
     justify-content: flex-end;
-    align-self: center;
+    align-self: start;
     gap: 6px;
+    padding-bottom: 2px;
   }
 
   .site-topline-source,
@@ -726,9 +731,9 @@ body.theme-admin.theme-admin-light.design-lab .inspection-verdict-card.is-red .i
   }
 
   body.design-lab .site-topline .brand-logo {
-    height: 48px;
+    height: 56px;
     width: auto;
-    max-width: min(210px, 52vw);
+    max-width: min(240px, 58vw);
   }
 
   /* Burger lives in topline; collapse empty second header row */
@@ -766,48 +771,49 @@ body.theme-admin.theme-admin-light.design-lab .inspection-verdict-card.is-red .i
   }
 }
 
-/* iPad: slightly larger logo / controls, still no divider under rates */
+/* iPad: logo + actions flush to top, taller logo, tighter chrome */
 @media (min-width: 768px) and (max-width: 1100px) {
   .site-topline-inner {
-    padding: 2px 12px 2px;
-    gap: 0 12px;
+    padding: 0 10px;
+    gap: 1px 10px;
   }
 
   .site-topline-rates {
-    justify-content: center;
-    padding: 4px 0 0;
+    padding: 1px 0 0;
     font-size: 11px;
-    line-height: 1.2;
+    line-height: 1.15;
+    max-width: min(52vw, 360px);
+  }
+
+  .site-topline-end {
+    padding-bottom: 1px;
+    gap: 8px;
   }
 
   body.design-lab .site-topline .brand-logo,
   body.theme-admin.design-lab .site-topline .brand-logo {
-    height: 58px;
-    max-width: min(260px, 48vw);
-  }
-
-  .site-topline-end {
-    gap: 10px;
+    height: 64px;
+    max-width: min(300px, 52vw);
   }
 
   body.design-lab .header-messengers {
-    height: 32px;
+    height: 30px;
     gap: 8px;
   }
 
   body.design-lab .header-messenger,
   body.design-lab .header-messenger-logo {
-    width: 32px;
-    height: 32px;
+    width: 30px;
+    height: 30px;
   }
 
   body.design-lab .header-messenger {
-    flex-basis: 32px;
+    flex-basis: 30px;
   }
 
   .header-menu-toggle {
-    width: 40px;
-    height: 40px;
+    width: 38px;
+    height: 38px;
   }
 }
 

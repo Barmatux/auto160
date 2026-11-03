@@ -84,17 +84,17 @@ body.theme-admin.design-lab .site-topline .brand-logo {
 
 @media (max-width: 767px) {
   body.theme-admin.design-lab .site-topline .brand-logo {
-    height: 48px;
+    height: 56px;
     width: auto;
-    max-width: min(210px, 52vw);
+    max-width: min(240px, 58vw);
   }
 }
 
 @media (min-width: 768px) and (max-width: 1100px) {
   body.theme-admin.design-lab .site-topline .brand-logo {
-    height: 58px;
+    height: 64px;
     width: auto;
-    max-width: min(260px, 48vw);
+    max-width: min(300px, 52vw);
   }
 }
 
