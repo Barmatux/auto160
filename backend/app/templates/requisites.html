@@ -9,7 +9,7 @@
     </p>
   </div>
 
-  <article class="legal-article">
+  <article class="legal-article" data-requisites-page>
     <h2>Оператор сервиса</h2>
     <dl class="requisites-dl">
       <div>
@@ -25,16 +25,54 @@
         <dd>{{ company_unp }}</dd>
       </div>
       <div>
-        <dt>УНПФ (ФСЗН)</dt>
-        <dd>{{ company_unpf }}</dd>
-      </div>
-      <div>
-        <dt>Юридический адрес</dt>
+        <dt>Юридический и почтовый адрес</dt>
         <dd>{{ company_legal_address }}</dd>
       </div>
-      <div>
-        <dt>Адрес стоянки</dt>
-        <dd>{{ company_yard_address }}</dd>
+      <div class="requisites-yard">
+        <dt>Адрес стоянки (прием и выдача автомобилей)</dt>
+        <dd class="requisites-copy-row">
+          <span>{{ company_yard_address }}</span>
+          <button
+            type="button"
+            class="requisites-copy-btn"
+            data-copy-btn
+            data-copy-text="{{ company_yard_address }}"
+            aria-label="Скопировать адрес стоянки"
+            title="Скопировать"
+          >
+            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="8" y="8" width="12" height="12" rx="2"/>
+              <path d="M4 16V6a2 2 0 0 1 2-2h10"/>
+            </svg>
+          </button>
+        </dd>
+        <dd class="requisites-copy-row requisites-coords">
+          <span>{{ company_yard_coords }}</span>
+          <button
+            type="button"
+            class="requisites-copy-btn"
+            data-copy-btn
+            data-copy-text="{{ company_yard_coords }}"
+            aria-label="Скопировать координаты"
+            title="Скопировать"
+          >
+            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="8" y="8" width="12" height="12" rx="2"/>
+              <path d="M4 16V6a2 2 0 0 1 2-2h10"/>
+            </svg>
+          </button>
+        </dd>
+        <div class="requisites-map">
+          <iframe
+            title="Адрес стоянки Scandi Motors на Яндекс.Картах"
+            src="https://yandex.ru/map-widget/v1/?ll={{ company_yard_lon }}%2C{{ company_yard_lat }}&z=17&pt={{ company_yard_lon }},{{ company_yard_lat }},pm2rdm&l=map"
+            width="100%"
+            height="320"
+            allowfullscreen
+            loading="lazy"
+            referrerpolicy="no-referrer-when-downgrade"
+          ></iframe>
+        </div>
       </div>
       {% if company_phone %}
       <div>
@@ -50,44 +88,170 @@
       {% endif %}
     </dl>
 
-    <h2>Банковские реквизиты (BYN)</h2>
-    <dl class="requisites-dl">
-      <div>
-        <dt>Расчётный счёт</dt>
-        <dd><code>{{ company_bank_account_byn }}</code></dd>
+    <div class="requisites-bank" data-requisites-bank>
+      <div class="requisites-bank-head">
+        <button
+          type="button"
+          class="requisites-bank-toggle"
+          data-requisites-bank-toggle
+          aria-expanded="false"
+          aria-controls="requisites-bank-panel"
+        >
+          <span>Банковские реквизиты</span>
+          <span class="requisites-bank-chevron" aria-hidden="true"></span>
+        </button>
+        <button
+          type="button"
+          class="requisites-copy-btn requisites-copy-btn--all"
+          data-copy-bank-all
+          hidden
+          aria-label="Скопировать все банковские реквизиты"
+          title="Скопировать все"
+        >
+          <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="8" y="8" width="12" height="12" rx="2"/>
+            <path d="M4 16V6a2 2 0 0 1 2-2h10"/>
+          </svg>
+        </button>
       </div>
-      <div>
-        <dt>Банк</dt>
-        <dd>{{ company_bank_name }}</dd>
+
+      <div id="requisites-bank-panel" class="requisites-bank-panel" data-requisites-bank-panel hidden>
+        <dl class="requisites-dl requisites-dl--bank">
+          <div>
+            <dt>Расчётный счёт в белорусских рублях</dt>
+            <dd class="requisites-copy-row">
+              <code>{{ company_bank_account_byn }}</code>
+              <button
+                type="button"
+                class="requisites-copy-btn"
+                data-copy-btn
+                data-copy-text="{{ company_bank_account_byn }}"
+                aria-label="Скопировать расчётный счёт"
+                title="Скопировать"
+              >
+                <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="8" y="8" width="12" height="12" rx="2"/>
+                  <path d="M4 16V6a2 2 0 0 1 2-2h10"/>
+                </svg>
+              </button>
+            </dd>
+          </div>
+          <div>
+            <dt>Банк</dt>
+            <dd class="requisites-copy-row">
+              <span>{{ company_bank_name }}</span>
+              <button
+                type="button"
+                class="requisites-copy-btn"
+                data-copy-btn
+                data-copy-text="{{ company_bank_name }}"
+                aria-label="Скопировать название банка"
+                title="Скопировать"
+              >
+                <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="8" y="8" width="12" height="12" rx="2"/>
+                  <path d="M4 16V6a2 2 0 0 1 2-2h10"/>
+                </svg>
+              </button>
+            </dd>
+          </div>
+          <div>
+            <dt>Адрес банка</dt>
+            <dd class="requisites-copy-row">
+              <span>{{ company_bank_address }}</span>
+              <button
+                type="button"
+                class="requisites-copy-btn"
+                data-copy-btn
+                data-copy-text="{{ company_bank_address }}"
+                aria-label="Скопировать адрес банка"
+                title="Скопировать"
+              >
+                <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="8" y="8" width="12" height="12" rx="2"/>
+                  <path d="M4 16V6a2 2 0 0 1 2-2h10"/>
+                </svg>
+              </button>
+            </dd>
+          </div>
+          <div>
+            <dt>SWIFT</dt>
+            <dd class="requisites-copy-row">
+              <span>{{ company_bank_swift }}</span>
+              <button
+                type="button"
+                class="requisites-copy-btn"
+                data-copy-btn
+                data-copy-text="{{ company_bank_swift }}"
+                aria-label="Скопировать SWIFT"
+                title="Скопировать"
+              >
+                <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="8" y="8" width="12" height="12" rx="2"/>
+                  <path d="M4 16V6a2 2 0 0 1 2-2h10"/>
+                </svg>
+              </button>
+            </dd>
+          </div>
+          <div>
+            <dt>УНП банка</dt>
+            <dd class="requisites-copy-row">
+              <span>{{ company_bank_unp }}</span>
+              <button
+                type="button"
+                class="requisites-copy-btn"
+                data-copy-btn
+                data-copy-text="{{ company_bank_unp }}"
+                aria-label="Скопировать УНП банка"
+                title="Скопировать"
+              >
+                <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="8" y="8" width="12" height="12" rx="2"/>
+                  <path d="M4 16V6a2 2 0 0 1 2-2h10"/>
+                </svg>
+              </button>
+            </dd>
+          </div>
+          <div>
+            <dt>ОКПО банка</dt>
+            <dd class="requisites-copy-row">
+              <span>{{ company_bank_okpo }}</span>
+              <button
+                type="button"
+                class="requisites-copy-btn"
+                data-copy-btn
+                data-copy-text="{{ company_bank_okpo }}"
+                aria-label="Скопировать ОКПО банка"
+                title="Скопировать"
+              >
+                <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="8" y="8" width="12" height="12" rx="2"/>
+                  <path d="M4 16V6a2 2 0 0 1 2-2h10"/>
+                </svg>
+              </button>
+            </dd>
+          </div>
+        </dl>
+        <div
+          hidden
+          data-bank-copy-payload
+          data-company="{{ company_short_name }}"
+          data-unp="{{ company_unp }}"
+          data-account="{{ company_bank_account_byn }}"
+          data-bank="{{ company_bank_name }}"
+          data-bank-address="{{ company_bank_address }}"
+          data-swift="{{ company_bank_swift }}"
+          data-bank-unp="{{ company_bank_unp }}"
+          data-bank-okpo="{{ company_bank_okpo }}"
+        ></div>
       </div>
-      <div>
-        <dt>Адрес банка</dt>
-        <dd>{{ company_bank_address }}</dd>
-      </div>
-      <div>
-        <dt>SWIFT</dt>
-        <dd>{{ company_bank_swift }}</dd>
-      </div>
-      <div>
-        <dt>УНП банка</dt>
-        <dd>{{ company_bank_unp }}</dd>
-      </div>
-      <div>
-        <dt>ОКПО банка</dt>
-        <dd>{{ company_bank_okpo }}</dd>
-      </div>
-    </dl>
+    </div>
 
     <h2>О сервисе Auto160</h2>
     <p>
       Сайт auto160.ru принадлежит и администрируется {{ company_short_name }}.
       Сервис оказывает информационные услуги по подбору и проверке автомобилей
       (в том числе проверка VIN и даты ввоза в Республику Беларусь), а также сопровождение сделки.
-    </p>
-    <p>
-      Объявления о продаже автомобилей на сторонних площадках (в частности av.by)
-      размещаются их владельцами; актуальная цена и наличие уточняются на площадке-источнике.
-      {{ company_short_name }} не является оператором доски объявлений av.by.
     </p>
 
     <p class="hint">
@@ -96,4 +260,5 @@
     </p>
   </article>
 </section>
+<script src="/static/requisites.js?v=20261103-01" defer></script>
 {% endblock %}

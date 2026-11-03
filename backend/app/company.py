@@ -5,13 +5,17 @@ from __future__ import annotations
 COMPANY_SHORT_NAME = "ООО «Сканди Моторс»"
 COMPANY_FULL_NAME = 'Общество с ограниченной ответственностью «Сканди Моторс»'
 COMPANY_UNP = "193866357"
-COMPANY_UNPF = "524104711"  # УНПФ (ФСЗН)
+COMPANY_UNPF = "524104711"  # kept for internal refs; not shown on /requisites
 COMPANY_LEGAL_ADDRESS = "г. Минск, ул. Скрыганова, дом 6, помещение 7"
-COMPANY_YARD_ADDRESS = "г. Минск, ул. Максима Горецкого, 30"
+COMPANY_YARD_ADDRESS = 'г. Минск, ул. Максима Горецкого, 30. Офис "Scandi Motors"'
+COMPANY_YARD_COORDS = "53.889287, 27.442156"
+COMPANY_YARD_LAT = "53.889287"
+COMPANY_YARD_LON = "27.442156"
 
 COMPANY_BANK_NAME = 'ЗАО «Альфа-Банк»'
 COMPANY_BANK_ADDRESS = "ул. Сурганова, 43-47, 220013 Минск, Республика Беларусь"
-COMPANY_BANK_ACCOUNT_BYN = "BY58 ALFA 3012 2G91 3900 1027 0000"
+# Continuous IBAN for one-tap paste into banking apps.
+COMPANY_BANK_ACCOUNT_BYN = "BY58ALFA30122G91390010270000"
 COMPANY_BANK_SWIFT = "ALFABY2X"
 COMPANY_BANK_UNP = "101541947"
 COMPANY_BANK_OKPO = "37526626"
@@ -29,6 +33,9 @@ def company_public_context() -> dict[str, str]:
         "company_unpf": COMPANY_UNPF,
         "company_legal_address": COMPANY_LEGAL_ADDRESS,
         "company_yard_address": COMPANY_YARD_ADDRESS,
+        "company_yard_coords": COMPANY_YARD_COORDS,
+        "company_yard_lat": COMPANY_YARD_LAT,
+        "company_yard_lon": COMPANY_YARD_LON,
         "company_bank_name": COMPANY_BANK_NAME,
         "company_bank_address": COMPANY_BANK_ADDRESS,
         "company_bank_account_byn": COMPANY_BANK_ACCOUNT_BYN,
