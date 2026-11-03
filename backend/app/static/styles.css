@@ -985,6 +985,140 @@ body.theme-admin.theme-admin-light.design-lab .inspection-verdict-card.is-red .i
   word-break: break-all;
 }
 
+.requisites-copy-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.requisites-copy-row > span,
+.requisites-copy-row > code {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.requisites-coords {
+  margin-top: 0.35rem;
+  color: var(--muted, #5a6a86);
+  font-variant-numeric: tabular-nums;
+}
+
+.requisites-copy-btn {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  margin-top: -2px;
+  padding: 0;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.04);
+  color: #64748b;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.requisites-copy-btn:hover,
+.requisites-copy-btn:focus-visible {
+  color: #0ea5e9;
+  border-color: rgba(14, 165, 233, 0.45);
+  background: rgba(14, 165, 233, 0.08);
+  outline: none;
+}
+
+.requisites-copy-btn.is-copied {
+  color: #16a34a;
+  border-color: rgba(22, 163, 74, 0.45);
+  background: rgba(22, 163, 74, 0.1);
+}
+
+.requisites-map {
+  margin-top: 0.75rem;
+  overflow: hidden;
+  border-radius: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: #0b1220;
+}
+
+.requisites-map iframe {
+  display: block;
+  width: 100%;
+  height: 320px;
+  border: 0;
+}
+
+.requisites-bank {
+  margin: 1.4rem 0 1rem;
+}
+
+.requisites-bank-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.requisites-bank-toggle {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  margin: 0;
+  padding: 0.35rem 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 1.15rem;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+
+.requisites-bank-chevron {
+  flex: 0 0 auto;
+  width: 0.55em;
+  height: 0.55em;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg);
+  transition: transform 0.18s ease;
+  opacity: 0.7;
+}
+
+.requisites-bank.is-open .requisites-bank-chevron {
+  transform: rotate(225deg);
+  margin-top: 0.2em;
+}
+
+.requisites-copy-btn--all[hidden] {
+  display: none !important;
+}
+
+.requisites-bank-panel {
+  margin-top: 0.55rem;
+}
+
+.requisites-bank-panel[hidden] {
+  display: none !important;
+}
+
+body.theme-admin:not(.theme-admin-light) .requisites-copy-btn {
+  background: rgba(148, 163, 184, 0.08);
+  border-color: rgba(148, 163, 184, 0.28);
+  color: #94a3b8;
+}
+
+body.theme-admin:not(.theme-admin-light) .requisites-copy-btn:hover,
+body.theme-admin:not(.theme-admin-light) .requisites-copy-btn:focus-visible {
+  color: #7dd3fc;
+  border-color: rgba(125, 211, 252, 0.4);
+  background: rgba(14, 165, 233, 0.12);
+}
+
 .cookie-consent {
   position: fixed;
   left: 0;
