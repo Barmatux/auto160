@@ -191,6 +191,7 @@ from app.seo import (
     catalog_models_seo_meta,
     catalog_modifications_seo_meta,
     BELARUS_FAQ,
+    CALCULATOR_FAQ,
     EUROPE_FAQ,
     belarus_seo_meta,
     europe_feed_seo_meta,
@@ -2698,7 +2699,8 @@ def home(request: Request, db: Session = Depends(get_db)):
 @router.get("/calculator")
 def calculator_page(request: Request, db: Session = Depends(get_db)):
     current_user = _resolve_user_from_request(request, db)
-    context = _template_context(request, current_user, calculator_seo_meta())
+    context = _template_context(request, current_user, calculator_seo_meta(site_base_url(request)))
+    context["calculator_faq"] = CALCULATOR_FAQ
     makes = list_customs_catalog_makes(db)
     if not makes:
         makes = public_make_names(db)

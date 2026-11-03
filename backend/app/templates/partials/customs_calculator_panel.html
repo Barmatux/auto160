@@ -3,7 +3,7 @@
   {% if not calc_embedded %}
   <header class="calc-page-intro">
     <p class="calc-kicker">Растаможка в РФ</p>
-    <h1>Калькулятор пошлины и утильсбора</h1>
+    <h1>{{ seo_h1 or "Калькулятор растаможки и утильсбора" }}</h1>
     <p class="calc-lede">
       Ориентировочный расчёт для легкового авто (категория M1) по ставкам ЕАЭС и ПП РФ №&nbsp;1291
       (ред. №&nbsp;1713). Льготный утильсбор для физлиц — до 160&nbsp;л.с. (117,68&nbsp;кВт) и не более
@@ -132,5 +132,14 @@
       </article>
     </div>
   </section>
+  {% if calculator_faq %}
+  <section class="home-how">
+    <h2>Частые вопросы</h2>
+    {% for question, answer in calculator_faq %}
+      <h3>{{ question }}</h3>
+      <p>{{ answer }}</p>
+    {% endfor %}
+  </section>
+  {% endif %}
   {% endif %}
 </section>
