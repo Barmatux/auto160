@@ -7746,22 +7746,54 @@ body.theme-admin .home-hero.home-hero--split .home-hero-pane-lead {
     border-radius: 16px;
   }
 
+  /* Horizontal snap carousel: BY then EU, next card peeks on the right */
   .home-hero.home-hero--split {
     padding: 0;
+    margin: 0 -8px 12px;
+    width: calc(100% + 16px);
+    max-width: none;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    overflow: visible;
   }
 
   .home-hero-split {
-    grid-template-columns: 1fr;
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    gap: 12px;
     min-height: 0;
+    padding: 0 16px 4px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory;
+    scroll-padding-inline: 16px;
+    scrollbar-width: none;
+  }
+
+  .home-hero-split::-webkit-scrollbar {
+    display: none;
   }
 
   .home-hero-pane {
+    flex: 0 0 calc(100vw - 52px);
+    width: calc(100vw - 52px);
+    max-width: 520px;
     min-height: 0;
+    border-radius: 18px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 14px 32px rgba(0, 0, 0, 0.32);
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+    background: #0b0e14;
   }
 
   .home-hero-pane + .home-hero-pane {
-    border-left: none;
-    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    border-left: 1px solid rgba(255, 255, 255, 0.1);
+    border-top: none;
   }
 
   .home-hero-pane-head {
@@ -7780,7 +7812,8 @@ body.theme-admin .home-hero.home-hero--split .home-hero-pane-lead {
   }
 
   .home-hero-pane-visual {
-    height: 200px;
+    flex: 0 0 auto;
+    height: 220px;
   }
 
   .home-hero-pane h1,
