@@ -42,6 +42,13 @@ def test_home_seo_includes_json_ld(monkeypatch):
     assert "WebSite" in types
     ctx = build_seo_context(_request("/"), meta)
     assert ctx["seo_canonical"] == "https://auto160.ru/"
+    assert "льготный утильсбор" in meta.title
+    assert "Беларуси" in meta.title
+    assert len(meta.description) <= 160
+    assert not meta.description.endswith("…")
+    assert "Европ" in meta.description
+    assert ctx["seo_description"] == meta.description
+    assert meta.h1 and "под ключ" in meta.h1
     assert ctx["seo_json_ld_script"]
     assert "Organization" in ctx["seo_json_ld_script"]
 

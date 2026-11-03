@@ -1,5 +1,4 @@
 {% extends "base.html" %}
-{% block title %}Auto160 — подбор авто до 160 л.с.{% endblock %}
 {% block extra_head %}
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -118,6 +117,29 @@
   </div>
 </section>
 
+<section class="home-how">
+  <h2>Как привозим авто под льготный утильсбор</h2>
+  <ol class="home-steps">
+    <li>
+      <strong>Беларусь.</strong>
+      Оставляете ссылку на объявление или описываете бюджет. Проверяем дату ввоза и мощность до 160 л.с.,
+      затем доставляем в Москву и регионы.
+      <a href="/by">Оставить заявку</a>
+    </li>
+    <li>
+      <strong>Европа.</strong>
+      Подбираем авто на площадках, считаем пошлину и утильсбор до сделки и сопровождаем покупку и доставку.
+      <a href="/listings/eu">Смотреть авто из Европы</a>
+    </li>
+    <li>
+      <strong>До задатка.</strong>
+      <a href="/inspection">Проверка даты ввоза по VIN</a>
+      и
+      <a href="/calculator">калькулятор растаможки</a>.
+    </li>
+  </ol>
+</section>
+
 <section class="home-section home-section-makes">
   <div class="home-section-head">
     <h2>Популярные марки</h2>
@@ -156,7 +178,9 @@
   {% else %}
     <p class="hint">
       Подборка обновляется. Закажите подбор на странице
-      <a href="/by">«Авто из Беларуси»</a> или проверьте VIN.
+      <a href="/by">«Авто из Беларуси»</a>
+      или
+      <a href="/inspection">проверьте дату ввоза по VIN</a>.
     </p>
   {% endif %}
 </section>

@@ -7018,12 +7018,13 @@ body.theme-admin .home-hero.home-hero--split .home-hero-pane-lead {
 .home-how h2 {
   margin: 0 0 12px;
   font-size: 1.2rem;
+  color: var(--heading, #1e3a8a);
 }
 
 .home-steps {
   margin: 0;
   padding-left: 1.2rem;
-  color: #54637f;
+  color: var(--text, #54637f);
   line-height: 1.55;
 }
 
@@ -7032,7 +7033,7 @@ body.theme-admin .home-hero.home-hero--split .home-hero-pane-lead {
 }
 
 .home-steps strong {
-  color: #1e3a8a;
+  color: var(--heading, #1e3a8a);
 }
 
 @media (max-width: 1200px) {

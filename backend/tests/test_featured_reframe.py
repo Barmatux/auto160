@@ -256,6 +256,9 @@ def test_home_shows_featured_section():
     assert response.status_code == 200
     assert "Подборка Auto160" in response.text
     assert "Вся лента" not in response.text
+    assert "Как привозим авто под льготный утильсбор" in response.text
+    assert "Подберём авто из Беларуси под льготный утильсбор — Auto160" in response.text
+    assert "av.b…" not in response.text
 
 
 def test_static_seo_listings_is_landing_copy():
