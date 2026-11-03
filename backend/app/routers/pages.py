@@ -3433,6 +3433,7 @@ def catalog_models(
         ]
     filter_pairs = _catalog_filter_query_pairs(request, exclude=_CATALOG_NAV_EXCLUDE)
     generation_preview_ids: list[int] = []
+    show_by_listing_links = _is_admin_user(current_user)
     for model_item in models:
         model_item["generation_count"] = len(model_item["generations"])
         gen_pairs = [
@@ -3441,11 +3442,15 @@ def catalog_models(
             *filter_pairs,
         ]
         model_item["generations_url"] = _build_catalog_filtered_url("/catalog/generations", gen_pairs)
-        model_item["listings_url"] = _build_listings_url(
-            brand=model_item["make"],
-            model=model_item["model"],
-            year_from=model_item.get("year_from"),
-            year_to=model_item.get("year_to"),
+        model_item["listings_url"] = (
+            _build_listings_url(
+                brand=model_item["make"],
+                model=model_item["model"],
+                year_from=model_item.get("year_from"),
+                year_to=model_item.get("year_to"),
+            )
+            if show_by_listing_links
+            else None
         )
         generation_cards = list(model_item["generation_cards"].values())
         generation_cards.sort(key=lambda g: (g["count"], g["year_to"] or 0, g["year_from"] or 0), reverse=True)
@@ -3551,6 +3556,7 @@ def catalog_generations(
             in listing_pairs
         ]
     filter_pairs = _catalog_filter_query_pairs(request, exclude=_CATALOG_NAV_EXCLUDE)
+    show_by_listing_links = _is_admin_user(current_user)
     for generation_item in generations:
         params = [
             ("make", generation_item["make"]),
@@ -3560,11 +3566,15 @@ def catalog_generations(
         if generation_item["generation"] != "Без поколения":
             params.append(("generation", generation_item["generation"]))
         generation_item["mods_url"] = _build_catalog_filtered_url("/catalog/modifications", params)
-        generation_item["listings_url"] = _build_listings_url(
-            brand=generation_item["make"],
-            model=generation_item["model"],
-            year_from=generation_item.get("year_from"),
-            year_to=generation_item.get("year_to"),
+        generation_item["listings_url"] = (
+            _build_listings_url(
+                brand=generation_item["make"],
+                model=generation_item["model"],
+                year_from=generation_item.get("year_from"),
+                year_to=generation_item.get("year_to"),
+            )
+            if show_by_listing_links
+            else None
         )
 
     context = _template_context(
@@ -3822,6 +3832,8 @@ def catalog_modifications(
                 mod_name = _modification_display_name(linked_item)
                 if mod_name:
                     ad_listing_mod_names[listing.id] = mod_name
+    if not _is_admin_user(current_user):
+        ad_listings = [row for row in ad_listings if not _listing_is_belarus_source(row)]
     context["ad_listings"] = ad_listings
     context["ad_listing_mod_names"] = ad_listing_mod_names
     context["ad_listing_cover_urls"] = _build_listing_catalog_cover_urls(ad_listings, generation_items, db)
@@ -3835,6 +3847,8 @@ def catalog_modifications(
             year_from=min(year_from_values) if year_from_values else None,
             year_to=max(year_to_values) if year_to_values else None,
         )
+    if not _is_admin_user(current_user):
+        listings_all_url = None
     context["listings_all_url"] = listings_all_url
     context["catalog_filters_action"] = _build_catalog_filtered_url(
         "/catalog/modifications",
@@ -3908,7 +3922,7 @@ def catalog_item_detail(request: Request, item_id: int, db: Session = Depends(ge
         related_listings = fetch_listings_for_catalog_items(db, [item], limit_per_item=8).get(item.id, [])
     else:
         # Guests: no av.by mirror feed — point to Belarus landing / hide related ads.
-        context["listings_url"] = "/listings"
+        context["listings_url"] = None
         context["generation_listings_url"] = None
         related_listings = []
     context["related_listings"] = related_listings

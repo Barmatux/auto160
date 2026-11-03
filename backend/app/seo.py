@@ -517,7 +517,7 @@ def catalog_models_seo_meta(make: str | None, *, total: int) -> SeoMeta:
             f"Выберите модель {make} под льготный утильсбор (до 160 л.с.): сравните поколения и "
             f"перейдите к актуальным объявлениям в Беларуси."
         )
-        noindex = False
+        noindex = total <= 0
     else:
         title = "Все модели под льготный утильсбор (до 160 л.с.) — Auto160"
         description = f"Модели автомобилей до 160 л.с. в каталоге Auto160. Найдено: {total}."
@@ -548,7 +548,7 @@ def catalog_generations_seo_meta(make: str | None, model: str | None, *, total: 
             f"Сравните поколения {make} {model} до 160 л.с. и перейдите к комплектациям "
             f"и объявлениям в Беларуси."
         )
-        noindex = False
+        noindex = total <= 0
     else:
         title = "Поколения — Auto160"
         description = f"Поколения автомобилей до 160 л.с. Найдено: {total}."
@@ -586,7 +586,7 @@ def catalog_modifications_seo_meta(
             f"Подбор комплектаций {label} с мощностью до 160 л.с. — сравните параметры "
             f"и смотрите связанные объявления."
         )
-        noindex = extra_filters
+        noindex = extra_filters or total <= 0
     else:
         title = f"{label} — Auto160"
         description = f"Комплектации {label} до 160 л.с. Найдено: {total}."
@@ -872,6 +872,16 @@ def _chunk_entries(
     return parts
 
 
+def _visible_catalog_query(db: Session, *columns):
+    """Same rows the public catalog shows: not hidden, up to 160 hp, no cargo bodies."""
+    query = db.query(*columns).filter(
+        CatalogItem.source_site == "av.by",
+        CatalogItem.hidden_from_catalog.is_(False),
+        _hp_filter(),
+    )
+    return exclude_hidden_body_type(query, CatalogItem.body_type)
+
+
 def build_sitemap_sections(db: Session, base_url: str) -> dict[str, list[tuple[str, str]]]:
     """Group sitemap URLs into static / catalog / listings sections."""
     today = datetime.now(UTC).strftime("%Y-%m-%d")
@@ -894,8 +904,8 @@ def build_sitemap_sections(db: Session, base_url: str) -> dict[str, list[tuple[s
         static.append((f"{base_url}{path}", today))
 
     makes = (
-        db.query(CatalogItem.make)
-        .filter(CatalogItem.source_site == "av.by", CatalogItem.make.isnot(None), _hp_filter())
+        _visible_catalog_query(db, CatalogItem.make)
+        .filter(CatalogItem.make.isnot(None))
         .distinct()
         .order_by(CatalogItem.make.asc())
         .all()
@@ -904,24 +914,18 @@ def build_sitemap_sections(db: Session, base_url: str) -> dict[str, list[tuple[s
         if not make:
             continue
         make = make.strip()
-        catalog.append((f"{base_url}/catalog/models?make={quote(make)}", today))
-
         model_rows = (
-            db.query(CatalogItem.model)
-            .filter(
-                CatalogItem.source_site == "av.by",
-                CatalogItem.make == make,
-                CatalogItem.model.isnot(None),
-                _hp_filter(),
-            )
+            _visible_catalog_query(db, CatalogItem.model)
+            .filter(CatalogItem.make == make, CatalogItem.model.isnot(None))
             .distinct()
             .order_by(CatalogItem.model.asc())
             .all()
         )
-        for (model,) in model_rows:
-            if not model:
-                continue
-            model = model.strip()
+        visible_models = [model.strip() for (model,) in model_rows if model and model.strip()]
+        if not visible_models:
+            continue
+        catalog.append((f"{base_url}/catalog/models?make={quote(make)}", today))
+        for model in visible_models:
             catalog.append(
                 (
                     f"{base_url}/catalog/generations?make={quote(make)}&model={quote(model)}",
@@ -929,20 +933,18 @@ def build_sitemap_sections(db: Session, base_url: str) -> dict[str, list[tuple[s
                 )
             )
             gen_rows = (
-                db.query(CatalogItem.generation)
+                _visible_catalog_query(db, CatalogItem.generation)
                 .filter(
-                    CatalogItem.source_site == "av.by",
                     CatalogItem.make == make,
                     CatalogItem.model == model,
                     CatalogItem.generation.isnot(None),
-                    _hp_filter(),
                 )
                 .distinct()
                 .order_by(CatalogItem.generation.asc())
                 .all()
             )
             for (generation,) in gen_rows:
-                if not generation:
+                if not generation or not generation.strip():
                     continue
                 catalog.append(
                     (
@@ -959,10 +961,7 @@ def build_sitemap_sections(db: Session, base_url: str) -> dict[str, list[tuple[s
             )
 
     catalog_items = (
-        exclude_hidden_body_type(
-            db.query(CatalogItem.id, CatalogItem.created_at).filter(CatalogItem.source_site == "av.by", _hp_filter()),
-            CatalogItem.body_type,
-        )
+        _visible_catalog_query(db, CatalogItem.id, CatalogItem.created_at)
         .order_by(CatalogItem.id.asc())
         .all()
     )

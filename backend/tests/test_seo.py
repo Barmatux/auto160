@@ -10,6 +10,9 @@ from app.seo import (
     INDEXABLE_CITIES,
     belarus_seo_meta,
     calculator_seo_meta,
+    catalog_generations_seo_meta,
+    catalog_models_seo_meta,
+    catalog_modifications_seo_meta,
     europe_feed_seo_meta,
     inspection_seo_meta,
     build_robots_txt,
@@ -186,6 +189,42 @@ def test_chunk_entries_splits_over_limit():
     assert [slug for slug, _ in parts] == ["listings", "listings-2", "listings-3"]
     assert len(parts[0][1]) == 2
     assert len(parts[2][1]) == 1
+
+
+def test_catalog_hubs_with_no_rows_are_noindex():
+    assert catalog_models_seo_meta("BMW", total=0).noindex is True
+    assert catalog_models_seo_meta("Volkswagen", total=4).noindex is False
+    assert catalog_generations_seo_meta("BMW", "X1", total=0).noindex is True
+    assert catalog_generations_seo_meta("Volkswagen", "Golf", total=2).noindex is False
+    assert catalog_modifications_seo_meta("BMW", "X1", "F48", total=0).noindex is True
+    assert catalog_modifications_seo_meta("Volkswagen", "Golf", "VII", total=3).noindex is False
+    assert catalog_modifications_seo_meta("Volkswagen", "Golf", "VII", total=3, extra_filters=True).noindex is True
+
+
+def test_sitemap_uses_visible_catalog_rows_only():
+    from unittest.mock import MagicMock
+
+    from app.seo import build_sitemap_entries
+
+    db = MagicMock()
+    query = MagicMock()
+    seen: list[str] = []
+
+    def _filter(*args, **kwargs):
+        seen.extend(str(arg) for arg in args)
+        return query
+
+    query.filter.side_effect = _filter
+    query.distinct.return_value = query
+    query.order_by.return_value = query
+    query.all.side_effect = [[("BMW",)], [], [], []]
+    db.query.return_value = query
+
+    entries = build_sitemap_entries(db, "https://auto160.ru")
+    locs = {loc for loc, _lastmod in entries}
+    assert any("hidden_from_catalog" in item for item in seen)
+    assert "https://auto160.ru/catalog/models?make=BMW" not in locs
+    assert "https://auto160.ru/catalog" in locs
 
 
 def test_build_sitemap_entries_resolves_models():
