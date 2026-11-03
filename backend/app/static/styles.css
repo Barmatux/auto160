@@ -7625,19 +7625,19 @@ body.theme-admin .home-hero.home-hero--split .home-hero-pane-lead {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 3px;
+    gap: 2px;
     width: 58px;
     min-width: 58px;
     padding: 6px 2px;
     border-radius: 999px;
-    color: rgba(226, 232, 240, 0.72);
+    color: rgba(255, 255, 255, 0.42);
     text-decoration: none;
     scroll-snap-align: start;
-    transition: color 0.15s ease, background-color 0.15s ease;
+    transition: color 0.15s ease, background-color 0.15s ease, opacity 0.15s ease;
   }
 
   .site-mobile-dock-item.is-active {
-    color: #fff;
+    color: rgba(255, 255, 255, 0.96);
     background: rgba(255, 255, 255, 0.12);
   }
 
@@ -7647,30 +7647,36 @@ body.theme-admin .home-hero.home-hero--split .home-hero-pane-lead {
     justify-content: center;
     width: 24px;
     height: 24px;
+    opacity: 0.9;
   }
 
-  .site-mobile-dock-icon--emoji {
-    font-size: 18px;
-    line-height: 1;
-    font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
-  }
-
-  .site-mobile-dock-icon--app img {
+  .site-mobile-dock-icon svg {
     display: block;
     width: 22px;
     height: 22px;
-    border-radius: 5px;
+  }
+
+  .site-mobile-dock-icon--emoji {
+    font-size: 17px;
+    line-height: 1;
+    opacity: 0.72;
+    font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+  }
+
+  .site-mobile-dock-item.is-active .site-mobile-dock-icon--emoji {
+    opacity: 1;
   }
 
   .site-mobile-dock-label {
     font-size: 9px;
-    font-weight: 600;
+    font-weight: 500;
     letter-spacing: 0.01em;
     line-height: 1;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     max-width: 100%;
+    opacity: 0.85;
   }
 
   body.header-nav-open .site-mobile-dock {
@@ -7752,10 +7758,10 @@ body.theme-admin .home-hero.home-hero--split .home-hero-pane-lead {
     border-radius: 16px;
   }
 
-  /* Horizontal snap carousel: BY then EU, next card peeks on the right */
+  /* Deck carousel: front card, next peeks underneath to the right */
   .home-hero.home-hero--split {
     padding: 0;
-    margin: 0 -8px 12px;
+    margin: 0 -8px 16px;
     width: calc(100% + 16px);
     max-width: none;
     background: transparent;
@@ -7764,37 +7770,45 @@ body.theme-admin .home-hero.home-hero--split .home-hero-pane-lead {
     overflow: visible;
   }
 
-  .home-hero-split {
-    display: flex;
-    flex-direction: row;
-    align-items: stretch;
-    gap: 12px;
+  .home-hero-split.home-hero-split--deck {
+    display: block;
+    position: relative;
     min-height: 0;
-    padding: 0 16px 4px;
-    overflow-x: auto;
-    overflow-y: hidden;
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior-x: contain;
-    scroll-snap-type: x mandatory;
-    scroll-padding-inline: 16px;
-    scrollbar-width: none;
+    padding: 0 12px 10px;
+    overflow: visible;
   }
 
-  .home-hero-split::-webkit-scrollbar {
-    display: none;
-  }
-
-  .home-hero-pane {
-    flex: 0 0 calc(100vw - 52px);
-    width: calc(100vw - 52px);
-    max-width: 520px;
+  .home-hero-split.home-hero-split--deck .home-hero-pane {
+    width: calc(100% - 22px);
+    max-width: none;
     min-height: 0;
     border-radius: 18px;
     border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 14px 32px rgba(0, 0, 0, 0.32);
-    scroll-snap-align: start;
-    scroll-snap-stop: always;
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.38);
     background: #0b0e14;
+    transition:
+      transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+      opacity 0.35s ease,
+      box-shadow 0.35s ease;
+    will-change: transform;
+  }
+
+  .home-hero-split.home-hero-split--deck .home-hero-pane.is-front {
+    position: relative;
+    z-index: 2;
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 1;
+  }
+
+  .home-hero-split.home-hero-split--deck .home-hero-pane.is-back {
+    position: absolute;
+    top: 10px;
+    left: 12px;
+    z-index: 1;
+    transform: translate3d(18px, 0, 0) scale(0.965);
+    opacity: 0.78;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
+    pointer-events: auto;
   }
 
   .home-hero-pane + .home-hero-pane {
