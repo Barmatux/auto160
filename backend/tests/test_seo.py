@@ -3,7 +3,9 @@
 from starlette.requests import Request
 
 from app.seo import (
+    BELARUS_FAQ,
     INDEXABLE_CITIES,
+    belarus_seo_meta,
     build_robots_txt,
     build_seo_context,
     dumps_json_ld,
@@ -51,6 +53,20 @@ def test_home_seo_includes_json_ld(monkeypatch):
     assert meta.h1 and "под ключ" in meta.h1
     assert ctx["seo_json_ld_script"]
     assert "Organization" in ctx["seo_json_ld_script"]
+
+
+def test_belarus_landing_seo_matches_visible_offer():
+    meta = belarus_seo_meta("https://auto160.ru")
+    assert meta.h1 == "Авто из Беларуси под льготный утильсбор"
+    assert "Беларуси" in meta.title
+    assert len(meta.description) <= 160
+    assert not meta.description.endswith("…")
+    assert "3 дня" not in meta.description
+    types = {block["@type"] for block in meta.json_ld}
+    assert "FAQPage" in types
+    assert "BreadcrumbList" in types
+    questions = meta.json_ld[1]["mainEntity"]
+    assert [item["name"] for item in questions] == [question for question, _answer in BELARUS_FAQ]
 
 
 def test_listings_feed_indexes_minsk_only():

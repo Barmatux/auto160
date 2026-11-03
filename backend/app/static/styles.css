@@ -7128,6 +7128,21 @@ body.theme-admin .home-hero.home-hero--split .home-hero-pane-lead {
   color: var(--heading, #1e3a8a);
 }
 
+.home-how h2:not(:first-child) {
+  margin-top: 22px;
+}
+
+.home-how h3 {
+  margin: 14px 0 4px;
+  font-size: 1rem;
+  color: var(--heading, #1e3a8a);
+}
+
+.home-how p {
+  margin: 0 0 8px;
+  line-height: 1.5;
+}
+
 .home-steps {
   margin: 0;
   padding-left: 1.2rem;
@@ -8750,6 +8765,12 @@ body.theme-admin .home-hero.home-hero--split .home-hero-pane-lead {
 .belarus-landing-hero h1 {
   margin: 0;
   line-height: 1.2;
+}
+.belarus-landing-lede {
+  margin: 8px 0 0;
+  max-width: 42rem;
+  line-height: 1.45;
+  color: var(--text, #334155);
 }
 .belarus-landing-paths {
   display: grid;

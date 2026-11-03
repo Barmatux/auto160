@@ -190,6 +190,8 @@ from app.seo import (
     catalog_item_seo_meta,
     catalog_models_seo_meta,
     catalog_modifications_seo_meta,
+    BELARUS_FAQ,
+    belarus_seo_meta,
     guide_do_160_seo_meta,
     guide_vin_seo_meta,
     home_seo_meta,
@@ -2798,9 +2800,9 @@ def listings_eu_legacy_redirect(request: Request):
 def belarus_landing_page(request: Request, db: Session = Depends(get_db)):
     """Public Belarus landing (consultation / import-date / lead capture)."""
     current_user = _resolve_user_from_request(request, db)
-    title, description = STATIC_SEO["/by"]
-    seo = SeoMeta(title=title, description=description, path="/by")
+    seo = belarus_seo_meta(site_base_url(request))
     context = _template_context(request, current_user, seo)
+    context["belarus_faq"] = BELARUS_FAQ
     return templates.TemplateResponse(request, "belarus_landing.html", context)
 
 
