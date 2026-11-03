@@ -73,6 +73,30 @@ def test_cdn_photo_urls_from_parameters():
     ]
 
 
+def test_cdn_photo_urls_prefers_longest_gallery_over_raw_cover_only():
+    urls = _cdn_photo_urls(
+        {
+            "raw": {
+                "parameters": {
+                    "source_photo_urls": ["https://img13.img-bcg.eu/h30/abc/s1/cover.jpg"],
+                }
+            },
+            "parameters": {
+                "source_photo_urls": [
+                    "https://img13.img-bcg.eu/h30/abc/s1/1.jpg",
+                    "https://img13.img-bcg.eu/h30/abc/s1/2.jpg",
+                    "https://img13.img-bcg.eu/h30/abc/s1/3.jpg",
+                ]
+            },
+        }
+    )
+    assert urls == [
+        "https://img13.img-bcg.eu/h30/abc/s1/1.jpg",
+        "https://img13.img-bcg.eu/h30/abc/s1/2.jpg",
+        "https://img13.img-bcg.eu/h30/abc/s1/3.jpg",
+    ]
+
+
 def test_city_from_parameters_location():
     assert _city({"city": None, "parameters": {"location": "Tallinn"}}) == "Tallinn"
     assert _city({"city": "Эстония", "parameters": {"Asukoht": "Tartu"}}) == "Tartu"
@@ -118,6 +142,40 @@ def test_map_embeds_registration_month_in_title():
     assert mapped.photo_storage_keys == ["auto24/123/000_abc.jpg"]
     assert mapped.cover_photo_url == "/media/object?key=auto24%2F123%2F000_abc.jpg"
     assert mapped.photo_urls == ["/media/object?key=auto24%2F123%2F000_abc.jpg"]
+
+
+def test_map_prefers_full_cdn_gallery_when_s3_has_only_cover():
+    row = {
+        "external_id": "4363822",
+        "title": "Peugeot 5008 1.2",
+        "year": 2021,
+        "price_eur": 15000,
+        "mileage_km": 80000,
+        "body_type": "mahtuniversaal",
+        "fuel": "bensiin",
+        "transmission": "automaat",
+        "engine": "1.2 96kW",
+        "url": "https://rus.auto24.ee/vehicles/4363822",
+        "photo_url": "/media/object?key=auto24%2F4363822%2F000_abc.jpg",
+        "photo_urls": ["/media/object?key=auto24%2F4363822%2F000_abc.jpg"],
+        "detail_scraped": True,
+        "parameters": {
+            "location": "Tallinn",
+            "source_photo_urls": [
+                "https://img13.img-bcg.eu/h30/a/s1/1.jpg",
+                "https://img13.img-bcg.eu/h30/a/s1/2.jpg",
+                "https://img13.img-bcg.eu/h30/a/s1/3.jpg",
+            ],
+        },
+    }
+    mapped = map_auto24_row(row, eur_rate=None, max_hp=None, max_age_years=None, max_engine_l=None)
+    assert mapped.skip_reason is None
+    assert mapped.cover_photo_url == "/media/object?key=auto24%2F4363822%2F000_abc.jpg"
+    assert mapped.photo_urls == [
+        "https://img13.img-bcg.eu/h30/a/s1/1.jpg",
+        "https://img13.img-bcg.eu/h30/a/s1/2.jpg",
+        "https://img13.img-bcg.eu/h30/a/s1/3.jpg",
+    ]
 
 
 def test_map_uses_first_reg_and_strips_title_chrome():

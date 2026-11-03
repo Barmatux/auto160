@@ -68,9 +68,9 @@
         {% endif %}
         {% if is_authenticated %}
           <span class="user-badge site-topline-user">{{ current_user.email }}</span>
-          <a class="site-topline-link" href="/logout">Выход</a>
+          <a class="site-topline-link site-topline-logout-desktop" href="/logout">Выход</a>
         {% else %}
-          <a class="site-cabinet-btn" href="/login" aria-label="Личный кабинет">
+          <a class="site-cabinet-btn site-cabinet-btn--desktop" href="/login" aria-label="Личный кабинет">
             <span class="site-cabinet-btn-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" width="14" height="14" focusable="false">
                 <path fill="currentColor" d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v1.2c0 .7.5 1.2 1.2 1.2h16.8c.7 0 1.2-.5 1.2-1.2v-1.2c0-3.2-6.4-4.8-9.6-4.8z"/>
@@ -79,22 +79,45 @@
             <span class="site-cabinet-btn-label">Личный кабинет</span>
           </a>
         {% endif %}
+        <div class="header-actions header-actions--topline">
+          <button
+            class="header-menu-toggle"
+            type="button"
+            data-header-menu-toggle
+            aria-expanded="false"
+            aria-controls="site-nav"
+            aria-label="Открыть меню"
+          >
+            <span class="header-menu-line" aria-hidden="true"></span>
+            <span class="header-menu-line" aria-hidden="true"></span>
+            <span class="header-menu-line" aria-hidden="true"></span>
+          </button>
+        </div>
       </div>
     </div>
   </div>
 
   <header class="header header--design-lab">
     <div id="site-nav" class="header-nav-wrap" data-header-nav aria-label="Основное меню">
+      <div class="header-nav-panel-head" aria-hidden="true">
+        <span class="header-nav-panel-title">Меню</span>
+      </div>
       <nav class="header-nav header-nav-row">
+        {% if is_authenticated %}
+          <a class="header-nav-mobile-only" href="/logout">Выход</a>
+        {% else %}
+          <a class="header-nav-mobile-only" href="/login">Личный кабинет</a>
+        {% endif %}
         <a href="/">Главная</a>
         <a href="/catalog">Каталог</a>
         {% if is_admin %}
           <a href="/catalog/beta" class="header-beta-link">beta Каталог</a>
         {% endif %}
         <a href="/by">Авто из Беларуси</a>
-        <a href="/listings/eu">Авто из Европы</a>
+        <a href="/eu">Авто из Европы</a>
         <a href="/inspection">Проверка</a>
         <a href="/calculator">Калькулятор</a>
+        <a class="header-nav-mobile-only" href="/requisites">Контакты</a>
         {% if is_admin %}
           <a href="/admin/users">Пользователи</a>
           <a href="/admin/avby-accounts">Аккаунты</a>
@@ -151,20 +174,46 @@
           <a href="/admin/logs">Логи</a>
         </nav>
       {% endif %}
-    </div>
-    <div class="header-actions">
-      <button
-        class="header-menu-toggle"
-        type="button"
-        data-header-menu-toggle
-        aria-expanded="false"
-        aria-controls="site-nav"
-        aria-label="Открыть меню"
-      >
-        <span class="header-menu-line" aria-hidden="true"></span>
-        <span class="header-menu-line" aria-hidden="true"></span>
-        <span class="header-menu-line" aria-hidden="true"></span>
-      </button>
+      <aside class="header-nav-operator" aria-label="Реквизиты оператора">
+        <p class="header-nav-operator-kicker">Реквизиты оператора</p>
+        <p class="header-nav-operator-name">{{ company_short_name }}</p>
+        <p class="header-nav-operator-meta">УНП {{ company_unp }}</p>
+        <p class="header-nav-operator-meta">{{ company_legal_address }}</p>
+        <a class="header-nav-operator-link" href="/requisites">Полные реквизиты</a>
+      </aside>
     </div>
   </header>
 </div>
+
+<nav class="site-mobile-dock" aria-label="Быстрая навигация" data-mobile-dock>
+  <a class="site-mobile-dock-item" href="/" data-dock="home" aria-label="Главная">
+    <span class="site-mobile-dock-icon site-mobile-dock-icon--emoji" aria-hidden="true">🏠</span>
+    <span class="site-mobile-dock-label">Главная</span>
+  </a>
+  <a class="site-mobile-dock-item" href="/catalog" data-dock="catalog" aria-label="Каталог">
+    <span class="site-mobile-dock-icon site-mobile-dock-icon--emoji" aria-hidden="true">📂</span>
+    <span class="site-mobile-dock-label">Каталог</span>
+  </a>
+  <a class="site-mobile-dock-item" href="/by" data-dock="by" aria-label="Авто из Беларуси">
+    <span class="site-mobile-dock-icon site-mobile-dock-icon--emoji" aria-hidden="true">🇧🇾</span>
+    <span class="site-mobile-dock-label">Беларусь</span>
+  </a>
+  <a class="site-mobile-dock-item" href="/eu" data-dock="eu" aria-label="Авто из Европы">
+    <span class="site-mobile-dock-icon site-mobile-dock-icon--emoji" aria-hidden="true">🇪🇺</span>
+    <span class="site-mobile-dock-label">Европа</span>
+  </a>
+  <a class="site-mobile-dock-item" href="/inspection" data-dock="inspection" aria-label="Проверка">
+    <span class="site-mobile-dock-icon site-mobile-dock-icon--emoji" aria-hidden="true">🔍</span>
+    <span class="site-mobile-dock-label">Проверка</span>
+  </a>
+  <a class="site-mobile-dock-item" href="/calculator" data-dock="calculator" aria-label="Калькулятор">
+    <span class="site-mobile-dock-icon site-mobile-dock-icon--app" aria-hidden="true">
+      <img src="/static/icons/dock-calculator.png?v=20261102-01" alt="" width="22" height="22" decoding="async" />
+    </span>
+    <span class="site-mobile-dock-label">Калькулятор</span>
+  </a>
+  <a class="site-mobile-dock-item" href="/requisites" data-dock="contacts" aria-label="Контакты">
+    <span class="site-mobile-dock-icon site-mobile-dock-icon--emoji" aria-hidden="true">📞</span>
+    <span class="site-mobile-dock-label">Контакты</span>
+  </a>
+</nav>

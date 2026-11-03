@@ -23,6 +23,7 @@ from app.body_type_labels import (
     normalize_body_type_label,
 )
 from app.brand_exclusions import exclude_excluded_brands, is_excluded_brand
+from app.model_exclusions import exclude_excluded_models, is_excluded_model
 from app.fuel_type_labels import (
     FUEL_GROUP_HYBRID,
     HYBRID_MARKERS,
@@ -221,6 +222,9 @@ from app.listing_display import (
 from app.listing_import_age import (
     parse_import_age_filters,
     paginate_query_with_import_age,
+)
+from app.listing_passable_age import (
+    paginate_query_with_passable_age,
 )
 from app.listing_price_filter import (
     apply_listings_price_range_filter,
@@ -972,6 +976,7 @@ def _listing_brand_model_map(
         CarListing.body_type,
     )
     query = exclude_excluded_brands(query, CarListing.brand)
+    query = exclude_excluded_models(query, CarListing.model)
     if published_only:
         query = query.filter(CarListing.status == ListingStatus.published)
     query = _apply_listings_market_source_filter(query, listings_market)
@@ -982,7 +987,7 @@ def _listing_brand_model_map(
     rows = query.distinct().order_by(CarListing.brand.asc(), CarListing.model.asc()).all()
     mapping: dict[str, list[str]] = {}
     for brand, model in rows:
-        if not brand or not model or is_excluded_brand(brand):
+        if not brand or not model or is_excluded_brand(brand) or is_excluded_model(model):
             continue
         mapping.setdefault(brand, []).append(_canonical_model_name(model))
     for brand, models in mapping.items():
@@ -1005,6 +1010,7 @@ def _listing_brand_model_generation_map(
         CarListing.body_type,
     )
     query = exclude_excluded_brands(query, CarListing.brand)
+    query = exclude_excluded_models(query, CarListing.model)
     if published_only:
         query = query.filter(CarListing.status == ListingStatus.published)
     query = _apply_listings_market_source_filter(query, listings_market)
@@ -1015,7 +1021,7 @@ def _listing_brand_model_generation_map(
     rows = query.distinct().all()
     mapping: dict[str, dict[str, set[str]]] = {}
     for brand, model, generation in rows:
-        if not brand or not model or not generation or is_excluded_brand(brand):
+        if not brand or not model or not generation or is_excluded_brand(brand) or is_excluded_model(model):
             continue
         canonical_model = _canonical_model_name(model)
         mapping.setdefault(brand, {}).setdefault(canonical_model, set()).add(generation)
@@ -1334,6 +1340,7 @@ def _listings_filters_payload(
             "mileage_to": parsed_mileage_to if parsed_mileage_to is not None else "",
             "price_range": parse_listing_price_range(query.get("price_range")) or "",
             "passable": query.get("passable") in ("1", "true", "on"),
+            "hide_skoda": query.get("hide_skoda") in ("1", "true", "on"),
             "freshness": query.get("freshness") or "all",
             "sort": query.get("sort") or "newest",
         },
@@ -1477,8 +1484,9 @@ def _merged_listing_brand_model_map(db: Session, *, published_only: bool = True)
     for brand in set(listing_map) | set(catalog_map):
         if is_excluded_brand(brand):
             continue
-        merged[brand] = set(listing_map.get(brand, [])) | set(catalog_map.get(brand, []))
-    return {brand: sorted(models) for brand, models in merged.items()}
+        models = set(listing_map.get(brand, [])) | set(catalog_map.get(brand, []))
+        merged[brand] = {m for m in models if not is_excluded_model(m)}
+    return {brand: sorted(models) for brand, models in merged.items() if models}
 
 
 def _parse_vehicle_filter_rows(
@@ -2656,7 +2664,7 @@ def _home_popular_directions() -> list[dict]:
         },
         {
             "label": "Авто из Европы",
-            "url": "/listings/eu",
+            "url": "/eu",
             "flag_key": "eu",
             "flag_src": "/static/flags/eu-wide.svg?v=20261002-05",
         },
@@ -2776,7 +2784,14 @@ def listings_coming_soon_page(request: Request, db: Session = Depends(get_db)):
 @router.get("/listings/de", include_in_schema=False)
 def listings_europe_country_redirect():
     """Legacy country tabs → unified Europe feed."""
-    return RedirectResponse(url="/listings/eu", status_code=302)
+    return RedirectResponse(url="/eu", status_code=301)
+
+
+@router.get("/listings/eu", include_in_schema=False)
+def listings_eu_legacy_redirect(request: Request):
+    """Old Europe feed URL → /eu."""
+    qs = request.url.query
+    return RedirectResponse(url="/eu" + (f"?{qs}" if qs else ""), status_code=301)
 
 
 @router.get("/by")
@@ -2790,13 +2805,14 @@ def belarus_landing_page(request: Request, db: Session = Depends(get_db)):
 
 
 @router.get("/listings")
-@router.get("/listings/eu")
+@router.get("/eu")
 def listings_page(
     request: Request,
     year_from: str | None = Query(default=None),
     year_to: str | None = Query(default=None),
     catalog_item_id: int | None = Query(default=None),
     passable: bool = Query(default=False),
+    hide_skoda: bool = Query(default=False),
     rf_passable: str | None = Query(default=None),
     import_over_10m: str | None = Query(default=None),
     freshness: str = Query(default="all"),
@@ -2805,9 +2821,9 @@ def listings_page(
     db: Session = Depends(get_db),
 ):
     path = request.url.path.rstrip("/")
-    if path.endswith("/listings/eu"):
+    if path == "/eu" or path.endswith("/listings/eu"):
         listings_market = "eu"
-        listings_base_path = "/listings/eu"
+        listings_base_path = "/eu"
     else:
         listings_market = "by"
         listings_base_path = "/listings"
@@ -2853,6 +2869,7 @@ def listings_page(
     price_range = parse_listing_price_range(request.query_params.get("price_range"))
     query = exclude_hidden_body_type(db.query(CarListing), CarListing.body_type)
     query = exclude_excluded_brands(query, CarListing.brand)
+    query = exclude_excluded_models(query, CarListing.model, CarListing.title)
     if not is_admin:
         query = query.filter(CarListing.status == ListingStatus.published)
     if listings_market == "eu":
@@ -2862,6 +2879,11 @@ def listings_page(
             _listings_market_source_predicate("eu"),
             public_eu_listing_predicate(),
         )
+        if hide_skoda:
+            query = query.filter(
+                ~CarListing.brand.ilike("skoda%"),
+                ~CarListing.brand.ilike("škoda%"),
+            )
     else:
         query = query.filter(_listings_market_source_predicate("by"))
 
@@ -2986,7 +3008,8 @@ def listings_page(
     if parsed_mileage_to is not None:
         query = query.filter(CarListing.mileage <= parsed_mileage_to)
     query = apply_listings_price_range_filter(query, price_range)
-    if passable:
+    # BY / legacy: calendar-year passable band. EU uses first-registration age window below.
+    if passable and listings_market != "eu":
         year_min, year_max = _passable_year_bounds()
         query = query.filter(CarListing.year >= year_min, CarListing.year <= year_max)
     query = _apply_freshness_filter(query, freshness)
@@ -3010,6 +3033,13 @@ def listings_page(
             db,
             query,
             selection=import_age_selection,
+            page=page,
+            page_size=page_size,
+        )
+        offset = (page - 1) * page_size
+    elif passable and listings_market == "eu":
+        listings, total = paginate_query_with_passable_age(
+            query,
             page=page,
             page_size=page_size,
         )
@@ -3069,6 +3099,8 @@ def listings_page(
         query_params.append(("price_range", price_range))
     if passable:
         query_params.append(("passable", "1"))
+    if hide_skoda and listings_market == "eu":
+        query_params.append(("hide_skoda", "1"))
     if import_age_selection.rf_passable:
         query_params.append(("rf_passable", "1"))
     if import_age_selection.months_10_12:
@@ -3106,6 +3138,7 @@ def listings_page(
         or parsed_mileage_to is not None
         or price_range
         or passable
+        or (hide_skoda and listings_market == "eu")
         or import_age_selection.active
         or (freshness and freshness != "all")
         or (sort and sort != "newest")

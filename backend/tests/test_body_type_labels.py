@@ -52,6 +52,7 @@ def test_hides_non_car_and_commercial_body_types():
         "Коммерческий",
         "Грузовые микроавтобусы",
         "Грузовой микроавтобус",
+        "Krovininis mikroautobusas",
         "Мотоцикл для кросса",
         "Классический мотоцикл",
         "Круизер / чоппер",
@@ -61,6 +62,12 @@ def test_hides_non_car_and_commercial_body_types():
         "Buggy",
         "Багги",
         "Скутер",
+        "Роллер",
+        "Moped car",
+        "Мопед",
+        "Байк",
+        "Седло",
+        "Снегоход",
     ):
         assert is_hidden_body_type(value), value
     assert not is_hidden_body_type("Пассажирский микроавтобус")

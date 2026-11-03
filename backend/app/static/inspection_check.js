@@ -45,7 +45,7 @@
       "Подбор в Беларуси и Европе: поиск, проверка истории, расчёт утильсбора и доставка в Москву и регионы.",
     actionsHtml:
       '<a class="home-hero-pane-cta" href="/by">Авто из Беларуси</a>' +
-      '<a class="home-hero-pane-cta home-hero-pane-cta--ghost" href="/listings/eu">Авто из Европы</a>',
+      '<a class="home-hero-pane-cta home-hero-pane-cta--ghost" href="/eu">Авто из Европы</a>',
   };
 
   var INSPECT_PROMO = {

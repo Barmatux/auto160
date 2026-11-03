@@ -56,9 +56,11 @@ def list_listings(
     db: Session = Depends(get_db),
 ):
     from app.brand_exclusions import exclude_excluded_brands
+    from app.model_exclusions import exclude_excluded_models
 
     query = exclude_hidden_body_type(db.query(CarListing), CarListing.body_type)
     query = exclude_excluded_brands(query, CarListing.brand)
+    query = exclude_excluded_models(query, CarListing.model, CarListing.title)
 
     if current_user is None or current_user.role != UserRole.admin:
         from app.eu_listing_check import public_eu_listing_predicate

@@ -35,6 +35,7 @@ from app.avby_scrape_map import (
     map_avby_scrape_row,
 )
 from app.body_type_labels import is_hidden_body_type
+from app.model_exclusions import is_excluded_model
 from app.catalog_visibility import listing_generation_allowed_for_model
 from app.config import settings
 from app.db import SessionLocal
@@ -493,6 +494,20 @@ def main() -> int:
                 ):
                     existing.status = ListingStatus.archived
                     existing.body_type = mapped.body_type
+                    archived += 1
+                continue
+
+            if is_excluded_model(mapped.model, title=mapped.title):
+                skipped += 1
+                skip_reasons["model_excluded"] = skip_reasons.get("model_excluded", 0) + 1
+                existing = existing_map.get(mapped.avby_id)
+                if (
+                    existing
+                    and existing.status == ListingStatus.published
+                    and not _is_business_org_listing(existing)
+                    and not args.dry_run
+                ):
+                    existing.status = ListingStatus.archived
                     archived += 1
                 continue
 
