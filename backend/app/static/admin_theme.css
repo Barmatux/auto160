@@ -82,11 +82,19 @@ body.theme-admin.design-lab .site-topline .brand-logo {
   max-width: none;
 }
 
-@media (max-width: 1100px) {
+@media (max-width: 767px) {
   body.theme-admin.design-lab .site-topline .brand-logo {
     height: 34px;
     width: auto;
     max-width: min(150px, 42vw);
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1100px) {
+  body.theme-admin.design-lab .site-topline .brand-logo {
+    height: 58px;
+    width: auto;
+    max-width: min(260px, 48vw);
   }
 }
 
