@@ -59,8 +59,8 @@ STATIC_SEO: dict[str, tuple[str, str]] = {
         "Актуальные объявления автомобилей до 160 л.с. в Беларуси: фильтры по марке, городу и параметрам.",
     ),
     "/inspection": (
-        "Проверка — Auto160",
-        "Проверка VIN или объявления av.by: дата ввоза в РБ и льготный утильсбор на РФ.",
+        "Проверка даты ввоза по VIN — Auto160",
+        "VIN или ссылка av.by: дата ввоза из базы ГТК и оценка льготного утильсбора на РФ.",
     ),
     "/calculator": (
         "Калькулятор растаможки и утильсбора — Auto160",
@@ -683,14 +683,40 @@ def listings_feed_seo_meta(
     )
 
 
-def inspection_seo_meta(*, has_query: bool) -> SeoMeta:
+INSPECTION_FAQ: list[tuple[str, str]] = [
+    (
+        "Что показывает проверка?",
+        "Дату ввоза из базы ГТК и оценку, проходит ли авто на РФ под льготный утильсбор. Введите VIN или ссылку на объявление av.by.",
+    ),
+    (
+        "Проверка платная?",
+        "Нет. На Auto160 проверка доступна бесплатно.",
+    ),
+    (
+        "Нужен полный VIN?",
+        "Да. Для VIN — 17 символов без I, O и Q. Вместо номера можно вставить ссылку на объявление av.by.",
+    ),
+    (
+        "Это юридическая экспертиза?",
+        "Нет. Это быстрый предварительный контроль. Для сделки всё равно нужны осмотр, проверка документов и при необходимости помощь специалиста.",
+    ),
+]
+
+
+def inspection_seo_meta(base: str, *, has_query: bool) -> SeoMeta:
     title, description = STATIC_SEO["/inspection"]
+    json_ld: list[dict[str, Any]] = [
+        breadcrumb_json_ld(base, [("Главная", "/"), ("Проверка", "/inspection")]),
+    ]
+    if not has_query:
+        json_ld.append(faq_page_json_ld(base, "/inspection", INSPECTION_FAQ))
     return SeoMeta(
         title=title,
         description=description,
         path="/inspection",
         noindex=has_query,
-        h1="Проверка",
+        json_ld=json_ld,
+        h1="Проверка даты ввоза по VIN",
     )
 
 

@@ -1,5 +1,4 @@
 {% extends "base.html" %}
-{% block title %}{{ seo_title | default("Проверка — Auto160") }}{% endblock %}
 {% block content %}
 <section
   class="inspection-combined"
@@ -10,7 +9,7 @@
   <div class="inspection-main">
     <div class="inspection-main-left">
       <header class="inspection-intro">
-        <h1>Проверка</h1>
+        <h1>{{ seo_h1 or "Проверка даты ввоза по VIN" }}</h1>
         <p class="inspection-lede">
           Вставьте VIN или ссылку на объявление av.by — покажем дату ввоза из базы ГТК
           и оценим, проходит ли авто на РФ под льготный утильсбор.
@@ -77,6 +76,16 @@
       </div>
     </aside>
   </div>
+
+  {% if inspection_faq %}
+  <section class="home-how">
+    <h2>Частые вопросы</h2>
+    {% for question, answer in inspection_faq %}
+      <h3>{{ question }}</h3>
+      <p>{{ answer }}</p>
+    {% endfor %}
+  </section>
+  {% endif %}
 
   <section class="inspection-results" id="results">
     <div class="inspection-results-head">

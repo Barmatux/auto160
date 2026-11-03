@@ -6,10 +6,12 @@ from app.seo import (
     BELARUS_FAQ,
     CALCULATOR_FAQ,
     EUROPE_FAQ,
+    INSPECTION_FAQ,
     INDEXABLE_CITIES,
     belarus_seo_meta,
     calculator_seo_meta,
     europe_feed_seo_meta,
+    inspection_seo_meta,
     build_robots_txt,
     build_seo_context,
     dumps_json_ld,
@@ -108,6 +110,26 @@ def test_calculator_seo_matches_visible_offer():
     assert "BreadcrumbList" in types
     questions = next(block for block in meta.json_ld if block["@type"] == "FAQPage")["mainEntity"]
     assert [item["name"] for item in questions] == [question for question, _answer in CALCULATOR_FAQ]
+
+
+def test_inspection_seo_matches_visible_offer():
+    meta = inspection_seo_meta("https://auto160.ru", has_query=False)
+    assert meta.h1 == "Проверка даты ввоза по VIN"
+    assert meta.path == "/inspection"
+    assert meta.noindex is False
+    assert "VIN" in meta.title
+    assert len(meta.description) <= 160
+    assert not meta.description.endswith("…")
+    assert "ГТК" in meta.description
+    assert "3 дня" not in meta.description
+    types = {block["@type"] for block in meta.json_ld}
+    assert "FAQPage" in types
+    assert "BreadcrumbList" in types
+    queried = inspection_seo_meta("https://auto160.ru", has_query=True)
+    assert queried.noindex is True
+    assert "FAQPage" not in {block["@type"] for block in queried.json_ld}
+    questions = next(block for block in meta.json_ld if block["@type"] == "FAQPage")["mainEntity"]
+    assert [item["name"] for item in questions] == [question for question, _answer in INSPECTION_FAQ]
 
 
 def test_listings_feed_indexes_minsk_only():

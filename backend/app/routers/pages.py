@@ -193,6 +193,7 @@ from app.seo import (
     BELARUS_FAQ,
     CALCULATOR_FAQ,
     EUROPE_FAQ,
+    INSPECTION_FAQ,
     belarus_seo_meta,
     europe_feed_seo_meta,
     guide_do_160_seo_meta,
@@ -3263,13 +3264,9 @@ def vin_inspection_page(
 ):
     current_user = _resolve_user_from_request(request, db)
     has_query = bool((vin or "").strip() or (q or "").strip() or listing_id is not None or refresh)
-    seo = SeoMeta(
-        title="Проверка — Auto160",
-        description="Проверка VIN или объявления av.by: дата ввоза в РБ и льготный утильсбор на РФ.",
-        path="/inspection",
-        noindex=has_query,
-    )
+    seo = inspection_seo_meta(site_base_url(request), has_query=has_query)
     context = _template_context(request, current_user, seo)
+    context["inspection_faq"] = INSPECTION_FAQ
     listing = None
     is_admin = _is_admin_user(current_user)
     if listing_id is not None:
