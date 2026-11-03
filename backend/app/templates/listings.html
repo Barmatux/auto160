@@ -1,7 +1,54 @@
 {% extends "base.html" %}
-{% block title %}{% if listings_market == 'eu' %}Европа (Autoplius / Auto24) - Auto160{% else %}Лента объявлений - Auto160{% endif %}{% endblock %}
 {% block content %}
 <div class="catalog-page">
+  {% if listings_market == 'eu' %}
+    <header class="eu-landing-hero">
+      <h1>{{ seo_h1 or "Авто из Европы под льготный утильсбор" }}</h1>
+      {% if eu_show_intro and seo_intro %}
+        <p class="eu-landing-lede">{{ seo_intro }}</p>
+      {% endif %}
+    </header>
+    {% if eu_show_intro %}
+      <section class="home-how eu-landing-more">
+        <h2>Что входит в подбор из Европы</h2>
+        <ol class="home-steps">
+          <li>подбор автомобиля на европейских торговых площадках или аукционе</li>
+          <li>проверка истории и пробега по европейским базам</li>
+          <li>
+            расчёт таможни и утильсбора до сделки —
+            <a href="/calculator">калькулятор растаможки</a>
+          </li>
+          <li>сопровождение покупки и логистики</li>
+          <li>оплата по безналичному расчёту для РФ</li>
+          <li>доставка в Москву и регионы</li>
+        </ol>
+        <h2>Заказать подбор</h2>
+        <p>Опишите бюджет и требования — менеджер подберёт варианты из ленты ниже.</p>
+        <form class="belarus-lead-form" data-belarus-lead-form>
+          <label>
+            Имя
+            <input type="text" name="contact_name" maxlength="120" required autocomplete="name" />
+          </label>
+          <label>
+            Телефон или Telegram
+            <input type="text" name="contact" maxlength="120" required autocomplete="tel" />
+          </label>
+          <label>
+            Что ищете
+            <textarea name="comment" rows="3" maxlength="2000" placeholder="Марка, бюджет, год…"></textarea>
+          </label>
+          <input type="hidden" name="source" value="europe_landing" />
+          <button type="submit" class="btn-primary belarus-cta-btn">Отправить заявку</button>
+          <p class="hint" data-belarus-lead-status hidden></p>
+        </form>
+        <h2>Частые вопросы</h2>
+        {% for question, answer in europe_faq %}
+          <h3>{{ question }}</h3>
+          <p>{{ answer }}</p>
+        {% endfor %}
+      </section>
+    {% endif %}
+  {% endif %}
   {% set vehicle_hierarchy = listings_filters.vehicle_hierarchy %}
   {% set filters_form_id = "listings-filters-form" %}
   {% set filters_reset_url = listings_base_path or "/listings" %}
@@ -62,5 +109,8 @@
   {% include "partials/listing_vin_admin_script.html" %}
 {% endif %}
 <script src="/static/listings_feed_gallery.js?v=20260924-02" defer></script>
+{% if listings_market == 'eu' and eu_show_intro %}
+  <script src="/static/belarus_landing.js?v=20261028-02" defer></script>
+{% endif %}
 {% include "partials/listing_description_script.html" %}
 {% endblock %}

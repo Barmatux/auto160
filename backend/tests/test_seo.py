@@ -4,8 +4,10 @@ from starlette.requests import Request
 
 from app.seo import (
     BELARUS_FAQ,
+    EUROPE_FAQ,
     INDEXABLE_CITIES,
     belarus_seo_meta,
+    europe_feed_seo_meta,
     build_robots_txt,
     build_seo_context,
     dumps_json_ld,
@@ -67,6 +69,26 @@ def test_belarus_landing_seo_matches_visible_offer():
     assert "BreadcrumbList" in types
     questions = meta.json_ld[1]["mainEntity"]
     assert [item["name"] for item in questions] == [question for question, _answer in BELARUS_FAQ]
+
+
+def test_europe_feed_seo_matches_visible_offer():
+    meta = europe_feed_seo_meta("https://auto160.ru")
+    assert meta.h1 == "Авто из Европы под льготный утильсбор"
+    assert meta.path == "/eu"
+    assert meta.noindex is False
+    assert len(meta.description) <= 160
+    assert "3 дня" not in meta.description
+    assert "1.9" in meta.description
+    types = {block["@type"] for block in meta.json_ld}
+    assert "FAQPage" in types
+    filtered = europe_feed_seo_meta("https://auto160.ru", noisy=True)
+    assert filtered.noindex is True
+    assert "FAQPage" not in {block["@type"] for block in filtered.json_ld}
+    paged = europe_feed_seo_meta("https://auto160.ru", page=2)
+    assert paged.noindex is True
+    assert "стр. 2" in paged.title
+    questions = next(block for block in meta.json_ld if block["@type"] == "FAQPage")["mainEntity"]
+    assert [item["name"] for item in questions] == [question for question, _answer in EUROPE_FAQ]
 
 
 def test_listings_feed_indexes_minsk_only():

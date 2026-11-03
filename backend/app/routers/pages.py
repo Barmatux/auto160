@@ -191,7 +191,9 @@ from app.seo import (
     catalog_models_seo_meta,
     catalog_modifications_seo_meta,
     BELARUS_FAQ,
+    EUROPE_FAQ,
     belarus_seo_meta,
+    europe_feed_seo_meta,
     guide_do_160_seo_meta,
     guide_vin_seo_meta,
     home_seo_meta,
@@ -3159,21 +3161,13 @@ def listings_page(
         seo_city = location_cities[0]
     seo_brand = None if brand == "__multi__" else brand
     if listings_market == "eu":
+        eu_noisy = bool(noisy_filters or brand == "__multi__")
         seo = build_seo_context(
             request,
-            SeoMeta(
-                title="Авто из Европы до 8 лет и 1.9 л — Auto160"
-                + (f", стр. {page}" if page > 1 else ""),
-                description=(
-                    "Объявления из Европы (autoplius.lt, auto24.ee): возраст до 8 лет, "
-                    "двигатель до 1.9 л, мощность до 160 л.с. Цены в BYN по курсу НБ РБ."
-                ),
-                path=listings_base_path,
-                h1="Европа — до 8 лет и 1.9 л",
-                intro="Литва и Эстония: авто не старше 8 лет, двигатель до 1.9 л, до 160 л.с.",
-                noindex=page > 1 or noisy_filters or (brand == "__multi__"),
-            ),
+            europe_feed_seo_meta(site_base_url(request), page=page, noisy=eu_noisy),
         )
+        context["eu_show_intro"] = page == 1 and not eu_noisy
+        context["europe_faq"] = EUROPE_FAQ
     else:
         seo = build_seo_context(
             request,

@@ -8772,6 +8772,24 @@ body.theme-admin .home-hero.home-hero--split .home-hero-pane-lead {
   line-height: 1.45;
   color: var(--text, #334155);
 }
+.eu-landing-hero {
+  margin: 0 0 12px;
+}
+.eu-landing-hero h1 {
+  margin: 0;
+  font-size: clamp(1.35rem, 2vw, 1.75rem);
+  line-height: 1.25;
+  color: var(--heading, #1e3a8a);
+}
+.eu-landing-lede {
+  margin: 8px 0 0;
+  max-width: 46rem;
+  line-height: 1.45;
+  color: var(--text, #334155);
+}
+.eu-landing-more .belarus-lead-form {
+  max-width: 32rem;
+}
 .belarus-landing-paths {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
