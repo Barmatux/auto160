@@ -815,6 +815,19 @@ body.theme-admin.theme-admin-light.design-lab .inspection-verdict-card.is-red .i
     width: 38px;
     height: 38px;
   }
+
+  /* Magazine-width hero cards on tablet — no full-bleed stretch */
+  .home-hero-split {
+    gap: 16px;
+    padding: 0 20px 8px;
+    scroll-padding-inline: 20px;
+  }
+
+  .home-hero-pane {
+    flex-basis: 400px;
+    width: 400px;
+    max-width: 400px;
+  }
 }
 
 /* Desktop / large landscape: full nav chrome */
@@ -7758,10 +7771,10 @@ body.theme-admin .home-hero.home-hero--split .home-hero-pane-lead {
     border-radius: 16px;
   }
 
-  /* Deck carousel: front card, next peeks underneath to the right */
+  /* Editorial carousel: fixed photo ratio, calm peek of the next card */
   .home-hero.home-hero--split {
     padding: 0;
-    margin: 0 -8px 16px;
+    margin: 0 -8px 14px;
     width: calc(100% + 16px);
     max-width: none;
     background: transparent;
@@ -7770,70 +7783,73 @@ body.theme-admin .home-hero.home-hero--split .home-hero-pane-lead {
     overflow: visible;
   }
 
-  .home-hero-split.home-hero-split--deck {
-    display: block;
-    position: relative;
+  .home-hero-split {
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    gap: 14px;
     min-height: 0;
-    padding: 0 12px 10px;
-    overflow: visible;
+    padding: 0 16px 6px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory;
+    scroll-padding-inline: 16px;
+    scrollbar-width: none;
   }
 
-  .home-hero-split.home-hero-split--deck .home-hero-pane {
-    width: calc(100% - 22px);
-    max-width: none;
+  .home-hero-split::-webkit-scrollbar {
+    display: none;
+  }
+
+  .home-hero-pane {
+    flex: 0 0 min(360px, calc(100vw - 48px));
+    width: min(360px, calc(100vw - 48px));
+    max-width: 360px;
     min-height: 0;
-    border-radius: 18px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.38);
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.28);
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
     background: #0b0e14;
-    transition:
-      transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
-      opacity 0.35s ease,
-      box-shadow 0.35s ease;
-    will-change: transform;
-  }
-
-  .home-hero-split.home-hero-split--deck .home-hero-pane.is-front {
-    position: relative;
-    z-index: 2;
-    transform: translate3d(0, 0, 0) scale(1);
-    opacity: 1;
-  }
-
-  .home-hero-split.home-hero-split--deck .home-hero-pane.is-back {
-    position: absolute;
-    top: 10px;
-    left: 12px;
-    z-index: 1;
-    transform: translate3d(18px, 0, 0) scale(0.965);
-    opacity: 0.78;
-    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
-    pointer-events: auto;
+    overflow: hidden;
   }
 
   .home-hero-pane + .home-hero-pane {
-    border-left: 1px solid rgba(255, 255, 255, 0.1);
+    border-left: 1px solid rgba(255, 255, 255, 0.08);
     border-top: none;
   }
 
   .home-hero-pane-head {
-    min-height: 4.8rem;
-    padding: 14px 48px 6px;
+    min-height: 4.4rem;
+    padding: 14px 44px 8px;
   }
 
   .home-hero-pane-flag {
-    width: 46px;
-    height: 31px;
+    width: 44px;
+    height: 30px;
   }
 
   .home-hero-pane-body {
-    padding: 6px 14px 14px;
-    gap: 6px;
+    padding: 8px 16px 16px;
+    gap: 8px;
   }
 
   .home-hero-pane-visual {
     flex: 0 0 auto;
-    height: 220px;
+    height: auto;
+    aspect-ratio: 16 / 10;
+    margin: 0;
+  }
+
+  .home-hero-pane-media {
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center 45%;
   }
 
   .home-hero-pane h1,
