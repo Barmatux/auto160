@@ -9,6 +9,8 @@ HTTP_SRC="$APP_DIR/scripts/nginx-auto160-http.conf"
 AVAILABLE="/etc/nginx/sites-available/auto160"
 ENABLED="/etc/nginx/sites-enabled/auto160"
 CERT_RU="/etc/letsencrypt/live/auto160.ru/fullchain.pem"
+CERT_BY="/etc/letsencrypt/live/auto160.by/fullchain.pem"
+BY_TLS_SRC="$APP_DIR/scripts/nginx-auto160-by-tls.conf"
 
 run() {
   if [[ "$(id -u)" -eq 0 ]]; then
@@ -35,8 +37,12 @@ else
 fi
 
 echo "==> Install nginx site config from $SRC ($MODE)"
-run mkdir -p /etc/nginx/sites-available /etc/nginx/sites-enabled
+run mkdir -p /etc/nginx/sites-available /etc/nginx/sites-enabled /var/www/certbot
 run cp "$SRC" "$AVAILABLE"
+if [[ "$MODE" == "tls" && -f "$CERT_BY" && -f "$BY_TLS_SRC" ]]; then
+  echo "Appending auto160.by HTTPS redirect"
+  run tee -a "$AVAILABLE" < "$BY_TLS_SRC" >/dev/null
+fi
 run ln -sfn "$AVAILABLE" "$ENABLED"
 
 # Remove other auto160 / rf-test site links so server_name blocks do not clash.
