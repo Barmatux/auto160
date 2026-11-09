@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block content %}
+<article class="guide-page blog-post">
+  <header class="guide-header">
+    <p class="hint"><a href="/">Главная</a> · <a href="/blog">Блог</a></p>
+    <h1>{{ post.title }}</h1>
+    {% if post.published_at %}
+      <time class="blog-post-date" datetime="{{ post.published_at.isoformat() }}">
+        {{ post.published_at.strftime('%d.%m.%Y') }}
+      </time>
+    {% endif %}
+    {% if post.excerpt %}
+      <p class="guide-lead">{{ post.excerpt }}</p>
+    {% endif %}
+  </header>
+  <div class="blog-post-body guide-section">
+    {{ post.body | safe }}
+  </div>
+</article>
+{% endblock %}

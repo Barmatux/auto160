@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Админка — {% if post %}Редактирование{% else %}Новая статья{% endif %}{% endblock %}
+{% block content %}
+{% set admin_section = "blog" %}
+{% include "partials/admin_nav.html" %}
+
+<h1>{% if post %}Редактирование статьи{% else %}Новая статья{% endif %}</h1>
+<p class="hint"><a href="/admin/blog">← К списку статей</a></p>
+
+<form
+  class="blog-edit-form"
+  data-blog-edit-form
+  data-post-id="{{ post.id if post else '' }}"
+>
+  <label class="blog-edit-label">
+    Заголовок
+    <input type="text" name="title" data-blog-title required maxlength="300" value="{{ post.title if post else '' }}" />
+  </label>
+  <label class="blog-edit-label">
+    Адрес (slug, латиница)
+    <input type="text" name="slug" data-blog-slug maxlength="200" placeholder="авто-из-беларуси" value="{{ post.slug if post else '' }}" />
+  </label>
+  <label class="blog-edit-label">
+    Краткое описание (для списка и SEO)
+    <textarea name="excerpt" data-blog-excerpt rows="2" maxlength="500">{{ post.excerpt if post and post.excerpt else '' }}</textarea>
+  </label>
+  <div class="blog-edit-label">
+  <span>Текст статьи (HTML)</span>
+    <div class="blog-editor-toolbar" data-blog-toolbar aria-label="Форматирование">
+      <button type="button" class="blog-editor-btn" data-before="&lt;strong&gt;" data-after="&lt;/strong&gt;">Жирный</button>
+      <button type="button" class="blog-editor-btn" data-before="&lt;em&gt;" data-after="&lt;/em&gt;">Курсив</button>
+      <button type="button" class="blog-editor-btn" data-before="&lt;h2&gt;" data-after="&lt;/h2&gt;">Заголовок</button>
+      <button type="button" class="blog-editor-btn" data-before="&lt;p&gt;" data-after="&lt;/p&gt;">Абзац</button>
+      <button type="button" class="blog-editor-btn" data-before='&lt;a href=""&gt;' data-after="&lt;/a&gt;">Ссылка</button>
+    </div>
+    <textarea name="body" data-blog-body rows="18" class="blog-edit-body">{{ post.body if post else '' }}</textarea>
+  </div>
+  <label class="blog-edit-check">
+    <input type="checkbox" name="is_published" data-blog-published {% if post and post.is_published %}checked{% endif %} />
+    Опубликовать на сайте
+  </label>
+  <div class="blog-edit-actions">
+    <button type="submit" class="btn-primary">Сохранить</button>
+    <p class="hint" data-blog-edit-status hidden></p>
+  </div>
+</form>
+
+<script src="/static/admin_blog.js?v=20261109-01" defer></script>
+{% endblock %}

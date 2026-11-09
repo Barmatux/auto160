@@ -645,6 +645,38 @@ class SiteLeadReadRequest(BaseModel):
     is_read: bool = True
 
 
+class BlogPostCreateRequest(BaseModel):
+    title: str = Field(min_length=1, max_length=300)
+    slug: str | None = Field(default=None, max_length=200)
+    body: str = ""
+    excerpt: str | None = None
+    is_published: bool = False
+
+
+class BlogPostUpdateRequest(BaseModel):
+    title: str = Field(min_length=1, max_length=300)
+    slug: str | None = Field(default=None, max_length=200)
+    body: str = ""
+    excerpt: str | None = None
+    is_published: bool = False
+
+
+class BlogPostOut(BaseModel):
+    id: int
+    slug: str
+    title: str
+    body: str
+    excerpt: str | None = None
+    is_published: bool
+    published_at: datetime | None = None
+    author_id: int | None = None
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
 class ImportDateLookupRequest(BaseModel):
     query: str
 

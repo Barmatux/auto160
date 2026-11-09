@@ -136,6 +136,12 @@ from app.manual_vin_check import (
 from app.customs_catalog import list_makes as list_customs_catalog_makes
 from app.customs_db import public_make_names
 from app.customs_vehicles import list_customs_vehicle_specs
+from app.blog_posts import (
+    get_blog_post,
+    get_published_blog_post_by_slug,
+    list_all_blog_posts,
+    list_published_blog_posts,
+)
 from app.featured import (
     FEATURED_HOME_LIMIT,
     FEATURED_POOL_LIMIT,
@@ -195,6 +201,8 @@ from app.seo import (
     EUROPE_FAQ,
     INSPECTION_FAQ,
     belarus_seo_meta,
+    blog_index_seo_meta,
+    blog_post_seo_meta,
     europe_feed_seo_meta,
     guide_do_160_seo_meta,
     guide_vin_seo_meta,
@@ -2694,6 +2702,7 @@ def home(request: Request, db: Session = Depends(get_db)):
     context["featured_listings"] = featured_listings
     context["listing_gallery_urls"] = resolve_listing_gallery_urls_map(featured_listings, limit=1)
     context["catalog_quick_links"] = _home_catalog_quick_links()
+    context["blog_posts"] = list_published_blog_posts(db, limit=3)
     return templates.TemplateResponse(request, "index.html", context)
 
 
@@ -4024,6 +4033,31 @@ def catalog_compare(
     context["rows"] = rows
     context["compare_sections"] = compare_sections
     return templates.TemplateResponse(request, "catalog_compare.html", context)
+
+
+@router.get("/blog")
+def blog_index_page(request: Request, db: Session = Depends(get_db)):
+    current_user = _resolve_user_from_request(request, db)
+    base = site_base_url(request)
+    context = _template_context(request, current_user, blog_index_seo_meta(base))
+    context["posts"] = list_published_blog_posts(db, limit=50)
+    return templates.TemplateResponse(request, "blog.html", context)
+
+
+@router.get("/blog/{slug}")
+def blog_post_page(request: Request, slug: str, db: Session = Depends(get_db)):
+    current_user = _resolve_user_from_request(request, db)
+    post = get_published_blog_post_by_slug(db, slug)
+    if post is None:
+        raise HTTPException(status_code=404, detail="Not found")
+    base = site_base_url(request)
+    context = _template_context(
+        request,
+        current_user,
+        blog_post_seo_meta(base, slug=post.slug, title=post.title, excerpt=post.excerpt),
+    )
+    context["post"] = post
+    return templates.TemplateResponse(request, "blog_post.html", context)
 
 
 @router.get("/guides/vin")
@@ -5476,6 +5510,42 @@ def admin_site_leads_page(request: Request, db: Session = Depends(get_db)):
     context = _template_context(request, current_user)
     context["leads"] = list_site_leads(db, limit=200)
     return templates.TemplateResponse(request, "admin_site_leads.html", context)
+
+
+@router.get("/admin/blog")
+def admin_blog_list_page(request: Request, db: Session = Depends(get_db)):
+    current_user = _resolve_user_from_request(request, db)
+    redirect = _admin_page_redirect(current_user)
+    if redirect:
+        return redirect
+    context = _template_context(request, current_user)
+    context["posts"] = list_all_blog_posts(db)
+    return templates.TemplateResponse(request, "admin_blog.html", context)
+
+
+@router.get("/admin/blog/new")
+def admin_blog_new_page(request: Request, db: Session = Depends(get_db)):
+    current_user = _resolve_user_from_request(request, db)
+    redirect = _admin_page_redirect(current_user)
+    if redirect:
+        return redirect
+    context = _template_context(request, current_user)
+    context["post"] = None
+    return templates.TemplateResponse(request, "admin_blog_edit.html", context)
+
+
+@router.get("/admin/blog/{post_id}/edit")
+def admin_blog_edit_page(request: Request, post_id: int, db: Session = Depends(get_db)):
+    current_user = _resolve_user_from_request(request, db)
+    redirect = _admin_page_redirect(current_user)
+    if redirect:
+        return redirect
+    post = get_blog_post(db, post_id)
+    if post is None:
+        return RedirectResponse(url="/admin/blog", status_code=302)
+    context = _template_context(request, current_user)
+    context["post"] = post
+    return templates.TemplateResponse(request, "admin_blog_edit.html", context)
 
 
 @router.get("/admin/price-stats")

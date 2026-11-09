@@ -140,6 +140,25 @@
   </ol>
 </section>
 
+<section class="home-section home-section-blog" id="blog" aria-label="Блог">
+  <div class="home-section-head">
+    <h2>Блог</h2>
+    <a class="home-link" href="/blog">Все статьи →</a>
+  </div>
+  {% if blog_posts %}
+    <ul class="blog-home-list">
+      {% for post in blog_posts %}
+        <li>
+          <a href="/blog/{{ post.slug }}">{{ post.title }}</a>
+          {% if post.published_at %}
+            <span class="hint">{{ post.published_at.strftime('%d.%m.%Y') }}</span>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+</section>
+
 <section class="home-section home-section-makes">
   <div class="home-section-head">
     <h2>Популярные марки</h2>

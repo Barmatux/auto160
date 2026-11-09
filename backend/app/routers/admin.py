@@ -56,6 +56,13 @@ from app.customs_vehicles import (
     list_customs_vehicle_specs,
     update_customs_vehicle_spec,
 )
+from app.blog_posts import (
+    create_blog_post,
+    delete_blog_post,
+    get_blog_post,
+    list_all_blog_posts,
+    update_blog_post,
+)
 from app.featured import (
     add_featured_listing,
     list_featured_rows,
@@ -106,6 +113,9 @@ from app.schemas import (
     ManualVinCheckRunRequest,
     ManualVinCheckRunItem,
     ManualVinCheckRunResponse,
+    BlogPostCreateRequest,
+    BlogPostOut,
+    BlogPostUpdateRequest,
     SiteLeadOut,
     SiteLeadReadRequest,
     UserPublic,
@@ -976,3 +986,68 @@ def admin_mark_site_lead_read(
         return mark_site_lead_read(db, lead_id, is_read=payload.is_read)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.get("/blog-posts", response_model=list[BlogPostOut])
+def admin_list_blog_posts(
+    _: User = Depends(require_admin_flexible),
+    db: Session = Depends(get_db),
+):
+    return list_all_blog_posts(db)
+
+
+@router.post("/blog-posts", response_model=BlogPostOut)
+def admin_create_blog_post(
+    payload: BlogPostCreateRequest,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    try:
+        return create_blog_post(
+            db,
+            author_id=current_user.id,
+            title=payload.title,
+            slug=payload.slug,
+            body=payload.body,
+            excerpt=payload.excerpt,
+            is_published=payload.is_published,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.patch("/blog-posts/{post_id}", response_model=BlogPostOut)
+def admin_update_blog_post(
+    post_id: int,
+    payload: BlogPostUpdateRequest,
+    _: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    post = get_blog_post(db, post_id)
+    if post is None:
+        raise HTTPException(status_code=404, detail="Статья не найдена")
+    try:
+        return update_blog_post(
+            db,
+            post,
+            title=payload.title,
+            slug=payload.slug,
+            body=payload.body,
+            excerpt=payload.excerpt,
+            is_published=payload.is_published,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.delete("/blog-posts/{post_id}", status_code=204)
+def admin_delete_blog_post(
+    post_id: int,
+    _: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    post = get_blog_post(db, post_id)
+    if post is None:
+        raise HTTPException(status_code=404, detail="Статья не найдена")
+    delete_blog_post(db, post)
+    return None

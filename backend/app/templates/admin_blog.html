@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Админка — Блог{% endblock %}
+{% block content %}
+{% set admin_section = "blog" %}
+{% include "partials/admin_nav.html" %}
+
+<h1>Блог</h1>
+<p class="hint">
+  <a href="/admin/blog/new" class="btn-primary">Новая статья</a>
+  · публичный раздел: <a href="/blog" target="_blank" rel="noopener">/blog</a>
+</p>
+
+<table class="users-table">
+  <thead>
+    <tr>
+      <th>Заголовок</th>
+      <th>URL</th>
+      <th>Опубликовано</th>
+      <th>Обновлено</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for post in posts %}
+      <tr data-blog-row="{{ post.id }}">
+        <td>{{ post.title }}</td>
+        <td><code>/blog/{{ post.slug }}</code></td>
+        <td>{% if post.is_published %}да{% else %}черновик{% endif %}</td>
+        <td>{{ post.updated_at.strftime('%d.%m.%Y %H:%M') if post.updated_at else "—" }}</td>
+        <td>
+          <a href="/admin/blog/{{ post.id }}/edit">Редактировать</a>
+          <button type="button" class="btn-link" data-blog-delete="{{ post.id }}">Удалить</button>
+        </td>
+      </tr>
+    {% else %}
+      <tr><td colspan="5">Статей пока нет</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<script src="/static/admin_blog.js?v=20261109-01" defer></script>
+{% endblock %}

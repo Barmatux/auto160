@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block content %}
+<article class="guide-page blog-index">
+  <header class="guide-header">
+    <p class="hint"><a href="/">Главная</a></p>
+    <h1>{{ seo_h1 or "Блог" }}</h1>
+  </header>
+
+  {% if posts %}
+    <ul class="blog-index-list">
+      {% for post in posts %}
+        <li class="blog-index-item">
+          <a class="blog-index-title" href="/blog/{{ post.slug }}">{{ post.title }}</a>
+          {% if post.published_at %}
+            <time class="blog-index-date" datetime="{{ post.published_at.isoformat() }}">
+              {{ post.published_at.strftime('%d.%m.%Y') }}
+            </time>
+          {% endif %}
+          {% if post.excerpt %}
+            <p class="blog-index-excerpt">{{ post.excerpt }}</p>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+</article>
+{% endblock %}

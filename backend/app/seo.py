@@ -82,6 +82,10 @@ STATIC_SEO: dict[str, tuple[str, str]] = {
         "Реквизиты ООО «Сканди Моторс» — Auto160",
         "Реквизиты оператора Auto160: ООО «Сканди Моторс», УНП 193866357, адрес и банковские реквизиты.",
     ),
+    "/blog": (
+        "Блог — Auto160",
+        "Статьи Auto160 об импорте авто из Беларуси и Европы, растаможке и подборе под льготный утильсбор.",
+    ),
 }
 
 
@@ -780,6 +784,32 @@ def guide_vin_seo_meta(base: str) -> SeoMeta:
     )
 
 
+def blog_index_seo_meta(base: str) -> SeoMeta:
+    title, description = STATIC_SEO["/blog"]
+    return SeoMeta(
+        title=title,
+        description=description,
+        path="/blog",
+        json_ld=[breadcrumb_json_ld(base, [("Главная", "/"), ("Блог", "/blog")])],
+        h1="Блог",
+    )
+
+
+def blog_post_seo_meta(base: str, *, slug: str, title: str, excerpt: str | None) -> SeoMeta:
+    path = f"/blog/{slug}"
+    description = (excerpt or title).strip()[:300]
+    return SeoMeta(
+        title=f"{title} — Auto160",
+        description=description,
+        path=path,
+        json_ld=[
+            article_json_ld(base, path, title, description),
+            breadcrumb_json_ld(base, [("Главная", "/"), ("Блог", "/blog"), (title, path)]),
+        ],
+        h1=title,
+    )
+
+
 def guide_do_160_seo_meta(base: str) -> SeoMeta:
     title, description = STATIC_SEO["/guides/do-160-hp"]
     return SeoMeta(
@@ -900,6 +930,7 @@ def build_sitemap_sections(db: Session, base_url: str) -> dict[str, list[tuple[s
         "/guides/do-160-hp",
         "/privacy",
         "/requisites",
+        "/blog",
     ):
         static.append((f"{base_url}{path}", today))
 
