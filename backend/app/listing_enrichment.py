@@ -67,24 +67,48 @@ class VinCheckListingFilters:
     engine_over_1_9l: bool = False
     brand: str | None = None
     model: str | None = None
+    generation: str | None = None
+    vehicle_rows: tuple[tuple[str, str, str], ...] = ()
+    year_from: int | None = None
+    year_to: int | None = None
+    mileage_from: int | None = None
+    mileage_to: int | None = None
+    body_types: tuple[str, ...] = ()
+    fuel_types: tuple[str, ...] = ()
+    transmission_slugs: tuple[str, ...] = ()
     price_from: int | None = None
     price_to: int | None = None
-    sort: str = "added"
+    price_range: str | None = None
+    freshness: str = "all"
+    sort: str = "newest"
 
 
 VIN_CHECK_SORT_ADDED = "added"
+VIN_CHECK_SORT_NEWEST = "newest"
 VIN_CHECK_SORT_PRICE = "price"
+VIN_CHECK_SORT_PRICE_ASC = "price_asc"
+VIN_CHECK_SORT_PRICE_DESC = "price_desc"
 VIN_CHECK_SORT_MILEAGE = "mileage"
+VIN_CHECK_SORT_YEAR_DESC = "year_desc"
+VIN_CHECK_SORT_YEAR_ASC = "year_asc"
 VIN_CHECK_SORT_VALUES = frozenset(
     {
         VIN_CHECK_SORT_ADDED,
+        VIN_CHECK_SORT_NEWEST,
         VIN_CHECK_SORT_PRICE,
+        VIN_CHECK_SORT_PRICE_ASC,
+        VIN_CHECK_SORT_PRICE_DESC,
         VIN_CHECK_SORT_MILEAGE,
+        VIN_CHECK_SORT_YEAR_DESC,
+        VIN_CHECK_SORT_YEAR_ASC,
     }
 )
 VIN_CHECK_SORT_LABELS = {
-    VIN_CHECK_SORT_ADDED: "По дате добавления",
-    VIN_CHECK_SORT_PRICE: "По цене",
+    VIN_CHECK_SORT_NEWEST: "Сначала новые",
+    VIN_CHECK_SORT_PRICE_ASC: "Цена по возрастанию",
+    VIN_CHECK_SORT_PRICE_DESC: "Цена по убыванию",
+    VIN_CHECK_SORT_YEAR_DESC: "Год по убыванию",
+    VIN_CHECK_SORT_YEAR_ASC: "Год по возрастанию",
     VIN_CHECK_SORT_MILEAGE: "По пробегу",
 }
 VIN_CHECK_DEFAULT_YEAR_FROM = 2010
@@ -108,9 +132,13 @@ def _belarus_vin_check_listings_query_filter():
 
 def normalize_vin_check_sort(value: str | None) -> str:
     cleaned = (value or "").strip().lower()
+    if cleaned == VIN_CHECK_SORT_ADDED:
+        return VIN_CHECK_SORT_NEWEST
+    if cleaned == VIN_CHECK_SORT_PRICE:
+        return VIN_CHECK_SORT_PRICE_ASC
     if cleaned in VIN_CHECK_SORT_VALUES:
         return cleaned
-    return VIN_CHECK_SORT_ADDED
+    return VIN_CHECK_SORT_NEWEST
 
 
 def parse_vin_check_price(value: str | int | float | None) -> int | None:
@@ -156,10 +184,12 @@ def _listing_created_at_sort_value(listing: CarListing) -> float:
         return 0.0
 
 
-def build_vin_check_brand_model_map(db: Session) -> dict[str, list[str]]:
-    """Unique make → models for catalog items with rating 1 (av.by)."""
+def build_vin_check_vehicle_maps(
+    db: Session,
+) -> tuple[dict[str, list[str]], dict[str, dict[str, list[str]]]]:
+    """Make → models and make → model → generations for rating-1 (av.by) catalog."""
     rows = (
-        db.query(CatalogItem.make, CatalogItem.model)
+        db.query(CatalogItem.make, CatalogItem.model, CatalogItem.generation)
         .filter(
             CatalogItem.rating == 1,
             CatalogItem.source_site == "av.by",
@@ -168,18 +198,40 @@ def build_vin_check_brand_model_map(db: Session) -> dict[str, list[str]]:
         )
         .all()
     )
-    mapping: dict[str, list[str]] = {}
-    for make, model in rows:
+    brand_model: dict[str, list[str]] = {}
+    generation_map: dict[str, dict[str, list[str]]] = {}
+    for make, model, generation in rows:
         brand = (make or "").strip()
         model_name = (model or "").strip()
+        generation_name = (generation or "").strip()
         if not brand or not model_name:
             continue
-        models = mapping.setdefault(brand, [])
+        models = brand_model.setdefault(brand, [])
         if model_name not in models:
             models.append(model_name)
-    for brand, models in mapping.items():
-        mapping[brand] = sorted(models, key=lambda value: value.casefold())
-    return dict(sorted(mapping.items(), key=lambda item: item[0].casefold()))
+        if generation_name:
+            gens = generation_map.setdefault(brand, {}).setdefault(model_name, [])
+            if generation_name not in gens:
+                gens.append(generation_name)
+    for brand, models in brand_model.items():
+        brand_model[brand] = sorted(models, key=lambda value: value.casefold())
+    for brand, models in generation_map.items():
+        generation_map[brand] = {
+            model: sorted(gens, key=lambda value: value.casefold())
+            for model, gens in models.items()
+        }
+    sorted_brands = dict(sorted(brand_model.items(), key=lambda item: item[0].casefold()))
+    sorted_gens = {
+        brand: generation_map.get(brand, {})
+        for brand in sorted_brands
+    }
+    return sorted_brands, sorted_gens
+
+
+def build_vin_check_brand_model_map(db: Session) -> dict[str, list[str]]:
+    """Unique make → models for catalog items with rating 1 (av.by)."""
+    brand_model_map, _ = build_vin_check_vehicle_maps(db)
+    return brand_model_map
 
 
 @dataclass(frozen=True)
@@ -1061,6 +1113,43 @@ def build_vin_found_collection_stats_by_account(
     return rows
 
 
+def _vin_check_vehicle_rows(
+    filters: VinCheckListingFilters,
+) -> list[tuple[str, str, str]]:
+    rows = list(filters.vehicle_rows or ())
+    if rows:
+        return [(brand or "", model or "", generation or "") for brand, model, generation in rows]
+    brand = (filters.brand or "").strip()
+    model = (filters.model or "").strip()
+    generation = (filters.generation or "").strip()
+    if brand or model or generation:
+        return [(brand, model, generation)]
+    return []
+
+
+def _listing_matches_vin_check_vehicle_rows(
+    listing: CarListing,
+    rows: list[tuple[str, str, str]],
+) -> bool:
+    if not rows:
+        return True
+    listing_brand = normalize_catalog_name(getattr(listing, "brand", None))
+    listing_model = normalize_catalog_name(getattr(listing, "model", None))
+    listing_generation = normalize_catalog_name(getattr(listing, "generation", None))
+    for brand, model, generation in rows:
+        brand_n = normalize_catalog_name(brand)
+        model_n = normalize_catalog_name(model)
+        generation_n = normalize_catalog_name(generation)
+        if brand_n and listing_brand != brand_n:
+            continue
+        if model_n and listing_model != model_n:
+            continue
+        if generation_n and listing_generation != generation_n:
+            continue
+        return True
+    return False
+
+
 def listing_matches_vin_check_filters(
     listing: CarListing,
     filters: VinCheckListingFilters | None = None,
@@ -1074,26 +1163,46 @@ def listing_matches_vin_check_filters(
         return False
     if filters is None:
         return True
-    brand_filter = normalize_catalog_name(filters.brand)
-    if brand_filter and normalize_catalog_name(getattr(listing, "brand", None)) != brand_filter:
+    if not _listing_matches_vin_check_vehicle_rows(listing, _vin_check_vehicle_rows(filters)):
         return False
-    model_filter = normalize_catalog_name(filters.model)
-    if model_filter and normalize_catalog_name(getattr(listing, "model", None)) != model_filter:
+    if filters.year_from is not None and year_int < filters.year_from:
+        return False
+    if filters.year_to is not None and year_int > filters.year_to:
         return False
     if filters.only_automatic:
         if classify_transmission_slug(getattr(listing, "transmission_type", None)) == TRANSMISSION_SLUG_MANUAL:
             return False
+    if filters.transmission_slugs:
+        slug = classify_transmission_slug(getattr(listing, "transmission_type", None))
+        if slug not in filters.transmission_slugs:
+            return False
     if filters.only_diesel:
         if classify_fuel_type(getattr(listing, "engine_type", None)) != FUEL_GROUP_DIESEL:
+            return False
+    if filters.fuel_types:
+        fuel = classify_fuel_type(getattr(listing, "engine_type", None))
+        wanted = {normalize_catalog_name(value) for value in filters.fuel_types}
+        fuel_n = normalize_catalog_name(fuel) if fuel else ""
+        raw_n = normalize_catalog_name(getattr(listing, "engine_type", None))
+        if fuel_n not in wanted and raw_n not in wanted:
+            return False
+    if filters.body_types:
+        body_n = normalize_catalog_name(getattr(listing, "body_type", None))
+        wanted_bodies = {normalize_catalog_name(value) for value in filters.body_types}
+        if body_n not in wanted_bodies:
             return False
     if filters.year_from_2020:
         if year_int < 2020:
             return False
+    try:
+        mileage_int = int(getattr(listing, "mileage", None) or 0)
+    except (TypeError, ValueError):
+        mileage_int = 0
+    if filters.mileage_from is not None and mileage_int < filters.mileage_from:
+        return False
+    if filters.mileage_to is not None and mileage_int > filters.mileage_to:
+        return False
     if filters.mileage_to_100k or filters.mileage_to_200k:
-        try:
-            mileage_int = int(getattr(listing, "mileage", None) or 0)
-        except (TypeError, ValueError):
-            mileage_int = 0
         max_km = 100_000 if filters.mileage_to_100k else 200_000
         if mileage_int > max_km:
             return False
@@ -1128,6 +1237,8 @@ def paginate_rating_one_listings(
     page: int = 1,
     page_size: int = 21,
     filters: VinCheckListingFilters | None = None,
+    base_query=None,
+    skip_python_filters: bool = False,
 ) -> tuple[list[CarListing], int]:
     targets = build_rating_one_targets(db)
     if not targets:
@@ -1135,21 +1246,37 @@ def paginate_rating_one_listings(
 
     offset = max(page - 1, 0) * page_size
     sort = normalize_vin_check_sort(filters.sort if filters else None)
-    query = (
-        db.query(CarListing)
-        .filter(CarListing.status == ListingStatus.published)
-        .filter(_belarus_vin_check_listings_query_filter())
-        .order_by(CarListing.created_at.desc())
-    )
+    if base_query is not None:
+        query = base_query
+    else:
+        query = (
+            db.query(CarListing)
+            .filter(CarListing.status == ListingStatus.published)
+            .filter(_belarus_vin_check_listings_query_filter())
+            .order_by(CarListing.created_at.desc())
+        )
 
-    if sort == VIN_CHECK_SORT_ADDED:
+    needs_python_sort = base_query is None and sort not in {
+        VIN_CHECK_SORT_NEWEST,
+        VIN_CHECK_SORT_ADDED,
+    }
+
+    if not needs_python_sort:
         matched: list[CarListing] = []
         total = 0
         for listing in query.yield_per(200):
             if not listing_matches_rating_one(listing, targets):
                 continue
-            if not listing_matches_vin_check_filters(listing, filters):
+            if not skip_python_filters and not listing_matches_vin_check_filters(listing, filters):
                 continue
+            elif skip_python_filters:
+                year = getattr(listing, "year", None)
+                try:
+                    year_int = int(year) if year is not None else None
+                except (TypeError, ValueError):
+                    year_int = None
+                if year_int is None or year_int < VIN_CHECK_DEFAULT_YEAR_FROM:
+                    continue
             if total >= offset and len(matched) < page_size:
                 matched.append(listing)
             total += 1
@@ -1159,15 +1286,23 @@ def paginate_rating_one_listings(
     for listing in query.yield_per(200):
         if not listing_matches_rating_one(listing, targets):
             continue
-        if not listing_matches_vin_check_filters(listing, filters):
+        if not skip_python_filters and not listing_matches_vin_check_filters(listing, filters):
             continue
         candidates.append(listing)
 
-    if sort == VIN_CHECK_SORT_PRICE:
+    if sort in {VIN_CHECK_SORT_PRICE, VIN_CHECK_SORT_PRICE_ASC}:
         candidates.sort(
             key=lambda row: (
                 getattr(row, "price", None) is None,
                 float(getattr(row, "price", None) or 0),
+                -_listing_created_at_sort_value(row),
+            )
+        )
+    elif sort == VIN_CHECK_SORT_PRICE_DESC:
+        candidates.sort(
+            key=lambda row: (
+                getattr(row, "price", None) is None,
+                -float(getattr(row, "price", None) or 0),
                 -_listing_created_at_sort_value(row),
             )
         )
@@ -1176,6 +1311,22 @@ def paginate_rating_one_listings(
             key=lambda row: (
                 getattr(row, "mileage", None) is None,
                 int(getattr(row, "mileage", None) or 0),
+                -_listing_created_at_sort_value(row),
+            )
+        )
+    elif sort == VIN_CHECK_SORT_YEAR_DESC:
+        candidates.sort(
+            key=lambda row: (
+                getattr(row, "year", None) is None,
+                -(int(getattr(row, "year", None) or 0)),
+                -_listing_created_at_sort_value(row),
+            )
+        )
+    elif sort == VIN_CHECK_SORT_YEAR_ASC:
+        candidates.sort(
+            key=lambda row: (
+                getattr(row, "year", None) is None,
+                int(getattr(row, "year", None) or 0),
                 -_listing_created_at_sort_value(row),
             )
         )

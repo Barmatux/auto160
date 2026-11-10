@@ -1,235 +1,66 @@
 {% extends "base.html" %}
-{% block title %}VIN CHECK — Auto160{% endblock %}
+{% block title %}AV Search — Auto160{% endblock %}
 {% block content %}
+{% set vehicle_hierarchy = listings_filters.vehicle_hierarchy %}
+{% set filters_form_id = "listings-filters-form" %}
+{% set filters_reset_url = "/admin/vin-check" %}
+{% set vehicle_hierarchy_submit_action = "/admin/vin-check" %}
+{% set listings_base_path = "/admin/vin-check" %}
+{% set listings_market = "by" %}
 <div class="catalog-page admin-vin-check-page" data-admin-vin-check-page>
-  <section class="catalog-main admin-vin-check-main">
-    <div class="catalog-main-head">
-      <h1>VIN CHECK</h1>
-      <p class="admin-vin-check-subnav hint">
-        <a href="/admin/vin-check/manual">Ручная проверка →</a>
-      </p>
-      <p class="hint">Новые объявления из Беларуси (av.by) моделей с рейтингом 1 · только авто от 2010 года · от новых к старым. Ручная проверка использует VIN-аккаунты даже вне авторотации.</p>
-      <p
-        class="admin-vin-check-stats"
-        data-vin-check-stats
-        data-vin-check-stats-state='{{ {"launched": vin_check_stats.checks_launched, "success": vin_check_stats.checks_success, "byModel": dict(vin_check_stats.vin_by_model)} | tojson }}'
-      >{{ vin_check_stats_summary }}</p>
-      <div class="admin-vin-check-actions">
-        <form method="get" action="/admin/vin-check" class="admin-vin-check-filters" data-vin-check-filters>
-          <label class="admin-vin-check-select-field">
-            <span class="visually-hidden">Марка</span>
-            <select name="brand" data-vin-check-brand>
-              <option value="">Марка</option>
-              {% for brand_name in vin_check_brand_model_map.keys() %}
-                <option value="{{ brand_name }}" {% if vin_check_filters.brand == brand_name %}selected{% endif %}>{{ brand_name }}</option>
-              {% endfor %}
-            </select>
-          </label>
-          <label class="admin-vin-check-select-field">
-            <span class="visually-hidden">Модель</span>
-            <select
-              name="model"
-              data-vin-check-model
-              {% if not vin_check_filters.brand %}disabled{% endif %}
-            >
-              <option value="">Модель</option>
-              {% if vin_check_filters.brand %}
-                {% for model_name in vin_check_brand_model_map.get(vin_check_filters.brand, []) %}
-                  <option value="{{ model_name }}" {% if vin_check_filters.model == model_name %}selected{% endif %}>{{ model_name }}</option>
-                {% endfor %}
-              {% endif %}
-            </select>
-          </label>
-          <label class="inline-checkbox">
-            <input
-              type="checkbox"
-              name="auto"
-              value="1"
-              {% if vin_check_filters.only_automatic %}checked{% endif %}
-              onchange="this.form.submit()"
-            />
-            Только автомат
-          </label>
-          <label class="inline-checkbox">
-            <input
-              type="checkbox"
-              name="diesel"
-              value="1"
-              {% if vin_check_filters.only_diesel %}checked{% endif %}
-              onchange="this.form.submit()"
-            />
-            Только дизель
-          </label>
-          <label class="inline-checkbox">
-            <input
-              type="checkbox"
-              name="from2020"
-              value="1"
-              {% if vin_check_filters.year_from_2020 %}checked{% endif %}
-              onchange="this.form.submit()"
-            />
-            От 2020г.
-          </label>
-          <label class="inline-checkbox">
-            <input
-              type="checkbox"
-              name="km100"
-              value="1"
-              data-vin-check-mileage-cap="100"
-              {% if vin_check_filters.mileage_to_100k %}checked{% endif %}
-            />
-            пробег до 100т.км.
-          </label>
-          <label class="inline-checkbox">
-            <input
-              type="checkbox"
-              name="km200"
-              value="1"
-              data-vin-check-mileage-cap="200"
-              {% if vin_check_filters.mileage_to_200k %}checked{% endif %}
-            />
-            пробег до 200т.км.
-          </label>
-          <label class="inline-checkbox">
-            <input
-              type="checkbox"
-              name="over19l"
-              value="1"
-              {% if vin_check_filters.engine_over_1_9l %}checked{% endif %}
-              onchange="this.form.submit()"
-            />
-            &gt;1.9л
-          </label>
-          <div class="admin-vin-check-price-range" role="group" aria-label="Цена, BYN">
-            <span class="admin-vin-check-price-label">Цена</span>
-            <label class="admin-vin-check-price-field">
-              <span class="visually-hidden">Цена от</span>
-              <input
-                type="number"
-                name="price_from"
-                inputmode="numeric"
-                min="0"
-                step="1"
-                placeholder="от"
-                data-vin-check-price
-                value="{{ vin_check_filters.price_from if vin_check_filters.price_from is not none else '' }}"
-              />
-            </label>
-            <span class="admin-vin-check-price-sep" aria-hidden="true">–</span>
-            <label class="admin-vin-check-price-field">
-              <span class="visually-hidden">Цена до</span>
-              <input
-                type="number"
-                name="price_to"
-                inputmode="numeric"
-                min="0"
-                step="1"
-                placeholder="до"
-                data-vin-check-price
-                value="{{ vin_check_filters.price_to if vin_check_filters.price_to is not none else '' }}"
-              />
-            </label>
-          </div>
-          <label class="admin-vin-check-sort-field">
-            <span>Сортировка</span>
-            <select name="sort" data-vin-check-sort onchange="this.form.submit()">
-              {% for option in vin_check_sort_options %}
-                <option value="{{ option.value }}" {% if vin_check_filters.sort == option.value %}selected{% endif %}>{{ option.label }}</option>
-              {% endfor %}
-            </select>
-          </label>
-        </form>
-        <a class="page-link admin-vin-found-link" href="/admin/vin-check/found">
-          Найден VIN{% if vin_found_count %} ({{ vin_found_count }}){% endif %}
-        </a>
-      </div>
-    </div>
-
-    {% if listings %}
-      <div class="catalog listings-feed admin-vin-check-feed">
-        {% for listing in listings %}
-          {% include "partials/listing_vin_check_card.html" %}
-        {% endfor %}
-      </div>
-    {% else %}
-      <p>Объявления для моделей с рейтингом 1 не найдены.</p>
-    {% endif %}
-
-    <div class="pager">
-      <div class="pager-nav pager-nav-prev">
-        {% if has_prev %}
-          <a class="page-link" href="{{ prev_url }}">← Назад</a>
-        {% else %}
-          <span class="page-link disabled">← Назад</span>
-        {% endif %}
-      </div>
-      <p class="pager-summary hint">Найдено объявлений: {{ total }} · Страница {{ page }} из {{ total_pages }}</p>
-      <div class="pager-nav pager-nav-next">
-        {% if has_next %}
-          <a class="page-link" href="{{ next_url }}">Вперед →</a>
-        {% else %}
-          <span class="page-link disabled">Вперед →</span>
-        {% endif %}
-      </div>
+  <section class="catalog-main-head admin-vin-check-head">
+    <h1>AV Search</h1>
+    <p class="admin-vin-check-subnav hint">
+      <a href="/admin/vin-check/manual">Ручная проверка →</a>
+    </p>
+    <p class="hint">Служебный поиск объявлений av.by по поколениям с рейтингом VIN CHECK · авто от 2010 года. Ручная проверка использует VIN-аккаунты даже вне авторотации.</p>
+    <p
+      class="admin-vin-check-stats"
+      data-vin-check-stats
+      data-vin-check-stats-state='{{ {"launched": vin_check_stats.checks_launched, "success": vin_check_stats.checks_success, "byModel": dict(vin_check_stats.vin_by_model)} | tojson }}'
+    >{{ vin_check_stats_summary }}</p>
+    <div class="admin-vin-check-actions">
+      <a class="page-link admin-vin-found-link" href="/admin/vin-check/found">
+        Найден VIN{% if vin_found_count %} ({{ vin_found_count }}){% endif %}
+      </a>
     </div>
   </section>
+
+  {% include "partials/vehicle_filters_bar.html" %}
+  <div class="catalog-layout">
+    {% include "partials/listings_filters_panel.html" %}
+    <section class="catalog-main admin-vin-check-main">
+      {% if listings %}
+        <div class="catalog listings-feed admin-vin-check-feed">
+          {% for listing in listings %}
+            {% include "partials/listing_vin_check_card.html" %}
+          {% endfor %}
+        </div>
+      {% else %}
+        <p>Объявления для моделей с рейтингом VIN CHECK не найдены.</p>
+      {% endif %}
+
+      <div class="pager">
+        <div class="pager-nav pager-nav-prev">
+          {% if has_prev %}
+            <a class="page-link" href="{{ prev_url }}">← Назад</a>
+          {% else %}
+            <span class="page-link disabled">← Назад</span>
+          {% endif %}
+        </div>
+        <p class="pager-summary hint">Найдено объявлений: {{ total }} · Страница {{ page }} из {{ total_pages }}</p>
+        <div class="pager-nav pager-nav-next">
+          {% if has_next %}
+            <a class="page-link" href="{{ next_url }}">Вперед →</a>
+          {% else %}
+            <span class="page-link disabled">Вперед →</span>
+          {% endif %}
+        </div>
+      </div>
+    </section>
+  </div>
 </div>
 <div class="listing-description-backdrop" data-description-backdrop hidden></div>
 {% include "partials/listing_vin_check_script.html" %}
-<script>
-(function () {
-  const form = document.querySelector("[data-vin-check-filters]");
-  if (!form) return;
-  const brandSelect = form.querySelector("[data-vin-check-brand]");
-  const modelSelect = form.querySelector("[data-vin-check-model]");
-  const brandModelMap = {{ vin_check_brand_model_map | tojson }};
-
-  function fillModels(brand, selectedModel) {
-    if (!modelSelect) return;
-    modelSelect.innerHTML = "";
-    const placeholder = document.createElement("option");
-    placeholder.value = "";
-    placeholder.textContent = "Модель";
-    modelSelect.appendChild(placeholder);
-    const models = brand ? (brandModelMap[brand] || []) : [];
-    models.forEach((name) => {
-      const option = document.createElement("option");
-      option.value = name;
-      option.textContent = name;
-      if (selectedModel && selectedModel === name) option.selected = true;
-      modelSelect.appendChild(option);
-    });
-    modelSelect.disabled = !brand;
-  }
-
-  brandSelect?.addEventListener("change", () => {
-    fillModels(brandSelect.value, "");
-    form.submit();
-  });
-  modelSelect?.addEventListener("change", () => form.submit());
-
-  const mileageCaps = Array.from(form.querySelectorAll("[data-vin-check-mileage-cap]"));
-  mileageCaps.forEach((checkbox) => {
-    checkbox.addEventListener("change", () => {
-      if (checkbox.checked) {
-        mileageCaps.forEach((other) => {
-          if (other !== checkbox) other.checked = false;
-        });
-      }
-      form.submit();
-    });
-  });
-
-  form.querySelectorAll("[data-vin-check-price]").forEach((input) => {
-    input.addEventListener("keydown", (event) => {
-      if (event.key === "Enter") {
-        event.preventDefault();
-        form.submit();
-      }
-    });
-    input.addEventListener("change", () => form.submit());
-  });
-})();
-</script>
 <script src="/static/listings_feed_gallery.js?v=20260924-02" defer></script>
 {% endblock %}

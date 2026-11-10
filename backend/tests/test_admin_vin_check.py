@@ -307,11 +307,60 @@ def test_parse_vin_check_price_range():
 def test_normalize_vin_check_sort():
     from app.listing_enrichment import normalize_vin_check_sort
 
-    assert normalize_vin_check_sort(None) == "added"
-    assert normalize_vin_check_sort("") == "added"
-    assert normalize_vin_check_sort("price") == "price"
+    assert normalize_vin_check_sort(None) == "newest"
+    assert normalize_vin_check_sort("") == "newest"
+    assert normalize_vin_check_sort("added") == "newest"
+    assert normalize_vin_check_sort("price") == "price_asc"
+    assert normalize_vin_check_sort("price_desc") == "price_desc"
     assert normalize_vin_check_sort("MILEAGE") == "mileage"
-    assert normalize_vin_check_sort("unknown") == "added"
+    assert normalize_vin_check_sort("unknown") == "newest"
+
+
+def test_listing_matches_vin_check_vehicle_rows_and_generation():
+    bmw_x1 = SimpleNamespace(
+        transmission_type="Автомат",
+        engine_type="бензин",
+        year=2018,
+        brand="BMW",
+        model="X1",
+        generation="II (F48)",
+        mileage=80_000,
+        body_type="кроссовер",
+    )
+    vw = SimpleNamespace(
+        transmission_type="Автомат",
+        engine_type="дизель",
+        year=2019,
+        brand="VW",
+        model="Tiguan",
+        generation="II",
+        mileage=90_000,
+        body_type="кроссовер",
+    )
+    assert listing_matches_vin_check_filters(
+        bmw_x1,
+        VinCheckListingFilters(vehicle_rows=(("BMW", "X1", "II (F48)"),)),
+    ) is True
+    assert listing_matches_vin_check_filters(
+        bmw_x1,
+        VinCheckListingFilters(vehicle_rows=(("BMW", "X1", "I (E84)"),)),
+    ) is False
+    assert listing_matches_vin_check_filters(
+        bmw_x1,
+        VinCheckListingFilters(vehicle_rows=(("BMW", "X1", ""), ("VW", "Tiguan", ""))),
+    ) is True
+    assert listing_matches_vin_check_filters(
+        vw,
+        VinCheckListingFilters(vehicle_rows=(("BMW", "X1", ""), ("VW", "Tiguan", ""))),
+    ) is True
+    assert listing_matches_vin_check_filters(
+        bmw_x1,
+        VinCheckListingFilters(year_from=2017, year_to=2018, mileage_to=100_000),
+    ) is True
+    assert listing_matches_vin_check_filters(
+        bmw_x1,
+        VinCheckListingFilters(year_from=2019),
+    ) is False
 
 
 def test_listing_matches_vin_found_date_filter():

@@ -1844,6 +1844,12 @@ body.theme-admin.theme-admin-light .header-theme-toggle:focus-visible {
   color: #1d4ed8;
 }
 
+.admin-vin-check-page .admin-vin-check-head {
+  width: 100%;
+  max-width: none;
+  margin-bottom: 12px;
+}
+
 .admin-vin-check-page .admin-vin-check-main {
   width: 100%;
   max-width: none;

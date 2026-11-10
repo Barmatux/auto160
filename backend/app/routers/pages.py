@@ -107,8 +107,8 @@ from app.logging_setup import LOG_SERVICES, LOG_SERVICE_LABELS, format_log_time,
 from app.metrics import yandex_metrika_context
 from app.listing_enrichment import (
     build_listing_customs_map,
-    build_vin_check_brand_model_map,
     build_vin_check_page_stats,
+    build_vin_check_vehicle_maps,
     build_vin_found_collection_stats_by_day,
     build_vin_found_collection_stats_by_account,
     build_vin_found_rows,
@@ -117,15 +117,19 @@ from app.listing_enrichment import (
     count_rating_one_listings_with_vin,
     paginate_rating_one_listings_with_vin,
     listing_vin_check_was_launched,
-    normalize_vin_check_price_range,
     normalize_vin_check_sort,
     paginate_rating_one_listings,
-    parse_vin_check_price,
     VinCheckListingFilters,
     VinFoundDateFilter,
     VinFoundImportFilter,
-    VIN_CHECK_SORT_ADDED,
+    VIN_CHECK_DEFAULT_YEAR_FROM,
     VIN_CHECK_SORT_LABELS,
+    VIN_CHECK_SORT_MILEAGE,
+    VIN_CHECK_SORT_NEWEST,
+    VIN_CHECK_SORT_PRICE_ASC,
+    VIN_CHECK_SORT_PRICE_DESC,
+    VIN_CHECK_SORT_YEAR_ASC,
+    VIN_CHECK_SORT_YEAR_DESC,
     VIN_FOUND_IMPORT_FILTER_LABELS,
 )
 from app.manual_vin_check import (
@@ -4475,55 +4479,74 @@ def _parse_vin_check_bool_param(value: str | None) -> bool:
 def _build_admin_vin_check_url(
     *,
     page: int = 1,
-    filters: VinCheckListingFilters | None = None,
+    vehicle_rows: list[dict[str, str]] | None = None,
+    query_params: list[tuple[str, str]] | None = None,
 ) -> str:
-    params: dict[str, str | int] = {}
+    pairs = _vehicle_rows_to_query_pairs(
+        vehicle_rows or [],
+        make_key="brand",
+        model_key="model",
+        generation_key="generation",
+    )
+    pairs.extend(query_params or [])
     if page > 1:
-        params["page"] = page
-    if filters is not None:
-        if filters.brand:
-            params["brand"] = filters.brand
-        if filters.model:
-            params["model"] = filters.model
-        if filters.only_automatic:
-            params["auto"] = "1"
-        if filters.only_diesel:
-            params["diesel"] = "1"
-        if filters.year_from_2020:
-            params["from2020"] = "1"
-        if filters.mileage_to_100k:
-            params["km100"] = "1"
-        elif filters.mileage_to_200k:
-            params["km200"] = "1"
-        if filters.engine_over_1_9l:
-            params["over19l"] = "1"
-        if filters.price_from is not None:
-            params["price_from"] = filters.price_from
-        if filters.price_to is not None:
-            params["price_to"] = filters.price_to
-        sort = normalize_vin_check_sort(filters.sort)
-        if sort != VIN_CHECK_SORT_ADDED:
-            params["sort"] = sort
-    if not params:
+        pairs.append(("page", str(page)))
+    if not pairs:
         return "/admin/vin-check"
-    return f"/admin/vin-check?{urlencode(params)}"
+    return f"/admin/vin-check?{urlencode(pairs)}"
+
+
+def _vin_check_filters_payload(request: Request, db: Session) -> dict:
+    payload = _listings_filters_payload(
+        request,
+        db,
+        published_only=True,
+        listings_market="by",
+    )
+    brand_model_map, generation_map = build_vin_check_vehicle_maps(db)
+    vehicle_rows = _parse_vehicle_filter_rows(
+        request.query_params,
+        make_key="brand",
+        model_key="model",
+        generation_key="generation",
+    )
+    payload["vehicle_hierarchy"] = _build_vehicle_hierarchy_payload(
+        make_field="brand",
+        model_field="model",
+        generation_field="generation",
+        rows=vehicle_rows,
+        make_model_map=brand_model_map,
+        make_model_generation_map=generation_map,
+    )
+    payload["options"]["brands"] = sorted(brand_model_map.keys())
+    payload["options"]["brand_model_map"] = brand_model_map
+    payload["options"]["brand_model_generation_map"] = generation_map
+    first_row = next(
+        (row for row in vehicle_rows if row.get("make") or row.get("model") or row.get("generation")),
+        {"make": "", "model": "", "generation": ""},
+    )
+    make = first_row.get("make") or ""
+    model = first_row.get("model") or ""
+    payload["filters"]["brand"] = make
+    payload["filters"]["model"] = model
+    payload["filters"]["generation"] = first_row.get("generation") or ""
+    payload["options"]["models"] = brand_model_map.get(make, []) if make else []
+    payload["options"]["generations"] = (
+        generation_map.get(make, {}).get(model, []) if make and model else []
+    )
+    payload["filters"]["sort"] = normalize_vin_check_sort(str(payload["filters"].get("sort") or ""))
+    return payload
 
 
 @router.get("/admin/vin-check")
 def admin_vin_check_page(
     request: Request,
     page: int = Query(default=1, ge=1),
-    brand: str | None = Query(default=None),
-    model: str | None = Query(default=None),
-    auto: str | None = Query(default=None),
-    diesel: str | None = Query(default=None),
-    from2020: str | None = Query(default=None),
-    km100: str | None = Query(default=None),
-    km200: str | None = Query(default=None),
-    over19l: str | None = Query(default=None),
-    over2l: str | None = Query(default=None),
-    price_from: str | None = Query(default=None),
-    price_to: str | None = Query(default=None),
+    year_from: str | None = Query(default=None),
+    year_to: str | None = Query(default=None),
+    rf_passable: str | None = Query(default=None),
+    import_over_10m: str | None = Query(default=None),
+    freshness: str = Query(default="all"),
     sort: str | None = Query(default=None),
     db: Session = Depends(get_db),
 ):
@@ -4532,62 +4555,208 @@ def admin_vin_check_page(
     if redirect:
         return redirect
 
-    brand_model_map = build_vin_check_brand_model_map(db)
-    brand_value = (brand or "").strip() or None
-    model_value = (model or "").strip() or None
-    if brand_value and brand_value not in brand_model_map:
-        brand_value = None
-        model_value = None
-    if brand_value and model_value and model_value not in brand_model_map.get(brand_value, []):
-        model_value = None
+    listings_base_path = "/admin/vin-check"
+    vehicle_rows = _parse_vehicle_filter_rows(
+        request.query_params,
+        make_key="brand",
+        model_key="model",
+        generation_key="generation",
+    )
+    brand_model_map, generation_map = build_vin_check_vehicle_maps(db)
+    normalized_rows: list[dict[str, str]] = []
+    for row in vehicle_rows:
+        make = (row.get("make") or "").strip()
+        model = (row.get("model") or "").strip()
+        generation = (row.get("generation") or "").strip()
+        if make and make not in brand_model_map:
+            continue
+        if make and model and model not in brand_model_map.get(make, []):
+            model = ""
+            generation = ""
+        if make and model and generation and generation not in generation_map.get(make, {}).get(model, []):
+            generation = ""
+        if make or model or generation:
+            normalized_rows.append({"make": make, "model": model, "generation": generation})
+    if not normalized_rows:
+        normalized_rows = [{"make": "", "model": "", "generation": ""}]
+    vehicle_rows = normalized_rows
 
-    mileage_to_100k = _parse_vin_check_bool_param(km100)
-    mileage_to_200k = _parse_vin_check_bool_param(km200)
-    if mileage_to_100k:
-        mileage_to_200k = False
-
-    parsed_price_from, parsed_price_to = normalize_vin_check_price_range(
-        parse_vin_check_price(price_from),
-        parse_vin_check_price(price_to),
+    parsed_year_from = _parse_optional_year(year_from)
+    parsed_year_to = _parse_optional_year(year_to)
+    parsed_mileage_from = _parse_optional_mileage(request.query_params.get("mileage_from"))
+    parsed_mileage_to = _parse_optional_mileage(request.query_params.get("mileage_to"))
+    body_types, fuel_types = _parse_listings_body_fuel_filters(
+        request.query_params,
+        listings_market="by",
+    )
+    transmission_slugs = parse_transmission_filter_values(
+        request.query_params.getlist("transmission") or request.query_params.getlist("transmission_type")
+    )
+    location_regions, location_cities = parse_location_filter_values(
+        request.query_params.getlist("region"),
+        request.query_params.getlist("city"),
+    )
+    price_range = parse_listing_price_range(request.query_params.get("price_range"))
+    sort_value = normalize_vin_check_sort(sort or request.query_params.get("sort"))
+    import_age_selection = parse_import_age_filters(
+        _parse_vin_check_bool_param(rf_passable),
+        _parse_vin_check_bool_param(import_over_10m),
     )
 
+    vehicle_tuple_rows = tuple(
+        (
+            (row.get("make") or "").strip(),
+            (row.get("model") or "").strip(),
+            (row.get("generation") or "").strip(),
+        )
+        for row in vehicle_rows
+        if (row.get("make") or row.get("model") or row.get("generation"))
+    )
     vin_check_filters = VinCheckListingFilters(
-        only_automatic=_parse_vin_check_bool_param(auto),
-        only_diesel=_parse_vin_check_bool_param(diesel),
-        year_from_2020=_parse_vin_check_bool_param(from2020),
-        mileage_to_100k=mileage_to_100k,
-        mileage_to_200k=mileage_to_200k,
-        engine_over_1_9l=_parse_vin_check_bool_param(over19l)
-        or _parse_vin_check_bool_param(over2l),
-        brand=brand_value,
-        model=model_value,
-        price_from=parsed_price_from,
-        price_to=parsed_price_to,
-        sort=normalize_vin_check_sort(sort),
+        vehicle_rows=vehicle_tuple_rows,
+        year_from=parsed_year_from,
+        year_to=parsed_year_to,
+        mileage_from=parsed_mileage_from,
+        mileage_to=parsed_mileage_to,
+        body_types=tuple(body_types),
+        fuel_types=tuple(fuel_types),
+        transmission_slugs=tuple(transmission_slugs),
+        price_range=price_range,
+        freshness=freshness or "all",
+        sort=sort_value,
     )
-    page_size = LISTINGS_PAGE_SIZE
-    listings, total = paginate_rating_one_listings(
+
+    query = exclude_hidden_body_type(db.query(CarListing), CarListing.body_type)
+    query = exclude_excluded_brands(query, CarListing.brand)
+    query = exclude_excluded_models(query, CarListing.model, CarListing.title)
+    query = query.filter(CarListing.status == ListingStatus.published)
+    query = query.filter(_listings_market_source_predicate("by"))
+    query = query.filter(CarListing.year >= VIN_CHECK_DEFAULT_YEAR_FROM)
+    query = _apply_listing_vehicle_rows_filter(query, vehicle_rows)
+    available_listing_cities = set(
+        _distinct_listing_values(
+            db,
+            CarListing.city,
+            published_only=True,
+            listings_market="by",
+        )
+    )
+    query = apply_listings_location_filter(
+        query,
+        CarListing.city,
+        region_slugs=location_regions,
+        city_names=location_cities,
+        available_cities=available_listing_cities,
+    )
+    query = _apply_listings_characteristic_filters(
+        query,
         db,
-        page=page,
-        page_size=page_size,
-        filters=vin_check_filters,
+        body_types=body_types,
+        fuel_types=fuel_types,
+        transmission_slugs=transmission_slugs,
+        published_only=True,
+        listings_market="by",
     )
-    total_pages = max(1, (total + page_size - 1) // page_size)
-    if page > total_pages and total > 0:
-        page = total_pages
+    if parsed_year_from is not None:
+        query = query.filter(CarListing.year >= parsed_year_from)
+    if parsed_year_to is not None:
+        query = query.filter(CarListing.year <= parsed_year_to)
+    if parsed_mileage_from is not None:
+        query = query.filter(CarListing.mileage >= parsed_mileage_from)
+    if parsed_mileage_to is not None:
+        query = query.filter(CarListing.mileage <= parsed_mileage_to)
+    query = apply_listings_price_range_filter(query, price_range)
+    query = _apply_freshness_filter(query, freshness)
+
+    if sort_value == VIN_CHECK_SORT_PRICE_ASC:
+        query = query.order_by(CarListing.price.asc(), desc(_listing_source_at_expr()), desc(CarListing.id))
+    elif sort_value == VIN_CHECK_SORT_PRICE_DESC:
+        query = query.order_by(CarListing.price.desc(), desc(_listing_source_at_expr()), desc(CarListing.id))
+    elif sort_value == VIN_CHECK_SORT_YEAR_DESC:
+        query = query.order_by(CarListing.year.desc(), desc(_listing_source_at_expr()), desc(CarListing.id))
+    elif sort_value == VIN_CHECK_SORT_YEAR_ASC:
+        query = query.order_by(CarListing.year.asc(), desc(_listing_source_at_expr()), desc(CarListing.id))
+    elif sort_value == VIN_CHECK_SORT_MILEAGE:
+        query = query.order_by(CarListing.mileage.asc(), desc(_listing_source_at_expr()), desc(CarListing.id))
+    else:
+        query = query.order_by(desc(_listing_source_at_expr()), desc(CarListing.created_at), desc(CarListing.id))
+
+    page_size = LISTINGS_PAGE_SIZE
+    if import_age_selection.active:
+        age_listings, age_total = paginate_query_with_import_age(
+            db,
+            query,
+            selection=import_age_selection,
+            page=1,
+            page_size=10**9,
+        )
+        from app.listing_enrichment import build_rating_one_targets, listing_matches_rating_one
+
+        targets = build_rating_one_targets(db)
+        filtered = [row for row in age_listings if listing_matches_rating_one(row, targets)]
+        total = len(filtered)
+        total_pages = max(1, (total + page_size - 1) // page_size) if total else 1
+        if page > total_pages and total > 0:
+            page = total_pages
+        offset = (page - 1) * page_size
+        listings = filtered[offset : offset + page_size]
+    else:
         listings, total = paginate_rating_one_listings(
             db,
             page=page,
             page_size=page_size,
             filters=vin_check_filters,
+            base_query=query,
+            skip_python_filters=True,
         )
+        total_pages = max(1, (total + page_size - 1) // page_size) if total else 1
+        if page > total_pages and total > 0:
+            page = total_pages
+            listings, total = paginate_rating_one_listings(
+                db,
+                page=page,
+                page_size=page_size,
+                filters=vin_check_filters,
+                base_query=query,
+                skip_python_filters=True,
+            )
+
+    query_params: list[tuple[str, str]] = []
+    for val in location_regions:
+        query_params.append(("region", val))
+    for val in location_cities:
+        query_params.append(("city", val))
+    for val in body_types:
+        query_params.append(("body_type", val))
+    for val in fuel_types:
+        query_params.append(("engine_type", val))
+    for slug in transmission_slugs:
+        query_params.append(("transmission", slug))
+    if parsed_year_from is not None:
+        query_params.append(("year_from", str(parsed_year_from)))
+    if parsed_year_to is not None:
+        query_params.append(("year_to", str(parsed_year_to)))
+    if parsed_mileage_from is not None:
+        query_params.append(("mileage_from", str(parsed_mileage_from)))
+    if parsed_mileage_to is not None:
+        query_params.append(("mileage_to", str(parsed_mileage_to)))
+    if price_range:
+        query_params.append(("price_range", price_range))
+    if import_age_selection.rf_passable:
+        query_params.append(("rf_passable", "1"))
+    if import_age_selection.months_10_12:
+        query_params.append(("import_over_10m", "1"))
+    if freshness and freshness != "all":
+        query_params.append(("freshness", freshness))
+    if sort_value and sort_value != VIN_CHECK_SORT_NEWEST:
+        query_params.append(("sort", sort_value))
 
     context = _template_context(
         request,
         current_user,
         SeoMeta(
-            title="VIN CHECK — Auto160",
-            description="Проверка VIN и даты ввоза для объявлений моделей с рейтингом 1.",
+            title="AV Search — Auto160",
+            description="Служебный поиск объявлений av.by для моделей VIN CHECK.",
             path="/admin/vin-check",
             noindex=True,
         ),
@@ -4605,18 +4774,36 @@ def admin_vin_check_page(
     context["total"] = total
     context["page"] = page
     context["total_pages"] = total_pages
-    context["has_prev"] = page > 1
+    context["has_prev"] = page > 1 and total > 0
     context["has_next"] = page < total_pages
     context["vin_check_filters"] = vin_check_filters
     context["vin_check_brand_model_map"] = brand_model_map
+    context["listings_filters"] = _vin_check_filters_payload(request, db)
+    context["listings_base_path"] = listings_base_path
+    context["listings_market"] = "by"
+    context["show_import_age_filters"] = True
+    context["import_age_rf_passable"] = import_age_selection.rf_passable
+    context["import_age_over_10m"] = import_age_selection.months_10_12
     context["vin_check_sort_options"] = [
         {"value": value, "label": label} for value, label in VIN_CHECK_SORT_LABELS.items()
     ]
     context["prev_url"] = (
-        _build_admin_vin_check_url(page=page - 1, filters=vin_check_filters) if context["has_prev"] else None
+        _build_admin_vin_check_url(
+            page=page - 1,
+            vehicle_rows=vehicle_rows,
+            query_params=query_params,
+        )
+        if context["has_prev"]
+        else None
     )
     context["next_url"] = (
-        _build_admin_vin_check_url(page=page + 1, filters=vin_check_filters) if context["has_next"] else None
+        _build_admin_vin_check_url(
+            page=page + 1,
+            vehicle_rows=vehicle_rows,
+            query_params=query_params,
+        )
+        if context["has_next"]
+        else None
     )
     return templates.TemplateResponse(request, "admin_vin_check.html", context)
 
