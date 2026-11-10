@@ -446,7 +446,7 @@ body.design-lab .header.header--design-lab .header-nav .user-badge {
   padding: 7px 12px;
 }
 
-body.design-lab .header-nav-row-account {
+body.design-lab .header-nav-row-admin-tools {
   align-items: center;
 }
 
@@ -907,9 +907,8 @@ body.theme-admin.theme-admin-light.design-lab .inspection-verdict-card.is-red .i
   gap: 4px;
 }
 
-.header-nav-row-account {
-  flex-wrap: nowrap;
-  white-space: nowrap;
+.header-nav-row-admin-tools {
+  flex-wrap: wrap;
 }
 
 .header-nav {
@@ -3991,6 +3990,16 @@ body.vin-enter-modal-open {
   padding: 10px 14px;
   font-size: 15px;
   font-weight: 600;
+}
+
+.vehicle-hierarchy-page-vin-check {
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+.vehicle-hierarchy-page-vin-check:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .vehicle-hierarchy-submit:hover {
@@ -7538,7 +7547,7 @@ body.theme-admin .home-hero.home-hero--split .home-hero-pane-lead {
     gap: 4px;
   }
 
-  .header-nav-row-account {
+  .header-nav-row-admin-tools {
     flex-wrap: wrap;
     white-space: normal;
   }

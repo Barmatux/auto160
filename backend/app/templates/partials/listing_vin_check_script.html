@@ -587,6 +587,44 @@
     btn.addEventListener("click", () => runVinCheck(btn.closest(".listing-vin-check-block")));
   });
 
+  async function runVinCheckForPage(triggerBtn) {
+    const blocks = Array.from(document.querySelectorAll(".listing-vin-check-block")).filter((block) => {
+      if (!block.dataset.listingId) return false;
+      if (block.dataset.loading === "1") return false;
+      if (block.dataset.vin && block.dataset.releaseDate) return false;
+      return true;
+    });
+    if (!blocks.length) return;
+
+    const originalLabel = triggerBtn?.textContent || "Проверка VIN всей страницы";
+    if (triggerBtn) {
+      triggerBtn.disabled = true;
+      triggerBtn.textContent = `Проверка… 0/${blocks.length}`;
+    }
+
+    for (let index = 0; index < blocks.length; index += 1) {
+      if (triggerBtn) {
+        triggerBtn.textContent = `Проверка… ${index + 1}/${blocks.length}`;
+      }
+      try {
+        await runVinCheck(blocks[index]);
+      } catch (_) {
+        /* keep going through the page */
+      }
+    }
+
+    if (triggerBtn) {
+      triggerBtn.disabled = false;
+      triggerBtn.textContent = originalLabel;
+    }
+  }
+
+  document.querySelector("[data-vin-check-page]")?.addEventListener("click", (event) => {
+    const btn = event.currentTarget;
+    if (btn.disabled) return;
+    runVinCheckForPage(btn);
+  });
+
   const hideVinEnter = Boolean(document.querySelector("[data-admin-vin-check-manual-page]"));
   if (hideVinEnter) {
     document.querySelectorAll(".listing-vin-check-block .vin-enter-btn").forEach((btn) => btn.remove());

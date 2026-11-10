@@ -110,19 +110,12 @@
         {% endif %}
         <a href="/">Главная</a>
         <a href="/catalog">Каталог</a>
-        {% if is_admin %}
-          <a href="/catalog/beta" class="header-beta-link">beta Каталог</a>
-        {% endif %}
         <a href="/by">Авто из Беларуси</a>
         <a href="/eu">Авто из Европы</a>
         <a href="/inspection">Проверка</a>
         <a href="/calculator">Калькулятор</a>
         <a href="/blog">Блог</a>
         <a class="header-nav-mobile-only" href="/requisites">Контакты</a>
-        {% if is_admin %}
-          <a href="/admin/users">Пользователи</a>
-          <a href="/admin/avby-accounts">Аккаунты</a>
-        {% endif %}
       </nav>
       {% if is_admin %}
         <nav class="header-nav header-nav-row header-nav-row-secondary">
@@ -168,9 +161,10 @@
           <a href="/admin/business-sellers">Бизнес-аккаунты</a>
           <a href="/admin/ratings">Управление каталогом</a>
         </nav>
-      {% endif %}
-      {% if is_admin %}
-        <nav class="header-nav header-nav-row header-nav-row-account">
+        <nav class="header-nav header-nav-row header-nav-row-admin-tools">
+          <a href="/catalog/beta" class="header-beta-link">beta Каталог</a>
+          <a href="/admin/users">Пользователи</a>
+          <a href="/admin/avby-accounts">Аккаунты</a>
           <a href="/admin/avby-sync">Парсинг</a>
           <a href="/admin/logs">Логи</a>
         </nav>
