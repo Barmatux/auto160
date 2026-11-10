@@ -1054,6 +1054,9 @@ FOREIGN_LISTING_SOURCES = ("autoplius", "auto24", "mobile_de")
 PUBLIC_EU_LISTING_SOURCES = ("autoplius", "auto24")
 MILEAGE_FILTER_STEP = 25_000
 MILEAGE_FILTER_MAX = 500_000
+VOLUME_FILTER_MIN_L = 0.6
+VOLUME_FILTER_MAX_L = 6.0
+VOLUME_FILTER_STEP_L = 0.1
 
 
 def _listings_market_source_predicate(market: str):
@@ -1103,6 +1106,23 @@ def _listing_year_options(
 
 def _listing_mileage_options() -> list[int]:
     return list(range(0, MILEAGE_FILTER_MAX + 1, MILEAGE_FILTER_STEP))
+
+
+def _listing_volume_options() -> list[float]:
+    steps = int(round((VOLUME_FILTER_MAX_L - VOLUME_FILTER_MIN_L) / VOLUME_FILTER_STEP_L))
+    return [
+        round(VOLUME_FILTER_MIN_L + index * VOLUME_FILTER_STEP_L, 1)
+        for index in range(steps + 1)
+    ]
+
+
+def _normalize_volume_range(
+    volume_from: float | None,
+    volume_to: float | None,
+) -> tuple[float | None, float | None]:
+    if volume_from is not None and volume_to is not None and volume_from > volume_to:
+        return volume_to, volume_from
+    return volume_from, volume_to
 
 
 def _distinct_listing_values(
@@ -1247,6 +1267,10 @@ def _listings_filters_payload(
     parsed_year_to = _parse_optional_year(query.get("year_to"))
     parsed_mileage_from = _parse_optional_mileage(query.get("mileage_from"))
     parsed_mileage_to = _parse_optional_mileage(query.get("mileage_to"))
+    parsed_volume_from, parsed_volume_to = _normalize_volume_range(
+        _parse_optional_float(query.get("volume_from")),
+        _parse_optional_float(query.get("volume_to")),
+    )
     catalog_item_id = _parse_optional_int(query.get("catalog_item_id"))
     brand = (query.get("brand") or "").strip()
     model = _canonical_model_name(query.get("model") or "")
@@ -1356,6 +1380,8 @@ def _listings_filters_payload(
             "year_to": parsed_year_to if parsed_year_to is not None else "",
             "mileage_from": parsed_mileage_from if parsed_mileage_from is not None else "",
             "mileage_to": parsed_mileage_to if parsed_mileage_to is not None else "",
+            "volume_from": parsed_volume_from if parsed_volume_from is not None else "",
+            "volume_to": parsed_volume_to if parsed_volume_to is not None else "",
             "price_range": parse_listing_price_range(query.get("price_range")) or "",
             "passable": query.get("passable") in ("1", "true", "on"),
             "hide_skoda": query.get("hide_skoda") in ("1", "true", "on"),
@@ -1378,6 +1404,7 @@ def _listings_filters_payload(
                 listings_market=listings_market,
             ),
             "mileages": _listing_mileage_options(),
+            "volumes": _listing_volume_options(),
             "price_ranges": listing_price_range_options(),
         },
         "vehicle_hierarchy": _build_vehicle_hierarchy_payload(
@@ -2865,6 +2892,10 @@ def listings_page(
     parsed_year_to = _parse_optional_year(year_to)
     parsed_mileage_from = _parse_optional_mileage(request.query_params.get("mileage_from"))
     parsed_mileage_to = _parse_optional_mileage(request.query_params.get("mileage_to"))
+    parsed_volume_from, parsed_volume_to = _normalize_volume_range(
+        _parse_optional_float(request.query_params.get("volume_from")),
+        _parse_optional_float(request.query_params.get("volume_to")),
+    )
     body_types, fuel_types = _parse_listings_body_fuel_filters(
         request.query_params,
         listings_market=listings_market,
@@ -3027,6 +3058,12 @@ def listings_page(
         query = query.filter(CarListing.mileage >= parsed_mileage_from)
     if parsed_mileage_to is not None:
         query = query.filter(CarListing.mileage <= parsed_mileage_to)
+    if parsed_volume_from is not None or parsed_volume_to is not None:
+        query = query.filter(CarListing.engine_capacity_l.isnot(None))
+        if parsed_volume_from is not None:
+            query = query.filter(CarListing.engine_capacity_l >= parsed_volume_from)
+        if parsed_volume_to is not None:
+            query = query.filter(CarListing.engine_capacity_l <= parsed_volume_to)
     query = apply_listings_price_range_filter(query, price_range)
     # BY / legacy: calendar-year passable band. EU uses first-registration age window below.
     if passable and listings_market != "eu":
@@ -3115,6 +3152,10 @@ def listings_page(
         query_params.append(("mileage_from", str(parsed_mileage_from)))
     if parsed_mileage_to is not None:
         query_params.append(("mileage_to", str(parsed_mileage_to)))
+    if parsed_volume_from is not None:
+        query_params.append(("volume_from", _format_volume_query_value(parsed_volume_from)))
+    if parsed_volume_to is not None:
+        query_params.append(("volume_to", _format_volume_query_value(parsed_volume_to)))
     if price_range:
         query_params.append(("price_range", price_range))
     if passable:
@@ -4585,6 +4626,10 @@ def admin_vin_check_page(
     parsed_year_to = _parse_optional_year(year_to)
     parsed_mileage_from = _parse_optional_mileage(request.query_params.get("mileage_from"))
     parsed_mileage_to = _parse_optional_mileage(request.query_params.get("mileage_to"))
+    parsed_volume_from, parsed_volume_to = _normalize_volume_range(
+        _parse_optional_float(request.query_params.get("volume_from")),
+        _parse_optional_float(request.query_params.get("volume_to")),
+    )
     body_types, fuel_types = _parse_listings_body_fuel_filters(
         request.query_params,
         listings_market="by",
@@ -4618,6 +4663,8 @@ def admin_vin_check_page(
         year_to=parsed_year_to,
         mileage_from=parsed_mileage_from,
         mileage_to=parsed_mileage_to,
+        volume_from=parsed_volume_from,
+        volume_to=parsed_volume_to,
         body_types=tuple(body_types),
         fuel_types=tuple(fuel_types),
         transmission_slugs=tuple(transmission_slugs),
@@ -4665,6 +4712,12 @@ def admin_vin_check_page(
         query = query.filter(CarListing.mileage >= parsed_mileage_from)
     if parsed_mileage_to is not None:
         query = query.filter(CarListing.mileage <= parsed_mileage_to)
+    if parsed_volume_from is not None or parsed_volume_to is not None:
+        query = query.filter(CarListing.engine_capacity_l.isnot(None))
+        if parsed_volume_from is not None:
+            query = query.filter(CarListing.engine_capacity_l >= parsed_volume_from)
+        if parsed_volume_to is not None:
+            query = query.filter(CarListing.engine_capacity_l <= parsed_volume_to)
     query = apply_listings_price_range_filter(query, price_range)
     query = _apply_freshness_filter(query, freshness)
 
@@ -4740,6 +4793,10 @@ def admin_vin_check_page(
         query_params.append(("mileage_from", str(parsed_mileage_from)))
     if parsed_mileage_to is not None:
         query_params.append(("mileage_to", str(parsed_mileage_to)))
+    if parsed_volume_from is not None:
+        query_params.append(("volume_from", _format_volume_query_value(parsed_volume_from)))
+    if parsed_volume_to is not None:
+        query_params.append(("volume_to", _format_volume_query_value(parsed_volume_to)))
     if price_range:
         query_params.append(("price_range", price_range))
     if import_age_selection.rf_passable:

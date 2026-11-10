@@ -363,6 +363,40 @@ def test_listing_matches_vin_check_vehicle_rows_and_generation():
     ) is False
 
 
+def test_listing_matches_vin_check_volume_range():
+    car = SimpleNamespace(
+        transmission_type="Автомат",
+        engine_type="бензин",
+        year=2018,
+        brand="BMW",
+        model="X1",
+        engine_capacity_l=1.5,
+    )
+    assert listing_matches_vin_check_filters(
+        car,
+        VinCheckListingFilters(volume_from=1.4, volume_to=1.6),
+    ) is True
+    assert listing_matches_vin_check_filters(
+        car,
+        VinCheckListingFilters(volume_from=1.6),
+    ) is False
+    assert listing_matches_vin_check_filters(
+        car,
+        VinCheckListingFilters(volume_to=1.4),
+    ) is False
+    assert listing_matches_vin_check_filters(
+        SimpleNamespace(
+            transmission_type="Автомат",
+            engine_type="бензин",
+            year=2018,
+            brand="BMW",
+            model="X1",
+            engine_capacity_l=None,
+        ),
+        VinCheckListingFilters(volume_from=1.0),
+    ) is False
+
+
 def test_listing_matches_vin_found_date_filter():
     from datetime import datetime
 
