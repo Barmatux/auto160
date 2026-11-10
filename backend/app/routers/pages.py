@@ -475,20 +475,31 @@ MAKE_LOGO_SLUGS = frozenset(
 )
 
 
-def _resolve_user_from_request(request: Request, db: Session) -> User | None:
-    token = request.cookies.get("access_token")
+def _user_from_auth_cookie(db: Session, token: str | None, *, expected_type: str) -> User | None:
     if not token:
         return None
     try:
         payload = decode_token(token)
     except JWTError:
         return None
-    if payload.get("type") != "access" or is_token_revoked(payload):
+    if payload.get("type") != expected_type or is_token_revoked(payload):
         return None
     email = payload.get("sub")
     if not email:
         return None
     return db.query(User).filter(User.email == email).first()
+
+
+def _resolve_user_from_request(request: Request, db: Session) -> User | None:
+    """Resolve the signed-in user for HTML pages.
+
+    Prefer the access cookie; if it expired, fall back to a still-valid refresh
+    cookie so admin Belarus listing pages do not flip to a false 404 mid-session.
+    """
+    user = _user_from_auth_cookie(db, request.cookies.get("access_token"), expected_type="access")
+    if user is not None:
+        return user
+    return _user_from_auth_cookie(db, request.cookies.get("refresh_token"), expected_type="refresh")
 
 
 def _resolve_site_theme(request: Request, current_user: User | None) -> str:
@@ -3251,6 +3262,9 @@ def listing_item(request: Request, listing_id: int, db: Session = Depends(get_db
             listing = None
     # Belarus/av.by detail pages are admin-only (public teaser goes to av.by via modal).
     if listing and _listing_is_belarus_source(listing) and not is_admin:
+        if current_user is None:
+            next_path = f"/listings/{listing_id}"
+            return RedirectResponse(url=f"/login?next={quote(next_path, safe='')}", status_code=302)
         listing = None
     seo = None
     if listing:

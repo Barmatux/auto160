@@ -114,7 +114,10 @@
     const data = await response.json();
     if (response.ok && data.access_token && data.refresh_token) {
       setAuthCookies(data.access_token, data.refresh_token);
-      window.location.href = "/";
+      const next = new URLSearchParams(window.location.search).get("next") || "/";
+      const safeNext =
+        next.startsWith("/") && !next.startsWith("//") ? next : "/";
+      window.location.href = safeNext;
       return;
     }
     let detail = data.detail || "Неправильный логин и(или) пароль. ";
