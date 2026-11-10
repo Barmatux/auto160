@@ -99,13 +99,38 @@ def test_calculate_personal_preferential_duty_and_util():
     assert result.util_preferential is True
     assert result.util_sbor_rub == 5_200.0
     assert result.customs_value_rub == 1_000_000.0
-    assert result.duty_rub is not None and result.duty_rub > 0
+    # EAEU personal 3–5y, 1501–1800 cm³ → 2.5 €/cm³
+    assert result.duty_rub == round(2.5 * 1598 * 100.0, 2)
     assert result.total_rub == round(
         (result.duty_rub or 0)
         + (result.clearance_fee_rub or 0)
         + (result.util_sbor_rub or 0),
         2,
     )
+
+
+def test_personal_duty_from3to5_xc40_1500_band():
+    """Volvo XC40 1.5 / 1477 cm³: unified 1.7 €/cm³, not the old 54%/7€ bug."""
+    eur = 96.6719
+    result = calculate_customs(
+        CustomsCalcInput(
+            age_band="from3to5",
+            engine_cc=1477,
+            power_hp=150,
+            price=12_000,
+            currency="EUR",
+            importer="personal",
+            engine_kind="ice",
+        ),
+        eur_rub=eur,
+        usd_rub=86.3,
+        byn_rub=28.81,
+    )
+    assert result.ok is True
+    assert result.util_sbor_rub == 5_200.0
+    assert result.duty_rub == round(1.7 * 1477 * eur, 2)
+    assert result.duty_rub < 300_000
+    assert "1.7" in (result.breakdown.get("duty_rule") or "")
 
 
 def test_car_age_years_rejects_bad_year():

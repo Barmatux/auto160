@@ -92,8 +92,10 @@ _COMMERCIAL_BY_VOLUME_POWER: dict[str, list[tuple[float, float, float]]] = {
     ],
 }
 
-# Personal-use ICE duty: (cc_max inclusive, pct or None, eur_per_cc)
-# age: under3 | from3to5 | over5
+# Personal-use ICE duty (EAEU / Decision of the EEC Council No. 107):
+# (cc_max inclusive, pct or None, eur_per_cc).
+# under3: max(% of customs value, €/cm³ floor) — simplified by volume bands.
+# from3to5 / over5: unified €/cm³ only (no % of value).
 _DUTY_PERSONAL: dict[str, list[tuple[int, float | None, float]]] = {
     "under3": [
         (1000, 0.54, 2.5),
@@ -104,20 +106,20 @@ _DUTY_PERSONAL: dict[str, list[tuple[int, float | None, float]]] = {
         (10_000_000, 0.48, 15.5),
     ],
     "from3to5": [
-        (1000, 0.54, 5.0),
-        (1500, 0.54, 7.0),
-        (1800, 0.54, 8.5),
-        (2300, 0.54, 12.0),
-        (3000, 0.54, 15.0),
-        (10_000_000, 0.54, 20.0),
+        (1000, None, 1.5),
+        (1500, None, 1.7),
+        (1800, None, 2.5),
+        (2300, None, 2.7),
+        (3000, None, 3.0),
+        (10_000_000, None, 3.6),
     ],
     "over5": [
-        (1000, None, 5.0),
-        (1500, None, 7.0),
-        (1800, None, 8.5),
-        (2300, None, 12.0),
-        (3000, None, 15.0),
-        (10_000_000, None, 20.0),
+        (1000, None, 3.0),
+        (1500, None, 3.2),
+        (1800, None, 3.5),
+        (2300, None, 4.8),
+        (3000, None, 5.0),
+        (10_000_000, None, 5.7),
     ],
 }
 
@@ -284,7 +286,8 @@ def customs_duty_rub(
     pct, eur_per_cc = _duty_row(band, engine_cc)
     min_part = eur_per_cc * engine_cc * eur_rub
     if pct is None:
-        return min_part, f"Единая ставка {eur_per_cc:g} €/см³ (возраст ≥ 5 лет)"
+        label = AGE_BAND_LABELS.get(band, band)
+        return min_part, f"Единая ставка {eur_per_cc:g} €/см³ ({label})"
     pct_part = customs_value_rub * pct
     duty = max(pct_part, min_part)
     return duty, f"{pct * 100:.0f}% стоимости, но не менее {eur_per_cc:g} €/см³"
