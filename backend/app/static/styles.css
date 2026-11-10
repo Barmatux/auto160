@@ -446,9 +446,6 @@ body.design-lab .header.header--design-lab .header-nav .user-badge {
   padding: 7px 12px;
 }
 
-body.design-lab .header-nav-row-admin-tools {
-  align-items: center;
-}
 
 body.design-lab .header-messengers {
   display: inline-flex;
@@ -907,9 +904,6 @@ body.theme-admin.theme-admin-light.design-lab .inspection-verdict-card.is-red .i
   gap: 4px;
 }
 
-.header-nav-row-admin-tools {
-  flex-wrap: wrap;
-}
 
 .header-nav {
   display: flex;
@@ -7545,11 +7539,6 @@ body.theme-admin .home-hero.home-hero--split .home-hero-pane-lead {
     flex-direction: column;
     align-items: stretch;
     gap: 4px;
-  }
-
-  .header-nav-row-admin-tools {
-    flex-wrap: wrap;
-    white-space: normal;
   }
 
   .header-nav a,
