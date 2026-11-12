@@ -178,7 +178,7 @@ def delete_blog_post(db: Session, post: BlogPost) -> None:
 _SEED_BLOG_POSTS: tuple[dict[str, str], ...] = (
     {
         "slug": "kto-my-i-chem-zanimaemsya",
-        "title": "Кто мы и чем занимаемся",
+        "title": "Почему стоит обратиться в Auto160?",
         "excerpt": (
             "Auto160 — подбор и проверка авто в Беларуси для россиян и белорусов, "
             "а также доставка авто из Европы в РФ и РБ."
