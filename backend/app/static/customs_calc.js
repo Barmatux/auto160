@@ -17,6 +17,23 @@
   var volumeInput = root.querySelector("[data-calc-volume]");
   var catalogHp = root.querySelector("[data-calc-catalog-hp]");
   var specMeta = root.querySelector("[data-calc-spec-meta]");
+  var ageSelect = root.querySelector("[data-calc-age]");
+  var priceInput = root.querySelector("[data-calc-price]");
+  var currencySelect = root.querySelector("[data-calc-currency]");
+  var priceHint = root.querySelector("[data-calc-price-hint]");
+
+  function syncPriceRequirement() {
+    var under3 = ageSelect && ageSelect.value === "under3";
+    if (priceInput) {
+      priceInput.required = !!under3;
+      if (under3) {
+        priceInput.setAttribute("aria-required", "true");
+      } else {
+        priceInput.removeAttribute("aria-required");
+      }
+    }
+    if (priceHint) priceHint.hidden = !under3;
+  }
 
   function money(value) {
     if (value == null || Number.isNaN(Number(value))) return "—";
@@ -214,6 +231,11 @@
     motorSelect.addEventListener("change", applyMotorSelection);
   }
 
+  if (ageSelect) {
+    ageSelect.addEventListener("change", syncPriceRequirement);
+  }
+  syncPriceRequirement();
+
   loadMakes();
 
   function renderResult(data) {
@@ -271,13 +293,20 @@
       return;
     }
     var opt = motorSelect && motorSelect.selectedOptions[0];
+    var ageBand = String(fd.get("catalog_age_band") || "from3to5");
+    var priceRaw = String(fd.get("price") || "").trim().replace(",", ".");
+    var price = priceRaw === "" ? 0 : Number(priceRaw);
+    if (ageBand === "under3" && (!(price > 0) || Number.isNaN(price))) {
+      setStatus("Укажите стоимость автомобиля для возраста до 3 лет", true);
+      if (priceInput) priceInput.focus();
+      return;
+    }
     var payload = {
-      // Defaults: personal import, EUR — price used for under-5 duty floor.
-      price: 12000,
-      currency: "EUR",
+      price: Number.isFinite(price) && price >= 0 ? price : 0,
+      currency: String(fd.get("currency") || (currencySelect && currencySelect.value) || "EUR"),
       importer: "personal",
       engine_kind: (opt && opt.dataset.kind) || "ice",
-      age_band: String(fd.get("catalog_age_band") || "from3to5"),
+      age_band: ageBand,
       engine_cc: opt ? Number(opt.dataset.cc || 0) : 0,
       power_hp: opt && opt.dataset.hp ? Number(opt.dataset.hp) : 0,
       catalog_item_id: itemId,

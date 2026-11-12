@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.customs_catalog import (
+    PREFERENTIAL_HP_MAX,
     engine_cc_from_item,
     engine_kind_from_item,
     get_item as get_catalog_item,
@@ -233,6 +234,11 @@ def public_customs_calc(payload: CustomsCalcRequest, db: Session = Depends(get_d
             raise HTTPException(status_code=400, detail="У конфигурации нет объёма двигателя в каталоге")
         engine_cc = float(resolved_cc or 0)
         power_hp = float(resolved_hp)
+        if power_hp > PREFERENTIAL_HP_MAX:
+            raise HTTPException(
+                status_code=400,
+                detail="В каталоге растаможки только конфигурации до 160 л.с.",
+            )
         vehicle_label = " · ".join(
             part
             for part in [

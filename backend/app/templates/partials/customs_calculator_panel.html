@@ -16,11 +16,11 @@
     <form class="calc-panel calc-form" data-calc-form>
       <div class="calc-panel-block" data-calc-panel="catalog">
         <h2>Автомобиль из каталога</h2>
-        <p class="calc-under160-legend" aria-label="Легенда подсветки">
+        <p class="calc-under160-legend" aria-label="Ограничение каталога">
           <span class="calc-under160-swatch" aria-hidden="true"></span>
           <span>
-            Зелёным отмечены <strong>проходные</strong> модели и моторы —
-            мощность ≤&nbsp;160&nbsp;л.с. (льготный утильсбор для физлиц).
+            В каталоге только моторы <strong>≤&nbsp;160&nbsp;л.с.</strong>
+            (льготный утильсбор для физлиц).
           </span>
         </p>
         {% if customs_makes %}
@@ -62,6 +62,30 @@
                 <option value="over5">Старше 5 лет</option>
               </select>
             </label>
+            <label>
+              Стоимость
+              <input
+                type="number"
+                name="price"
+                data-calc-price
+                min="0"
+                step="1"
+                inputmode="decimal"
+                placeholder="например 15000"
+              />
+            </label>
+            <label>
+              Валюта
+              <select name="currency" data-calc-currency>
+                <option value="EUR" selected>EUR</option>
+                <option value="USD">USD</option>
+                <option value="BYN">BYN</option>
+                <option value="RUB">RUB</option>
+              </select>
+            </label>
+            <p class="hint calc-span-2" data-calc-price-hint hidden>
+              Для возраста до 3 лет стоимость нужна: пошлина считается от таможенной стоимости.
+            </p>
           </div>
           <p class="hint" data-calc-spec-meta></p>
         {% else %}

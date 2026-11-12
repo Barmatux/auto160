@@ -14,13 +14,18 @@ from app.fuel_type_labels import (
 )
 from app.models import CatalogItem
 
+PREFERENTIAL_HP_MAX = 160
+
 
 def _base_catalog_query(db: Session):
+    """Catalog items flagged for customs calc, capped at preferential util power."""
     q = db.query(CatalogItem).filter(
         CatalogItem.source_site == "av.by",
         CatalogItem.make.isnot(None),
         CatalogItem.model.isnot(None),
         CatalogItem.customs_calc.is_(True),
+        CatalogItem.engine_power_hp.isnot(None),
+        CatalogItem.engine_power_hp <= PREFERENTIAL_HP_MAX,
     )
     return apply_visible_catalog_filter(q, include_hidden=False)
 
@@ -36,9 +41,6 @@ def list_makes(db: Session) -> list[str]:
     return [name for (name,) in rows if (name or "").strip()]
 
 
-PREFERENTIAL_HP_MAX = 160
-
-
 def list_models(db: Session, make: str) -> list[dict]:
     key = (make or "").strip()
     if not key:
@@ -46,22 +48,18 @@ def list_models(db: Session, make: str) -> list[dict]:
     rows = (
         _base_catalog_query(db)
         .filter(func.lower(CatalogItem.make) == key.lower())
-        .with_entities(
-            CatalogItem.model,
-            func.max(CatalogItem.engine_power_hp).label("hp_max"),
-        )
-        .group_by(CatalogItem.model)
+        .with_entities(CatalogItem.model)
+        .distinct()
         .order_by(asc(CatalogItem.model))
         .all()
     )
     result: list[dict] = []
-    for name, hp_max in rows:
+    for (name,) in rows:
         cleaned = (name or "").strip()
         if not cleaned:
             continue
-        # Model is preferential when every known catalog hp is ≤160.
-        under_160 = hp_max is not None and int(hp_max) <= PREFERENTIAL_HP_MAX
-        result.append({"name": cleaned, "under_160": under_160})
+        # Base query already keeps only ≤160 hp modifications.
+        result.append({"name": cleaned, "under_160": True})
     return result
 
 
@@ -158,7 +156,7 @@ def list_motors(db: Session, make: str, model: str) -> list[dict]:
         # Need at least volume (cc) or electric with power for a usable calc config
         if engine_cc is None and engine_kind_from_item(item) != "electric":
             continue
-        if power_hp is None:
+        if power_hp is None or float(power_hp) > PREFERENTIAL_HP_MAX:
             continue
         key = (
             (item.generation or "").strip().lower(),

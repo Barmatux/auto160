@@ -342,6 +342,11 @@ def calculate_customs(
 
         band = normalize_age_band(payload.age_band)
         age = _AGE_BAND_YEARS[band]
+        if band == "under3" and payload.price <= 0:
+            raise ValueError(
+                "Укажите стоимость автомобиля — для возраста до 3 лет пошлина "
+                "считается от таможенной стоимости"
+            )
         customs_value = price_to_rub(
             payload.price,
             payload.currency,
