@@ -172,3 +172,78 @@ def update_blog_post(
 def delete_blog_post(db: Session, post: BlogPost) -> None:
     db.delete(post)
     db.commit()
+
+
+# Default published posts seeded once (slug → fields). Existing rows are left alone.
+_SEED_BLOG_POSTS: tuple[dict[str, str], ...] = (
+    {
+        "slug": "kto-my-i-chem-zanimaemsya",
+        "title": "Кто мы и чем занимаемся",
+        "excerpt": (
+            "Auto160 — сервис подбора автомобилей до 160 л.с. из Беларуси и Европы "
+            "под льготный утильсбор для физлиц в РФ."
+        ),
+        "body": """
+<p><strong>Auto160</strong> — подбор и доставка легковых авто с упором на порог <strong>до 160 л.с.</strong>,
+чтобы машина проходила под льготный утильсбор для физлиц в России.</p>
+
+<h2>Кто мы</h2>
+<ul>
+  <li>Сервис <a href="/">auto160.ru</a> оператора ООО «Сканди Моторс».</li>
+  <li>Работаем с рынками Беларуси и Европы.</li>
+  <li>Ориентир — прозрачный расчёт до сделки и безнал по правилам РФ.</li>
+</ul>
+
+<h2>Чем занимаемся</h2>
+<ul>
+  <li><strong>Беларусь:</strong> поиск и проверка объявлений, дата ввоза, осмотр, подбор под ключ, доставка в Москву и регионы.</li>
+  <li><strong>Европа:</strong> подбор на площадках и аукционах, проверка истории и пробега, расчёт таможни и утильсбора, сопровождение покупки и логистики.</li>
+  <li><strong>До задатка:</strong> проверка VIN и калькулятор растаможки на сайте.</li>
+</ul>
+
+<h2>Что важно в подборе</h2>
+<ul>
+  <li>Мощность до 160 л.с. и объём до 3 л — критерии льготного утильсбора для физлиц.</li>
+  <li>Для авто из Беларуси критична дата ввоза в РБ.</li>
+  <li>Считаем пошлину и утильсбор до решения о сделке.</li>
+</ul>
+
+<h2>Как начать</h2>
+<ul>
+  <li><a href="/by">Заявка на авто из Беларуси</a></li>
+  <li><a href="/eu">Подбор из Европы</a></li>
+  <li><a href="/inspection">Проверка даты ввоза по VIN</a></li>
+  <li><a href="/calculator">Калькулятор растаможки</a></li>
+  <li><a href="/catalog">Каталог комплектаций до 160 л.с.</a></li>
+</ul>
+""".strip(),
+    },
+)
+
+
+def ensure_seed_blog_posts(db: Session) -> int:
+    """Insert missing default published posts. Returns number of created rows."""
+    created = 0
+    now = datetime.utcnow()
+    for item in _SEED_BLOG_POSTS:
+        slug = item["slug"]
+        exists = db.query(BlogPost.id).filter(BlogPost.slug == slug).first()
+        if exists:
+            continue
+        db.add(
+            BlogPost(
+                title=item["title"],
+                slug=slug,
+                body=item["body"],
+                excerpt=item.get("excerpt"),
+                is_published=True,
+                published_at=now,
+                author_id=None,
+                created_at=now,
+                updated_at=now,
+            )
+        )
+        created += 1
+    if created:
+        db.commit()
+    return created

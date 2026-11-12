@@ -3,6 +3,7 @@ from datetime import datetime
 from sqlalchemy import inspect
 from sqlalchemy.orm import Session
 
+from app.blog_posts import ensure_seed_blog_posts
 from app.catalog_seed import seed_catalog_from_csv
 from app.config import settings
 from app.models import CarListing, ListingStatus, User, UserRole
@@ -206,5 +207,7 @@ def safe_bootstrap_admin(session_factory, engine) -> None:
             seed_mock_listings(db)
         if inspect(engine).has_table("catalog_items"):
             seed_catalog_from_csv(db)
+        if inspect(engine).has_table("blog_posts"):
+            ensure_seed_blog_posts(db)
     finally:
         db.close()
