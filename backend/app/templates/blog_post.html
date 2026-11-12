@@ -10,9 +10,6 @@
         {{ post.published_at.strftime('%d.%m.%Y') }}
       </time>
     {% endif %}
-    {% if post.excerpt %}
-      <p class="guide-lead">{{ post.excerpt }}</p>
-    {% endif %}
   </header>
   <div class="blog-post-body guide-section">
     {{ post.body | safe }}
