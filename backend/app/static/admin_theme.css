@@ -839,6 +839,22 @@ body.theme-admin.theme-admin-graphite.blog-surface {
   background: var(--bg);
 }
 
+/* Blog body uses .guide-section — do not paint a second surface panel. */
+body.theme-admin.blog-surface .guide-section,
+body.theme-admin.theme-admin-light.blog-surface .guide-section,
+body.theme-admin.theme-admin-graphite.blog-surface .guide-section {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+body.theme-admin.blog-surface .site-footer,
+body.theme-admin.theme-admin-light.blog-surface .site-footer,
+body.theme-admin.theme-admin-graphite.blog-surface .site-footer {
+  background: var(--bg);
+  border-top-color: var(--border);
+}
+
 body.theme-admin.theme-admin-light a {
   color: #0369a1;
 }

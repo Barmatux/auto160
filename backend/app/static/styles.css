@@ -10205,7 +10205,7 @@ body.design-lab .inspection-results-head h2 {
   }
 }
 
-/* Blog: flat page background (no radial glow / grain from theme body). */
+/* Blog: flat page background (no radial glow / second surface panel). */
 body.blog-surface {
   background: var(--bg);
 }
@@ -10220,6 +10220,17 @@ body.blog-surface .page {
 body.blog-surface .guide-page {
   max-width: 760px;
   margin: 0 auto;
+}
+
+body.blog-surface .guide-section,
+body.blog-surface .blog-post-body {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+body.blog-surface .site-footer {
+  background: var(--bg);
 }
 
 .blog-index-list {
