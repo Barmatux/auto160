@@ -833,6 +833,12 @@ body.theme-admin.theme-admin-light {
   color: var(--text);
 }
 
+body.theme-admin.blog-surface,
+body.theme-admin.theme-admin-light.blog-surface,
+body.theme-admin.theme-admin-graphite.blog-surface {
+  background: var(--bg);
+}
+
 body.theme-admin.theme-admin-light a {
   color: #0369a1;
 }
