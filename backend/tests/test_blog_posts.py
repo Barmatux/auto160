@@ -14,14 +14,28 @@ def test_blog_slugify_fallback():
 
 def test_seed_blog_posts_include_about_us():
     about = next(item for item in _SEED_BLOG_POSTS if item["slug"] == "kto-my-i-chem-zanimaemsya")
-    assert "160" in about["title"] or "160" in about["body"] or "160" in about["excerpt"]
-    assert "льготн" in about["body"].lower() or "льготн" in about["excerpt"].lower()
+    body = about["body"].lower()
+    assert "белорус" in body
+    assert "европ" in body
+    assert "рф" in body and "рб" in body
     assert "<ul>" in about["body"]
 
 
-def test_ensure_seed_blog_posts_skips_existing():
+def test_ensure_seed_blog_posts_updates_existing_content():
+    about = next(item for item in _SEED_BLOG_POSTS if item["slug"] == "kto-my-i-chem-zanimaemsya")
+    post = SimpleNamespace(
+        title="old",
+        body="old",
+        excerpt="old",
+        is_published=True,
+        published_at=object(),
+        updated_at=None,
+    )
     db = MagicMock()
-    db.query.return_value.filter.return_value.first.return_value = SimpleNamespace(id=1)
-    assert ensure_seed_blog_posts(db) == 0
+    db.query.return_value.filter.return_value.first.return_value = post
+    assert ensure_seed_blog_posts(db) == 1
+    assert post.title == about["title"]
+    assert post.body == about["body"]
+    assert post.excerpt == about["excerpt"]
+    db.commit.assert_called_once()
     db.add.assert_not_called()
-    db.commit.assert_not_called()

@@ -174,38 +174,43 @@ def delete_blog_post(db: Session, post: BlogPost) -> None:
     db.commit()
 
 
-# Default published posts seeded once (slug → fields). Existing rows are left alone.
+# Canonical seed posts: created if missing, content refreshed on deploy.
 _SEED_BLOG_POSTS: tuple[dict[str, str], ...] = (
     {
         "slug": "kto-my-i-chem-zanimaemsya",
         "title": "Кто мы и чем занимаемся",
         "excerpt": (
-            "Auto160 — сервис подбора автомобилей до 160 л.с. из Беларуси и Европы "
-            "под льготный утильсбор для физлиц в РФ."
+            "Auto160 — подбор и проверка авто в Беларуси для россиян и белорусов, "
+            "а также доставка авто из Европы в РФ и РБ."
         ),
         "body": """
-<p><strong>Auto160</strong> — подбор и доставка легковых авто с упором на порог <strong>до 160 л.с.</strong>,
-чтобы машина проходила под льготный утильсбор для физлиц в России.</p>
+<p><strong>Auto160</strong> — подбор, проверка и доставка легковых авто с упором на порог
+<strong>до 160 л.с.</strong> (актуально для льготного утильсбора физлиц в РФ).
+Работаем и с клиентами из России, и с клиентами из Беларуси.</p>
 
 <h2>Кто мы</h2>
 <ul>
   <li>Сервис <a href="/">auto160.ru</a> оператора ООО «Сканди Моторс».</li>
-  <li>Работаем с рынками Беларуси и Европы.</li>
-  <li>Ориентир — прозрачный расчёт до сделки и безнал по правилам РФ.</li>
+  <li>Рынки: Беларусь и Европа.</li>
+  <li>Клиенты: россияне и белорусы.</li>
+  <li>Ориентир — прозрачный расчёт до сделки и понятная логистика.</li>
 </ul>
 
 <h2>Чем занимаемся</h2>
 <ul>
-  <li><strong>Беларусь:</strong> поиск и проверка объявлений, дата ввоза, осмотр, подбор под ключ, доставка в Москву и регионы.</li>
-  <li><strong>Европа:</strong> подбор на площадках и аукционах, проверка истории и пробега, расчёт таможни и утильсбора, сопровождение покупки и логистики.</li>
+  <li><strong>Беларусь:</strong> поиск, проверка объявлений и истории, дата ввоза, осмотр и подбор
+  под ключ — <strong>для россиян и для белорусов</strong>; доставка в Москву и регионы РФ при вывозе в Россию.</li>
+  <li><strong>Европа:</strong> подбор на площадках и аукционах, проверка истории и пробега,
+  расчёт таможни и утильсбора, сопровождение покупки —
+  <strong>доставляем авто из Европы как в РФ, так и в РБ</strong>.</li>
   <li><strong>До задатка:</strong> проверка VIN и калькулятор растаможки на сайте.</li>
 </ul>
 
 <h2>Что важно в подборе</h2>
 <ul>
-  <li>Мощность до 160 л.с. и объём до 3 л — критерии льготного утильсбора для физлиц.</li>
-  <li>Для авто из Беларуси критична дата ввоза в РБ.</li>
-  <li>Считаем пошлину и утильсбор до решения о сделке.</li>
+  <li>Для выезда в РФ: мощность до 160 л.с. и объём до 3 л — критерии льготного утильсбора для физлиц.</li>
+  <li>Для авто из Беларуси часто критична дата ввоза в РБ.</li>
+  <li>Считаем пошлину и утильсбор до решения о сделке, когда речь о ввозе в Россию.</li>
 </ul>
 
 <h2>Как начать</h2>
@@ -222,28 +227,47 @@ _SEED_BLOG_POSTS: tuple[dict[str, str], ...] = (
 
 
 def ensure_seed_blog_posts(db: Session) -> int:
-    """Insert missing default published posts. Returns number of created rows."""
-    created = 0
+    """Insert or refresh canonical seed posts. Returns number of created/updated rows."""
+    changed = 0
     now = datetime.utcnow()
     for item in _SEED_BLOG_POSTS:
         slug = item["slug"]
-        exists = db.query(BlogPost.id).filter(BlogPost.slug == slug).first()
-        if exists:
-            continue
-        db.add(
-            BlogPost(
-                title=item["title"],
-                slug=slug,
-                body=item["body"],
-                excerpt=item.get("excerpt"),
-                is_published=True,
-                published_at=now,
-                author_id=None,
-                created_at=now,
-                updated_at=now,
+        post = db.query(BlogPost).filter(BlogPost.slug == slug).first()
+        if post is None:
+            db.add(
+                BlogPost(
+                    title=item["title"],
+                    slug=slug,
+                    body=item["body"],
+                    excerpt=item.get("excerpt"),
+                    is_published=True,
+                    published_at=now,
+                    author_id=None,
+                    created_at=now,
+                    updated_at=now,
+                )
             )
-        )
-        created += 1
-    if created:
+            changed += 1
+            continue
+        dirty = False
+        if post.title != item["title"]:
+            post.title = item["title"]
+            dirty = True
+        if post.body != item["body"]:
+            post.body = item["body"]
+            dirty = True
+        excerpt = item.get("excerpt")
+        if post.excerpt != excerpt:
+            post.excerpt = excerpt
+            dirty = True
+        if not post.is_published:
+            post.is_published = True
+            if post.published_at is None:
+                post.published_at = now
+            dirty = True
+        if dirty:
+            post.updated_at = now
+            changed += 1
+    if changed:
         db.commit()
-    return created
+    return changed
