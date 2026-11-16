@@ -560,6 +560,22 @@ body.theme-admin .sheet .sheet-h,
   margin: 0;
   text-align: justify;
   color: #000;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.sheet-title,
+.sheet-h,
+.sheet-note,
+.sheet-meta,
+.sheet-letterhead,
+.sheet-kv,
+.sheet-kv tr,
+.sheet-table tr,
+.signs,
+.sign-col {
+  break-inside: avoid;
+  page-break-inside: avoid;
 }
 
 .sheet-p.preamble {

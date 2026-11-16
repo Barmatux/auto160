@@ -290,6 +290,40 @@ function loadScriptOnce(src) {
   });
 }
 
+function mmToCssPx(mm) {
+  return (mm * 96) / 25.4;
+}
+
+/** Insert legacy html2pdf page-breaks between block children so lines are never sliced. */
+function insertContractPageBreaks(root, pageContentPx) {
+  const nodes = [...root.childNodes].filter(
+    (n) => n.nodeType === 1 && !n.classList?.contains("html2pdf__page-break"),
+  );
+  let used = 0;
+  for (const el of nodes) {
+    if (el.classList.contains("sheet-annex")) {
+      if (used > 0) {
+        const br = document.createElement("div");
+        br.className = "html2pdf__page-break";
+        root.insertBefore(br, el);
+      }
+      used = el.offsetHeight || 0;
+      // Also paginate inside annex (heading + table + signs).
+      insertContractPageBreaks(el, pageContentPx);
+      continue;
+    }
+    const h = el.offsetHeight || 0;
+    if (used > 0 && used + h > pageContentPx - 2) {
+      const br = document.createElement("div");
+      br.className = "html2pdf__page-break";
+      root.insertBefore(br, el);
+      used = h;
+    } else {
+      used += h;
+    }
+  }
+}
+
 async function downloadPdfPreview() {
   const sheet = document.querySelector(".preview-pane .sheet");
   if (!sheet) return;
@@ -300,6 +334,9 @@ async function downloadPdfPreview() {
     btn.disabled = true;
     btn.textContent = "PDF…";
   }
+
+  const margin = [14, 14, 16, 14]; // top, left, bottom, right (mm)
+  const pageContentPx = mmToCssPx(297 - margin[0] - margin[2]);
 
   const wrap = document.createElement("div");
   wrap.setAttribute("aria-hidden", "true");
@@ -317,10 +354,26 @@ async function downloadPdfPreview() {
       color: #000 !important;
       border-color: #000 !important;
     }
+    .sheet-title, .sheet-h, .sheet-p, .sheet-note, .sheet-meta, .sheet-letterhead,
+    .sheet-kv, .sheet-kv tr, .sheet-table, .sheet-table tr, .signs, .sign-col {
+      break-inside: avoid !important;
+      page-break-inside: avoid !important;
+    }
+    .html2pdf__page-break {
+      display: block;
+      height: 0;
+      overflow: hidden;
+      page-break-after: always;
+      break-after: page;
+    }
   `;
   wrap.appendChild(forceInk);
   wrap.appendChild(clone);
   document.body.appendChild(wrap);
+
+  // Layout must be live before measuring heights for manual breaks.
+  void clone.offsetHeight;
+  insertContractPageBreaks(clone, pageContentPx);
 
   try {
     await loadScriptOnce("/static/admin_contracts/vendor/html2pdf.bundle.min.js?v=20261117-1");
@@ -333,7 +386,7 @@ async function downloadPdfPreview() {
     await window
       .html2pdf()
       .set({
-        margin: [12, 12, 12, 12],
+        margin,
         filename,
         image: { type: "jpeg", quality: 0.98 },
         html2canvas: {
@@ -341,9 +394,12 @@ async function downloadPdfPreview() {
           useCORS: true,
           backgroundColor: "#ffffff",
           logging: false,
+          scrollX: 0,
+          scrollY: 0,
         },
         jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-        pagebreak: { mode: ["css", "legacy"], before: ".sheet-annex" },
+        // Manual .html2pdf__page-break markers + legacy mode: no mid-line canvas cuts.
+        pagebreak: { mode: ["legacy", "css"] },
       })
       .from(clone)
       .save();
