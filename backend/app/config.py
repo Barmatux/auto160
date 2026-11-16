@@ -10,6 +10,15 @@ class Settings(BaseSettings):
     bootstrap_admin_login: str = "admin"
     bootstrap_admin_name: str = "Auto160 Admin"
     bootstrap_admin_password: str = "admin12345"
+    # Limited staff account: contracts printer + AV Search.
+    bootstrap_staff_login: str = "dir_max"
+    bootstrap_staff_email: str = "dir_max@auto160.internal"
+    bootstrap_staff_name: str = "Dir Max"
+    bootstrap_staff_password: str = "77997799"
+    # Optional one-shot Supabase import for old SM contracts archive.
+    supabase_contracts_url: str = ""
+    supabase_contracts_anon_key: str = ""
+    supabase_contracts_access_token: str = ""
     # Demo cards for empty local DB only. Keep false in production.
     seed_mock_listings: bool = False
     catalog_seed_csv_path: str = "app/data/catalog_u160_audi_bmw_mini.csv"

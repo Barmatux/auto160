@@ -1,20 +1,30 @@
 <nav class="admin-nav">
-  <a href="/admin/messages"{% if admin_section == "messages" %} class="active"{% endif %}>Сообщения</a>
-  <a href="/admin/site-leads"{% if admin_section == "site-leads" %} class="active"{% endif %}>Заявки</a>
-  <a href="/admin/featured"{% if admin_section == "featured" %} class="active"{% endif %}>Подборка</a>
-  <a href="/admin/customs"{% if admin_section == "customs" %} class="active"{% endif %}>Растаможка</a>
-  <a href="/admin/users"{% if admin_section == "users" %} class="active"{% endif %}>Пользователи</a>
-  <a href="/admin/avby-accounts"{% if admin_section == "avby-accounts" %} class="active"{% endif %}>Аккаунты av.by</a>
-  <a href="/admin/avby-sync"{% if admin_section == "avby-sync" %} class="active"{% endif %}>Парсинг av.by</a>
-  <a href="/admin/archived-listings"{% if admin_section == "archived-listings" %} class="active"{% endif %}>Архив объявлений</a>
-  <a href="/admin/listings-without-byn"{% if admin_section == "listings-without-byn" %} class="active"{% endif %}>Без цены BYN</a>
-  <a href="/admin/eu-check"{% if admin_section == "eu-check" %} class="active"{% endif %}>CHECK LT+EE</a>
-  <a href="/admin/analytics"{% if admin_section == "analytics" %} class="active"{% endif %}>Аналитика</a>
-  <a href="/admin/price-stats"{% if admin_section == "price-stats" %} class="active"{% endif %}>Оценка av.by</a>
-  <a href="/admin/arbitrage"{% if admin_section == "arbitrage" %} class="active"{% endif %}>Аналитика РБ</a>
-  <a href="/admin/business-sellers"{% if admin_section == "business-sellers" %} class="active"{% endif %}>Бизнес-аккаунты</a>
-  <a href="/admin/ratings"{% if admin_section == "ratings" %} class="active"{% endif %}>Управление каталогом</a>
-  <a href="/admin/logs"{% if admin_section == "logs" %} class="active"{% endif %}>Логи</a>
-  <a href="/admin/blog"{% if admin_section == "blog" %} class="active"{% endif %}>Блог</a>
-  <a href="/admin/contracts"{% if admin_section == "contracts" %} class="active"{% endif %}>Договоры</a>
+  {% if is_admin %}
+    <a href="/admin/messages"{% if admin_section == "messages" %} class="active"{% endif %}>Сообщения</a>
+    <a href="/admin/site-leads"{% if admin_section == "site-leads" %} class="active"{% endif %}>Заявки</a>
+    <a href="/admin/featured"{% if admin_section == "featured" %} class="active"{% endif %}>Подборка</a>
+    <a href="/admin/customs"{% if admin_section == "customs" %} class="active"{% endif %}>Растаможка</a>
+    <a href="/admin/users"{% if admin_section == "users" %} class="active"{% endif %}>Пользователи</a>
+    <a href="/admin/avby-accounts"{% if admin_section == "avby-accounts" %} class="active"{% endif %}>Аккаунты av.by</a>
+    <a href="/admin/avby-sync"{% if admin_section == "avby-sync" %} class="active"{% endif %}>Парсинг av.by</a>
+    <a href="/admin/archived-listings"{% if admin_section == "archived-listings" %} class="active"{% endif %}>Архив объявлений</a>
+    <a href="/admin/listings-without-byn"{% if admin_section == "listings-without-byn" %} class="active"{% endif %}>Без цены BYN</a>
+    <a href="/admin/eu-check"{% if admin_section == "eu-check" %} class="active"{% endif %}>CHECK LT+EE</a>
+    <a href="/admin/analytics"{% if admin_section == "analytics" %} class="active"{% endif %}>Аналитика</a>
+    <a href="/admin/price-stats"{% if admin_section == "price-stats" %} class="active"{% endif %}>Оценка av.by</a>
+    <a href="/admin/arbitrage"{% if admin_section == "arbitrage" %} class="active"{% endif %}>Аналитика РБ</a>
+    <a href="/admin/business-sellers"{% if admin_section == "business-sellers" %} class="active"{% endif %}>Бизнес-аккаунты</a>
+    <a href="/admin/ratings"{% if admin_section == "ratings" %} class="active"{% endif %}>Управление каталогом</a>
+    <a href="/admin/logs"{% if admin_section == "logs" %} class="active"{% endif %}>Логи</a>
+    <a href="/admin/blog"{% if admin_section == "blog" %} class="active"{% endif %}>Блог</a>
+    <a href="/admin/vin-check"{% if admin_section == "vin-check" %} class="active"{% endif %}>AV Search</a>
+    <a href="/admin/contracts"{% if admin_section == "contracts" %} class="active"{% endif %}>Договоры</a>
+  {% else %}
+    {% if can_av_search %}
+      <a href="/admin/vin-check"{% if admin_section == "vin-check" %} class="active"{% endif %}>AV Search</a>
+    {% endif %}
+    {% if can_contracts %}
+      <a href="/admin/contracts"{% if admin_section == "contracts" %} class="active"{% endif %}>Договоры</a>
+    {% endif %}
+  {% endif %}
 </nav>

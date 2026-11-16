@@ -509,10 +509,14 @@ def _resolve_site_theme(request: Request, current_user: User | None) -> str:
 
 def _template_context(request: Request, current_user: User | None, seo: SeoMeta | None = None) -> dict:
     is_admin = current_user is not None and current_user.role == UserRole.admin
+    can_contracts = current_user is not None and current_user.role in {UserRole.admin, UserRole.staff}
+    can_av_search = current_user is not None and current_user.role in {UserRole.admin, UserRole.staff}
     site_theme = _resolve_site_theme(request, current_user)
     context = {
         "request": request,
         "current_user": current_user,
+        "can_contracts": can_contracts,
+        "can_av_search": can_av_search,
         "is_authenticated": current_user is not None,
         "is_admin": is_admin,
         # Rolled out site-wide; body.design-lab keeps scoped CSS working.
@@ -2042,12 +2046,21 @@ def _make_logo_url(make: str | None) -> str | None:
     return f"/static/logos/{key}.svg"
 
 
-def _admin_page_redirect(current_user) -> RedirectResponse | None:
+def _admin_page_redirect(
+    current_user,
+    *,
+    allow_contracts: bool = False,
+    allow_av_search: bool = False,
+) -> RedirectResponse | None:
     if current_user is None:
         return RedirectResponse(url="/login", status_code=302)
-    if current_user.role != UserRole.admin:
-        return RedirectResponse(url="/", status_code=302)
-    return None
+    if current_user.role == UserRole.admin:
+        return None
+    if allow_contracts and current_user.role == UserRole.staff:
+        return None
+    if allow_av_search and current_user.role == UserRole.staff:
+        return None
+    return RedirectResponse(url="/", status_code=302)
 
 
 def _catalog_beta_base_query(db: Session, *, include_hidden: bool = False):
@@ -4422,7 +4435,7 @@ def admin_vin_found_page(
     db: Session = Depends(get_db),
 ):
     current_user = _resolve_user_from_request(request, db)
-    redirect = _admin_page_redirect(current_user)
+    redirect = _admin_page_redirect(current_user, allow_av_search=True)
     if redirect:
         return redirect
 
@@ -4606,7 +4619,7 @@ def admin_vin_check_page(
     db: Session = Depends(get_db),
 ):
     current_user = _resolve_user_from_request(request, db)
-    redirect = _admin_page_redirect(current_user)
+    redirect = _admin_page_redirect(current_user, allow_av_search=True)
     if redirect:
         return redirect
 
@@ -5043,7 +5056,7 @@ def admin_vin_check_manual_page(
     db: Session = Depends(get_db),
 ):
     current_user = _resolve_user_from_request(request, db)
-    redirect = _admin_page_redirect(current_user)
+    redirect = _admin_page_redirect(current_user, allow_av_search=True)
     if redirect:
         return redirect
     target = _build_manual_vin_check_url(
@@ -5773,7 +5786,7 @@ def admin_site_leads_page(request: Request, db: Session = Depends(get_db)):
 @router.get("/admin/contracts")
 def admin_contracts_page(request: Request, db: Session = Depends(get_db)):
     current_user = _resolve_user_from_request(request, db)
-    redirect = _admin_page_redirect(current_user)
+    redirect = _admin_page_redirect(current_user, allow_contracts=True)
     if redirect:
         return redirect
     context = _template_context(request, current_user)

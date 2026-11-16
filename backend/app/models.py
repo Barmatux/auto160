@@ -15,6 +15,7 @@ except ImportError:  # pragma: no cover - local sqlite without pgvector
 class UserRole(str, enum.Enum):
     guest = "guest"
     seller = "seller"
+    staff = "staff"
     admin = "admin"
 
 
@@ -489,6 +490,7 @@ class AdminContract(Base):
     client_name: Mapped[str | None] = mapped_column(String(300), nullable=True, index=True)
     amount: Mapped[str | None] = mapped_column(String(40), nullable=True)
     payload: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    source_key: Mapped[str | None] = mapped_column(String(80), unique=True, nullable=True, index=True)
     created_by_id: Mapped[int | None] = mapped_column(
         ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
     )

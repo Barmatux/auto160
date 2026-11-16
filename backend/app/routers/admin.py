@@ -35,7 +35,12 @@ from app.catalog_ratings import (
 )
 from app.catalog_visibility import apply_generation_catalog_visibility
 from app.db import get_db
-from app.deps import require_admin, require_admin_flexible
+from app.deps import (
+    require_admin,
+    require_admin_flexible,
+    require_av_search_flexible,
+    require_contracts_flexible,
+)
 from app.customs_db import (
     create_cc as create_customs_db_cc,
     create_liter as create_customs_db_liter,
@@ -59,7 +64,9 @@ from app.customs_vehicles import (
 from app.admin_contracts import (
     create_contract as create_admin_contract,
     delete_contract as delete_admin_contract,
+    fetch_supabase_contracts,
     get_contract as get_admin_contract,
+    import_contract_rows,
     list_contracts as list_admin_contracts,
     update_contract as update_admin_contract,
 )
@@ -121,7 +128,10 @@ from app.schemas import (
     ManualVinCheckRunItem,
     ManualVinCheckRunResponse,
     AdminContractCreateRequest,
+    AdminContractImportRequest,
+    AdminContractImportResult,
     AdminContractOut,
+    AdminContractSupabaseImportRequest,
     AdminContractUpdateRequest,
     BlogPostCreateRequest,
     BlogPostOut,
@@ -560,7 +570,7 @@ def _require_manual_vin_listing_access(db: Session, user: User, listing_id: int)
     listing = db.query(CarListing).filter(CarListing.id == listing_id).first()
     if not listing:
         raise HTTPException(status_code=404, detail="Listing not found")
-    if user.role == UserRole.admin:
+    if user.role in {UserRole.admin, UserRole.staff}:
         return listing
     if user_has_manual_vin_check_launch(db, user_id=user.id, listing_id=listing_id):
         return listing
@@ -570,7 +580,7 @@ def _require_manual_vin_listing_access(db: Session, user: User, listing_id: int)
 @router.post("/listings/{listing_id}/customs-recheck", response_model=ListingCustomsRecheckResponse)
 def recheck_listing_customs(
     listing_id: int,
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(require_av_search_flexible),
     db: Session = Depends(get_db),
 ):
     listing = _require_manual_vin_listing_access(db, current_user, listing_id)
@@ -586,7 +596,7 @@ def recheck_listing_customs(
 @router.post("/listings/{listing_id}/vin-check", response_model=ListingVinCheckResponse)
 def fetch_listing_vin_check(
     listing_id: int,
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(require_av_search_flexible),
     db: Session = Depends(get_db),
 ):
     listing = _require_manual_vin_listing_access(db, current_user, listing_id)
@@ -604,7 +614,7 @@ def fetch_listing_vin_check(
 @router.post("/vin-check/manual/run", response_model=ManualVinCheckRunResponse)
 def run_manual_vin_check(
     payload: ManualVinCheckRunRequest,
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(require_av_search_flexible),
     db: Session = Depends(get_db),
 ):
     """Ingest av.by listing/search URL into DB; client then runs per-listing VIN CHECK."""
@@ -638,12 +648,10 @@ def run_manual_vin_check(
 def save_manual_listing_vin(
     listing_id: int,
     payload: ListingManualVinRequest,
-    _: User = Depends(require_admin),
+    current_user: User = Depends(require_av_search_flexible),
     db: Session = Depends(get_db),
 ):
-    listing = db.query(CarListing).filter(CarListing.id == listing_id).first()
-    if not listing:
-        raise HTTPException(status_code=404, detail="Listing not found")
+    listing = _require_manual_vin_listing_access(db, current_user, listing_id)
     result = apply_manual_listing_vin(db, listing, payload.vin)
     if result.vin_error and not result.vin:
         raise HTTPException(status_code=400, detail=result.vin_error)
@@ -660,12 +668,10 @@ def save_manual_listing_vin(
 @router.post("/listings/{listing_id}/vin", response_model=ListingVinResponse)
 def fetch_listing_vin(
     listing_id: int,
-    _: User = Depends(require_admin),
+    current_user: User = Depends(require_av_search_flexible),
     db: Session = Depends(get_db),
 ):
-    listing = db.query(CarListing).filter(CarListing.id == listing_id).first()
-    if not listing:
-        raise HTTPException(status_code=404, detail="Listing not found")
+    listing = _require_manual_vin_listing_access(db, current_user, listing_id)
     try:
         result = get_or_fetch_listing_vin(db, listing, allow_inactive=True)
     except AvbyVinError as exc:
@@ -1065,16 +1071,46 @@ def admin_delete_blog_post(
 
 @router.get("/contracts", response_model=list[AdminContractOut])
 def admin_list_contracts(
-    _: User = Depends(require_admin_flexible),
+    _: User = Depends(require_contracts_flexible),
     db: Session = Depends(get_db),
 ):
     return list_admin_contracts(db)
 
 
+@router.post("/contracts/import", response_model=AdminContractImportResult)
+def admin_import_contracts_json(
+    payload: AdminContractImportRequest,
+    current_user: User = Depends(require_contracts_flexible),
+    db: Session = Depends(get_db),
+):
+    return AdminContractImportResult(
+        **import_contract_rows(db, payload.rows, created_by_id=current_user.id)
+    )
+
+
+@router.post("/contracts/import-supabase", response_model=AdminContractImportResult)
+def admin_import_contracts_supabase(
+    payload: AdminContractSupabaseImportRequest,
+    current_user: User = Depends(require_contracts_flexible),
+    db: Session = Depends(get_db),
+):
+    try:
+        rows = fetch_supabase_contracts(
+            url=payload.url,
+            anon_key=payload.anon_key,
+            access_token=payload.access_token,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return AdminContractImportResult(
+        **import_contract_rows(db, rows, created_by_id=current_user.id)
+    )
+
+
 @router.get("/contracts/{contract_id}", response_model=AdminContractOut)
 def admin_get_contract(
     contract_id: int,
-    _: User = Depends(require_admin_flexible),
+    _: User = Depends(require_contracts_flexible),
     db: Session = Depends(get_db),
 ):
     row = get_admin_contract(db, contract_id)
@@ -1086,7 +1122,7 @@ def admin_get_contract(
 @router.post("/contracts", response_model=AdminContractOut)
 def admin_create_contract(
     payload: AdminContractCreateRequest,
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(require_contracts_flexible),
     db: Session = Depends(get_db),
 ):
     return create_admin_contract(db, payload=payload.payload, created_by_id=current_user.id)
@@ -1096,7 +1132,7 @@ def admin_create_contract(
 def admin_update_contract(
     contract_id: int,
     payload: AdminContractUpdateRequest,
-    _: User = Depends(require_admin),
+    _: User = Depends(require_contracts_flexible),
     db: Session = Depends(get_db),
 ):
     row = get_admin_contract(db, contract_id)
@@ -1108,7 +1144,7 @@ def admin_update_contract(
 @router.delete("/contracts/{contract_id}", status_code=204)
 def admin_delete_contract(
     contract_id: int,
-    _: User = Depends(require_admin),
+    _: User = Depends(require_contracts_flexible),
     db: Session = Depends(get_db),
 ):
     row = get_admin_contract(db, contract_id)

@@ -13,6 +13,54 @@
 {% set admin_section = "contracts" %}
 {% include "partials/admin_nav.html" %}
 
+<details class="admin-contracts-import no-print" style="margin: 12px 0 18px; max-width: 720px;">
+  <summary>Импорт старых договоров из Supabase</summary>
+  <p class="hint" style="margin: 8px 0;">
+    Вставьте Project URL и anon key из старого облака SM-договоров — архив подтянется в Auto160.
+  </p>
+  <form id="contracts-supabase-import" style="display: grid; gap: 8px;">
+    <input name="url" type="url" required placeholder="https://xxxxx.supabase.co" />
+    <textarea name="anon_key" rows="3" required placeholder="anon public key"></textarea>
+    <input name="access_token" type="text" placeholder="access_token (если нужен вход, иначе пусто)" />
+    <button type="submit" class="btn-primary">Импортировать</button>
+    <p class="hint" id="contracts-import-status" hidden></p>
+  </form>
+</details>
+<script>
+  (function () {
+    var form = document.getElementById("contracts-supabase-import");
+    var statusEl = document.getElementById("contracts-import-status");
+    if (!form) return;
+    form.addEventListener("submit", async function (event) {
+      event.preventDefault();
+      var fd = new FormData(form);
+      statusEl.hidden = false;
+      statusEl.textContent = "Импорт…";
+      try {
+        var res = await fetch("/api/v1/admin/contracts/import-supabase", {
+          method: "POST",
+          credentials: "same-origin",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            url: String(fd.get("url") || ""),
+            anon_key: String(fd.get("anon_key") || ""),
+            access_token: String(fd.get("access_token") || "") || null,
+          }),
+        });
+        var data = await res.json();
+        if (!res.ok) {
+          throw new Error(typeof data.detail === "string" ? data.detail : "Ошибка импорта");
+        }
+        statusEl.textContent =
+          "Готово: создано " + data.created + ", обновлено " + data.updated +
+          ", пропущено " + data.skipped + " из " + data.total + ". Обновите архив.";
+      } catch (err) {
+        statusEl.textContent = err.message || "Ошибка импорта";
+      }
+    });
+  })();
+</script>
+
 <div
   id="admin-contracts-root"
   class="admin-contracts-root"

@@ -691,12 +691,30 @@ class AdminContractOut(BaseModel):
     client_name: str | None = None
     amount: str | None = None
     payload: dict = Field(default_factory=dict)
+    source_key: str | None = None
     created_by_id: int | None = None
     created_at: datetime
     updated_at: datetime
 
     class Config:
         from_attributes = True
+
+
+class AdminContractImportRequest(BaseModel):
+    rows: list[dict] = Field(default_factory=list)
+
+
+class AdminContractSupabaseImportRequest(BaseModel):
+    url: str = Field(min_length=8, max_length=300)
+    anon_key: str = Field(min_length=20)
+    access_token: str | None = None
+
+
+class AdminContractImportResult(BaseModel):
+    created: int = 0
+    updated: int = 0
+    skipped: int = 0
+    total: int = 0
 
 
 class ImportDateLookupRequest(BaseModel):

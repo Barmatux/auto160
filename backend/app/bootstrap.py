@@ -48,6 +48,44 @@ def ensure_admin_user(db: Session) -> None:
     db.commit()
 
 
+def ensure_staff_user(db: Session) -> None:
+    """Ensure dir_max (or configured) staff can open contracts + AV Search."""
+    login = (settings.bootstrap_staff_login or "").strip().lower()
+    email = (settings.bootstrap_staff_email or "").strip().lower()
+    password = settings.bootstrap_staff_password or ""
+    if not login or not email or not password:
+        return
+
+    existing = (
+        db.query(User)
+        .filter((User.username == login) | (User.email == email))
+        .first()
+    )
+    if existing:
+        existing.username = login
+        existing.email = email
+        existing.name = settings.bootstrap_staff_name or existing.name or login
+        if existing.role != UserRole.admin:
+            existing.role = UserRole.staff
+        existing.password_hash = hash_password(password)
+        if existing.email_verified_at is None:
+            existing.email_verified_at = existing.created_at or datetime.utcnow()
+        db.commit()
+        return
+
+    db.add(
+        User(
+            username=login,
+            email=email,
+            name=settings.bootstrap_staff_name or login,
+            role=UserRole.staff,
+            password_hash=hash_password(password),
+            email_verified_at=datetime.utcnow(),
+        )
+    )
+    db.commit()
+
+
 def seed_mock_listings(db: Session) -> None:
     seller = db.query(User).filter(User.role == UserRole.admin).first() or db.query(User).first()
     if not seller:
@@ -203,6 +241,7 @@ def safe_bootstrap_admin(session_factory, engine) -> None:
     db = session_factory()
     try:
         ensure_admin_user(db)
+        ensure_staff_user(db)
         if settings.seed_mock_listings and inspect(engine).has_table("car_listings"):
             seed_mock_listings(db)
         if inspect(engine).has_table("catalog_items"):

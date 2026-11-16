@@ -28,6 +28,7 @@
           <select id="role-{{ user.id }}">
             <option value="guest" {% if user.role.value == "guest" %}selected{% endif %}>guest</option>
             <option value="seller" {% if user.role.value == "seller" %}selected{% endif %}>seller</option>
+            <option value="staff" {% if user.role.value == "staff" %}selected{% endif %}>staff</option>
             <option value="admin" {% if user.role.value == "admin" %}selected{% endif %}>admin</option>
           </select>
         </td>

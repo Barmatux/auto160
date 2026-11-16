@@ -3,6 +3,7 @@ from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError
 from sqlalchemy.orm import Session
 
+from app.access import can_access_av_search, can_access_contracts, is_admin_user
 from app.db import get_db
 from app.models import User, UserRole
 from app.security import decode_token, is_token_revoked
@@ -69,8 +70,43 @@ def require_admin_flexible(
         user = _user_from_access_token(request.cookies.get("access_token"), db)
     if user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not validate credentials")
-    if user.role != UserRole.admin:
+    if not is_admin_user(user):
         raise HTTPException(status_code=403, detail="Admin access required")
+    return user
+
+
+def _require_flexible_user(
+    request: Request,
+    token: str | None,
+    db: Session,
+) -> User:
+    user = _user_from_access_token(token, db)
+    if user is None:
+        user = _user_from_access_token(request.cookies.get("access_token"), db)
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not validate credentials")
+    return user
+
+
+def require_contracts_flexible(
+    request: Request,
+    token: str | None = Depends(oauth2_optional_scheme),
+    db: Session = Depends(get_db),
+) -> User:
+    user = _require_flexible_user(request, token, db)
+    if not can_access_contracts(user):
+        raise HTTPException(status_code=403, detail="Contracts access required")
+    return user
+
+
+def require_av_search_flexible(
+    request: Request,
+    token: str | None = Depends(oauth2_optional_scheme),
+    db: Session = Depends(get_db),
+) -> User:
+    user = _require_flexible_user(request, token, db)
+    if not can_access_av_search(user):
+        raise HTTPException(status_code=403, detail="AV Search access required")
     return user
 
 

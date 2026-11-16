@@ -156,6 +156,7 @@
           <a href="/admin/customs">Растаможка</a>
           <a href="/admin/eu-check">CHECK LT+EE</a>
           <a href="/admin/vin-check" class="header-vin-check-link">AV Search</a>
+          <a href="/admin/contracts">Договоры</a>
           <a href="/admin/analytics">Аналитика</a>
           <a href="/admin/messages">Сообщения <span class="admin-msg-unread-badge" data-admin-msg-badge hidden>0</span></a>
           <a href="/admin/business-sellers">Бизнес-аккаунты</a>
@@ -165,6 +166,15 @@
           <a href="/admin/avby-accounts">Аккаунты</a>
           <a href="/admin/avby-sync">Парсинг</a>
           <a href="/admin/logs">Логи</a>
+        </nav>
+      {% elif can_av_search or can_contracts %}
+        <nav class="header-nav header-nav-row header-nav-row-secondary">
+          {% if can_av_search %}
+            <a href="/admin/vin-check" class="header-vin-check-link">AV Search</a>
+          {% endif %}
+          {% if can_contracts %}
+            <a href="/admin/contracts">Договоры</a>
+          {% endif %}
         </nav>
       {% endif %}
       <aside class="header-nav-operator" aria-label="Реквизиты оператора">
