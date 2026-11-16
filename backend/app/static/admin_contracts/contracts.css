@@ -17,6 +17,12 @@ body.contracts-fullbleed .admin-contracts-import {
   margin-right: 16px;
 }
 
+/* Contracts admin: no public chat / messenger FAB on the page or in print. */
+body.contracts-fullbleed .a160-msg,
+body.contracts-fullbleed .a160-chat {
+  display: none !important;
+}
+
 #admin-contracts-root {
   --c-bg: var(--bg, #12151c);
   --c-surface: var(--surface, #1a1f2a);
@@ -1024,7 +1030,16 @@ button {
   .toolbar,
   .form-pane,
   .gate,
-  .no-print {
+  .no-print,
+  .a160-msg,
+  .a160-msg-fab,
+  .a160-msg-panel,
+  .a160-msg-modal,
+  .a160-chat,
+  .a160-chat-toggle,
+  .a160-chat-panel,
+  .cookie-consent,
+  [data-cookie-consent] {
     display: none !important;
   }
   .app,

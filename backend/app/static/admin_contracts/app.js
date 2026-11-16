@@ -269,6 +269,90 @@ document.body.addEventListener("input", (e) => {
   }
 });
 
+function printCleanPreview() {
+  const pane = document.querySelector(".preview-pane");
+  if (!pane) return;
+  const cssHref = [...document.querySelectorAll('link[rel="stylesheet"]')]
+    .map((el) => el.getAttribute("href") || "")
+    .find((href) => href.includes("/static/admin_contracts/contracts.css"))
+    || "/static/admin_contracts/contracts.css";
+  const iframe = document.createElement("iframe");
+  iframe.setAttribute("aria-hidden", "true");
+  Object.assign(iframe.style, {
+    position: "fixed",
+    right: "0",
+    bottom: "0",
+    width: "0",
+    height: "0",
+    border: "0",
+    opacity: "0",
+    pointerEvents: "none",
+  });
+  document.body.appendChild(iframe);
+  const doc = iframe.contentDocument;
+  doc.open();
+  doc.write(`<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title></title>
+  <link rel="stylesheet" href="${cssHref}" />
+  <style>
+    @page {
+      size: A4;
+      margin: 22mm 16mm 22mm 16mm;
+      @top-left { content: none; }
+      @top-center { content: none; }
+      @top-right { content: none; }
+      @bottom-left { content: none; }
+      @bottom-center { content: none; }
+      @bottom-right { content: none; }
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: #fff;
+      color: #000;
+    }
+    .preview-pane, .sheet {
+      margin: 0;
+      padding: 0;
+      border: 0;
+      box-shadow: none;
+      background: #fff;
+      max-height: none;
+      overflow: visible;
+    }
+    .sheet-annex { break-before: page; }
+  </style>
+</head>
+<body>${pane.innerHTML}</body>
+</html>`);
+  doc.close();
+
+  let cleaned = false;
+  const cleanup = () => {
+    if (cleaned) return;
+    cleaned = true;
+    iframe.remove();
+  };
+  const runPrint = () => {
+    try {
+      iframe.contentWindow.focus();
+      iframe.contentWindow.print();
+    } finally {
+      setTimeout(cleanup, 1500);
+    }
+  };
+  // Wait for stylesheet so pagination matches screen preview.
+  const link = doc.querySelector('link[rel="stylesheet"]');
+  if (link) {
+    link.addEventListener("load", () => setTimeout(runPrint, 30), { once: true });
+    link.addEventListener("error", () => setTimeout(runPrint, 30), { once: true });
+  }
+  setTimeout(runPrint, 400);
+}
+
 document.body.addEventListener("click", async (e) => {
   const btn = e.target.closest("[data-action]");
   if (!btn) return;
@@ -324,15 +408,7 @@ document.body.addEventListener("click", async (e) => {
       scheduleSave();
       paint();
     } else if (action === "print") {
-      const previousTitle = document.title;
-      document.title = " ";
-      const restoreTitle = () => {
-        document.title = previousTitle;
-        window.removeEventListener("afterprint", restoreTitle);
-      };
-      window.addEventListener("afterprint", restoreTitle);
-      window.print();
-      setTimeout(restoreTitle, 1000);
+      printCleanPreview();
     } else if (action === "word") {
       const kind = tab === "invoice" ? "invoice" : tab === "act" ? "act" : "contract";
       downloadWord(currentDocument(), wordName(kind));
