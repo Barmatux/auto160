@@ -17,8 +17,10 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     bind = op.get_bind()
+    # Postgres forbids ALTER TYPE ... ADD VALUE inside a transaction.
     if bind.dialect.name == "postgresql":
-        op.execute(sa.text("ALTER TYPE userrole ADD VALUE IF NOT EXISTS 'staff'"))
+        with op.get_context().autocommit_block():
+            op.execute(sa.text("ALTER TYPE userrole ADD VALUE IF NOT EXISTS 'staff'"))
 
     op.add_column(
         "admin_contracts",

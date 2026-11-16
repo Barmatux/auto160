@@ -240,13 +240,22 @@ def safe_bootstrap_admin(session_factory, engine) -> None:
 
     db = session_factory()
     try:
-        ensure_admin_user(db)
-        ensure_staff_user(db)
+        try:
+            ensure_admin_user(db)
+        except Exception:
+            db.rollback()
+        try:
+            ensure_staff_user(db)
+        except Exception:
+            # Staff seed must not take down the API (e.g. enum not migrated yet).
+            db.rollback()
         if settings.seed_mock_listings and inspect(engine).has_table("car_listings"):
             seed_mock_listings(db)
         if inspect(engine).has_table("catalog_items"):
             seed_catalog_from_csv(db)
         if inspect(engine).has_table("blog_posts"):
             ensure_seed_blog_posts(db)
+    except Exception:
+        db.rollback()
     finally:
         db.close()
