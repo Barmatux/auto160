@@ -677,6 +677,28 @@ class BlogPostOut(BaseModel):
         from_attributes = True
 
 
+class AdminContractCreateRequest(BaseModel):
+    payload: dict = Field(default_factory=dict)
+
+
+class AdminContractUpdateRequest(BaseModel):
+    payload: dict = Field(default_factory=dict)
+
+
+class AdminContractOut(BaseModel):
+    id: int
+    contract_number: str | None = None
+    client_name: str | None = None
+    amount: str | None = None
+    payload: dict = Field(default_factory=dict)
+    created_by_id: int | None = None
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
 class ImportDateLookupRequest(BaseModel):
     query: str
 

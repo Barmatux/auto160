@@ -56,6 +56,13 @@ from app.customs_vehicles import (
     list_customs_vehicle_specs,
     update_customs_vehicle_spec,
 )
+from app.admin_contracts import (
+    create_contract as create_admin_contract,
+    delete_contract as delete_admin_contract,
+    get_contract as get_admin_contract,
+    list_contracts as list_admin_contracts,
+    update_contract as update_admin_contract,
+)
 from app.blog_posts import (
     create_blog_post,
     delete_blog_post,
@@ -113,6 +120,9 @@ from app.schemas import (
     ManualVinCheckRunRequest,
     ManualVinCheckRunItem,
     ManualVinCheckRunResponse,
+    AdminContractCreateRequest,
+    AdminContractOut,
+    AdminContractUpdateRequest,
     BlogPostCreateRequest,
     BlogPostOut,
     BlogPostUpdateRequest,
@@ -1050,4 +1060,59 @@ def admin_delete_blog_post(
     if post is None:
         raise HTTPException(status_code=404, detail="Статья не найдена")
     delete_blog_post(db, post)
+    return None
+
+
+@router.get("/contracts", response_model=list[AdminContractOut])
+def admin_list_contracts(
+    _: User = Depends(require_admin_flexible),
+    db: Session = Depends(get_db),
+):
+    return list_admin_contracts(db)
+
+
+@router.get("/contracts/{contract_id}", response_model=AdminContractOut)
+def admin_get_contract(
+    contract_id: int,
+    _: User = Depends(require_admin_flexible),
+    db: Session = Depends(get_db),
+):
+    row = get_admin_contract(db, contract_id)
+    if row is None:
+        raise HTTPException(status_code=404, detail="Договор не найден")
+    return row
+
+
+@router.post("/contracts", response_model=AdminContractOut)
+def admin_create_contract(
+    payload: AdminContractCreateRequest,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    return create_admin_contract(db, payload=payload.payload, created_by_id=current_user.id)
+
+
+@router.patch("/contracts/{contract_id}", response_model=AdminContractOut)
+def admin_update_contract(
+    contract_id: int,
+    payload: AdminContractUpdateRequest,
+    _: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    row = get_admin_contract(db, contract_id)
+    if row is None:
+        raise HTTPException(status_code=404, detail="Договор не найден")
+    return update_admin_contract(db, row, payload=payload.payload)
+
+
+@router.delete("/contracts/{contract_id}", status_code=204)
+def admin_delete_contract(
+    contract_id: int,
+    _: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    row = get_admin_contract(db, contract_id)
+    if row is None:
+        raise HTTPException(status_code=404, detail="Договор не найден")
+    delete_admin_contract(db, row)
     return None

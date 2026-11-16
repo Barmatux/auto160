@@ -479,6 +479,25 @@ class BlogPost(Base):
     author: Mapped["User | None"] = relationship()
 
 
+class AdminContract(Base):
+    """Scandi Motors selection-service contracts (admin docs printer)."""
+
+    __tablename__ = "admin_contracts"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    contract_number: Mapped[str | None] = mapped_column(String(80), nullable=True, index=True)
+    client_name: Mapped[str | None] = mapped_column(String(300), nullable=True, index=True)
+    amount: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    payload: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    created_by_id: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+
+    created_by: Mapped["User | None"] = relationship()
+
+
 class SiteLead(Base):
     """Public contact lead from homepage modal or Belarus landing."""
 
