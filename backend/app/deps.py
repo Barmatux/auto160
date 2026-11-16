@@ -45,12 +45,12 @@ def require_admin(current_user: User = Depends(get_current_user)) -> User:
     return current_user
 
 
-def _user_from_access_token(token: str | None, db: Session) -> User | None:
+def _user_from_token(token: str | None, db: Session, *, expected_type: str = "access") -> User | None:
     if not token:
         return None
     try:
         payload = decode_token(token)
-        if payload.get("type") != "access" or is_token_revoked(payload):
+        if payload.get("type") != expected_type or is_token_revoked(payload):
             return None
         email = payload.get("sub")
         if email is None:
@@ -60,14 +60,34 @@ def _user_from_access_token(token: str | None, db: Session) -> User | None:
     return db.query(User).filter(User.email == email).first()
 
 
+def _user_from_access_token(token: str | None, db: Session) -> User | None:
+    return _user_from_token(token, db, expected_type="access")
+
+
+def _resolve_flexible_user(
+    request: Request,
+    token: str | None,
+    db: Session,
+) -> User | None:
+    """Resolve user for cookie/Bearer auth.
+
+    Prefer access token; if expired, accept a still-valid refresh cookie so staff
+    tools (contracts / AV Search) keep working like HTML admin pages.
+    """
+    user = _user_from_access_token(token, db)
+    if user is None:
+        user = _user_from_access_token(request.cookies.get("access_token"), db)
+    if user is None:
+        user = _user_from_token(request.cookies.get("refresh_token"), db, expected_type="refresh")
+    return user
+
+
 def require_admin_flexible(
     request: Request,
     token: str | None = Depends(oauth2_optional_scheme),
     db: Session = Depends(get_db),
 ) -> User:
-    user = _user_from_access_token(token, db)
-    if user is None:
-        user = _user_from_access_token(request.cookies.get("access_token"), db)
+    user = _resolve_flexible_user(request, token, db)
     if user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not validate credentials")
     if not is_admin_user(user):
@@ -80,9 +100,7 @@ def _require_flexible_user(
     token: str | None,
     db: Session,
 ) -> User:
-    user = _user_from_access_token(token, db)
-    if user is None:
-        user = _user_from_access_token(request.cookies.get("access_token"), db)
+    user = _resolve_flexible_user(request, token, db)
     if user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not validate credentials")
     return user

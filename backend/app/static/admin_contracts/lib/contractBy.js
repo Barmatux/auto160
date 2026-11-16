@@ -3,46 +3,12 @@ import { computeVat, moneyPhrase } from "./money.js";
 import { buildPreamble, buildSignatures, vatClause } from "./contract.js";
 import { normalizeContractData } from "./defaults.js";
 
-function vehicleRows(d) {
-  const data = normalizeContractData(d);
-  return (data.vehicles || []).filter(
-    (row) => row.make || row.model || row.yearFrom || row.yearTo,
-  );
-}
-
 function yearLabel(row) {
   if (!row.yearFrom && !row.yearTo) return "на согласование";
   if (row.yearFrom && row.yearTo && row.yearFrom !== row.yearTo) {
     return `${row.yearFrom} – ${row.yearTo}`;
   }
   return String(row.yearFrom || row.yearTo);
-}
-
-function assignmentLine(d) {
-  const bits = [];
-  const vehicles = vehicleRows(d);
-  if (vehicles.length) {
-    bits.push(
-      vehicles
-        .map((row) => {
-          const name = [row.make, row.model].filter(Boolean).join(" ") || "ТС";
-          const year = yearLabel(row);
-          return year === "на согласование" ? name : `${name}, год выпуска ${year}`;
-        })
-        .join("; "),
-    );
-  }
-  if (d.mileageMax) bits.push(`пробег до ${d.mileageMax} тыс. км`);
-  if (d.fuel) bits.push(`топливо: ${d.fuel}`);
-  if (d.engineVolume) bits.push(`объём двигателя ${d.engineVolume}`);
-  if (d.transmission) bits.push(`КПП: ${d.transmission}`);
-  if (d.color) bits.push(`цвет: ${d.color}`);
-  if (d.vehicleBudget) bits.push(`максимальная цена ТС ${d.vehicleBudget} ${d.vehicleBudgetCurrency || "BYN"}`);
-  if (d.marketplace) bits.push(`источники: ${d.marketplace}`);
-  if (!bits.length) {
-    return "Параметры подбора согласовываются в приложении № 1 и (или) в заявке Заказчика.";
-  }
-  return `На дату заключения договора Заказчик ориентирует Исполнителя на следующие параметры: ${bits.join("; ")}.`;
 }
 
 function annexVehicleKv(d) {
@@ -112,9 +78,12 @@ export function buildByContract(d) {
     },
     {
       type: "p",
-      text: "1.4. Результатом услуг является совершение действий пункта 1.2, а не передача Заказчику ТС определённого качества. Исполнитель не гарантирует наличие ТС с заданными параметрами в конкретный срок и не гарантирует отсутствие скрытых недостатков у выбранного продавца.",
+      text: "1.4. Конкретные параметры подбора (марка, модель, год, бюджет и иные требования) определяются приложением № 1 и (или) заявкой Заказчика. Изменение этих параметров не требует изменения текста настоящего договора и оформляется обновлённым приложением № 1 либо заявкой в мессенджере / по электронной почте.",
     },
-    { type: "p", text: `1.5. ${assignmentLine(d)}` },
+    {
+      type: "p",
+      text: "1.5. Исполнитель не гарантирует наличие на рынке ТС с параметрами приложения № 1 в конкретный срок и не гарантирует отсутствие скрытых недостатков у выбранного продавца. Результат услуг — выполнение по пункту 1.2, а не передача Заказчику конкретного автомобиля.",
+    },
 
     { type: "heading", text: "2. ПРАВА И ОБЯЗАННОСТИ СТОРОН" },
     { type: "p", text: "2.1. Исполнитель обязан:" },

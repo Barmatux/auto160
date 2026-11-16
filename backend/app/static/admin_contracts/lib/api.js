@@ -2,6 +2,33 @@
 
 const API_BASE = "/api/v1/admin/contracts";
 
+function getCookie(name) {
+  const prefix = `${name}=`;
+  const part = document.cookie.split("; ").find((row) => row.startsWith(prefix));
+  return part ? decodeURIComponent(part.slice(prefix.length)) : null;
+}
+
+function setAuthCookies(accessToken, refreshToken) {
+  document.cookie = `access_token=${accessToken}; path=/`;
+  document.cookie = `refresh_token=${refreshToken}; path=/`;
+}
+
+async function refreshAccessTokenIfNeeded() {
+  const refreshToken = getCookie("refresh_token");
+  if (!refreshToken) return false;
+  const response = await fetch("/api/v1/auth/refresh", {
+    method: "POST",
+    credentials: "same-origin",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ refresh_token: refreshToken }),
+  });
+  if (!response.ok) return false;
+  const data = await response.json();
+  if (!data.access_token || !data.refresh_token) return false;
+  setAuthCookies(data.access_token, data.refresh_token);
+  return true;
+}
+
 function translateError(message, status) {
   const text = String(message || "");
   if (status === 401 || status === 403 || /unauthorized|forbidden/i.test(text)) {
@@ -13,11 +40,15 @@ function translateError(message, status) {
   return text || "Не получилось выполнить запрос.";
 }
 
-async function apiFetch(path = "", { method = "GET", body } = {}) {
+async function apiFetch(path = "", { method = "GET", body, _retried = false } = {}) {
+  const headers = body ? { "Content-Type": "application/json" } : {};
+  const access = getCookie("access_token");
+  if (access) headers.Authorization = `Bearer ${access}`;
+
   const res = await fetch(`${API_BASE}${path}`, {
     method,
     credentials: "same-origin",
-    headers: body ? { "Content-Type": "application/json" } : undefined,
+    headers,
     body: body ? JSON.stringify(body) : undefined,
   });
   const raw = await res.text();
@@ -26,6 +57,12 @@ async function apiFetch(path = "", { method = "GET", body } = {}) {
     data = raw ? JSON.parse(raw) : null;
   } catch {
     data = raw;
+  }
+  if ((res.status === 401 || res.status === 403) && !_retried) {
+    const refreshed = await refreshAccessTokenIfNeeded();
+    if (refreshed) {
+      return apiFetch(path, { method, body, _retried: true });
+    }
   }
   if (!res.ok) {
     const msg =
