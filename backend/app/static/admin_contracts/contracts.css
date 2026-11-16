@@ -116,7 +116,7 @@ button {
 
 .contracts-chrome {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr);
   gap: 16px 20px;
   align-items: center;
   padding: 14px 18px;
@@ -192,31 +192,6 @@ button {
   border-color: transparent;
   background: var(--c-gradient);
   font-weight: 650;
-}
-
-.contracts-meta {
-  display: grid;
-  justify-items: end;
-  gap: 2px;
-  font-size: 11px;
-  color: var(--c-muted);
-  text-align: right;
-  min-width: 140px;
-}
-
-.contracts-meta b {
-  color: var(--c-heading);
-  font-size: 13px;
-  font-weight: 650;
-  line-height: 1.3;
-}
-
-.save-status,
-#user-label {
-  display: block;
-  line-height: 1.35;
-  word-break: break-all;
-  max-width: 220px;
 }
 
 .text-btn {
@@ -884,11 +859,6 @@ button {
   .contracts-chrome {
     grid-template-columns: 1fr;
     align-items: start;
-  }
-
-  .contracts-meta {
-    justify-items: start;
-    text-align: left;
   }
 
   .split {
