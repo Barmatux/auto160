@@ -1,5 +1,22 @@
 /* Contracts workspace — aligns with Auto160 theme-admin (dark + blue→green). */
 
+body.contracts-fullbleed .page {
+  max-width: none;
+  width: 100%;
+  margin: 0;
+  padding: 12px 0 24px;
+}
+
+body.contracts-fullbleed .admin-nav {
+  margin-left: 16px;
+  margin-right: 16px;
+}
+
+body.contracts-fullbleed .admin-contracts-import {
+  margin-left: 16px;
+  margin-right: 16px;
+}
+
 #admin-contracts-root {
   --c-bg: var(--bg, #12151c);
   --c-surface: var(--surface, #1a1f2a);
@@ -21,7 +38,7 @@
   --sheet-rule: #d3c6b0;
   --sheet-pine: #1a3c34;
 
-  margin: 0 0 28px;
+  margin: 0;
   min-height: calc(100vh - 140px);
   font-family: var(--c-ui);
   color: var(--c-text);
@@ -99,13 +116,15 @@ button {
 .app {
   display: block;
   min-height: 72vh;
-  border: 1px solid var(--c-border);
-  border-radius: 16px;
+  border: 0;
+  border-radius: 0;
   overflow: hidden;
   background:
     linear-gradient(180deg, rgba(58, 174, 240, 0.05), transparent 28%),
     var(--c-surface);
-  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
+  box-shadow: none;
+  border-top: 1px solid var(--c-border);
+  border-bottom: 1px solid var(--c-border);
 }
 
 .stage {
@@ -287,7 +306,7 @@ button {
 
 .split {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(420px, 1fr) minmax(480px, 1.05fr);
   min-height: 0;
   flex: 1;
 }
@@ -297,17 +316,17 @@ button {
 }
 
 .form-pane {
-  border-right: 0;
-  border-bottom: 1px solid var(--c-border);
-  overflow: visible;
-  max-height: none;
-  padding: 8px 0 28px;
+  border-right: 1px solid var(--c-border);
+  border-bottom: 0;
+  overflow: auto;
+  max-height: calc(100vh - 200px);
+  padding: 8px 0 48px;
   background: rgba(12, 15, 22, 0.35);
 }
 
 .preview-pane {
   overflow: auto;
-  max-height: none;
+  max-height: calc(100vh - 200px);
   padding: 24px;
   background:
     radial-gradient(ellipse 60% 40% at 50% 0%, rgba(58, 174, 240, 0.08), transparent 55%),
@@ -315,7 +334,7 @@ button {
 }
 
 .form {
-  padding: 8px 22px 0;
+  padding: 8px 20px 0;
   width: 100%;
   max-width: none;
 }
@@ -335,7 +354,7 @@ button {
 
 .form-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px 14px;
 }
 
@@ -864,8 +883,18 @@ button {
     align-items: start;
   }
 
-  .form-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .split {
+    grid-template-columns: 1fr;
+  }
+
+  .form-pane {
+    border-right: 0;
+    border-bottom: 1px solid var(--c-border);
+    max-height: none;
+  }
+
+  .preview-pane {
+    max-height: none;
   }
 
   .sheet {
