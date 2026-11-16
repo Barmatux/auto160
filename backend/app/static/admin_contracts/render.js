@@ -131,7 +131,7 @@ export function downloadWord(doc, filename) {
   .sheet-p { text-align: justify; margin: 0; color: #000; }
   .sheet-note { font-size: 10pt; font-style: italic; color: #000; }
   table { border-collapse: collapse; width: 100%; margin: 6pt 0 10pt; }
-  th, td { border: 1px solid #000; padding: 3pt 5pt; vertical-align: top; color: #000; }
+  th, td { border: 1px solid #000; padding: 3pt 5pt; vertical-align: top; color: #000; background: #fff; }
   th { background: #fff; text-align: left; font-weight: bold; }
   .signs { display: table; width: 100%; margin-top: 18pt; }
   .sign-col { display: table-cell; width: 50%; vertical-align: top; padding-right: 18pt; color: #000; }

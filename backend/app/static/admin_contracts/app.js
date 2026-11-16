@@ -308,6 +308,17 @@ async function downloadPdfPreview() {
   const clone = sheet.cloneNode(true);
   clone.style.cssText =
     "width:182mm;margin:0;padding:0;border:0;box-shadow:none;background:#fff;color:#000;min-height:0;";
+  const forceInk = document.createElement("style");
+  forceInk.textContent = `
+    .sheet, .sheet * { color: #000 !important; }
+    .sheet h1, .sheet h2, .sheet-title, .sheet-h { color: #000 !important; }
+    .sheet-kv th, .sheet-kv td, .sheet-table th, .sheet-table td {
+      background: #fff !important;
+      color: #000 !important;
+      border-color: #000 !important;
+    }
+  `;
+  wrap.appendChild(forceInk);
   wrap.appendChild(clone);
   document.body.appendChild(wrap);
 

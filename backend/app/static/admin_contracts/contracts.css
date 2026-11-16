@@ -468,6 +468,14 @@ button {
   display: none;
 }
 
+/* Beat body.theme-admin h1/h2 (--heading is light gray on dark UI). */
+body.theme-admin .sheet h1,
+body.theme-admin .sheet h2,
+.sheet h1,
+.sheet h2 {
+  color: #000 !important;
+}
+
 .sheet-title {
   text-align: center;
   font-family: "Times New Roman", Times, "Liberation Serif", serif;
@@ -476,7 +484,7 @@ button {
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: #000;
+  color: #000 !important;
 }
 
 .sheet-sub {
@@ -533,11 +541,15 @@ button {
   color: #000;
 }
 
+body.theme-admin .sheet .sheet-h,
 .sheet-h {
+  text-align: left;
   font-size: 12px;
   margin: 10px 0 2px;
   letter-spacing: 0.04em;
-  color: #000;
+  text-transform: none;
+  font-weight: 700;
+  color: #000 !important;
 }
 
 .sheet-h.center {
@@ -586,21 +598,17 @@ button {
 .sheet-kv td,
 .sheet-table th,
 .sheet-table td {
-  border: 1px solid var(--sheet-rule);
+  border: 1px solid #000;
   padding: 6px 8px;
   vertical-align: top;
+  background: #fff !important;
+  color: #000 !important;
 }
 
 .sheet-kv th {
   width: 34%;
   text-align: left;
-  background: #f3f3f3;
   font-weight: 600;
-  color: #000;
-}
-
-.sheet-kv td {
-  color: #000;
 }
 
 .sheet-invoice .sheet-table {
@@ -608,14 +616,8 @@ button {
 }
 
 .sheet-table th {
-  background: #f3f3f3;
   font-weight: 600;
   text-align: center;
-  color: #000;
-}
-
-.sheet-table td {
-  color: #000;
 }
 
 .sheet-table td:nth-child(2) {
