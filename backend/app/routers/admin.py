@@ -1091,7 +1091,7 @@ def admin_import_contracts_json(
 @router.post("/contracts/import-supabase", response_model=AdminContractImportResult)
 def admin_import_contracts_supabase(
     payload: AdminContractSupabaseImportRequest,
-    current_user: User = Depends(require_contracts_flexible),
+    current_user: User = Depends(require_admin_flexible),
     db: Session = Depends(get_db),
 ):
     try:
