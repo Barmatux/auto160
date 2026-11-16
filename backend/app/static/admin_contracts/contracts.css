@@ -287,7 +287,7 @@ button {
 
 .split {
   display: grid;
-  grid-template-columns: minmax(380px, 1fr) minmax(420px, 1.15fr);
+  grid-template-columns: 1fr;
   min-height: 0;
   flex: 1;
 }
@@ -297,16 +297,17 @@ button {
 }
 
 .form-pane {
-  border-right: 1px solid var(--c-border);
-  overflow: auto;
-  max-height: calc(100vh - 220px);
-  padding: 8px 0 48px;
+  border-right: 0;
+  border-bottom: 1px solid var(--c-border);
+  overflow: visible;
+  max-height: none;
+  padding: 8px 0 28px;
   background: rgba(12, 15, 22, 0.35);
 }
 
 .preview-pane {
   overflow: auto;
-  max-height: calc(100vh - 220px);
+  max-height: none;
   padding: 24px;
   background:
     radial-gradient(ellipse 60% 40% at 50% 0%, rgba(58, 174, 240, 0.08), transparent 55%),
@@ -315,6 +316,8 @@ button {
 
 .form {
   padding: 8px 22px 0;
+  width: 100%;
+  max-width: none;
 }
 
 .form-section {
@@ -332,8 +335,8 @@ button {
 
 .form-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px 12px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px 14px;
 }
 
 .field {
@@ -861,18 +864,8 @@ button {
     align-items: start;
   }
 
-  .split {
-    grid-template-columns: 1fr;
-  }
-
-  .form-pane {
-    border-right: 0;
-    border-bottom: 1px solid var(--c-border);
-  }
-
-  .form-pane,
-  .preview-pane {
-    max-height: none;
+  .form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .sheet {
