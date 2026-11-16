@@ -25,7 +25,7 @@ const titles = {
   },
   contract: {
     h: "Договор подбора",
-    p: "Заполните поля слева. Справа — договор, счёт и акт собираются из тех же данных.",
+    p: "Заполните поля — справа договор, счёт и акт собираются из тех же данных.",
   },
   invoice: {
     h: "Счёт на оплату услуг",
@@ -130,7 +130,7 @@ function paint() {
   document.getElementById("doc-actions").hidden = screen === "archive" || screen === "analysis";
   document.getElementById("btn-sample").hidden = screen === "archive" || screen === "analysis";
 
-  document.querySelectorAll(".rail nav button").forEach((btn) => {
+  document.querySelectorAll(".contracts-tabs button").forEach((btn) => {
     btn.classList.toggle("active", btn.dataset.tab === tab);
   });
 
@@ -224,7 +224,7 @@ document.getElementById("form-pane").addEventListener("change", (e) => {
   applyField(e.target);
 });
 
-document.querySelectorAll(".rail nav button").forEach((btn) => {
+document.querySelectorAll(".contracts-tabs button").forEach((btn) => {
   btn.addEventListener("click", async () => {
     tab = btn.dataset.tab;
     try {
