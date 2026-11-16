@@ -147,7 +147,7 @@ def _send_user_verification(request: Request, user: User) -> bool:
 
 @router.post("/register", response_model=RegisterResponse, status_code=status.HTTP_201_CREATED)
 def register(payload: RegisterRequest, request: Request, db: Session = Depends(get_db)):
-    if payload.role == UserRole.admin:
+    if payload.role in {UserRole.admin, UserRole.staff}:
         raise HTTPException(status_code=403, detail="Admin registration is not allowed")
 
     email_normalized = str(payload.email).strip().lower()
