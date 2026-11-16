@@ -28,9 +28,9 @@ _APPLE_TOUCH = _STATIC_DIR / "icons" / "apple-touch-icon.png"
 if not _APPLE_TOUCH.is_file():
     _APPLE_TOUCH = _STATIC_DIR / "apple-touch-icon.png"
 
-# Safari Favorites probe root apple-touch-icon with HEAD and need a cacheable PNG.
+# Safari often pins /favicon.ico for a week; keep icons fresh after redesigns.
 _ICON_CACHE_HEADERS = {
-    "Cache-Control": "public, max-age=604800",
+    "Cache-Control": "public, max-age=3600, must-revalidate",
 }
 
 
