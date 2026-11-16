@@ -269,88 +269,80 @@ document.body.addEventListener("input", (e) => {
   }
 });
 
-function printCleanPreview() {
-  const pane = document.querySelector(".preview-pane");
-  if (!pane) return;
-  const cssHref = [...document.querySelectorAll('link[rel="stylesheet"]')]
-    .map((el) => el.getAttribute("href") || "")
-    .find((href) => href.includes("/static/admin_contracts/contracts.css"))
-    || "/static/admin_contracts/contracts.css";
-  const iframe = document.createElement("iframe");
-  iframe.setAttribute("aria-hidden", "true");
-  Object.assign(iframe.style, {
-    position: "fixed",
-    right: "0",
-    bottom: "0",
-    width: "0",
-    height: "0",
-    border: "0",
-    opacity: "0",
-    pointerEvents: "none",
+function loadScriptOnce(src) {
+  return new Promise((resolve, reject) => {
+    const existing = document.querySelector(`script[data-src="${src}"]`);
+    if (existing) {
+      if (existing.dataset.loaded === "1") resolve();
+      else existing.addEventListener("load", () => resolve(), { once: true });
+      return;
+    }
+    const script = document.createElement("script");
+    script.src = src;
+    script.async = true;
+    script.dataset.src = src;
+    script.addEventListener("load", () => {
+      script.dataset.loaded = "1";
+      resolve();
+    }, { once: true });
+    script.addEventListener("error", () => reject(new Error("Не удалось загрузить модуль PDF")), { once: true });
+    document.head.appendChild(script);
   });
-  document.body.appendChild(iframe);
-  const doc = iframe.contentDocument;
-  doc.open();
-  doc.write(`<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8" />
-  <title></title>
-  <link rel="stylesheet" href="${cssHref}" />
-  <style>
-    @page {
-      size: A4;
-      margin: 22mm 16mm 22mm 16mm;
-      @top-left { content: none; }
-      @top-center { content: none; }
-      @top-right { content: none; }
-      @bottom-left { content: none; }
-      @bottom-center { content: none; }
-      @bottom-right { content: none; }
-    }
-    html, body {
-      margin: 0;
-      padding: 0;
-      background: #fff;
-      color: #000;
-    }
-    .preview-pane, .sheet {
-      margin: 0;
-      padding: 0;
-      border: 0;
-      box-shadow: none;
-      background: #fff;
-      max-height: none;
-      overflow: visible;
-    }
-    .sheet-annex { break-before: page; }
-  </style>
-</head>
-<body>${pane.innerHTML}</body>
-</html>`);
-  doc.close();
+}
 
-  let cleaned = false;
-  const cleanup = () => {
-    if (cleaned) return;
-    cleaned = true;
-    iframe.remove();
-  };
-  const runPrint = () => {
-    try {
-      iframe.contentWindow.focus();
-      iframe.contentWindow.print();
-    } finally {
-      setTimeout(cleanup, 1500);
-    }
-  };
-  // Wait for stylesheet so pagination matches screen preview.
-  const link = doc.querySelector('link[rel="stylesheet"]');
-  if (link) {
-    link.addEventListener("load", () => setTimeout(runPrint, 30), { once: true });
-    link.addEventListener("error", () => setTimeout(runPrint, 30), { once: true });
+async function downloadPdfPreview() {
+  const sheet = document.querySelector(".preview-pane .sheet");
+  if (!sheet) return;
+
+  const btn = document.getElementById("btn-print");
+  const previousLabel = btn?.textContent || "Скачать PDF";
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = "PDF…";
   }
-  setTimeout(runPrint, 400);
+
+  const wrap = document.createElement("div");
+  wrap.setAttribute("aria-hidden", "true");
+  wrap.style.cssText =
+    "position:fixed;left:-12000px;top:0;width:182mm;padding:0;margin:0;background:#fff;color:#000;pointer-events:none;";
+  const clone = sheet.cloneNode(true);
+  clone.style.cssText =
+    "width:182mm;margin:0;padding:0;border:0;box-shadow:none;background:#fff;color:#000;min-height:0;";
+  wrap.appendChild(clone);
+  document.body.appendChild(wrap);
+
+  try {
+    await loadScriptOnce("/static/admin_contracts/vendor/html2pdf.bundle.min.js?v=20261117-1");
+    if (typeof window.html2pdf !== "function") {
+      throw new Error("PDF-модуль не готов");
+    }
+    const kind = tab === "invoice" ? "invoice" : tab === "act" ? "act" : "contract";
+    const filename = wordName(kind).replace(/\.doc$/i, ".pdf");
+    // Build PDF in-memory — no browser print headers (date / URL).
+    await window
+      .html2pdf()
+      .set({
+        margin: [12, 12, 12, 12],
+        filename,
+        image: { type: "jpeg", quality: 0.98 },
+        html2canvas: {
+          scale: 2,
+          useCORS: true,
+          backgroundColor: "#ffffff",
+          logging: false,
+        },
+        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+        pagebreak: { mode: ["css", "legacy"], before: ".sheet-annex" },
+      })
+      .from(clone)
+      .save();
+  } finally {
+    wrap.remove();
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = previousLabel;
+    }
+  }
 }
 
 document.body.addEventListener("click", async (e) => {
@@ -408,7 +400,7 @@ document.body.addEventListener("click", async (e) => {
       scheduleSave();
       paint();
     } else if (action === "print") {
-      printCleanPreview();
+      await downloadPdfPreview();
     } else if (action === "word") {
       const kind = tab === "invoice" ? "invoice" : tab === "act" ? "act" : "contract";
       downloadWord(currentDocument(), wordName(kind));
