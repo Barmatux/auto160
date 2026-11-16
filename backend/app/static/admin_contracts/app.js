@@ -1,4 +1,4 @@
-import { applyPackageDefaults, createDefaultData, SAMPLE_CLIENT } from "./lib/defaults.js";
+import { applyPackageDefaults, createDefaultData, normalizeContractData, SAMPLE_CLIENT } from "./lib/defaults.js";
 import { buildContract, isByPackage } from "./lib/contract.js";
 import { buildByContract } from "./lib/contractBy.js";
 import { buildAct } from "./lib/act.js";
@@ -45,13 +45,14 @@ function loadLocal() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return createDefaultData();
-    return { ...createDefaultData(), ...JSON.parse(raw) };
+    return normalizeContractData({ ...createDefaultData(), ...JSON.parse(raw) });
   } catch {
     return createDefaultData();
   }
 }
 
 function saveLocal() {
+  data = normalizeContractData(data);
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
 
@@ -181,7 +182,7 @@ async function openRecord(id) {
   const row = await getContract(id);
   if (!row) throw new Error("Договор не найден.");
   recordId = row.id;
-  data = { ...createDefaultData(), ...(row.payload || {}) };
+  data = normalizeContractData({ ...createDefaultData(), ...(row.payload || {}) });
   formNeedsPaint = true;
   view = "editor";
   tab = "contract";
@@ -206,6 +207,19 @@ document.getElementById("form-pane").addEventListener("input", (e) => {
 });
 
 function applyField(target) {
+  if (target.dataset.vehicleField != null) {
+    const index = Number(target.dataset.vehicleIndex || 0);
+    const fieldName = target.dataset.vehicleField;
+    const vehicles = [...(normalizeContractData(data).vehicles || [])];
+    while (vehicles.length <= index) {
+      vehicles.push({ make: "", model: "", yearFrom: "", yearTo: "" });
+    }
+    vehicles[index] = { ...vehicles[index], [fieldName]: target.value };
+    data = normalizeContractData({ ...data, vehicles });
+    scheduleSave();
+    paint();
+    return;
+  }
   const name = target.name;
   if (!name) return;
   const value = target.type === "checkbox" ? target.checked : target.value;
@@ -215,6 +229,9 @@ function applyField(target) {
   } else {
     data = { ...data, [name]: value };
     if (name === "clientType") formNeedsPaint = true;
+    if (["vehicleMake", "vehicleModel", "vehicleYearFrom", "vehicleYearTo"].includes(name)) {
+      data = normalizeContractData(data);
+    }
   }
   scheduleSave();
   paint();
@@ -257,6 +274,26 @@ document.body.addEventListener("click", async (e) => {
   if (!btn) return;
   const action = btn.dataset.action;
   try {
+    if (action === "vehicle-add") {
+      const vehicles = [...(normalizeContractData(data).vehicles || [])];
+      vehicles.push({ make: "", model: "", yearFrom: "", yearTo: "" });
+      data = normalizeContractData({ ...data, vehicles });
+      formNeedsPaint = true;
+      scheduleSave();
+      paint();
+      return;
+    }
+    if (action === "vehicle-remove") {
+      const index = Number(btn.dataset.index || 0);
+      const vehicles = [...(normalizeContractData(data).vehicles || [])];
+      if (vehicles.length <= 1) return;
+      vehicles.splice(index, 1);
+      data = normalizeContractData({ ...data, vehicles });
+      formNeedsPaint = true;
+      scheduleSave();
+      paint();
+      return;
+    }
     if (action === "new") {
       await createNew();
     } else if (action === "open") {

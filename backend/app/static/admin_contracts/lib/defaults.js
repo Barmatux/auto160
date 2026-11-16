@@ -66,6 +66,7 @@ export function createDefaultData() {
     vehicleModel: "",
     vehicleYearFrom: "",
     vehicleYearTo: "",
+    vehicles: [{ make: "", model: "", yearFrom: "", yearTo: "" }],
     vehicleBudget: "",
     vehicleBudgetCurrency: "BYN",
     marketplace: "av.by, дилеры, автосалоны и частные объявления Республики Беларусь",
@@ -100,6 +101,34 @@ export function createDefaultData() {
     executorBankUnp: "101541947",
     executorOkpo: "37526626",
   });
+}
+
+/** Keep legacy make/model/year fields in sync; migrate old drafts into vehicles[]. */
+export function normalizeContractData(data) {
+  const next = { ...data };
+  if (Array.isArray(next.vehicles) && next.vehicles.length) {
+    next.vehicles = next.vehicles.map((row) => ({
+      make: row?.make || "",
+      model: row?.model || "",
+      yearFrom: row?.yearFrom || "",
+      yearTo: row?.yearTo || "",
+    }));
+  } else {
+    next.vehicles = [
+      {
+        make: next.vehicleMake || "",
+        model: next.vehicleModel || "",
+        yearFrom: next.vehicleYearFrom || "",
+        yearTo: next.vehicleYearTo || "",
+      },
+    ];
+  }
+  const first = next.vehicles[0] || { make: "", model: "", yearFrom: "", yearTo: "" };
+  next.vehicleMake = first.make;
+  next.vehicleModel = first.model;
+  next.vehicleYearFrom = first.yearFrom;
+  next.vehicleYearTo = first.yearTo;
+  return next;
 }
 
 export const SAMPLE_CLIENT = {

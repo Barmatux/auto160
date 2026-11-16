@@ -1,13 +1,35 @@
 import { dash, formatDateLong } from "./format.js";
 import { computeVat, moneyPhrase } from "./money.js";
 import { buildPreamble, buildSignatures, vatClause } from "./contract.js";
+import { normalizeContractData } from "./defaults.js";
+
+function vehicleRows(d) {
+  const data = normalizeContractData(d);
+  return (data.vehicles || []).filter(
+    (row) => row.make || row.model || row.yearFrom || row.yearTo,
+  );
+}
+
+function yearLabel(row) {
+  if (!row.yearFrom && !row.yearTo) return "на согласование";
+  if (row.yearFrom && row.yearTo && row.yearFrom !== row.yearTo) {
+    return `${row.yearFrom} – ${row.yearTo}`;
+  }
+  return String(row.yearFrom || row.yearTo);
+}
 
 function assignmentLine(d) {
   const bits = [];
-  if (d.vehicleMake || d.vehicleModel) bits.push([d.vehicleMake, d.vehicleModel].filter(Boolean).join(" "));
-  if (d.vehicleYearFrom || d.vehicleYearTo) {
+  const vehicles = vehicleRows(d);
+  if (vehicles.length) {
     bits.push(
-      `год выпуска ${d.vehicleYearFrom || "___"}${d.vehicleYearTo && d.vehicleYearTo !== d.vehicleYearFrom ? `–${d.vehicleYearTo}` : ""}`,
+      vehicles
+        .map((row) => {
+          const name = [row.make, row.model].filter(Boolean).join(" ") || "ТС";
+          const year = yearLabel(row);
+          return year === "на согласование" ? name : `${name}, год выпуска ${year}`;
+        })
+        .join("; "),
     );
   }
   if (d.mileageMax) bits.push(`пробег до ${d.mileageMax} тыс. км`);
@@ -21,6 +43,33 @@ function assignmentLine(d) {
     return "Параметры подбора согласовываются в приложении № 1 и (или) в заявке Заказчика.";
   }
   return `На дату заключения договора Заказчик ориентирует Исполнителя на следующие параметры: ${bits.join("; ")}.`;
+}
+
+function annexVehicleKv(d) {
+  const data = normalizeContractData(d);
+  const rows = [];
+  const list = data.vehicles?.length ? data.vehicles : [{ make: "", model: "", yearFrom: "", yearTo: "" }];
+  list.forEach((row, index) => {
+    const label = list.length > 1 ? `Марка / модель (${index + 1})` : "Марка / модель";
+    const name = [row.make, row.model].filter(Boolean).join(" ");
+    rows.push([label, dash(name, "на согласование")]);
+    rows.push([list.length > 1 ? `Год выпуска (${index + 1})` : "Год выпуска", yearLabel(row)]);
+  });
+  rows.push(
+    ["Пробег, не более", d.mileageMax ? `${d.mileageMax} тыс. км` : "на согласование"],
+    ["Топливо", dash(d.fuel, "на согласование")],
+    ["Объём двигателя", dash(d.engineVolume, "на согласование")],
+    ["Коробка передач", dash(d.transmission, "на согласование")],
+    ["Цвет", dash(d.color, "на согласование")],
+    [
+      "Максимальная цена ТС",
+      d.vehicleBudget ? `${d.vehicleBudget} ${d.vehicleBudgetCurrency || "BYN"}` : "на согласование",
+    ],
+    ["Источники поиска", dash(d.marketplace, "av.by, дилеры, частные объявления РБ")],
+    ["VIN / конкретный лот", dash(d.vehicleVin, "не указан")],
+    ["Иные пожелания", dash(d.vehicleNotes, "не указаны")],
+  );
+  return rows;
 }
 
 export function buildByContract(d) {
@@ -169,7 +218,7 @@ export function buildByContract(d) {
     { type: "heading", text: "5. СЧЁТ, АКТ И ПРИЁМКА" },
     {
       type: "p",
-      text: "5.1. Счёт на оплату услуг и акт сдачи-приёмки являются документами, связанными с настоящим договором. Акт — первичный учётный документ и содержит сведения пункта 2 статьи 10 Закона Республики Беларусь от 12 июля 2013 г. № 57-З «О бухгалтерском учёте и отчётности».",
+      text: "5.1. Счёт на оплату услуг и акт сдачи-приёмки являются документами, связанными с настоящим договором.",
     },
     {
       type: "p",
@@ -199,7 +248,7 @@ export function buildByContract(d) {
     },
     {
       type: "p",
-      text: `6.5. Если Заказчик в текстовом сообщении согласился на покупку конкретного предложенного ТС, а затем отказался без вины продавца и Исполнителя, Исполнитель вправе удержать стоимость услуг полностью. До такого согласия Заказчик может отказаться от договора с оплатой фактически оказанных услуг и подтверждённых расходов; остаток предоплаты возвращается в течение ${dash(d.refundDays, "10")} рабочих дней (ст. 735 ГК Республики Беларусь).`,
+      text: `6.5. Если Заказчик в текстовом сообщении согласился на покупку конкретного предложенного ТС, а затем отказался без вины продавца и Исполнителя, Исполнитель вправе удержать стоимость услуг полностью. До такого согласия Заказчик может отказаться от договора с оплатой фактически оказанных услуг и подтверждённых расходов; остаток предоплаты возвращается в течение ${dash(d.refundDays, "10")} рабочих дней.`,
     },
 
     { type: "heading", text: "7. ПЕРСОНАЛЬНЫЕ ДАННЫЕ" },
@@ -230,7 +279,7 @@ export function buildByContract(d) {
     },
     {
       type: "p",
-      text: "9.2. Претензионный порядок обязателен. Срок ответа — 20 календарных дней. Если Заказчик — потребитель, споры рассматриваются по законодательству о защите прав потребителей. В остальных случаях — по процессуальным правилам Республики Беларусь.",
+      text: "9.2. Перед обращением в суд сторона направляет другой стороне письменную претензию (в том числе по электронной почте или в мессенджере). Срок ответа на претензию — 20 календарных дней с даты её получения. Споры, не урегулированные в претензионном порядке, рассматриваются судом по законодательству Республики Беларусь; если Заказчик является потребителем — также с учётом законодательства о защите прав потребителей.",
     },
 
     { type: "heading", text: "10. ЗАКЛЮЧИТЕЛЬНЫЕ ПОЛОЖЕНИЯ" },
@@ -252,28 +301,7 @@ export function buildByContract(d) {
     { type: "title", text: "ЗАДАНИЕ НА ПОДБОР ТРАНСПОРТНОГО СРЕДСТВА" },
     {
       type: "kv",
-      rows: [
-        ["Марка", dash(d.vehicleMake, "на согласование")],
-        ["Модель", dash(d.vehicleModel, "на согласование")],
-        [
-          "Год выпуска",
-          d.vehicleYearFrom || d.vehicleYearTo
-            ? `${d.vehicleYearFrom || "___"} – ${d.vehicleYearTo || "___"}`
-            : "на согласование",
-        ],
-        ["Пробег, не более", d.mileageMax ? `${d.mileageMax} тыс. км` : "на согласование"],
-        ["Топливо", dash(d.fuel, "на согласование")],
-        ["Объём двигателя", dash(d.engineVolume, "на согласование")],
-        ["Коробка передач", dash(d.transmission, "на согласование")],
-        ["Цвет", dash(d.color, "на согласование")],
-        [
-          "Максимальная цена ТС",
-          d.vehicleBudget ? `${d.vehicleBudget} ${d.vehicleBudgetCurrency || "BYN"}` : "на согласование",
-        ],
-        ["Источники поиска", dash(d.marketplace, "av.by, дилеры, частные объявления РБ")],
-        ["VIN / конкретный лот", dash(d.vehicleVin, "не указан")],
-        ["Иные пожелания", dash(d.vehicleNotes, "не указаны")],
-      ],
+      rows: annexVehicleKv(d),
     },
     {
       type: "p",
@@ -283,7 +311,7 @@ export function buildByContract(d) {
 
   return {
     kind: "contract",
-    kicker: d.executorShort,
+    kicker: "",
     title: `ДОГОВОР № ${dash(d.contractNumber)}`,
     subtitle: [
       "возмездного оказания информационно-консультационных услуг",

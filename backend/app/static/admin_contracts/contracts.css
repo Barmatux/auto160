@@ -437,39 +437,80 @@ button {
   min-height: 297mm;
   margin: 0 auto 32px;
   background: var(--sheet-paper);
-  color: var(--sheet-ink);
-  padding: 18mm 16mm 16mm;
-  font-family: var(--c-serif);
+  color: #000;
+  padding: 25mm 18mm 28mm;
+  font-family: "Times New Roman", Times, var(--c-serif);
   font-size: 12px;
-  line-height: 1.45;
+  line-height: 1.35;
   border: 1px solid rgba(211, 198, 176, 0.55);
   border-radius: 2px;
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+  position: relative;
 }
 
 .sheet-kicker {
   text-align: center;
-  color: var(--sheet-pine);
+  color: #000;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   font-size: 10px;
-  font-family: var(--c-ui);
+  font-family: "Times New Roman", Times, serif;
   font-weight: 600;
+}
+
+.sheet-kicker:empty {
+  display: none;
 }
 
 .sheet-title {
   text-align: center;
-  font-family: var(--c-display);
-  font-size: 28px;
-  margin: 10px 0 6px;
+  font-family: "Times New Roman", Times, "Liberation Serif", serif;
+  font-size: 16px;
+  margin: 6px 0 4px;
   font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #000;
 }
 
 .sheet-sub {
   text-align: center;
   margin: 0;
   font-style: italic;
-  font-size: 13px;
+  font-size: 12px;
+  color: #000;
+}
+
+.vehicle-row {
+  grid-column: 1 / -1;
+  border: 1px solid var(--c-border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: rgba(0, 0, 0, 0.16);
+}
+
+.vehicle-row-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: var(--c-muted);
+}
+
+.vehicle-add-wrap {
+  margin-top: 4px;
+}
+
+.vehicle-add-wrap .ghost,
+.vehicle-remove {
+  border: 1px solid var(--c-border);
+  background: transparent;
+  color: var(--c-text);
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 12px;
 }
 
 .sheet-letterhead {
@@ -481,14 +522,16 @@ button {
 .sheet-meta {
   display: flex;
   justify-content: space-between;
-  margin: 22px 0 18px;
-  font-size: 13px;
+  margin: 14px 0 12px;
+  font-size: 12px;
+  color: #000;
 }
 
 .sheet-h {
-  font-size: 13px;
-  margin: 18px 0 8px;
+  font-size: 12px;
+  margin: 10px 0 2px;
   letter-spacing: 0.04em;
+  color: #000;
 }
 
 .sheet-h.center {
@@ -496,8 +539,9 @@ button {
 }
 
 .sheet-p {
-  margin: 0 0 8px;
+  margin: 0;
   text-align: justify;
+  color: #000;
 }
 
 .sheet-p.preamble {
@@ -505,10 +549,19 @@ button {
 }
 
 .sheet-note {
-  margin: 12px 0 0;
+  margin: 8px 0 0;
   font-size: 11px;
-  color: var(--sheet-muted);
+  color: #000;
   font-style: italic;
+}
+
+.sheet-letterhead,
+.sheet-letterhead div,
+.sign-col,
+.sign-title,
+.sign-line,
+.sign-role {
+  color: #000;
 }
 
 .sheet-space {
@@ -535,8 +588,13 @@ button {
 .sheet-kv th {
   width: 34%;
   text-align: left;
-  background: #efe8dc;
+  background: #f3f3f3;
   font-weight: 600;
+  color: #000;
+}
+
+.sheet-kv td {
+  color: #000;
 }
 
 .sheet-invoice .sheet-table {
@@ -544,9 +602,14 @@ button {
 }
 
 .sheet-table th {
-  background: #efe8dc;
+  background: #f3f3f3;
   font-weight: 600;
   text-align: center;
+  color: #000;
+}
+
+.sheet-table td {
+  color: #000;
 }
 
 .sheet-table td:nth-child(2) {
@@ -583,19 +646,14 @@ button {
 }
 
 .sign-role {
-  color: var(--sheet-muted);
+  color: #000;
   font-style: italic;
   font-size: 11px;
 }
 
 .sign-line {
   margin-top: 6px;
-}
-
-.sign-stamp {
-  margin-top: 8px;
-  color: var(--sheet-muted);
-  font-size: 11px;
+  color: #000;
 }
 
 .analysis {
@@ -924,7 +982,7 @@ button {
 
 @page {
   size: A4;
-  margin: 0;
+  margin: 22mm 16mm 22mm 16mm;
 }
 
 @page {
@@ -941,7 +999,10 @@ button {
     content: none;
   }
   @bottom-center {
-    content: none;
+    content: counter(page);
+    font-family: "Times New Roman", Times, serif;
+    font-size: 10pt;
+    color: #000;
   }
   @bottom-right {
     content: none;
@@ -952,6 +1013,7 @@ button {
   body,
   #admin-contracts-root {
     background: #fff;
+    color: #000;
   }
   .site-header,
   .site-chrome,
@@ -983,8 +1045,9 @@ button {
     margin: 0;
     width: auto;
     min-height: 0;
-    padding: 18mm 16mm 16mm;
+    padding: 0;
     box-shadow: none;
+    color: #000;
   }
   .sheet-annex {
     break-before: page;

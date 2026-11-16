@@ -2,8 +2,48 @@ import { FINDINGS, FINDINGS_BY, KEEP_LIST } from "./lib/recommendations.js";
 import { escapeHtml } from "./render.js";
 import { formatDateTime } from "./lib/format.js";
 import { SCHEMA_SQL } from "./lib/api.js";
+import { normalizeContractData } from "./lib/defaults.js";
 
 const LEVELS = { critical: "Критично", important: "Важно", advice: "Имеет смысл" };
+
+function vehicleAssignmentFields(data) {
+  const normalized = normalizeContractData(data);
+  const rows = normalized.vehicles || [];
+  const blocks = rows
+    .map((row, index) => {
+      const remove =
+        rows.length > 1
+          ? `<button type="button" class="ghost vehicle-remove" data-action="vehicle-remove" data-index="${index}">Удалить</button>`
+          : "";
+      return `
+        <div class="vehicle-row wide" data-vehicle-index="${index}">
+          <div class="vehicle-row-head">
+            <span>Вариант ${index + 1}</span>
+            ${remove}
+          </div>
+          <div class="form-grid">
+            <label class="field"><span class="field-label">Марка</span>
+              <input data-vehicle-index="${index}" data-vehicle-field="make" type="text" value="${escapeHtml(row.make)}" placeholder="Volkswagen" />
+            </label>
+            <label class="field"><span class="field-label">Модель</span>
+              <input data-vehicle-index="${index}" data-vehicle-field="model" type="text" value="${escapeHtml(row.model)}" placeholder="Polo" />
+            </label>
+            <label class="field"><span class="field-label">Год от</span>
+              <input data-vehicle-index="${index}" data-vehicle-field="yearFrom" type="text" value="${escapeHtml(row.yearFrom)}" placeholder="2016" />
+            </label>
+            <label class="field"><span class="field-label">Год до</span>
+              <input data-vehicle-index="${index}" data-vehicle-field="yearTo" type="text" value="${escapeHtml(row.yearTo)}" placeholder="2020" />
+            </label>
+          </div>
+        </div>`;
+    })
+    .join("");
+  return `
+    ${blocks}
+    <div class="wide vehicle-add-wrap">
+      <button type="button" class="ghost" data-action="vehicle-add">+ Добавить марку / модель</button>
+    </div>`;
+}
 
 function field(label, name, data, extra = {}) {
   const value = data[name] ?? "";
@@ -57,10 +97,7 @@ export function renderForm(data) {
   const by = (data.packageType || "by") !== "eu";
   const assignment = by
     ? [
-        field("Марка", "vehicleMake", data, { placeholder: "Volkswagen" }),
-        field("Модель", "vehicleModel", data, { placeholder: "Polo" }),
-        field("Год от", "vehicleYearFrom", data, { placeholder: "2016" }),
-        field("Год до", "vehicleYearTo", data, { placeholder: "2020" }),
+        vehicleAssignmentFields(data),
         field("Пробег до, тыс. км", "mileageMax", data, { placeholder: "150" }),
         field("Топливо", "fuel", data, { placeholder: "бензин" }),
         field("Объём двигателя", "engineVolume", data, { placeholder: "1.6" }),
@@ -71,7 +108,7 @@ export function renderForm(data) {
           type: "select",
           options: ["BYN", "USD", "EUR"].map((c) => [c, c]),
         }),
-        field("VIN / конкретный лот", "vehicleVin", data, { placeholder: "если уже выбран" }),
+        field("VIN / конкретный лот", "vehicleVin", data, { placeholder: "если уже указан" }),
         field("Где ищем", "marketplace", data, { wide: true }),
         field("Иные пожелания", "vehicleNotes", data, {
           wide: true,
