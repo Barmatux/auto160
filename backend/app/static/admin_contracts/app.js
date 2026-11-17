@@ -290,40 +290,6 @@ function loadScriptOnce(src) {
   });
 }
 
-function mmToCssPx(mm) {
-  return (mm * 96) / 25.4;
-}
-
-/** Insert legacy html2pdf page-breaks between block children so lines are never sliced. */
-function insertContractPageBreaks(root, pageContentPx) {
-  const nodes = [...root.childNodes].filter(
-    (n) => n.nodeType === 1 && !n.classList?.contains("html2pdf__page-break"),
-  );
-  let used = 0;
-  for (const el of nodes) {
-    if (el.classList.contains("sheet-annex")) {
-      if (used > 0) {
-        const br = document.createElement("div");
-        br.className = "html2pdf__page-break";
-        root.insertBefore(br, el);
-      }
-      used = el.offsetHeight || 0;
-      // Also paginate inside annex (heading + table + signs).
-      insertContractPageBreaks(el, pageContentPx);
-      continue;
-    }
-    const h = el.offsetHeight || 0;
-    if (used > 0 && used + h > pageContentPx - 2) {
-      const br = document.createElement("div");
-      br.className = "html2pdf__page-break";
-      root.insertBefore(br, el);
-      used = h;
-    } else {
-      used += h;
-    }
-  }
-}
-
 async function downloadPdfPreview() {
   const sheet = document.querySelector(".preview-pane .sheet");
   if (!sheet) return;
@@ -335,16 +301,15 @@ async function downloadPdfPreview() {
     btn.textContent = "PDF…";
   }
 
-  const margin = [14, 14, 16, 14]; // top, left, bottom, right (mm)
-  const pageContentPx = mmToCssPx(297 - margin[0] - margin[2]);
+  const margin = [16, 16, 16, 16]; // mm — even margins reduce canvas slice drift
 
   const wrap = document.createElement("div");
   wrap.setAttribute("aria-hidden", "true");
   wrap.style.cssText =
-    "position:fixed;left:-12000px;top:0;width:182mm;padding:0;margin:0;background:#fff;color:#000;pointer-events:none;";
+    "position:fixed;left:-12000px;top:0;width:178mm;padding:0;margin:0;background:#fff;color:#000;pointer-events:none;";
   const clone = sheet.cloneNode(true);
   clone.style.cssText =
-    "width:182mm;margin:0;padding:0;border:0;box-shadow:none;background:#fff;color:#000;min-height:0;";
+    "width:178mm;margin:0;padding:0;border:0;box-shadow:none;background:#fff;color:#000;min-height:0;";
   const forceInk = document.createElement("style");
   forceInk.textContent = `
     .sheet, .sheet * { color: #000 !important; }
@@ -354,26 +319,22 @@ async function downloadPdfPreview() {
       color: #000 !important;
       border-color: #000 !important;
     }
-    .sheet-title, .sheet-h, .sheet-p, .sheet-note, .sheet-meta, .sheet-letterhead,
-    .sheet-kv, .sheet-kv tr, .sheet-table, .sheet-table tr, .signs, .sign-col {
+    .sheet-keep, .signs, .sheet-kv, .sheet-kv tr, .sheet-table tr {
       break-inside: avoid !important;
       page-break-inside: avoid !important;
     }
-    .html2pdf__page-break {
-      display: block;
-      height: 0;
-      overflow: hidden;
-      page-break-after: always;
-      break-after: page;
+    .sheet-h {
+      page-break-after: avoid !important;
+      break-after: avoid-page !important;
+    }
+    .sheet-annex {
+      break-before: page !important;
+      page-break-before: always !important;
     }
   `;
   wrap.appendChild(forceInk);
   wrap.appendChild(clone);
   document.body.appendChild(wrap);
-
-  // Layout must be live before measuring heights for manual breaks.
-  void clone.offsetHeight;
-  insertContractPageBreaks(clone, pageContentPx);
 
   try {
     await loadScriptOnce("/static/admin_contracts/vendor/html2pdf.bundle.min.js?v=20261117-1");
@@ -382,7 +343,7 @@ async function downloadPdfPreview() {
     }
     const kind = tab === "invoice" ? "invoice" : tab === "act" ? "act" : "contract";
     const filename = wordName(kind).replace(/\.doc$/i, ".pdf");
-    // Build PDF in-memory — no browser print headers (date / URL).
+    // No manual page-break spacers — they created empty "holes". Keep heading+next via .sheet-keep.
     await window
       .html2pdf()
       .set({
@@ -398,8 +359,11 @@ async function downloadPdfPreview() {
           scrollY: 0,
         },
         jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-        // Manual .html2pdf__page-break markers + legacy mode: no mid-line canvas cuts.
-        pagebreak: { mode: ["legacy", "css"] },
+        pagebreak: {
+          mode: ["avoid-all", "css"],
+          before: [".sheet-annex"],
+          avoid: [".sheet-keep", ".signs", ".sheet-kv", ".sheet-kv tr", ".sheet-table tr", ".sheet-p"],
+        },
       })
       .from(clone)
       .save();

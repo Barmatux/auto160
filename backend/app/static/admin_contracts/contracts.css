@@ -550,30 +550,31 @@ body.theme-admin .sheet .sheet-h,
   text-transform: none;
   font-weight: 700;
   color: #000 !important;
+  page-break-after: avoid;
+  break-after: avoid-page;
 }
 
 .sheet-h.center {
   text-align: center;
 }
 
-.sheet-p {
-  margin: 0;
-  text-align: justify;
-  color: #000;
+.sheet-keep {
   break-inside: avoid;
   page-break-inside: avoid;
 }
 
-.sheet-title,
-.sheet-h,
-.sheet-note,
-.sheet-meta,
-.sheet-letterhead,
+.sheet-p {
+  margin: 0;
+  text-align: justify;
+  color: #000;
+  orphans: 3;
+  widows: 3;
+}
+
 .sheet-kv,
 .sheet-kv tr,
 .sheet-table tr,
-.signs,
-.sign-col {
+.signs {
   break-inside: avoid;
   page-break-inside: avoid;
 }

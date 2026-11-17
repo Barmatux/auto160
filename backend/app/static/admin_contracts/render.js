@@ -57,9 +57,54 @@ function preambleHtml(doc) {
   return `<div class="sheet-letterhead">${lines.map((line) => `<div>${escapeHtml(line)}</div>`).join("")}</div>`;
 }
 
+/** Keep section heading with the next block so it never sits alone at page bottom. */
+function blocksHtml(blocks) {
+  const out = [];
+  let i = 0;
+  while (i < blocks.length) {
+    const block = blocks[i];
+    if (block.type === "heading") {
+      const chunk = [blockHtml(block)];
+      i += 1;
+      if (i < blocks.length && blocks[i].type !== "heading") {
+        chunk.push(blockHtml(blocks[i]));
+        i += 1;
+      }
+      out.push(`<div class="sheet-keep">${chunk.join("")}</div>`);
+      continue;
+    }
+    if (block.type === "title") {
+      const chunk = [blockHtml(block)];
+      i += 1;
+      if (i < blocks.length && blocks[i].type !== "heading" && blocks[i].type !== "title") {
+        chunk.push(blockHtml(blocks[i]));
+        i += 1;
+      }
+      out.push(`<div class="sheet-keep">${chunk.join("")}</div>`);
+      continue;
+    }
+    out.push(blockHtml(block));
+    i += 1;
+  }
+  return out.join("");
+}
+
 export function renderSheet(doc) {
+  const blocks = [...(doc.blocks || [])];
+  const signs = signsHtml(doc.signatures);
+  const last = blocks[blocks.length - 1];
+  const lastIsRequisites =
+    last?.type === "heading" && /РЕКВИЗИТЫ/i.test(String(last.text || ""));
+  let body;
+  if (lastIsRequisites) {
+    const heading = blocks.pop();
+    body = `${blocksHtml(blocks)}<div class="sheet-keep">${blockHtml(heading)}${signs}</div>`;
+  } else {
+    body = `${blocksHtml(blocks)}${signs}`;
+  }
+  const annexBlocks = [...(doc.annex1 || [])];
   const annex = doc.annex1
-    ? `<div class="sheet-annex">${doc.annex1.map(blockHtml).join("")}${signsHtml(doc.signatures)}</div>`
+    ? `<div class="sheet-annex">${blocksHtml(annexBlocks)}<div class="sheet-keep">${signsHtml(doc.signatures)}</div></div>`
     : "";
   const kicker = doc.kicker
     ? `<div class="sheet-kicker">${escapeHtml(doc.kicker)}</div>`
@@ -71,8 +116,7 @@ export function renderSheet(doc) {
       ${doc.subtitle.map((line) => `<p class="sheet-sub">${escapeHtml(line)}</p>`).join("")}
       <div class="sheet-meta"><span>${escapeHtml(doc.meta.city)}</span><span>${escapeHtml(doc.meta.date)}</span></div>
       ${preambleHtml(doc)}
-      ${doc.blocks.map(blockHtml).join("")}
-      ${signsHtml(doc.signatures)}
+      ${body}
       ${annex}
     </article>`;
 }
@@ -126,14 +170,31 @@ export function downloadWord(doc, filename) {
   }
   .sheet-sub { text-align: center; font-style: italic; margin: 0; color: #000; }
   .sheet-meta { display: flex; justify-content: space-between; margin: 12pt 0; color: #000; }
-  .sheet-h { font-size: 12pt; margin: 10pt 0 4pt; color: #000; }
+  .sheet-h {
+    font-size: 12pt;
+    margin: 10pt 0 4pt;
+    color: #000;
+    page-break-after: avoid;
+    break-after: avoid-page;
+  }
   .sheet-h.center { text-align: center; }
-  .sheet-p { text-align: justify; margin: 0; color: #000; }
+  .sheet-keep {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  .sheet-p {
+    text-align: justify;
+    margin: 0;
+    color: #000;
+    orphans: 3;
+    widows: 3;
+  }
   .sheet-note { font-size: 10pt; font-style: italic; color: #000; }
-  table { border-collapse: collapse; width: 100%; margin: 6pt 0 10pt; }
+  table { border-collapse: collapse; width: 100%; margin: 6pt 0 10pt; page-break-inside: avoid; }
+  tr { page-break-inside: avoid; }
   th, td { border: 1px solid #000; padding: 3pt 5pt; vertical-align: top; color: #000; background: #fff; }
   th { background: #fff; text-align: left; font-weight: bold; }
-  .signs { display: table; width: 100%; margin-top: 18pt; }
+  .signs { display: table; width: 100%; margin-top: 18pt; page-break-inside: avoid; }
   .sign-col { display: table-cell; width: 50%; vertical-align: top; padding-right: 18pt; color: #000; }
   .sign-title { font-weight: bold; margin-bottom: 8pt; }
   .sign-role { color: #000; font-style: italic; }
