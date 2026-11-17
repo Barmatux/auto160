@@ -205,8 +205,8 @@ export function downloadWord(doc, filename) {
 <body>
 <div style="mso-element:header" id="h1"><p class="MsoHeader">&nbsp;</p></div>
 <div style="mso-element:footer" id="f1">
-  <p class="MsoFooter">
-    <!--[if supportFields]><span style="mso-element:field-begin"></span> PAGE <span style="mso-element:field-separator"></span><span style="mso-element:field-end"></span><![endif]-->
+  <p class="MsoFooter" style="text-align:center">
+    <!--[if supportFields]><span style="mso-element:field-begin"></span> PAGE <span style="mso-element:field-separator"></span><![endif]-->1<!--[if supportFields]><span style="mso-element:field-end"></span><![endif]-->
   </p>
 </div>
 <div class="WordSection1">${inner}</div>

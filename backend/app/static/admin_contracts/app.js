@@ -344,7 +344,7 @@ async function downloadPdfPreview() {
     const kind = tab === "invoice" ? "invoice" : tab === "act" ? "act" : "contract";
     const filename = wordName(kind).replace(/\.doc$/i, ".pdf");
     // No manual page-break spacers — they created empty "holes". Keep heading+next via .sheet-keep.
-    await window
+    const pdf = await window
       .html2pdf()
       .set({
         margin,
@@ -366,7 +366,19 @@ async function downloadPdfPreview() {
         },
       })
       .from(clone)
-      .save();
+      .toPdf()
+      .get("pdf");
+    const total = pdf.internal.getNumberOfPages();
+    for (let i = 1; i <= total; i += 1) {
+      pdf.setPage(i);
+      pdf.setFont("times", "normal");
+      pdf.setFontSize(10);
+      pdf.setTextColor(0, 0, 0);
+      const w = pdf.internal.pageSize.getWidth();
+      const h = pdf.internal.pageSize.getHeight();
+      pdf.text(String(i), w / 2, h - 8, { align: "center" });
+    }
+    pdf.save(filename);
   } finally {
     wrap.remove();
     if (btn) {
