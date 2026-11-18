@@ -447,6 +447,36 @@ async function waitForImages(root) {
   );
 }
 
+/** Paint a (possibly tall) canvas onto A4 pages by shifting the image up each page. */
+function addCanvasPages(pdf, canvas) {
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const pageHeight = pdf.internal.pageSize.getHeight();
+  const marginX = 10;
+  const marginTop = 10;
+  const marginBottom = 14;
+  const contentWidth = pageWidth - marginX * 2;
+  const contentHeight = pageHeight - marginTop - marginBottom;
+  const imgHeight = (canvas.height * contentWidth) / canvas.width;
+  const imgData = canvas.toDataURL("image/jpeg", 0.98);
+  const startOnNewPage = pdf.internal.getNumberOfPages() > 0;
+
+  let heightLeft = imgHeight;
+  let y = marginTop;
+  let slice = 0;
+  while (heightLeft > 0.8) {
+    if (slice === 0) {
+      if (startOnNewPage || pdf.internal.getNumberOfPages() === 0) pdf.addPage();
+    } else {
+      pdf.addPage();
+    }
+    pdf.addImage(imgData, "JPEG", marginX, y, contentWidth, imgHeight);
+    heightLeft -= contentHeight;
+    y -= contentHeight;
+    slice += 1;
+    if (slice > 40) break;
+  }
+}
+
 async function downloadPdfDocs(kind) {
   const docs = resolveExportDocs(kind).filter(
     (doc) =>
@@ -466,12 +496,11 @@ async function downloadPdfDocs(kind) {
     btn.textContent = "PDF…";
   }
 
-  const margin = [12, 12, 14, 12];
+  // Do NOT use opacity:0 — html2canvas then captures a blank white page.
   const wrap = document.createElement("div");
   wrap.setAttribute("aria-hidden", "true");
-  // Keep in viewport (opacity 0): off-screen -12000px often yields a blank white PDF in html2canvas.
   wrap.style.cssText =
-    "position:fixed;left:0;top:0;width:190mm;padding:0;margin:0;background:#fff;color:#000;opacity:0;pointer-events:none;z-index:-1;";
+    "position:fixed;left:-10000px;top:0;width:800px;padding:24px;margin:0;background:#fff;color:#000;opacity:1;pointer-events:none;";
   wrap.innerHTML = `
     <style>
       .sheet, .sheet * { color: #000 !important; box-sizing: border-box; }
@@ -479,17 +508,18 @@ async function downloadPdfDocs(kind) {
       .sheet-kv th, .sheet-kv td, .sheet-table th, .sheet-table td {
         background: #fff !important; color: #000 !important; border: 1px solid #000 !important;
       }
-      .sheet-annex {
-        break-before: page; page-break-before: always; margin-top: 8mm;
-      }
       .sheet {
-        width: 186mm; margin: 0 0 8mm; padding: 0; border: 0; box-shadow: none;
+        width: 760px; margin: 0 0 32px; padding: 0; border: 0; box-shadow: none;
         background: #fff; color: #000; min-height: 0 !important;
+        page-break-before: auto !important; break-before: auto !important;
       }
-      .sheet-break { break-before: page; page-break-before: always; }
-      .sheet-invoice-logo { width: 110px; height: auto; }
-      .sheet-invoice-head { width: 100%; border: 0 !important; }
-      .sheet-invoice-head td { border: 0 !important; }
+      .sheet-break { page-break-before: auto !important; break-before: auto !important; }
+      .sheet-annex, .sheet-annex-only {
+        page-break-before: auto !important; break-before: auto !important;
+        margin-top: 28px; padding-top: 18px; border-top: 1px dashed #888;
+      }
+      .sheet-invoice-logo { width: 110px; height: auto; display: block; }
+      .sheet-invoice-head, .sheet-invoice-head td, .sheet-meta, .sheet-meta td { border: 0 !important; }
     </style>
     ${renderSheets(docs)}
   `;
@@ -500,50 +530,56 @@ async function downloadPdfDocs(kind) {
     if (typeof window.html2pdf !== "function") {
       throw new Error("PDF-модуль не готов");
     }
+    wrap.querySelectorAll('br[clear], br[style*="page-break"]').forEach((el) => el.remove());
     await waitForImages(wrap);
-    // Force layout so canvas has real heights.
     void wrap.offsetHeight;
 
-    const filename = pdfName(kind);
-    // Do not use pagebreak mode "avoid-all" — it often yields a blank white PDF.
-    const pdf = await window
-      .html2pdf()
-      .set({
-        margin,
-        filename,
-        image: { type: "jpeg", quality: 0.98 },
-        html2canvas: {
-          scale: 2,
-          useCORS: true,
-          allowTaint: true,
-          backgroundColor: "#ffffff",
-          logging: false,
-          scrollX: 0,
-          scrollY: 0,
-          windowWidth: Math.max(wrap.scrollWidth, 720),
-        },
-        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-        pagebreak: {
-          mode: ["css", "legacy"],
-          before: [".sheet-annex", ".sheet-break"],
-        },
-      })
-      .from(wrap)
-      .toPdf()
-      .get("pdf");
+    const sheets = [...wrap.querySelectorAll("article.sheet")];
+    if (!sheets.length) throw new Error("Нет страниц для PDF");
+
+    const canvasOpt = {
+      margin: 0,
+      html2canvas: {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: "#ffffff",
+        logging: false,
+        scrollX: 0,
+        scrollY: 0,
+        windowWidth: 800,
+      },
+      jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+      pagebreak: { mode: [] },
+    };
+
+    // Bootstrap an empty jsPDF instance, then paint each sheet as canvas slices.
+    const pdf = await window.html2pdf().set(canvasOpt).from(sheets[0]).toPdf().get("pdf");
+    while (pdf.internal.getNumberOfPages() > 0) {
+      pdf.deletePage(1);
+    }
+
+    for (const sheet of sheets) {
+      sheet.classList.remove("sheet-break");
+      const canvas = await window.html2pdf().set(canvasOpt).from(sheet).toCanvas().get("canvas");
+      if (!canvas || canvas.width < 2 || canvas.height < 2) {
+        throw new Error("Не удалось отрисовать страницу для PDF");
+      }
+      addCanvasPages(pdf, canvas);
+    }
 
     const total = pdf.internal.getNumberOfPages();
     if (!total) throw new Error("PDF получился пустым");
     for (let i = 1; i <= total; i += 1) {
       pdf.setPage(i);
-      pdf.setFont("times", "normal");
+      pdf.setFont("helvetica", "normal");
       pdf.setFontSize(10);
       pdf.setTextColor(0, 0, 0);
       const w = pdf.internal.pageSize.getWidth();
       const h = pdf.internal.pageSize.getHeight();
       pdf.text(String(i), w / 2, h - 8, { align: "center" });
     }
-    pdf.save(filename);
+    pdf.save(pdfName(kind));
   } finally {
     wrap.remove();
     if (btn) {
