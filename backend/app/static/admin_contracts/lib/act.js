@@ -36,17 +36,10 @@ export function buildAct(d) {
     `Период оказания услуг: ${period}`,
   ].join("\n");
 
-  const vatRows =
-    vat.rate > 0
-      ? [
-          ["Сумма без НДС", `${formatAmount(vat.net)} BYN`],
-          [`НДС ${vat.rate} %`, `${formatAmount(vat.vat)} BYN`],
-          ["Всего с НДС", `${formatAmount(vat.gross)} BYN`],
-        ]
-      : [
-          ["Ставка НДС", "не исчисляется"],
-          ["Всего", `${formatAmount(vat.gross)} BYN`],
-        ];
+  // Same columns as the service invoice table.
+  const vatCell = vat.rate ? formatAmount(vat.vat) : "Без НДС";
+  const unitPrice = vat.rate ? formatAmount(vat.net) : formatAmount(vat.gross);
+  const withVat = formatAmount(vat.gross);
 
   const costText =
     vat.rate > 0
@@ -60,10 +53,17 @@ export function buildAct(d) {
     },
     {
       type: "table",
-      columns: ["№", "Наименование услуги", "Ед. изм.", "Кол-во", "Цена, BYN", "Сумма, BYN"],
-      rows: [["1", tableItem, "услуга", "1", formatAmount(vat.net), formatAmount(vat.net)]],
+      columns: [
+        "№",
+        "Наименование товара, услуги",
+        "Кол-во",
+        "Цена, руб. коп.",
+        "НДС , руб. коп.",
+        "Цена с НДС, руб. коп.",
+        "Всего к оплате, руб. коп.",
+      ],
+      rows: [["1", tableItem, "1", unitPrice, vatCell, withVat, withVat]],
     },
-    { type: "kv", rows: vatRows },
     { type: "p", text: costText },
     {
       type: "p",
