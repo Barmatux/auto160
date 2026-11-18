@@ -10,7 +10,7 @@ function cellHtml(value) {
   return escapeHtml(value).replace(/\n/g, "<br />");
 }
 
-function blockHtml(block) {
+function blockHtml(block, { word = false } = {}) {
   if (block.type === "heading") return `<h2 class="sheet-h">${escapeHtml(block.text)}</h2>`;
   if (block.type === "title") return `<h2 class="sheet-h center">${escapeHtml(block.text)}</h2>`;
   if (block.type === "p") {
@@ -18,14 +18,16 @@ function blockHtml(block) {
     return `<p class="${cls}">${cellHtml(block.text)}</p>`;
   }
   if (block.type === "note") return `<p class="sheet-note">${escapeHtml(block.text)}</p>`;
-  if (block.type === "space") return `<div class="sheet-space"></div>`;
+  if (block.type === "space") {
+    return word ? `<p class="sheet-space">&nbsp;</p>` : `<div class="sheet-space"></div>`;
+  }
   if (block.type === "kv") {
     const rows = block.rows
-      .map(
-        ([k, v]) =>
-          `<tr><th>${escapeHtml(k)}</th><td>${cellHtml(v)}</td></tr>`,
-      )
+      .map(([k, v]) => `<tr><th>${escapeHtml(k)}</th><td>${cellHtml(v)}</td></tr>`)
       .join("");
+    if (word) {
+      return `<table class="sheet-kv" border="1" cellspacing="0" cellpadding="4" width="100%"><tbody>${rows}</tbody></table>`;
+    }
     return `<table class="sheet-kv"><tbody>${rows}</tbody></table>`;
   }
   if (block.type === "table") {
@@ -33,15 +35,39 @@ function blockHtml(block) {
     const body = block.rows
       .map((row) => `<tr>${row.map((cell) => `<td>${cellHtml(cell)}</td>`).join("")}</tr>`)
       .join("");
+    if (word) {
+      return `<table class="sheet-table" border="1" cellspacing="0" cellpadding="4" width="100%"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
+    }
     return `<table class="sheet-table"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
   }
   return "";
 }
 
-function signsHtml(sig) {
+function signsHtml(sig, { word = false } = {}) {
   if (!sig) return "";
   if (sig.mode === "single") {
-    return `<div class="signs signs-single"><div class="sign-line-single">${escapeHtml(sig.line || "")}</div></div>`;
+    return word
+      ? `<p class="sign-line-single">${escapeHtml(sig.line || "")}</p>`
+      : `<div class="signs signs-single"><div class="sign-line-single">${escapeHtml(sig.line || "")}</div></div>`;
+  }
+  if (word) {
+    const col = (title, lines, role, sign) => `
+      <td width="50%" valign="top" style="border:0;padding:0 18pt 0 0;">
+        <p class="sign-title"><b>${escapeHtml(title)}</b></p>
+        ${(lines || [])
+          .filter(Boolean)
+          .map((line) => `<p class="sign-line-text">${escapeHtml(line)}</p>`)
+          .join("")}
+        <p class="sign-gap">&nbsp;</p>
+        <p class="sign-role"><i>${escapeHtml(role)}</i></p>
+        <p class="sign-line">${escapeHtml(sign)}</p>
+      </td>`;
+    return `<table class="signs" border="0" cellspacing="0" cellpadding="0" width="100%" style="border:0;margin-top:18pt;">
+      <tr>
+        ${col(sig.leftTitle, sig.leftLines, sig.leftRole, sig.leftSign)}
+        ${col(sig.rightTitle, sig.rightLines, sig.rightRole, sig.rightSign)}
+      </tr>
+    </table>`;
   }
   const col = (title, lines, role, sign) => `
     <div class="sign-col">
@@ -59,7 +85,7 @@ function signsHtml(sig) {
   )}</div>`;
 }
 
-function preambleHtml(doc) {
+function preambleHtml(doc, { word = false } = {}) {
   if (!doc.preamble && !doc.logoSrc) return "";
   const lines = String(doc.preamble || "")
     .split("\n")
@@ -68,76 +94,84 @@ function preambleHtml(doc) {
   if (lines.length <= 1 && doc.preamble) {
     letterhead = `<p class="sheet-p preamble">${escapeHtml(doc.preamble)}</p>`;
   } else if (lines.length) {
-    letterhead = `<div class="sheet-letterhead">${lines
-      .map((line) => `<div>${escapeHtml(line)}</div>`)
-      .join("")}</div>`;
+    letterhead = word
+      ? `<div class="sheet-letterhead">${lines
+          .map((line) => `<p class="letter-line">${escapeHtml(line)}</p>`)
+          .join("")}</div>`
+      : `<div class="sheet-letterhead">${lines
+          .map((line) => `<div>${escapeHtml(line)}</div>`)
+          .join("")}</div>`;
   }
   if (!doc.logoSrc) return letterhead;
-  // Table layout so Word and PDF keep logo + requisites side by side (CSS grid breaks in Word).
-  return `<table class="sheet-invoice-head" width="100%" cellpadding="0" cellspacing="0" style="border:0;border-collapse:collapse;margin-bottom:12pt;">
+  // Smaller logo for Word — large PNG otherwise blows up the page layout.
+  const logo = word
+    ? `<img class="sheet-invoice-logo" src="${escapeHtml(doc.logoSrc)}" alt="" width="90" height="62" />`
+    : `<img class="sheet-invoice-logo" src="${escapeHtml(doc.logoSrc)}" alt="" width="110" height="75" />`;
+  return `<table class="sheet-invoice-head" border="0" width="100%" cellpadding="0" cellspacing="0" style="border:0;border-collapse:collapse;margin-bottom:12pt;">
     <tr>
-      <td width="120" valign="top" style="border:0;padding:0 12pt 0 0;width:120px;">
-        <img class="sheet-invoice-logo" src="${escapeHtml(doc.logoSrc)}" alt="" width="110" height="75" />
-      </td>
+      <td width="100" valign="top" style="border:0;padding:0 12pt 0 0;width:100px;">${logo}</td>
       <td valign="top" style="border:0;padding:0;">${letterhead}</td>
     </tr>
   </table>`;
 }
 
 /** Keep section heading with the next block so it never sits alone at page bottom. */
-function blocksHtml(blocks) {
+function blocksHtml(blocks, opts = {}) {
   const out = [];
   let i = 0;
   while (i < blocks.length) {
     const block = blocks[i];
     if (block.type === "heading") {
-      const chunk = [blockHtml(block)];
+      const chunk = [blockHtml(block, opts)];
       i += 1;
       if (i < blocks.length && blocks[i].type !== "heading") {
-        chunk.push(blockHtml(blocks[i]));
+        chunk.push(blockHtml(blocks[i], opts));
         i += 1;
       }
       out.push(`<div class="sheet-keep">${chunk.join("")}</div>`);
       continue;
     }
     if (block.type === "title") {
-      const chunk = [blockHtml(block)];
+      const chunk = [blockHtml(block, opts)];
       i += 1;
       if (i < blocks.length && blocks[i].type !== "heading" && blocks[i].type !== "title") {
-        chunk.push(blockHtml(blocks[i]));
+        chunk.push(blockHtml(blocks[i], opts));
         i += 1;
       }
       out.push(`<div class="sheet-keep">${chunk.join("")}</div>`);
       continue;
     }
-    out.push(blockHtml(block));
+    out.push(blockHtml(block, opts));
     i += 1;
   }
   return out.join("");
 }
 
-export function renderSheet(doc, { pageBreakBefore = false } = {}) {
+export function renderSheet(doc, { pageBreakBefore = false, word = false } = {}) {
+  const opts = { word };
   const blocks = [...(doc.blocks || [])];
-  const signs = signsHtml(doc.signatures);
+  const signs = signsHtml(doc.signatures, opts);
   const last = blocks[blocks.length - 1];
   const lastIsRequisites =
     last?.type === "heading" && /РЕКВИЗИТЫ/i.test(String(last.text || ""));
   let body;
   if (lastIsRequisites) {
     const heading = blocks.pop();
-    body = `${blocksHtml(blocks)}<div class="sheet-keep">${blockHtml(heading)}${signs}</div>`;
+    body = `${blocksHtml(blocks, opts)}<div class="sheet-keep">${blockHtml(heading, opts)}${signs}</div>`;
   } else if (blocks.length || signs) {
-    body = `${blocksHtml(blocks)}${signs}`;
+    body = `${blocksHtml(blocks, opts)}${signs}`;
   } else {
     body = "";
   }
   const annexBlocks = [...(doc.annex1 || [])];
   const annexOnly = Boolean(doc.annex1) && !doc.title && !(doc.blocks || []).length && !doc.preamble;
   const annex = doc.annex1
-    ? `<div class="sheet-annex${annexOnly ? " sheet-annex-only" : ""}">${blocksHtml(annexBlocks)}<div class="sheet-keep">${signsHtml(doc.signatures)}</div></div>`
+    ? `<div class="sheet-annex${annexOnly ? " sheet-annex-only" : ""}">${blocksHtml(annexBlocks, opts)}<div class="sheet-keep">${signsHtml(doc.signatures, opts)}</div></div>`
     : "";
   const kicker = doc.kicker
-    ? `<div class="sheet-kicker">${escapeHtml(doc.kicker)}</div>`
+    ? word
+      ? `<p class="sheet-kicker">${escapeHtml(doc.kicker)}</p>`
+      : `<div class="sheet-kicker">${escapeHtml(doc.kicker)}</div>`
     : "";
   const title = doc.title
     ? `<h1 class="sheet-title">${escapeHtml(doc.title)}</h1>`
@@ -149,7 +183,7 @@ export function renderSheet(doc, { pageBreakBefore = false } = {}) {
   const metaDate = doc.meta?.date || "";
   const meta =
     metaCity || metaDate
-      ? `<table class="sheet-meta" width="100%" cellpadding="0" cellspacing="0" style="border:0;border-collapse:collapse;margin:12pt 0;">
+      ? `<table class="sheet-meta" border="0" width="100%" cellpadding="0" cellspacing="0" style="border:0;border-collapse:collapse;margin:12pt 0;">
           <tr>
             <td style="border:0;padding:0;text-align:left;">${escapeHtml(metaCity)}</td>
             <td style="border:0;padding:0;text-align:right;">${escapeHtml(metaDate)}</td>
@@ -157,26 +191,30 @@ export function renderSheet(doc, { pageBreakBefore = false } = {}) {
         </table>`
       : "";
   const breakCls = pageBreakBefore ? " sheet-break" : "";
+  // Word: ordinary page break. Avoid mso section-break — it splits headers/footers and looks broken.
   const breakMarker = pageBreakBefore
-    ? `<br clear="all" style="page-break-before:always;mso-break-type:section-break;" />`
+    ? word
+      ? `<p class="page-break" style="page-break-before:always;mso-pagination:widow-orphan lines-together;"><span style="font-size:1pt;">&nbsp;</span></p>`
+      : `<br clear="all" style="page-break-before:always;" />`
     : "";
+  const tag = word ? "div" : "article";
   return `
     ${breakMarker}
-    <article class="sheet sheet-${escapeHtml(doc.kind || "doc")}${breakCls}">
+    <${tag} class="sheet sheet-${escapeHtml(doc.kind || "doc")}${breakCls}">
       ${kicker}
       ${title}
       ${subtitle}
       ${meta}
-      ${preambleHtml(doc)}
+      ${preambleHtml(doc, opts)}
       ${body}
       ${annex}
-    </article>`;
+    </${tag}>`;
 }
 
-export function renderSheets(docs) {
+export function renderSheets(docs, { word = false } = {}) {
   return (docs || [])
     .filter(Boolean)
-    .map((doc, index) => renderSheet(doc, { pageBreakBefore: index > 0 }))
+    .map((doc, index) => renderSheet(doc, { pageBreakBefore: index > 0, word }))
     .join("");
 }
 
@@ -215,12 +253,13 @@ async function embedImagesInHtml(html) {
 
 export async function downloadWord(docOrDocs, filename) {
   const docs = Array.isArray(docOrDocs) ? docOrDocs : [docOrDocs];
-  let inner = await embedImagesInHtml(renderSheets(docs));
+  let inner = await embedImagesInHtml(renderSheets(docs, { word: true }));
   const title = docs.map((d) => d?.title).filter(Boolean)[0] || "Документ";
   const html = `<!DOCTYPE html>
 <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
 <head>
 <meta charset="utf-8" />
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <title>${escapeHtml(title)}</title>
 <!--[if gte mso 9]>
 <xml>
@@ -232,14 +271,14 @@ export async function downloadWord(docOrDocs, filename) {
 </xml>
 <![endif]-->
 <style>
+  /* Word-oriented styles: avoid flex/grid/display:table — Word ignores or mangels them. */
   @page WordSection1 {
     size: 210mm 297mm;
-    margin: 25mm 18mm 25mm 20mm;
+    margin: 20mm 18mm 20mm 18mm;
     mso-header-margin: 10mm;
     mso-footer-margin: 12mm;
     mso-header: h1;
     mso-footer: f1;
-    mso-paper-source: 0;
   }
   div.WordSection1 { page: WordSection1; }
   p.MsoHeader { margin: 0; font-size: 1pt; }
@@ -250,10 +289,24 @@ export async function downloadWord(docOrDocs, filename) {
     text-align: center;
     color: #000;
   }
-  body { font-family: "Times New Roman", Times, serif; font-size: 12pt; color: #000; }
-  .sheet { width: auto; border: 0; padding: 0; color: #000; }
-  .sheet-letterhead { margin-bottom: 10pt; line-height: 1.35; color: #000; }
-  .sheet-kicker { text-align: center; font-size: 9pt; letter-spacing: .12em; text-transform: uppercase; color: #000; }
+  body {
+    font-family: "Times New Roman", Times, serif;
+    font-size: 12pt;
+    line-height: 1.35;
+    color: #000;
+    margin: 0;
+  }
+  .sheet { width: 100%; border: 0; padding: 0; color: #000; }
+  .sheet-letterhead { margin: 0 0 10pt; color: #000; }
+  .letter-line { margin: 0; padding: 0; line-height: 1.35; }
+  .sheet-kicker {
+    text-align: center;
+    font-size: 9pt;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: #000;
+    margin: 0 0 6pt;
+  }
   .sheet-title {
     text-align: center;
     font-family: "Times New Roman", Times, serif;
@@ -262,11 +315,16 @@ export async function downloadWord(docOrDocs, filename) {
     margin: 6pt 0 4pt;
     color: #000;
   }
-  .sheet-sub { text-align: center; font-style: italic; margin: 0; color: #000; }
-  .sheet-meta { margin: 12pt 0; color: #000; }
+  .sheet-sub {
+    text-align: center;
+    font-style: italic;
+    margin: 0 0 2pt;
+    color: #000;
+  }
+  .sheet-meta { margin: 10pt 0 12pt; color: #000; }
   .sheet-h {
     font-size: 12pt;
-    margin: 10pt 0 4pt;
+    margin: 12pt 0 4pt;
     color: #000;
     page-break-after: avoid;
   }
@@ -274,30 +332,44 @@ export async function downloadWord(docOrDocs, filename) {
   .sheet-keep { page-break-inside: avoid; }
   .sheet-p {
     text-align: justify;
-    margin: 0;
+    margin: 0 0 6pt;
     color: #000;
+    text-indent: 0;
   }
-  .sheet-note { font-size: 10pt; font-style: italic; color: #000; }
-  table.sheet-kv, table.sheet-table { border-collapse: collapse; width: 100%; margin: 6pt 0 10pt; }
+  .sheet-p.preamble { text-indent: 1.25em; margin-bottom: 10pt; }
+  .sheet-note { font-size: 10pt; font-style: italic; color: #000; margin: 6pt 0; }
+  .sheet-space { margin: 0 0 8pt; }
+  table.sheet-kv, table.sheet-table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 8pt 0 12pt;
+  }
   table.sheet-kv th, table.sheet-kv td,
   table.sheet-table th, table.sheet-table td {
-    border: 1px solid #000; padding: 3pt 5pt; vertical-align: top; color: #000; background: #fff;
+    border: 1px solid #000;
+    padding: 4pt 5pt;
+    vertical-align: top;
+    color: #000;
+    background: #fff;
+    font-size: 10pt;
   }
-  table.sheet-invoice-head, table.sheet-meta, table.sheet-invoice-head td, table.sheet-meta td {
+  table.sheet-table th { font-size: 9pt; }
+  table.sheet-invoice-head, table.sheet-meta, table.signs,
+  table.sheet-invoice-head td, table.sheet-meta td, table.signs td {
     border: 0 !important;
   }
-  .signs { display: table; width: 100%; margin-top: 18pt; page-break-inside: avoid; }
-  .signs-single { display: block; margin-top: 28pt; }
-  .sign-line-single { margin-top: 18pt; }
-  .sign-col { display: table-cell; width: 50%; vertical-align: top; padding-right: 18pt; color: #000; }
-  .sign-title { font-weight: bold; margin-bottom: 8pt; }
-  .sign-role { color: #000; font-style: italic; }
-  .sign-gap { height: 22pt; }
+  .sign-title { margin: 0 0 4pt; }
+  .sign-line-text { margin: 0; }
+  .sign-gap { margin: 0; line-height: 18pt; }
+  .sign-role { margin: 0; font-style: italic; }
+  .sign-line { margin: 4pt 0 0; }
+  .sign-line-single { margin: 22pt 0 0; }
   .sheet-invoice-title { text-align: center; font-weight: bold; margin: 12pt 0 8pt; }
-  .sheet-invoice-buyer { white-space: pre-line; margin: 0 0 10pt; }
+  .sheet-invoice-buyer { margin: 0 0 10pt; }
   .sheet-invoice-logo { width: 90pt; height: auto; }
-  .sheet-annex { page-break-before: always; padding-top: 12pt; }
+  .sheet-annex { page-break-before: always; padding-top: 12pt; margin-top: 0; }
   .sheet-break, .sheet-annex-only { page-break-before: always; }
+  .page-break { margin: 0; font-size: 1pt; line-height: 1pt; }
 </style>
 </head>
 <body>
@@ -307,7 +379,9 @@ export async function downloadWord(docOrDocs, filename) {
     <!--[if supportFields]><span style="mso-element:field-begin"></span> PAGE <span style="mso-element:field-separator"></span><![endif]-->1<!--[if supportFields]><span style="mso-element:field-end"></span><![endif]-->
   </p>
 </div>
-<div class="WordSection1">${inner}</div>
+<div class="WordSection1">
+${inner}
+</div>
 </body>
 </html>`;
   const blob = new Blob(["\ufeff", html], { type: "application/msword;charset=utf-8" });
