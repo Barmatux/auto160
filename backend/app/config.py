@@ -15,6 +15,11 @@ class Settings(BaseSettings):
     bootstrap_staff_email: str = "dir_max@auto160.internal"
     bootstrap_staff_name: str = "Dir Max"
     bootstrap_staff_password: str = "77997799"
+    # Internal desk portal admin (contracts + future ops). Not linked from the public site.
+    bootstrap_desk_admin_login: str = "admin_roman1067"
+    bootstrap_desk_admin_email: str = "admin_roman1067@auto160.internal"
+    bootstrap_desk_admin_name: str = "admin_roman1067"
+    bootstrap_desk_admin_password: str = "6888Volvo6333Peugeot"
     # Optional one-shot Supabase import for old SM contracts archive.
     supabase_contracts_url: str = ""
     supabase_contracts_anon_key: str = ""

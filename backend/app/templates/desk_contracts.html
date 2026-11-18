@@ -1,0 +1,115 @@
+{% extends "desk_base.html" %}
+{% block body_class %}contracts-fullbleed desk-contracts theme-admin{% endblock %}
+{% block extra_head %}
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Outfit:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&display=swap"
+    rel="stylesheet"
+  />
+  <link rel="stylesheet" href="/static/styles.css?v=20261118-desk" />
+  <link rel="stylesheet" href="/static/admin_theme.css?v=20261118-desk" />
+  <link rel="stylesheet" href="/static/admin_contracts/contracts.css?v=20261118-1" />
+  <link rel="stylesheet" href="/static/desk.css?v=20261118-1" />
+{% endblock %}
+{% block content %}
+{% if is_admin %}
+<details class="admin-contracts-import no-print">
+  <summary>Импорт старых договоров из Supabase</summary>
+  <p class="hint">
+    Вставьте Project URL и anon key из старого облака SM-договоров — архив подтянется сюда.
+  </p>
+  <form id="contracts-supabase-import">
+    <input name="url" type="url" required placeholder="https://xxxxx.supabase.co" />
+    <textarea name="anon_key" rows="3" required placeholder="anon public key"></textarea>
+    <input name="access_token" type="text" placeholder="access_token (если нужен вход, иначе пусто)" />
+    <button type="submit" class="btn-primary">Импортировать</button>
+    <p class="hint" id="contracts-import-status" hidden></p>
+  </form>
+</details>
+<script>
+  (function () {
+    var form = document.getElementById("contracts-supabase-import");
+    var statusEl = document.getElementById("contracts-import-status");
+    if (!form) return;
+    form.addEventListener("submit", async function (event) {
+      event.preventDefault();
+      var fd = new FormData(form);
+      statusEl.hidden = false;
+      statusEl.textContent = "Импорт…";
+      try {
+        var res = await fetch("/api/v1/admin/contracts/import-supabase", {
+          method: "POST",
+          credentials: "same-origin",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            url: String(fd.get("url") || ""),
+            anon_key: String(fd.get("anon_key") || ""),
+            access_token: String(fd.get("access_token") || "") || null,
+          }),
+        });
+        var data = await res.json();
+        if (!res.ok) {
+          throw new Error(typeof data.detail === "string" ? data.detail : "Ошибка импорта");
+        }
+        statusEl.textContent =
+          "Готово: создано " + data.created + ", обновлено " + data.updated +
+          ", пропущено " + data.skipped + " из " + data.total + ". Обновите архив.";
+      } catch (err) {
+        statusEl.textContent = err.message || "Ошибка импорта";
+      }
+    });
+  })();
+</script>
+{% endif %}
+
+<div
+  id="admin-contracts-root"
+  class="admin-contracts-root"
+  data-user-email="{{ current_user.email if current_user and current_user.email else (current_user.username if current_user else 'admin') }}"
+>
+  <div class="app" id="shell">
+    <div class="stage">
+      <div class="contracts-chrome no-print">
+        <div class="contracts-brand">
+          <span class="brand-mark">SM</span>
+          <div>
+            <strong>Scandi Motors</strong>
+            <em>Договоры подбора</em>
+          </div>
+        </div>
+        <nav class="contracts-tabs" aria-label="Разделы договоров">
+          <button data-tab="archive" type="button" id="nav-archive">Архив</button>
+          <button class="active" data-tab="contract" type="button">Договор</button>
+          <button data-tab="invoice" type="button">Счёт</button>
+          <button data-tab="act" type="button">Акт услуг</button>
+          <button data-tab="analysis" type="button">Разбор образца</button>
+        </nav>
+        <span id="amount-box" hidden></span>
+        <span id="save-status" class="save-status" hidden></span>
+        <span id="user-label" hidden></span>
+      </div>
+      <header class="toolbar">
+        <div class="toolbar-title">
+          <h1 id="toolbar-title">Договор подбора в Беларуси</h1>
+          <p id="toolbar-lead">Заполните поля слева — договор, счёт и акт собираются сразу.</p>
+        </div>
+        <div class="toolbar-actions no-print" id="toolbar-actions">
+          <button type="button" class="ghost" data-action="sample" id="btn-sample">Пример</button>
+          <span id="doc-actions">
+            <button type="button" data-action="print" id="btn-print">Скачать PDF</button>
+            <button type="button" data-action="word" id="btn-word">Скачать Word</button>
+            <button type="button" class="primary" data-action="both" id="btn-both">Договор + счёт + акт</button>
+          </span>
+        </div>
+      </header>
+      <main class="split" id="workspace">
+        <div class="form-pane no-print" id="form-pane"></div>
+        <div class="preview-pane" id="preview-pane"></div>
+      </main>
+      <main class="single" id="single-pane" hidden></main>
+    </div>
+  </div>
+</div>
+<script type="module" src="/static/admin_contracts/app.js?v=20261118-1"></script>
+{% endblock %}
