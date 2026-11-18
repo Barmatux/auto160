@@ -25,7 +25,7 @@ const titles = {
   },
   contract: {
     h: "Договор подбора",
-    p: "Для ЕС ниже приложения идут счёт и акт. PDF/Word — пакет или отдельные страницы.",
+    p: "Справа: договор, приложение, счёт и акт. PDF/Word — пакет или отдельные страницы.",
   },
   invoice: {
     h: "Счёт на оплату авто",
@@ -85,13 +85,11 @@ function currentDocument() {
   return buildFullContract();
 }
 
-/** Preview HTML for the active tab. EU contract tab embeds invoice + act under annex. */
+/** Preview HTML for the active tab. Contract tab always shows annex + invoice + act below. */
 function previewHtml() {
   if (tab === "invoice") return renderSheet(buildInvoice(data));
   if (tab === "act") return renderSheet(buildAct(data));
-  const contract = buildFullContract();
-  if (isByPackage(data)) return renderSheet(contract);
-  return renderSheets([contract, buildInvoice(data), buildAct(data)]);
+  return renderSheets([buildFullContract(), buildInvoice(data), buildAct(data)]);
 }
 
 function resolveExportDocs(kind) {
