@@ -632,6 +632,31 @@ body.theme-admin .sheet .sheet-h,
   font-size: 10px;
 }
 
+.sheet-invoice .sheet-letterhead {
+  margin-bottom: 18px;
+}
+
+.sheet-invoice-title {
+  text-align: center;
+  font-weight: 700;
+  margin: 14px 0 10px;
+}
+
+.sheet-invoice-buyer {
+  white-space: pre-line;
+  margin: 0 0 12px;
+}
+
+.signs-single {
+  display: block;
+  grid-template-columns: none;
+  margin-top: 36px;
+}
+
+.sign-line-single {
+  margin-top: 22px;
+}
+
 .sheet-table th {
   font-weight: 600;
   text-align: center;

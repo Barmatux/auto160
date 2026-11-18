@@ -6,17 +6,24 @@ export function escapeHtml(value) {
     .replace(/"/g, "&quot;");
 }
 
+function cellHtml(value) {
+  return escapeHtml(value).replace(/\n/g, "<br />");
+}
+
 function blockHtml(block) {
   if (block.type === "heading") return `<h2 class="sheet-h">${escapeHtml(block.text)}</h2>`;
   if (block.type === "title") return `<h2 class="sheet-h center">${escapeHtml(block.text)}</h2>`;
-  if (block.type === "p") return `<p class="sheet-p">${escapeHtml(block.text)}</p>`;
+  if (block.type === "p") {
+    const cls = ["sheet-p", block.className].filter(Boolean).join(" ");
+    return `<p class="${cls}">${cellHtml(block.text)}</p>`;
+  }
   if (block.type === "note") return `<p class="sheet-note">${escapeHtml(block.text)}</p>`;
   if (block.type === "space") return `<div class="sheet-space"></div>`;
   if (block.type === "kv") {
     const rows = block.rows
       .map(
         ([k, v]) =>
-          `<tr><th>${escapeHtml(k)}</th><td>${escapeHtml(v)}</td></tr>`,
+          `<tr><th>${escapeHtml(k)}</th><td>${cellHtml(v)}</td></tr>`,
       )
       .join("");
     return `<table class="sheet-kv"><tbody>${rows}</tbody></table>`;
@@ -24,7 +31,7 @@ function blockHtml(block) {
   if (block.type === "table") {
     const head = block.columns.map((c) => `<th>${escapeHtml(c)}</th>`).join("");
     const body = block.rows
-      .map((row) => `<tr>${row.map((cell) => `<td>${escapeHtml(cell)}</td>`).join("")}</tr>`)
+      .map((row) => `<tr>${row.map((cell) => `<td>${cellHtml(cell)}</td>`).join("")}</tr>`)
       .join("");
     return `<table class="sheet-table"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
   }
@@ -32,10 +39,14 @@ function blockHtml(block) {
 }
 
 function signsHtml(sig) {
+  if (!sig) return "";
+  if (sig.mode === "single") {
+    return `<div class="signs signs-single"><div class="sign-line-single">${escapeHtml(sig.line || "")}</div></div>`;
+  }
   const col = (title, lines, role, sign) => `
     <div class="sign-col">
       <div class="sign-title">${escapeHtml(title)}</div>
-      ${lines.filter(Boolean).map((line) => `<div>${escapeHtml(line)}</div>`).join("")}
+      ${(lines || []).filter(Boolean).map((line) => `<div>${escapeHtml(line)}</div>`).join("")}
       <div class="sign-gap"></div>
       <div class="sign-role">${escapeHtml(role)}</div>
       <div class="sign-line">${escapeHtml(sign)}</div>
@@ -109,12 +120,24 @@ export function renderSheet(doc) {
   const kicker = doc.kicker
     ? `<div class="sheet-kicker">${escapeHtml(doc.kicker)}</div>`
     : "";
+  const title = doc.title
+    ? `<h1 class="sheet-title">${escapeHtml(doc.title)}</h1>`
+    : "";
+  const subtitle = (doc.subtitle || [])
+    .map((line) => `<p class="sheet-sub">${escapeHtml(line)}</p>`)
+    .join("");
+  const metaCity = doc.meta?.city || "";
+  const metaDate = doc.meta?.date || "";
+  const meta =
+    metaCity || metaDate
+      ? `<div class="sheet-meta"><span>${escapeHtml(metaCity)}</span><span>${escapeHtml(metaDate)}</span></div>`
+      : "";
   return `
     <article class="sheet sheet-${escapeHtml(doc.kind || "doc")}">
       ${kicker}
-      <h1 class="sheet-title">${escapeHtml(doc.title)}</h1>
-      ${doc.subtitle.map((line) => `<p class="sheet-sub">${escapeHtml(line)}</p>`).join("")}
-      <div class="sheet-meta"><span>${escapeHtml(doc.meta.city)}</span><span>${escapeHtml(doc.meta.date)}</span></div>
+      ${title}
+      ${subtitle}
+      ${meta}
       ${preambleHtml(doc)}
       ${body}
       ${annex}
@@ -195,10 +218,14 @@ export function downloadWord(doc, filename) {
   th, td { border: 1px solid #000; padding: 3pt 5pt; vertical-align: top; color: #000; background: #fff; }
   th { background: #fff; text-align: left; font-weight: bold; }
   .signs { display: table; width: 100%; margin-top: 18pt; page-break-inside: avoid; }
+  .signs-single { display: block; margin-top: 28pt; }
+  .sign-line-single { margin-top: 18pt; }
   .sign-col { display: table-cell; width: 50%; vertical-align: top; padding-right: 18pt; color: #000; }
   .sign-title { font-weight: bold; margin-bottom: 8pt; }
   .sign-role { color: #000; font-style: italic; }
   .sign-gap { height: 22pt; }
+  .sheet-invoice-title { text-align: center; font-weight: bold; margin: 12pt 0 8pt; }
+  .sheet-invoice-buyer { white-space: pre-line; margin: 0 0 10pt; }
   .sheet-annex { page-break-before: always; padding-top: 12pt; }
 </style>
 </head>

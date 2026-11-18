@@ -1,6 +1,5 @@
-import { dash, formatDateLong, formatDateShort, initialsFromFullName } from "./format.js";
+import { dash, formatDateInvoice, initialsFromFullName } from "./format.js";
 import { computeVat, formatAmount, moneyToWords } from "./money.js";
-import { isByPackage } from "./contract.js";
 
 function buyerLines(d) {
   if (d.clientType === "legal") {
@@ -20,30 +19,50 @@ function buyerLines(d) {
   ].filter(Boolean);
 }
 
-function serviceName(d) {
-  if ((d.serviceDescription || "").trim()) return d.serviceDescription.trim();
-  if (isByPackage(d)) {
-    return "Информационно-консультационные услуги по поиску и подбору транспортного средства на рынке Республики Беларусь";
-  }
-  return "Информационно-консультационные услуги по подбору транспортного средства на рынке Европейского союза";
+function invoiceCarLabel(d) {
+  const make = String(d.invoiceCarMake || d.vehicleMake || "").trim();
+  const model = String(d.invoiceCarModel || d.vehicleModel || "").trim();
+  const year = String(d.invoiceCarYear || d.vehicleYearFrom || d.vehicleYearTo || "").trim();
+  const car = [make, model].filter(Boolean).join(" ");
+  if (car && year) return `${car} ${year} г.в.`;
+  if (car) return car;
+  if (year) return `${year} г.в.`;
+  return "________________";
+}
+
+function invoiceItemName(d) {
+  const vin = String(d.invoiceCarVin || d.vehicleVin || "").trim();
+  const lines = ["Легковой автомобиль", invoiceCarLabel(d)];
+  lines.push(vin ? `VIN ${vin}` : "VIN ________________");
+  return lines.join("\n");
+}
+
+function invoiceAmountValue(d) {
+  const raw = String(d.invoiceAmount ?? "").trim();
+  return raw || d.amount || "0";
 }
 
 export function buildInvoice(d) {
-  const vat = computeVat(d.amount, d.vatMode);
-  const number = (d.invoiceNumber || "").trim() || `С-${dash(d.contractNumber)}`;
+  const amount = invoiceAmountValue(d);
+  const vat = computeVat(amount, d.vatMode || "none");
+  const number = (d.invoiceNumber || "").trim() || `01-________`;
   const dateIso = d.invoiceDate || d.contractDate;
   const vatCell = vat.rate ? formatAmount(vat.vat) : "Без НДС";
   const unitPrice = vat.rate ? formatAmount(vat.net) : formatAmount(vat.gross);
   const withVat = formatAmount(vat.gross);
+  const buyer = buyerLines(d).join(", ");
 
   const blocks = [
     {
       type: "p",
-      text: `Плательщик (покупатель): ${buyerLines(d).join("; ")}`,
+      text: `Счет № ${number} от ${formatDateInvoice(dateIso)}`,
+      className: "sheet-invoice-title",
     },
+    { type: "space" },
     {
       type: "p",
-      text: `Основание: договор № ${dash(d.contractNumber)} от ${formatDateShort(d.contractDate)}. Срок оплаты: ${dash(d.prepaidDays, "5")} рабочих дней с даты счёта.`,
+      text: `Покупатель:\n${buyer}`,
+      className: "sheet-invoice-buyer",
     },
     {
       type: "table",
@@ -52,59 +71,43 @@ export function buildInvoice(d) {
         "Наименование товара, услуги",
         "Кол-во",
         "Цена, руб. коп.",
-        "НДС, руб. коп.",
+        "НДС , руб. коп.",
         "Цена с НДС, руб. коп.",
         "Всего к оплате, руб. коп.",
       ],
-      rows: [["1", serviceName(d), "1", unitPrice, vatCell, withVat, withVat]],
+      rows: [["1", invoiceItemName(d), "1", unitPrice, vatCell, withVat, withVat]],
     },
     {
       type: "p",
       text: `Итого к оплате: ${formatAmount(vat.gross)} руб. (${moneyToWords(vat.gross)}).`,
     },
-    {
-      type: "note",
-      text:
-        vat.rate > 0
-          ? `В том числе НДС ${vat.rate} % — ${formatAmount(vat.vat)} руб.`
-          : "НДС не исчисляется. Счёт выставлен за услуги подбора, а не за продажу автомобиля. Цена ТС в сумму счёта не входит.",
-    },
-    {
-      type: "p",
-      text: "Оплата производится на расчётный счёт Исполнителя, указанный в шапке счёта. Назначение платежа: оплата услуг по подбору ТС, номер договора и счёта.",
-    },
   ];
 
   return {
     kind: "invoice",
-    kicker: `${d.executorShort} · УНП ${d.executorUnp}`,
-    title: `СЧЁТ № ${number}`,
-    subtitle: [`на оплату услуг`, `от ${formatDateLong(dateIso)}`],
-    meta: { city: `г. ${dash(d.city, "Минск")}`, date: formatDateLong(dateIso) },
+    kicker: "",
+    title: "",
+    subtitle: [],
+    meta: { city: "", date: "" },
     preamble: [
-      d.executorName,
-      `Юридический адрес: ${d.executorAddress}`,
-      `УНП: ${d.executorUnp}`,
-      `Тел (Viber / WhatsApp / Telegram): ${d.executorPhone}`,
-      d.executorEmail,
-      `Р/с ${d.executorAccount} в BYN`,
-      d.executorBank,
-      `SWIFT ${d.executorSwift}, УНП банка ${d.executorBankUnp}, ОКПО ${d.executorOkpo}`,
+      dash(d.executorShort, "ООО «Сканди Моторс»"),
+      "Юридический адрес:",
+      dash(d.executorAddress, "г. Минск, ул. Скрыганова, дом 6, помещение 7"),
+      `УНП:${dash(d.executorUnp, "193866357")}`,
+      `Тел (Viber / WhatsApp / Telegram): ${dash(d.executorPhone, "+375336987799")}`,
+      dash(d.executorEmail, "scandimotorsby@gmail.com"),
+      "Банковские реквизиты:",
+      `Р/c ${dash(d.executorAccount, "BY58 ALFA 3012 2G91 3900 1027 0000")} в BYN`,
+      dash(d.executorBank, "ЗАО «АЛЬФА-БАНК». 220013 Минск, ул. Сурганова, 43-47."),
+      `СВИФТ - ${dash(d.executorSwift, "ALFABY2X")}, УНП ${dash(d.executorBankUnp, "101541947")}, ОКПО ${dash(d.executorOkpo, "37526626")}.`,
     ].join("\n"),
     blocks,
     signatures: {
-      leftTitle: "ИСПОЛНИТЕЛЬ",
-      rightTitle: "ПЛАТЕЛЬЩИК",
-      leftLines: [d.executorShort, `УНП ${d.executorUnp}`, d.executorAddress],
-      rightLines: buyerLines(d),
-      leftSign: `________________ / ${d.executorDirectorShort} /`,
-      rightSign: `________________ / ${
-        d.clientType === "legal"
-          ? initialsFromFullName(d.clientDirector) || dash(d.clientCompany)
-          : initialsFromFullName(d.clientName) || "____________________"
-      } /`,
-      leftRole: "Директор",
-      rightRole: "Заказчик",
+      mode: "single",
+      line: `___________________ Директор ${dash(
+        d.executorDirectorShort,
+        initialsFromFullName(d.executorDirector) || "__________",
+      )}`,
     },
   };
 }

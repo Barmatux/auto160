@@ -193,10 +193,20 @@ export function renderForm(data) {
         ].join(""),
       )}
       ${section(
-        "Счёт на оплату",
+        "Счёт на оплату авто",
         [
-          field("Номер счёта", "invoiceNumber", data, { placeholder: `01-${(data.contractDate || "").slice(8, 10) || "дд"}${(data.contractDate || "").slice(5, 7) || "мм"}гг` }),
+          field("Номер счёта", "invoiceNumber", data, {
+            placeholder: `01-${(data.invoiceDate || data.contractDate || "").slice(8, 10) || "дд"}${(data.invoiceDate || data.contractDate || "").slice(5, 7) || "мм"}гг`,
+          }),
           field("Дата счёта", "invoiceDate", data, { type: "date" }),
+          field("Марка", "invoiceCarMake", data, { placeholder: data.vehicleMake || "Mitsubishi" }),
+          field("Модель", "invoiceCarModel", data, { placeholder: data.vehicleModel || "Outlander" }),
+          field("Год выпуска", "invoiceCarYear", data, { placeholder: "2014" }),
+          field("VIN", "invoiceCarVin", data, { placeholder: data.vehicleVin || "Z8T…" }),
+          field("Сумма в счёте, BYN", "invoiceAmount", data, {
+            placeholder: "30888,00",
+            hint: "Цена автомобиля в счёте. Стоимость услуг подбора — отдельное поле выше.",
+          }),
         ].join(""),
       )}
       ${section(
@@ -206,7 +216,7 @@ export function renderForm(data) {
           field("Дата акта", "actDate", data, { type: "date" }),
           field("Период услуг с", "serviceFrom", data, { type: "date" }),
           field("Период услуг по", "serviceTo", data, { type: "date" }),
-          field("Формулировка в счёте и акте", "serviceDescription", data, { type: "textarea", wide: true }),
+          field("Формулировка в акте", "serviceDescription", data, { type: "textarea", wide: true }),
         ].join(""),
       )}
       <details class="executor-details">

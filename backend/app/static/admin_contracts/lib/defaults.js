@@ -78,6 +78,12 @@ export function createDefaultData() {
     color: "",
     vehicleVin: "",
 
+    invoiceAmount: "",
+    invoiceCarMake: "",
+    invoiceCarModel: "",
+    invoiceCarYear: "",
+    invoiceCarVin: "",
+
     actNumber: "",
     actDate: date,
     serviceFrom: date,
@@ -128,6 +134,12 @@ export function normalizeContractData(data) {
   next.vehicleModel = first.model;
   next.vehicleYearFrom = first.yearFrom;
   next.vehicleYearTo = first.yearTo;
+  if (!String(next.invoiceCarMake || "").trim()) next.invoiceCarMake = next.vehicleMake || "";
+  if (!String(next.invoiceCarModel || "").trim()) next.invoiceCarModel = next.vehicleModel || "";
+  if (!String(next.invoiceCarYear || "").trim()) {
+    next.invoiceCarYear = next.vehicleYearFrom || next.vehicleYearTo || "";
+  }
+  if (!String(next.invoiceCarVin || "").trim()) next.invoiceCarVin = next.vehicleVin || "";
   return next;
 }
 

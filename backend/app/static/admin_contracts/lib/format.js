@@ -40,6 +40,13 @@ export function formatDateLong(iso) {
   return `«${String(p.d).padStart(2, "0")}» ${MONTHS[p.m - 1]} ${p.y} г.`;
 }
 
+/** Invoice template style: «27 января 2026г.» */
+export function formatDateInvoice(iso) {
+  const p = parseIsoDate(iso);
+  if (!p) return "__ ________ 20__г.";
+  return `${p.d} ${MONTHS[p.m - 1]} ${p.y}г.`;
+}
+
 export function suggestContractNumber(iso, prefix = "Б") {
   const p = parseIsoDate(iso) || parseIsoDate(todayIso());
   return `${prefix}${String(p.d).padStart(2, "0")}${String(p.m).padStart(2, "0")}${String(p.y).slice(2)}`;
