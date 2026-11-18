@@ -32,10 +32,10 @@ async function refreshAccessTokenIfNeeded() {
 function translateError(message, status) {
   const text = String(message || "");
   if (status === 401 || status === 403 || /unauthorized|forbidden/i.test(text)) {
-    return "Нет доступа. Войдите в админку Auto160.";
+    return "Нет доступа. Войдите по логину на этой странице.";
   }
   if (/failed to fetch|networkerror|load failed/i.test(text)) {
-    return "Нет связи с сервером Auto160.";
+    return "Нет связи с сервером.";
   }
   return text || "Не получилось выполнить запрос.";
 }

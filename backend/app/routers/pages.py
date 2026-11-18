@@ -5784,13 +5784,9 @@ def admin_site_leads_page(request: Request, db: Session = Depends(get_db)):
 
 
 @router.get("/admin/contracts")
-def admin_contracts_page(request: Request, db: Session = Depends(get_db)):
-    current_user = _resolve_user_from_request(request, db)
-    redirect = _admin_page_redirect(current_user, allow_contracts=True)
-    if redirect:
-        return redirect
-    context = _template_context(request, current_user)
-    return templates.TemplateResponse(request, "admin_contracts.html", context)
+def admin_contracts_page():
+    # Contracts UI moved to the numeric IP portal only.
+    raise HTTPException(status_code=404, detail="Not Found")
 
 
 def _desk_root() -> str:
