@@ -1,6 +1,8 @@
 import { dash, formatDateInvoice, initialsFromFullName } from "./format.js";
 import { computeVat, formatAmount, moneyToWords } from "./money.js";
 
+export const INVOICE_LOGO_SRC = "/static/admin_contracts/brand/scandi-motors-invoice.png";
+
 function buyerLines(d) {
   if (d.clientType === "legal") {
     return [
@@ -85,14 +87,16 @@ export function buildInvoice(d) {
 
   return {
     kind: "invoice",
+    logoSrc: INVOICE_LOGO_SRC,
     kicker: "",
     title: "",
     subtitle: [],
     meta: { city: "", date: "" },
+    // Header copied from Scandi Motors «счет на оплату авто.docx»
     preamble: [
       dash(d.executorShort, "ООО «Сканди Моторс»"),
       "Юридический адрес:",
-      dash(d.executorAddress, "г. Минск, ул. Скрыганова, дом 6, помещение 7"),
+      dash(d.executorAddress, "г. Минск, ул. Скрыганова, дом 6, помещение 7."),
       `УНП:${dash(d.executorUnp, "193866357")}`,
       `Тел (Viber / WhatsApp / Telegram): ${dash(d.executorPhone, "+375336987799")}`,
       dash(d.executorEmail, "scandimotorsby@gmail.com"),

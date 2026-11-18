@@ -60,12 +60,23 @@ function signsHtml(sig) {
 }
 
 function preambleHtml(doc) {
-  if (!doc.preamble) return "";
-  const lines = String(doc.preamble).split("\n").filter((line) => line.length);
-  if (lines.length <= 1) {
-    return `<p class="sheet-p preamble">${escapeHtml(doc.preamble)}</p>`;
+  if (!doc.preamble && !doc.logoSrc) return "";
+  const lines = String(doc.preamble || "")
+    .split("\n")
+    .filter((line) => line.length);
+  let letterhead = "";
+  if (lines.length <= 1 && doc.preamble) {
+    letterhead = `<p class="sheet-p preamble">${escapeHtml(doc.preamble)}</p>`;
+  } else if (lines.length) {
+    letterhead = `<div class="sheet-letterhead">${lines
+      .map((line) => `<div>${escapeHtml(line)}</div>`)
+      .join("")}</div>`;
   }
-  return `<div class="sheet-letterhead">${lines.map((line) => `<div>${escapeHtml(line)}</div>`).join("")}</div>`;
+  if (!doc.logoSrc) return letterhead;
+  return `<div class="sheet-invoice-head">
+    <img class="sheet-invoice-logo" src="${escapeHtml(doc.logoSrc)}" alt="" width="120" height="82" />
+    ${letterhead}
+  </div>`;
 }
 
 /** Keep section heading with the next block so it never sits alone at page bottom. */
@@ -100,7 +111,7 @@ function blocksHtml(blocks) {
   return out.join("");
 }
 
-export function renderSheet(doc) {
+export function renderSheet(doc, { pageBreakBefore = false } = {}) {
   const blocks = [...(doc.blocks || [])];
   const signs = signsHtml(doc.signatures);
   const last = blocks[blocks.length - 1];
@@ -110,12 +121,15 @@ export function renderSheet(doc) {
   if (lastIsRequisites) {
     const heading = blocks.pop();
     body = `${blocksHtml(blocks)}<div class="sheet-keep">${blockHtml(heading)}${signs}</div>`;
-  } else {
+  } else if (blocks.length || signs) {
     body = `${blocksHtml(blocks)}${signs}`;
+  } else {
+    body = "";
   }
   const annexBlocks = [...(doc.annex1 || [])];
+  const annexOnly = Boolean(doc.annex1) && !doc.title && !(doc.blocks || []).length && !doc.preamble;
   const annex = doc.annex1
-    ? `<div class="sheet-annex">${blocksHtml(annexBlocks)}<div class="sheet-keep">${signsHtml(doc.signatures)}</div></div>`
+    ? `<div class="sheet-annex${annexOnly ? " sheet-annex-only" : ""}">${blocksHtml(annexBlocks)}<div class="sheet-keep">${signsHtml(doc.signatures)}</div></div>`
     : "";
   const kicker = doc.kicker
     ? `<div class="sheet-kicker">${escapeHtml(doc.kicker)}</div>`
@@ -132,8 +146,9 @@ export function renderSheet(doc) {
     metaCity || metaDate
       ? `<div class="sheet-meta"><span>${escapeHtml(metaCity)}</span><span>${escapeHtml(metaDate)}</span></div>`
       : "";
+  const breakCls = pageBreakBefore ? " sheet-break" : "";
   return `
-    <article class="sheet sheet-${escapeHtml(doc.kind || "doc")}">
+    <article class="sheet sheet-${escapeHtml(doc.kind || "doc")}${breakCls}">
       ${kicker}
       ${title}
       ${subtitle}
@@ -144,13 +159,22 @@ export function renderSheet(doc) {
     </article>`;
 }
 
-export function downloadWord(doc, filename) {
-  const inner = renderSheet(doc);
+export function renderSheets(docs) {
+  return (docs || [])
+    .filter(Boolean)
+    .map((doc, index) => renderSheet(doc, { pageBreakBefore: index > 0 }))
+    .join("");
+}
+
+export function downloadWord(docOrDocs, filename) {
+  const docs = Array.isArray(docOrDocs) ? docOrDocs : [docOrDocs];
+  const inner = renderSheets(docs);
+  const title = docs.map((d) => d?.title).filter(Boolean)[0] || "Документ";
   const html = `<!DOCTYPE html>
 <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
 <head>
 <meta charset="utf-8" />
-<title>${escapeHtml(doc.title)}</title>
+<title>${escapeHtml(title)}</title>
 <!--[if gte mso 9]>
 <xml>
 <w:WordDocument>
@@ -226,7 +250,10 @@ export function downloadWord(doc, filename) {
   .sign-gap { height: 22pt; }
   .sheet-invoice-title { text-align: center; font-weight: bold; margin: 12pt 0 8pt; }
   .sheet-invoice-buyer { white-space: pre-line; margin: 0 0 10pt; }
+  .sheet-invoice-head { margin-bottom: 12pt; }
+  .sheet-invoice-logo { width: 90pt; height: auto; margin-bottom: 6pt; }
   .sheet-annex { page-break-before: always; padding-top: 12pt; }
+  .sheet-break, .sheet-annex-only { page-break-before: always; }
 </style>
 </head>
 <body>

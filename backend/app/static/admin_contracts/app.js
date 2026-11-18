@@ -5,7 +5,7 @@ import { buildAct } from "./lib/act.js";
 import { buildInvoice } from "./lib/invoice.js";
 import { moneyPhrase } from "./lib/money.js";
 import { suggestContractNumber, todayIso } from "./lib/format.js";
-import { downloadWord, renderSheet } from "./render.js";
+import { downloadWord, renderSheet, renderSheets } from "./render.js";
 import { renderAnalysis, renderArchive, renderForm } from "./ui.js";
 import {
   createContract,
@@ -25,11 +25,11 @@ const titles = {
   },
   contract: {
     h: "Договор подбора",
-    p: "Заполните поля слева — справа договор, счёт и акт собираются из тех же данных.",
+    p: "Для ЕС ниже приложения идут счёт и акт. PDF/Word — пакет или отдельные страницы.",
   },
   invoice: {
     h: "Счёт на оплату авто",
-    p: "Форма как в шаблоне Сканди Моторс: реквизиты, покупатель, легковой автомобиль / VIN, сумма прописью.",
+    p: "Шапка и логотип как в шаблоне Сканди Моторс: покупатель, легковой автомобиль / VIN, сумма прописью.",
   },
   act: {
     h: "Акт сдачи-приёмки",
@@ -56,17 +56,74 @@ function saveLocal() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
 
+function buildFullContract() {
+  return isByPackage(data) ? buildByContract(data) : buildContract(data);
+}
+
+function buildContractOnlyDoc() {
+  const full = buildFullContract();
+  return { ...full, annex1: null };
+}
+
+function buildAnnexOnlyDoc() {
+  const full = buildFullContract();
+  return {
+    kind: "annex",
+    title: "",
+    subtitle: [],
+    meta: { city: "", date: "" },
+    preamble: "",
+    blocks: [],
+    annex1: full.annex1 || null,
+    signatures: full.signatures,
+  };
+}
+
 function currentDocument() {
   if (tab === "invoice") return buildInvoice(data);
   if (tab === "act") return buildAct(data);
-  return isByPackage(data) ? buildByContract(data) : buildContract(data);
+  return buildFullContract();
+}
+
+/** Preview HTML for the active tab. EU contract tab embeds invoice + act under annex. */
+function previewHtml() {
+  if (tab === "invoice") return renderSheet(buildInvoice(data));
+  if (tab === "act") return renderSheet(buildAct(data));
+  const contract = buildFullContract();
+  if (isByPackage(data)) return renderSheet(contract);
+  return renderSheets([contract, buildInvoice(data), buildAct(data)]);
+}
+
+function resolveExportDocs(kind) {
+  if (kind === "invoice") return [buildInvoice(data)];
+  if (kind === "act") return [buildAct(data)];
+  if (kind === "annex") return [buildAnnexOnlyDoc()];
+  if (kind === "contract") return [buildContractOnlyDoc()];
+  // pack: договор + приложение + счёт + акт
+  const docs = [buildContractOnlyDoc()];
+  const annex = buildAnnexOnlyDoc();
+  if (annex.annex1?.length) docs.push(annex);
+  docs.push(buildInvoice(data), buildAct(data));
+  return docs;
 }
 
 function wordName(kind) {
   const stamp = data.contractNumber || "draft";
   if (kind === "invoice") return `Schet_${stamp}.doc`;
   if (kind === "act") return `Akt_${stamp}.doc`;
+  if (kind === "annex") return `Prilozhenie_${stamp}.doc`;
+  if (kind === "pack") return `Paket_${stamp}.doc`;
   return `Dogovor_${stamp}.doc`;
+}
+
+function pdfName(kind) {
+  return wordName(kind).replace(/\.doc$/i, ".pdf");
+}
+
+function closeExportMenus() {
+  document.querySelectorAll(".export-menu-list").forEach((el) => {
+    el.hidden = true;
+  });
 }
 
 let view = "boot";
@@ -165,7 +222,7 @@ function paint() {
     formPane.innerHTML = renderForm(data);
     formNeedsPaint = false;
   }
-  preview.innerHTML = renderSheet(currentDocument());
+  preview.innerHTML = previewHtml();
 }
 
 async function loadArchive() {
@@ -290,9 +347,17 @@ function loadScriptOnce(src) {
   });
 }
 
-async function downloadPdfPreview() {
-  const sheet = document.querySelector(".preview-pane .sheet");
-  if (!sheet) return;
+async function downloadPdfDocs(kind) {
+  const docs = resolveExportDocs(kind).filter(
+    (doc) =>
+      doc &&
+      ((doc.blocks && doc.blocks.length) ||
+        (doc.annex1 && doc.annex1.length) ||
+        doc.preamble ||
+        doc.title ||
+        doc.logoSrc),
+  );
+  if (!docs.length) return;
 
   const btn = document.getElementById("btn-print");
   const previousLabel = btn?.textContent || "Скачать PDF";
@@ -301,39 +366,33 @@ async function downloadPdfPreview() {
     btn.textContent = "PDF…";
   }
 
-  const margin = [16, 16, 16, 16]; // mm — even margins reduce canvas slice drift
-
+  const margin = [16, 16, 16, 16];
   const wrap = document.createElement("div");
   wrap.setAttribute("aria-hidden", "true");
   wrap.style.cssText =
     "position:fixed;left:-12000px;top:0;width:178mm;padding:0;margin:0;background:#fff;color:#000;pointer-events:none;";
-  const clone = sheet.cloneNode(true);
-  clone.style.cssText =
-    "width:178mm;margin:0;padding:0;border:0;box-shadow:none;background:#fff;color:#000;min-height:0;";
-  const forceInk = document.createElement("style");
-  forceInk.textContent = `
-    .sheet, .sheet * { color: #000 !important; }
-    .sheet h1, .sheet h2, .sheet-title, .sheet-h { color: #000 !important; }
-    .sheet-kv th, .sheet-kv td, .sheet-table th, .sheet-table td {
-      background: #fff !important;
-      color: #000 !important;
-      border-color: #000 !important;
-    }
-    .sheet-keep, .signs, .sheet-kv, .sheet-kv tr, .sheet-table tr {
-      break-inside: avoid !important;
-      page-break-inside: avoid !important;
-    }
-    .sheet-h {
-      page-break-after: avoid !important;
-      break-after: avoid-page !important;
-    }
-    .sheet-annex {
-      break-before: page !important;
-      page-break-before: always !important;
-    }
+  wrap.innerHTML = `
+    <style>
+      .sheet, .sheet * { color: #000 !important; }
+      .sheet h1, .sheet h2, .sheet-title, .sheet-h { color: #000 !important; }
+      .sheet-kv th, .sheet-kv td, .sheet-table th, .sheet-table td {
+        background: #fff !important; color: #000 !important; border-color: #000 !important;
+      }
+      .sheet-keep, .signs, .sheet-kv, .sheet-kv tr, .sheet-table tr {
+        break-inside: avoid !important; page-break-inside: avoid !important;
+      }
+      .sheet-h { page-break-after: avoid !important; break-after: avoid-page !important; }
+      .sheet-annex, .sheet-break, .sheet-annex-only {
+        break-before: page !important; page-break-before: always !important;
+      }
+      .sheet {
+        width: 178mm; margin: 0; padding: 0; border: 0; box-shadow: none;
+        background: #fff; color: #000; min-height: 0;
+      }
+      .sheet-invoice-logo { width: 110px; height: auto; }
+    </style>
+    ${renderSheets(docs)}
   `;
-  wrap.appendChild(forceInk);
-  wrap.appendChild(clone);
   document.body.appendChild(wrap);
 
   try {
@@ -341,9 +400,19 @@ async function downloadPdfPreview() {
     if (typeof window.html2pdf !== "function") {
       throw new Error("PDF-модуль не готов");
     }
-    const kind = tab === "invoice" ? "invoice" : tab === "act" ? "act" : "contract";
-    const filename = wordName(kind).replace(/\.doc$/i, ".pdf");
-    // No manual page-break spacers — they created empty "holes". Keep heading+next via .sheet-keep.
+    // Wait for logo image so html2canvas captures it.
+    await Promise.all(
+      [...wrap.querySelectorAll("img")].map(
+        (img) =>
+          img.complete
+            ? Promise.resolve()
+            : new Promise((resolve) => {
+                img.addEventListener("load", resolve, { once: true });
+                img.addEventListener("error", resolve, { once: true });
+              }),
+      ),
+    );
+    const filename = pdfName(kind);
     const pdf = await window
       .html2pdf()
       .set({
@@ -361,11 +430,11 @@ async function downloadPdfPreview() {
         jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
         pagebreak: {
           mode: ["avoid-all", "css"],
-          before: [".sheet-annex"],
+          before: [".sheet-annex", ".sheet-break", ".sheet-annex-only"],
           avoid: [".sheet-keep", ".signs", ".sheet-kv", ".sheet-kv tr", ".sheet-table tr", ".sheet-p"],
         },
       })
-      .from(clone)
+      .from(wrap)
       .toPdf()
       .get("pdf");
     const total = pdf.internal.getNumberOfPages();
@@ -442,23 +511,30 @@ document.body.addEventListener("click", async (e) => {
       tab = "contract";
       scheduleSave();
       paint();
-    } else if (action === "print") {
-      await downloadPdfPreview();
+    } else if (action === "toggle-pdf" || action === "toggle-word") {
+      e.preventDefault();
+      const menuName = action === "toggle-pdf" ? "pdf" : "word";
+      const menu = document.querySelector(`[data-menu="${menuName}"]`);
+      const wasOpen = menu && !menu.hidden;
+      closeExportMenus();
+      if (menu && !wasOpen) menu.hidden = false;
+      return;
+    } else if (action === "pdf") {
+      closeExportMenus();
+      await downloadPdfDocs(btn.dataset.kind || "pack");
     } else if (action === "word") {
-      const kind = tab === "invoice" ? "invoice" : tab === "act" ? "act" : "contract";
-      downloadWord(currentDocument(), wordName(kind));
-    } else if (action === "both") {
-      const docs = [
-        [isByPackage(data) ? buildByContract(data) : buildContract(data), wordName("contract")],
-        [buildInvoice(data), wordName("invoice")],
-        [buildAct(data), wordName("act")],
-      ];
-      docs.forEach((item, i) => setTimeout(() => downloadWord(item[0], item[1]), i * 400));
+      closeExportMenus();
+      const kind = btn.dataset.kind || "pack";
+      downloadWord(resolveExportDocs(kind), wordName(kind));
     }
   } catch (err) {
     archiveError = err.message;
     paint();
   }
+});
+
+document.addEventListener("click", (e) => {
+  if (!e.target.closest(".export-menu")) closeExportMenus();
 });
 
 async function boot() {

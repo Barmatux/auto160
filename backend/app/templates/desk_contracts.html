@@ -9,7 +9,7 @@
   />
   <link rel="stylesheet" href="/static/styles.css?v=20261118-desk" />
   <link rel="stylesheet" href="/static/admin_theme.css?v=20261118-desk" />
-  <link rel="stylesheet" href="/static/admin_contracts/contracts.css?v=20261118-2" />
+  <link rel="stylesheet" href="/static/admin_contracts/contracts.css?v=20261118-3" />
   <link rel="stylesheet" href="/static/desk.css?v=20261118-1" />
 {% endblock %}
 {% block content %}
@@ -81,7 +81,7 @@
         <nav class="contracts-tabs" aria-label="Разделы договоров">
           <button data-tab="archive" type="button" id="nav-archive">Архив</button>
           <button class="active" data-tab="contract" type="button">Договор</button>
-          <button data-tab="invoice" type="button">Счёт</button>
+          <button data-tab="invoice" type="button">Счёт на оплату авто</button>
           <button data-tab="act" type="button">Акт услуг</button>
           <button data-tab="analysis" type="button">Разбор образца</button>
         </nav>
@@ -97,9 +97,26 @@
         <div class="toolbar-actions no-print" id="toolbar-actions">
           <button type="button" class="ghost" data-action="sample" id="btn-sample">Пример</button>
           <span id="doc-actions">
-            <button type="button" data-action="print" id="btn-print">Скачать PDF</button>
-            <button type="button" data-action="word" id="btn-word">Скачать Word</button>
-            <button type="button" class="primary" data-action="both" id="btn-both">Договор + счёт + акт</button>
+            <div class="export-menu">
+              <button type="button" class="export-menu-toggle" id="btn-print" data-action="toggle-pdf">Скачать PDF ▾</button>
+              <div class="export-menu-list" data-menu="pdf" hidden>
+                <button type="button" data-action="pdf" data-kind="pack">Договор + приложение + счёт + акт</button>
+                <button type="button" data-action="pdf" data-kind="contract">Договор</button>
+                <button type="button" data-action="pdf" data-kind="annex">Приложение</button>
+                <button type="button" data-action="pdf" data-kind="invoice">Счёт</button>
+                <button type="button" data-action="pdf" data-kind="act">Акт</button>
+              </div>
+            </div>
+            <div class="export-menu">
+              <button type="button" class="export-menu-toggle ghost" id="btn-word" data-action="toggle-word">Скачать Word ▾</button>
+              <div class="export-menu-list" data-menu="word" hidden>
+                <button type="button" data-action="word" data-kind="pack">Договор + приложение + счёт + акт</button>
+                <button type="button" data-action="word" data-kind="contract">Договор</button>
+                <button type="button" data-action="word" data-kind="annex">Приложение</button>
+                <button type="button" data-action="word" data-kind="invoice">Счёт</button>
+                <button type="button" data-action="word" data-kind="act">Акт</button>
+              </div>
+            </div>
           </span>
         </div>
       </header>
@@ -111,5 +128,5 @@
     </div>
   </div>
 </div>
-<script type="module" src="/static/admin_contracts/app.js?v=20261118-2"></script>
+<script type="module" src="/static/admin_contracts/app.js?v=20261118-3"></script>
 {% endblock %}

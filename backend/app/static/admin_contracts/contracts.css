@@ -636,6 +636,21 @@ body.theme-admin .sheet .sheet-h,
   margin-bottom: 18px;
 }
 
+.sheet-invoice-head {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 16px;
+  align-items: start;
+  margin-bottom: 16px;
+}
+
+.sheet-invoice-logo {
+  width: 120px;
+  height: auto;
+  display: block;
+  object-fit: contain;
+}
+
 .sheet-invoice-title {
   text-align: center;
   font-weight: 700;
@@ -645,6 +660,63 @@ body.theme-admin .sheet .sheet-h,
 .sheet-invoice-buyer {
   white-space: pre-line;
   margin: 0 0 12px;
+}
+
+.sheet-break {
+  break-before: page;
+  page-break-before: always;
+}
+
+.sheet-annex-only {
+  break-before: page;
+  page-break-before: always;
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.export-menu {
+  position: relative;
+  display: inline-block;
+}
+
+.export-menu-toggle {
+  cursor: pointer;
+}
+
+.export-menu-list {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 40;
+  min-width: 280px;
+  display: grid;
+  gap: 2px;
+  padding: 8px;
+  background: var(--c-surface, #1a1f2a);
+  border: 1px solid var(--c-border, #333b4d);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
+}
+
+.export-menu-list[hidden] {
+  display: none !important;
+}
+
+.export-menu-list button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  color: var(--c-text, #c9d2df);
+  padding: 8px 10px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.export-menu-list button:hover {
+  background: rgba(58, 174, 240, 0.12);
+  color: var(--c-heading, #dce3ee);
 }
 
 .signs-single {
