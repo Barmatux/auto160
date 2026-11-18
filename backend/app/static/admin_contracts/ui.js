@@ -193,19 +193,25 @@ export function renderForm(data) {
         ].join(""),
       )}
       ${section(
-        "Счёт на оплату авто",
+        "Счёт на оплату услуг подбора",
         [
           field("Номер счёта", "invoiceNumber", data, {
             placeholder: `01-${(data.invoiceDate || data.contractDate || "").slice(8, 10) || "дд"}${(data.invoiceDate || data.contractDate || "").slice(5, 7) || "мм"}гг`,
+            hint: "В пакете договора — счёт за услуги. Сумма берётся из стоимости услуг выше.",
           }),
           field("Дата счёта", "invoiceDate", data, { type: "date" }),
+        ].join(""),
+      )}
+      ${section(
+        "Счёт на оплату авто (отдельная вкладка)",
+        [
           field("Марка", "invoiceCarMake", data, { placeholder: data.vehicleMake || "Mitsubishi" }),
           field("Модель", "invoiceCarModel", data, { placeholder: data.vehicleModel || "Outlander" }),
           field("Год выпуска", "invoiceCarYear", data, { placeholder: "2014" }),
           field("VIN", "invoiceCarVin", data, { placeholder: data.vehicleVin || "Z8T…" }),
-          field("Сумма в счёте, BYN", "invoiceAmount", data, {
+          field("Сумма за авто, BYN", "invoiceAmount", data, {
             placeholder: "30888,00",
-            hint: "Цена автомобиля в счёте. Стоимость услуг подбора — отдельное поле выше.",
+            hint: "Только для вкладки «Счёт на оплату авто», не для пакета договора.",
           }),
         ].join(""),
       )}
@@ -216,7 +222,7 @@ export function renderForm(data) {
           field("Дата акта", "actDate", data, { type: "date" }),
           field("Период услуг с", "serviceFrom", data, { type: "date" }),
           field("Период услуг по", "serviceTo", data, { type: "date" }),
-          field("Формулировка в акте", "serviceDescription", data, { type: "textarea", wide: true }),
+          field("Формулировка услуги (счёт и акт)", "serviceDescription", data, { type: "textarea", wide: true }),
         ].join(""),
       )}
       <details class="executor-details">

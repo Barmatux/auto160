@@ -2,7 +2,7 @@ import { applyPackageDefaults, createDefaultData, normalizeContractData, SAMPLE_
 import { buildContract, isByPackage } from "./lib/contract.js";
 import { buildByContract } from "./lib/contractBy.js";
 import { buildAct } from "./lib/act.js";
-import { buildInvoice } from "./lib/invoice.js";
+import { buildCarInvoice, buildInvoice } from "./lib/invoice.js";
 import { moneyPhrase } from "./lib/money.js";
 import { suggestContractNumber, todayIso } from "./lib/format.js";
 import { downloadWord, renderSheet, renderSheets } from "./render.js";
@@ -29,11 +29,11 @@ const titles = {
   },
   invoice: {
     h: "Счёт на оплату авто",
-    p: "Шапка и логотип как в шаблоне Сканди Моторс: покупатель, легковой автомобиль / VIN, сумма прописью.",
+    p: "Отдельный документ: шапка Сканди Моторс, предмет — автомобиль / VIN. В пакете договора печатается счёт за услуги подбора.",
   },
   act: {
     h: "Акт сдачи-приёмки",
-    p: "Акт закрывает услугу для учёта. Он привязан к этому же договору и счёту.",
+    p: "Акт закрывает услугу подбора. Привязан к договору и счёту на услуги.",
   },
   analysis: {
     h: "Разбор образцов",
@@ -80,24 +80,25 @@ function buildAnnexOnlyDoc() {
 }
 
 function currentDocument() {
-  if (tab === "invoice") return buildInvoice(data);
+  if (tab === "invoice") return buildCarInvoice(data);
   if (tab === "act") return buildAct(data);
   return buildFullContract();
 }
 
-/** Preview HTML for the active tab. Contract tab always shows annex + invoice + act below. */
+/** Preview HTML for the active tab. Contract pack uses service invoice, not car invoice. */
 function previewHtml() {
-  if (tab === "invoice") return renderSheet(buildInvoice(data));
+  if (tab === "invoice") return renderSheet(buildCarInvoice(data));
   if (tab === "act") return renderSheet(buildAct(data));
   return renderSheets([buildFullContract(), buildInvoice(data), buildAct(data)]);
 }
 
 function resolveExportDocs(kind) {
   if (kind === "invoice") return [buildInvoice(data)];
+  if (kind === "car-invoice") return [buildCarInvoice(data)];
   if (kind === "act") return [buildAct(data)];
   if (kind === "annex") return [buildAnnexOnlyDoc()];
   if (kind === "contract") return [buildContractOnlyDoc()];
-  // pack: договор + приложение + счёт + акт
+  // pack: договор + приложение + счёт на услуги + акт
   const docs = [buildContractOnlyDoc()];
   const annex = buildAnnexOnlyDoc();
   if (annex.annex1?.length) docs.push(annex);
@@ -107,7 +108,8 @@ function resolveExportDocs(kind) {
 
 function wordName(kind) {
   const stamp = data.contractNumber || "draft";
-  if (kind === "invoice") return `Schet_${stamp}.doc`;
+  if (kind === "invoice") return `Schet_uslugi_${stamp}.doc`;
+  if (kind === "car-invoice") return `Schet_avto_${stamp}.doc`;
   if (kind === "act") return `Akt_${stamp}.doc`;
   if (kind === "annex") return `Prilozhenie_${stamp}.doc`;
   if (kind === "pack") return `Paket_${stamp}.doc`;

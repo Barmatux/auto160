@@ -15,6 +15,13 @@ function clientIdLine(d) {
   return bits.join(", ");
 }
 
+function formatDateShortSafe(iso) {
+  if (!iso) return "____________";
+  const [y, m, d] = iso.split("-");
+  if (!y || !m || !d) return "____________";
+  return `${d}.${m}.${y}`;
+}
+
 export function buildAct(d) {
   const vat = computeVat(d.amount, d.vatMode);
   const actNo = (d.actNumber || "").trim() || `${dash(d.contractNumber)}-А`;
@@ -23,6 +30,11 @@ export function buildAct(d) {
     d.serviceDescription,
     "Информационно-консультационные услуги по подбору транспортного средства",
   );
+  const tableItem = [
+    description,
+    `Договор № ${dash(d.contractNumber)} от ${formatDateLong(d.contractDate)}`,
+    `Период оказания услуг: ${period}`,
+  ].join("\n");
 
   const vatRows =
     vat.rate > 0
@@ -36,54 +48,36 @@ export function buildAct(d) {
           ["Всего", `${formatAmount(vat.gross)} BYN`],
         ];
 
+  const costText =
+    vat.rate > 0
+      ? `1. Стоимость указанных услуг составила ${moneyPhrase(vat.gross)}, в том числе НДС ${vat.rate} % — ${moneyPhrase(vat.vat)}, сумма без НДС — ${moneyPhrase(vat.net)}.`
+      : `1. Стоимость указанных услуг составила ${moneyPhrase(vat.gross)}. НДС не исчисляется.`;
+
   const blocks = [
     {
       type: "p",
-      text: `Мы, нижеподписавшиеся, ${d.executorName}, УНП ${d.executorUnp} (Исполнитель), в лице директора ${d.executorDirectorGenitive}, действующего на основании Устава, и ${clientName(d)} (Заказчик), ${clientIdLine(d)}, составили настоящий акт о нижеследующем.`,
-    },
-    {
-      type: "p",
-      text: `1. Основание хозяйственной операции: договор возмездного оказания информационно-консультационных услуг по подбору транспортного средства № ${dash(d.contractNumber)} от ${formatDateLong(d.contractDate)}`,
-    },
-    {
-      type: "p",
-      text: `2. Период оказания услуг: ${period}`,
-    },
-    {
-      type: "p",
-      text: "3. Исполнитель оказал, а Заказчик принял следующие услуги:",
+      text: `Мы, нижеподписавшиеся, ${d.executorName}, УНП ${d.executorUnp} (Исполнитель), в лице директора ${d.executorDirectorGenitive}, действующего на основании Устава, и ${clientName(d)} (Заказчик), ${clientIdLine(d)}, составили настоящий акт о том, что Исполнитель оказал, а Заказчик принял следующие услуги:`,
     },
     {
       type: "table",
       columns: ["№", "Наименование услуги", "Ед. изм.", "Кол-во", "Цена, BYN", "Сумма, BYN"],
-      rows: [["1", description, "услуга", "1", formatAmount(vat.net), formatAmount(vat.net)]],
+      rows: [["1", tableItem, "услуга", "1", formatAmount(vat.net), formatAmount(vat.net)]],
     },
     { type: "kv", rows: vatRows },
+    { type: "p", text: costText },
     {
       type: "p",
-      text: `4. Оценка операции: услуги оказаны в натуральном показателе — 1 (одна) услуга; в стоимостном показателе — ${moneyPhrase(vat.gross)}${vat.rate ? `, в том числе НДС ${moneyPhrase(vat.vat)}` : ", НДС не исчисляется"}.`,
+      text: "2. Услуги оказаны полностью, в согласованном объёме и в установленный договором срок. Заказчик претензий по объёму, качеству и срокам оказания услуг на дату подписания акта не имеет.",
     },
     {
       type: "p",
-      text: "5. Услуги оказаны полностью, в согласованном объёме и в установленный договором срок. Заказчик претензий по объёму, качеству и срокам оказания услуг на дату подписания акта не имеет.",
-    },
-    {
-      type: "p",
-      text: "6. Настоящий акт является первичным учётным документом и содержит сведения, предусмотренные пунктом 2 статьи 10 Закона Республики Беларусь от 12 июля 2013 г. № 57-З «О бухгалтерском учёте и отчётности»: наименование и дату составления; сведения об участниках операции; содержание и основание операции, её оценку; должности, фамилии, инициалы и подписи лиц, ответственных за совершение операции и правильность её оформления.",
-    },
-    {
-      type: "p",
-      text: "7. Акт составлен в двух экземплярах, имеющих одинаковую юридическую силу, по одному для Исполнителя и Заказчика.",
-    },
-    {
-      type: "note",
-      text: "Унифицированная форма акта для данного вида услуг законодательством Республики Беларусь не установлена (исключение — строительство). Форма разработана Исполнителем и согласована сторонами договором. Акт рекомендуется закрепить в учётной политике Исполнителя.",
+      text: "3. Акт составлен в двух экземплярах, имеющих одинаковую юридическую силу, по одному для Исполнителя и Заказчика.",
     },
   ];
 
   return {
     kind: "act",
-    kicker: "Первичный учётный документ · ст. 10 Закона № 57-З",
+    kicker: "",
     title: `АКТ № ${actNo}`,
     subtitle: ["сдачи-приёмки оказанных услуг", `(к договору № ${dash(d.contractNumber)} от ${formatDateShortSafe(d.contractDate)})`],
     meta: { city: `г. ${dash(d.city, "Минск")}`, date: formatDateLong(d.actDate || d.contractDate) },
@@ -113,11 +107,4 @@ export function buildAct(d) {
       rightRole: d.clientType === "legal" ? "Руководитель" : "Заказчик",
     },
   };
-}
-
-function formatDateShortSafe(iso) {
-  if (!iso) return "____________";
-  const [y, m, d] = iso.split("-");
-  if (!y || !m || !d) return "____________";
-  return `${d}.${m}.${y}`;
 }

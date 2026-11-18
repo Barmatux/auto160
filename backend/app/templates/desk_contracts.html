@@ -9,7 +9,7 @@
   />
   <link rel="stylesheet" href="/static/styles.css?v=20261118-desk" />
   <link rel="stylesheet" href="/static/admin_theme.css?v=20261118-desk" />
-  <link rel="stylesheet" href="/static/admin_contracts/contracts.css?v=20261118-5" />
+  <link rel="stylesheet" href="/static/admin_contracts/contracts.css?v=20261118-6" />
   <link rel="stylesheet" href="/static/desk.css?v=20261118-2" />
 {% endblock %}
 {% block content %}
@@ -104,7 +104,8 @@
                 <button type="button" data-action="pdf" data-kind="pack">Договор + приложение + счёт + акт</button>
                 <button type="button" data-action="pdf" data-kind="contract">Договор</button>
                 <button type="button" data-action="pdf" data-kind="annex">Приложение</button>
-                <button type="button" data-action="pdf" data-kind="invoice">Счёт</button>
+                <button type="button" data-action="pdf" data-kind="invoice">Счёт на услуги</button>
+                <button type="button" data-action="pdf" data-kind="car-invoice">Счёт на авто</button>
                 <button type="button" data-action="pdf" data-kind="act">Акт</button>
               </div>
             </div>
@@ -114,7 +115,8 @@
                 <button type="button" data-action="word" data-kind="pack">Договор + приложение + счёт + акт</button>
                 <button type="button" data-action="word" data-kind="contract">Договор</button>
                 <button type="button" data-action="word" data-kind="annex">Приложение</button>
-                <button type="button" data-action="word" data-kind="invoice">Счёт</button>
+                <button type="button" data-action="word" data-kind="invoice">Счёт на услуги</button>
+                <button type="button" data-action="word" data-kind="car-invoice">Счёт на авто</button>
                 <button type="button" data-action="word" data-kind="act">Акт</button>
               </div>
             </div>
@@ -129,5 +131,5 @@
     </div>
   </div>
 </div>
-<script type="module" src="/static/admin_contracts/app.js?v=20261118-4"></script>
+<script type="module" src="/static/admin_contracts/app.js?v=20261118-6"></script>
 {% endblock %}
