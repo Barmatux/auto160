@@ -1,0 +1,47 @@
+{% extends "desk_base.html" %}
+{% block body_class %}desk-sold{% endblock %}
+{% block extra_head %}
+  <link rel="stylesheet" href="/static/desk.css?v=20261118-2" />
+{% endblock %}
+{% block content %}
+<div class="sold-app" id="sold-app" data-desk-root="{{ desk_root }}">
+  <header class="sold-top">
+    <nav class="sold-nav">
+      <a href="{{ desk_root }}/contracts">Договоры</a>
+      <a href="{{ desk_root }}/sold" class="active">Проданные авто</a>
+    </nav>
+    <span class="sold-user">{{ current_user.username if current_user else "" }}</span>
+  </header>
+
+  <div class="sold-body">
+    <section class="sold-list-pane" id="sold-list-pane">
+      <div class="sold-toolbar">
+        <input id="sold-search" type="search" placeholder="Поиск по названию или листу" />
+        <label class="sold-check"><input id="sold-only-review" type="checkbox" /> только «проверить»</label>
+        <button type="button" id="sold-partners-btn" class="sold-btn">Партнёры (буквы)</button>
+      </div>
+      <div class="sold-stats" id="sold-stats"></div>
+      <div class="sold-table-wrap">
+        <table class="sold-table">
+          <thead>
+            <tr>
+              <th>Авто</th>
+              <th>Лист</th>
+              <th>Расходы</th>
+              <th>Продано</th>
+              <th>Прибыль</th>
+              <th>Статус</th>
+            </tr>
+          </thead>
+          <tbody id="sold-rows"></tbody>
+        </table>
+      </div>
+      <p class="sold-empty" id="sold-empty" hidden>Пока пусто. Загрузите Excel скриптом импорта.</p>
+    </section>
+
+    <section class="sold-detail-pane" id="sold-detail-pane" hidden></section>
+    <section class="sold-detail-pane" id="sold-partners-pane" hidden></section>
+  </div>
+</div>
+<script type="module" src="/static/desk_sold.js?v=20261118-2"></script>
+{% endblock %}

@@ -5831,6 +5831,19 @@ def desk_contracts_page(request: Request, db: Session = Depends(get_db)):
     return templates.TemplateResponse(request, "desk_contracts.html", context)
 
 
+@router.get("/73948126/sold")
+def desk_sold_page(request: Request, db: Session = Depends(get_db)):
+    """Sold-cars archive (Excel import). Admin role only — staff (dir_max) is redirected."""
+    current_user = _resolve_user_from_request(request, db)
+    root = _desk_root()
+    if current_user is None or current_user.role != UserRole.admin:
+        return RedirectResponse(url=f"{root}?next={root}/sold", status_code=302)
+    context = _template_context(request, current_user)
+    context["seo_noindex"] = True
+    context["desk_root"] = root
+    return templates.TemplateResponse(request, "desk_sold.html", context)
+
+
 @router.get("/admin/blog")
 def admin_blog_list_page(request: Request, db: Session = Depends(get_db)):
     current_user = _resolve_user_from_request(request, db)

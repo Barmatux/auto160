@@ -206,6 +206,20 @@ button {
   transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
 }
 
+.contracts-tabs .contracts-tab-link {
+  color: var(--c-muted);
+  padding: 8px 12px;
+  border: 1px solid var(--c-border);
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 550;
+  text-decoration: none;
+}
+
+.contracts-tabs .contracts-tab-link:hover {
+  color: var(--c-heading);
+}
+
 .contracts-tabs button:hover {
   color: var(--c-heading);
   border-color: var(--c-border);

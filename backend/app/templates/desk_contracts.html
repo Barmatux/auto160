@@ -9,8 +9,8 @@
   />
   <link rel="stylesheet" href="/static/styles.css?v=20261118-desk" />
   <link rel="stylesheet" href="/static/admin_theme.css?v=20261118-desk" />
-  <link rel="stylesheet" href="/static/admin_contracts/contracts.css?v=20261118-4" />
-  <link rel="stylesheet" href="/static/desk.css?v=20261118-1" />
+  <link rel="stylesheet" href="/static/admin_contracts/contracts.css?v=20261118-5" />
+  <link rel="stylesheet" href="/static/desk.css?v=20261118-2" />
 {% endblock %}
 {% block content %}
 {% if is_admin %}
@@ -84,6 +84,7 @@
           <button data-tab="invoice" type="button">Счёт на оплату авто</button>
           <button data-tab="act" type="button">Акт услуг</button>
           <button data-tab="analysis" type="button">Разбор образца</button>
+          {% if is_admin %}<a class="contracts-tab-link" href="{{ desk_root }}/sold">Проданные авто</a>{% endif %}
         </nav>
         <span id="amount-box" hidden></span>
         <span id="save-status" class="save-status" hidden></span>
