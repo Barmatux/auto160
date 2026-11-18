@@ -5,8 +5,8 @@ import { buildAct } from "./lib/act.js";
 import { buildCarInvoice, buildInvoice } from "./lib/invoice.js";
 import { moneyPhrase } from "./lib/money.js";
 import { suggestContractNumber, todayIso } from "./lib/format.js";
-import { downloadWord, renderSheet, renderSheets } from "./render.js?v=20261118-13";
-import { renderAnalysis, renderArchive, renderForm } from "./ui.js?v=20261118-13";
+import { downloadWord, renderSheet, renderSheets } from "./render.js?v=20261118-14";
+import { renderAnalysis, renderArchive, renderForm } from "./ui.js?v=20261118-14";
 import {
   createContract,
   deleteContract,
@@ -447,35 +447,158 @@ async function waitForImages(root) {
   );
 }
 
+/** A4 content width must match jsPDF margins or html2canvas clips the left edge. */
+const PDF_MARGIN_MM = [18, 18, 18, 18]; // top, left, bottom, right
+const PDF_CONTENT_WIDTH_MM = 210 - PDF_MARGIN_MM[1] - PDF_MARGIN_MM[3]; // 174mm
+
+// Scoped under #contracts-pdf-root so portal .sheet (210mm + 25mm pad + grid signs) cannot leak.
 const PDF_DOC_CSS = `
-  html, body { margin: 0; padding: 0; background: #fff; color: #000; }
-  body { font-family: "Times New Roman", Times, serif; font-size: 12pt; line-height: 1.35; padding: 0; }
-  * { box-sizing: border-box; color: #000 !important; }
-  .sheet {
-    width: 100%; max-width: 190mm; margin: 0 auto 0; padding: 0;
-    background: #fff; border: 0; box-shadow: none; min-height: 0 !important;
+  #contracts-pdf-root, #contracts-pdf-root * { box-sizing: border-box !important; color: #000 !important; }
+  #contracts-pdf-root {
+    font-family: "Times New Roman", Times, serif !important;
+    font-size: 12pt !important;
+    line-height: 1.35 !important;
+    background: #fff !important;
+    color: #000 !important;
   }
-  .sheet-break, .sheet-annex, .sheet-annex-only { page-break-before: always; break-before: page; }
-  .sheet-title { text-align: center; font-size: 14pt; font-weight: bold; margin: 6pt 0 4pt; }
-  .sheet-sub { text-align: center; font-style: italic; margin: 0; }
-  .sheet-h { font-size: 12pt; font-weight: bold; margin: 10pt 0 4pt; }
-  .sheet-p { margin: 0; text-align: justify; }
-  .sheet-note { font-size: 10pt; font-style: italic; }
-  .sheet-letterhead { margin-bottom: 10pt; line-height: 1.35; }
-  .sheet-kicker { text-align: center; font-size: 9pt; letter-spacing: .12em; text-transform: uppercase; }
-  .sheet-kv, .sheet-table { border-collapse: collapse; width: 100%; margin: 6pt 0 10pt; }
-  .sheet-kv th, .sheet-kv td, .sheet-table th, .sheet-table td {
-    border: 1px solid #000; padding: 3pt 5pt; vertical-align: top; background: #fff;
+  #contracts-pdf-root .sheet {
+    width: 100% !important;
+    max-width: none !important;
+    min-height: 0 !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: #fff !important;
+    color: #000 !important;
+    position: static !important;
+    font-family: "Times New Roman", Times, serif !important;
+    font-size: 12pt !important;
+    line-height: 1.35 !important;
   }
-  .sheet-invoice-head, .sheet-invoice-head td, .sheet-meta, .sheet-meta td { border: 0 !important; }
-  .sheet-invoice-logo { width: 110px; height: auto; display: block; }
-  .sheet-invoice-title { text-align: center; font-weight: bold; margin: 12pt 0 8pt; }
-  .sheet-invoice-buyer { white-space: pre-line; margin: 0 0 10pt; }
-  .signs { display: table; width: 100%; margin-top: 18pt; }
-  .sign-col { display: table-cell; width: 50%; vertical-align: top; padding-right: 12pt; }
-  .sign-title { font-weight: bold; margin-bottom: 8pt; }
-  .sign-gap { height: 22pt; }
-  .signs-single { display: block; margin-top: 28pt; }
+  #contracts-pdf-root .sheet-break,
+  #contracts-pdf-root .sheet-annex,
+  #contracts-pdf-root .sheet-annex-only {
+    page-break-before: always !important;
+    break-before: page !important;
+  }
+  #contracts-pdf-root .sheet-annex {
+    margin-top: 0 !important;
+    padding-top: 8pt !important;
+    border-top: 0 !important;
+  }
+  #contracts-pdf-root .sheet-title {
+    text-align: center !important;
+    font-size: 14pt !important;
+    font-weight: bold !important;
+    margin: 6pt 0 4pt !important;
+    text-transform: none !important;
+    letter-spacing: 0 !important;
+  }
+  #contracts-pdf-root .sheet-sub {
+    text-align: center !important;
+    font-style: italic !important;
+    margin: 0 0 2pt !important;
+  }
+  #contracts-pdf-root .sheet-h {
+    font-size: 12pt !important;
+    font-weight: bold !important;
+    margin: 12pt 0 4pt !important;
+    text-transform: none !important;
+    letter-spacing: 0 !important;
+    page-break-after: avoid !important;
+  }
+  #contracts-pdf-root .sheet-h.center { text-align: center !important; }
+  #contracts-pdf-root .sheet-keep {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+  #contracts-pdf-root .sheet-p {
+    margin: 0 0 6pt !important;
+    text-align: justify !important;
+    page-break-inside: auto !important;
+    break-inside: auto !important;
+  }
+  #contracts-pdf-root .sheet-p.preamble { text-indent: 1.25em !important; margin-bottom: 10pt !important; }
+  #contracts-pdf-root .sheet-note { font-size: 10pt !important; font-style: italic !important; margin: 6pt 0 !important; }
+  #contracts-pdf-root .sheet-space { height: 8pt !important; margin: 0 !important; }
+  #contracts-pdf-root .sheet-letterhead { margin: 0 0 10pt !important; line-height: 1.35 !important; }
+  #contracts-pdf-root .letter-line { margin: 0 !important; padding: 0 !important; line-height: 1.35 !important; }
+  #contracts-pdf-root .sheet-kicker {
+    text-align: center !important;
+    font-size: 9pt !important;
+    letter-spacing: .08em !important;
+    text-transform: uppercase !important;
+    margin: 0 0 6pt !important;
+  }
+  #contracts-pdf-root .sheet-kv,
+  #contracts-pdf-root .sheet-table {
+    border-collapse: collapse !important;
+    width: 100% !important;
+    margin: 8pt 0 12pt !important;
+    table-layout: auto !important;
+  }
+  #contracts-pdf-root .sheet-kv th,
+  #contracts-pdf-root .sheet-kv td,
+  #contracts-pdf-root .sheet-table th,
+  #contracts-pdf-root .sheet-table td {
+    border: 1px solid #000 !important;
+    padding: 4pt 5pt !important;
+    vertical-align: top !important;
+    background: #fff !important;
+    font-size: 10pt !important;
+  }
+  #contracts-pdf-root .sheet-table th { font-size: 9pt !important; text-align: center !important; }
+  #contracts-pdf-root .sheet-kv,
+  #contracts-pdf-root .sheet-kv tr,
+  #contracts-pdf-root .sheet-table tr,
+  #contracts-pdf-root .signs {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+  #contracts-pdf-root .sheet-invoice-head,
+  #contracts-pdf-root .sheet-invoice-head td,
+  #contracts-pdf-root .sheet-meta,
+  #contracts-pdf-root .sheet-meta td,
+  #contracts-pdf-root .signs,
+  #contracts-pdf-root .signs td {
+    border: 0 !important;
+    background: transparent !important;
+  }
+  #contracts-pdf-root .sheet-meta { margin: 10pt 0 12pt !important; width: 100% !important; }
+  #contracts-pdf-root .sheet-invoice-head { margin-bottom: 12pt !important; width: 100% !important; }
+  #contracts-pdf-root .sheet-invoice-logo {
+    width: 90px !important;
+    max-width: 90px !important;
+    height: auto !important;
+    display: block !important;
+  }
+  #contracts-pdf-root .sheet-invoice-title { text-align: center !important; font-weight: bold !important; margin: 12pt 0 8pt !important; }
+  #contracts-pdf-root .sheet-invoice-buyer { white-space: pre-line !important; margin: 0 0 10pt !important; }
+  #contracts-pdf-root table.signs,
+  #contracts-pdf-root .signs {
+    display: table !important;
+    width: 100% !important;
+    margin-top: 18pt !important;
+    grid-template-columns: none !important;
+    gap: 0 !important;
+  }
+  #contracts-pdf-root .sign-col {
+    display: table-cell !important;
+    width: 50% !important;
+    vertical-align: top !important;
+    padding-right: 12pt !important;
+  }
+  #contracts-pdf-root .sign-title { font-weight: bold !important; margin: 0 0 4pt !important; }
+  #contracts-pdf-root .sign-line-text { margin: 0 !important; }
+  #contracts-pdf-root .sign-gap { height: 18pt !important; margin: 0 !important; line-height: 18pt !important; }
+  #contracts-pdf-root .sign-role { margin: 0 !important; font-style: italic !important; }
+  #contracts-pdf-root .sign-line { margin: 4pt 0 0 !important; }
+  #contracts-pdf-root .sign-line-single { margin: 22pt 0 0 !important; }
+  #contracts-pdf-root .signs-single { display: block !important; margin-top: 28pt !important; }
+  #contracts-pdf-root .page-break { display: none !important; }
 `;
 
 async function downloadPdfDocs(kind) {
@@ -509,10 +632,12 @@ async function downloadPdfDocs(kind) {
 
   const wrap = document.createElement("div");
   wrap.id = "contracts-pdf-root";
-  wrap.style.cssText =
-    "position:fixed;left:0;top:0;width:820px;overflow:visible;z-index:2147483645;background:#fff;padding:12px 16px;color:#000;";
-  let html = renderSheets(docs);
-  html = html.replace(/<br[^>]*>/gi, (tag) => (/page-break/i.test(tag) ? "" : tag));
+  // Exact printable width (= A4 − side margins). Wider containers → left clipping + striped gaps.
+  wrap.style.cssText = `position:fixed;left:0;top:0;width:${PDF_CONTENT_WIDTH_MM}mm;padding:0;margin:0;overflow:visible;z-index:2147483645;background:#fff;color:#000;`;
+  // Word-safe markup (tables for signs/meta) — same as .doc export; avoids CSS grid in capture.
+  let html = renderSheets(docs, { word: true });
+  html = html.replace(/<br[^>]*page-break[^>]*>/gi, "");
+  html = html.replace(/<p class="page-break"[^>]*>[\s\S]*?<\/p>/gi, "");
   wrap.innerHTML = `<style>${PDF_DOC_CSS}</style><div id="contracts-pdf-body">${html}</div>`;
   document.body.appendChild(wrap);
 
@@ -538,11 +663,12 @@ async function downloadPdfDocs(kind) {
       throw new Error("Документ для PDF пуст");
     }
 
+    const captureWidth = Math.ceil(target.getBoundingClientRect().width || target.scrollWidth || 650);
     const filename = pdfName(kind);
     await window
       .html2pdf()
       .set({
-        margin: [12, 12, 14, 12],
+        margin: PDF_MARGIN_MM,
         filename,
         image: { type: "jpeg", quality: 0.98 },
         html2canvas: {
@@ -553,29 +679,37 @@ async function downloadPdfDocs(kind) {
           logging: false,
           scrollX: 0,
           scrollY: 0,
-          windowWidth: Math.max(target.scrollWidth, 800),
-          windowHeight: Math.max(target.scrollHeight, 1200),
+          x: 0,
+          y: 0,
+          windowWidth: captureWidth,
+          windowHeight: Math.ceil(target.scrollHeight) + 24,
           onclone(clonedDoc) {
             const root = clonedDoc.getElementById("contracts-pdf-root");
             if (root) {
-              root.style.left = "0";
-              root.style.top = "0";
-              root.style.opacity = "1";
-              root.style.visibility = "visible";
-              root.style.maxHeight = "none";
-              root.style.overflow = "visible";
+              root.style.cssText = `position:absolute;left:0;top:0;width:${PDF_CONTENT_WIDTH_MM}mm;padding:0;margin:0;overflow:visible;opacity:1;visibility:visible;background:#fff;color:#000;transform:none;`;
             }
             const body = clonedDoc.getElementById("contracts-pdf-body");
             if (body) {
-              body.style.color = "#000";
-              body.style.background = "#fff";
+              body.style.cssText = "width:100%;margin:0;padding:0;color:#000;background:#fff;";
             }
+            clonedDoc.querySelectorAll("#contracts-pdf-root .sheet").forEach((el) => {
+              el.style.minHeight = "0";
+              el.style.height = "auto";
+              el.style.padding = "0";
+              el.style.margin = "0";
+              el.style.width = "100%";
+              el.style.border = "0";
+              el.style.boxShadow = "none";
+              el.style.background = "#fff";
+            });
           },
         },
         jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+        // avoid-all + css (no legacy): legacy mode was slicing canvas into striped pages with holes.
         pagebreak: {
-          mode: ["css", "legacy"],
+          mode: ["avoid-all", "css"],
           before: [".sheet-break", ".sheet-annex", ".sheet-annex-only"],
+          avoid: [".sheet-keep", ".signs", ".sheet-kv", ".sheet-kv tr", ".sheet-table tr"],
         },
       })
       .from(target)

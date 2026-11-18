@@ -1,5 +1,5 @@
 import { FINDINGS, FINDINGS_BY, KEEP_LIST } from "./lib/recommendations.js";
-import { escapeHtml } from "./render.js?v=20261118-13";
+import { escapeHtml } from "./render.js?v=20261118-14";
 import { formatDateTime } from "./lib/format.js";
 import { SCHEMA_SQL } from "./lib/api.js";
 import { normalizeContractData } from "./lib/defaults.js";
