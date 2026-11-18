@@ -447,6 +447,37 @@ async function waitForImages(root) {
   );
 }
 
+const PDF_DOC_CSS = `
+  html, body { margin: 0; padding: 0; background: #fff; color: #000; }
+  body { font-family: "Times New Roman", Times, serif; font-size: 12pt; line-height: 1.35; padding: 0; }
+  * { box-sizing: border-box; color: #000 !important; }
+  .sheet {
+    width: 100%; max-width: 190mm; margin: 0 auto 0; padding: 0;
+    background: #fff; border: 0; box-shadow: none; min-height: 0 !important;
+  }
+  .sheet-break, .sheet-annex, .sheet-annex-only { page-break-before: always; break-before: page; }
+  .sheet-title { text-align: center; font-size: 14pt; font-weight: bold; margin: 6pt 0 4pt; }
+  .sheet-sub { text-align: center; font-style: italic; margin: 0; }
+  .sheet-h { font-size: 12pt; font-weight: bold; margin: 10pt 0 4pt; }
+  .sheet-p { margin: 0; text-align: justify; }
+  .sheet-note { font-size: 10pt; font-style: italic; }
+  .sheet-letterhead { margin-bottom: 10pt; line-height: 1.35; }
+  .sheet-kicker { text-align: center; font-size: 9pt; letter-spacing: .12em; text-transform: uppercase; }
+  .sheet-kv, .sheet-table { border-collapse: collapse; width: 100%; margin: 6pt 0 10pt; }
+  .sheet-kv th, .sheet-kv td, .sheet-table th, .sheet-table td {
+    border: 1px solid #000; padding: 3pt 5pt; vertical-align: top; background: #fff;
+  }
+  .sheet-invoice-head, .sheet-invoice-head td, .sheet-meta, .sheet-meta td { border: 0 !important; }
+  .sheet-invoice-logo { width: 110px; height: auto; display: block; }
+  .sheet-invoice-title { text-align: center; font-weight: bold; margin: 12pt 0 8pt; }
+  .sheet-invoice-buyer { white-space: pre-line; margin: 0 0 10pt; }
+  .signs { display: table; width: 100%; margin-top: 18pt; }
+  .sign-col { display: table-cell; width: 50%; vertical-align: top; padding-right: 12pt; }
+  .sign-title { font-weight: bold; margin-bottom: 8pt; }
+  .sign-gap { height: 22pt; }
+  .signs-single { display: block; margin-top: 28pt; }
+`;
+
 async function downloadPdfDocs(kind) {
   const docs = resolveExportDocs(kind).filter(
     (doc) =>
@@ -469,37 +500,20 @@ async function downloadPdfDocs(kind) {
     btn.textContent = "PDF…";
   }
 
-  // Full opacity + off-screen. opacity:0 → blank PDF; deletePage(all) → broken save.
+  // Keep the export DOM on-screen (under a white overlay). Off-screen / opacity:0 → blank PDF.
+  const overlay = document.createElement("div");
+  overlay.style.cssText =
+    "position:fixed;inset:0;z-index:2147483646;background:#fff;display:flex;align-items:center;justify-content:center;font:16px/1.4 -apple-system,BlinkMacSystemFont,sans-serif;color:#111;";
+  overlay.textContent = "Готовим PDF…";
+  document.body.appendChild(overlay);
+
   const wrap = document.createElement("div");
-  wrap.setAttribute("aria-hidden", "true");
   wrap.id = "contracts-pdf-root";
   wrap.style.cssText =
-    "position:fixed;left:-10000px;top:0;width:800px;padding:16px;margin:0;background:#fff;color:#000;opacity:1;";
-  wrap.innerHTML = `
-    <style>
-      #contracts-pdf-root .sheet, #contracts-pdf-root .sheet * { color: #000 !important; box-sizing: border-box; }
-      #contracts-pdf-root .sheet h1, #contracts-pdf-root .sheet h2,
-      #contracts-pdf-root .sheet-title, #contracts-pdf-root .sheet-h { color: #000 !important; }
-      #contracts-pdf-root .sheet-kv th, #contracts-pdf-root .sheet-kv td,
-      #contracts-pdf-root .sheet-table th, #contracts-pdf-root .sheet-table td {
-        background: #fff !important; color: #000 !important; border: 1px solid #000 !important;
-      }
-      #contracts-pdf-root .sheet {
-        width: 760px; margin: 0; padding: 0; border: 0; box-shadow: none;
-        background: #fff; color: #000; min-height: 0 !important;
-      }
-      #contracts-pdf-root .sheet-break,
-      #contracts-pdf-root .sheet-annex,
-      #contracts-pdf-root .sheet-annex-only {
-        page-break-before: always;
-        break-before: page;
-      }
-      #contracts-pdf-root .sheet-invoice-logo { width: 110px; height: auto; display: block; }
-      #contracts-pdf-root .sheet-invoice-head td,
-      #contracts-pdf-root .sheet-meta td { border: 0 !important; }
-    </style>
-    ${renderSheets(docs)}
-  `;
+    "position:fixed;left:0;top:0;width:820px;overflow:visible;z-index:2147483645;background:#fff;padding:12px 16px;color:#000;";
+  let html = renderSheets(docs);
+  html = html.replace(/<br[^>]*>/gi, (tag) => (/page-break/i.test(tag) ? "" : tag));
+  wrap.innerHTML = `<style>${PDF_DOC_CSS}</style><div id="contracts-pdf-body">${html}</div>`;
   document.body.appendChild(wrap);
 
   try {
@@ -507,15 +521,28 @@ async function downloadPdfDocs(kind) {
     if (typeof window.html2pdf !== "function") {
       throw new Error("PDF-модуль не готов");
     }
-    wrap.querySelectorAll('br[clear], br[style*="page-break"]').forEach((el) => el.remove());
-    await waitForImages(wrap);
-    void wrap.offsetHeight;
+
+    const target = wrap.querySelector("#contracts-pdf-body");
+    await waitForImages(target);
+    if (document.fonts?.ready) {
+      try {
+        await document.fonts.ready;
+      } catch {
+        /* ignore */
+      }
+    }
+    await new Promise((r) => window.setTimeout(r, 80));
+    void target.offsetHeight;
+
+    if (!target || target.scrollHeight < 20) {
+      throw new Error("Документ для PDF пуст");
+    }
 
     const filename = pdfName(kind);
     await window
       .html2pdf()
       .set({
-        margin: [10, 10, 12, 10],
+        margin: [12, 12, 14, 12],
         filename,
         image: { type: "jpeg", quality: 0.98 },
         html2canvas: {
@@ -526,12 +553,32 @@ async function downloadPdfDocs(kind) {
           logging: false,
           scrollX: 0,
           scrollY: 0,
-          windowWidth: 800,
+          windowWidth: Math.max(target.scrollWidth, 800),
+          windowHeight: Math.max(target.scrollHeight, 1200),
+          onclone(clonedDoc) {
+            const root = clonedDoc.getElementById("contracts-pdf-root");
+            if (root) {
+              root.style.left = "0";
+              root.style.top = "0";
+              root.style.opacity = "1";
+              root.style.visibility = "visible";
+              root.style.maxHeight = "none";
+              root.style.overflow = "visible";
+            }
+            const body = clonedDoc.getElementById("contracts-pdf-body");
+            if (body) {
+              body.style.color = "#000";
+              body.style.background = "#fff";
+            }
+          },
         },
         jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-        pagebreak: { mode: ["css", "legacy"], before: [".sheet-break", ".sheet-annex", ".sheet-annex-only"] },
+        pagebreak: {
+          mode: ["css", "legacy"],
+          before: [".sheet-break", ".sheet-annex", ".sheet-annex-only"],
+        },
       })
-      .from(wrap)
+      .from(target)
       .save();
   } catch (err) {
     console.error(err);
@@ -539,6 +586,7 @@ async function downloadPdfDocs(kind) {
     throw err;
   } finally {
     wrap.remove();
+    overlay.remove();
     if (btn) {
       btn.disabled = false;
       btn.textContent = previousLabel;
