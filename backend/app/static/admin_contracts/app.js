@@ -17,6 +17,7 @@ import {
 } from "./lib/api.js";
 
 const STORAGE_KEY = "auto160-admin-contract-draft-v1";
+const DRAFT_STACK_KEY = "auto160-admin-contract-draft-stack-v1";
 
 const titles = {
   archive: {
@@ -54,6 +55,70 @@ function loadLocal() {
 function saveLocal() {
   data = normalizeContractData(data);
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+function readDraftStack() {
+  try {
+    const raw = localStorage.getItem(DRAFT_STACK_KEY);
+    const list = raw ? JSON.parse(raw) : [];
+    return Array.isArray(list) ? list : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeDraftStack(list) {
+  localStorage.setItem(DRAFT_STACK_KEY, JSON.stringify(list.slice(0, 12)));
+}
+
+/** Snapshot current form before an overwrite so the user can restore it. */
+function pushDraftSnapshot(reason) {
+  try {
+    saveLocal();
+    const stack = readDraftStack();
+    stack.unshift({
+      at: Date.now(),
+      reason: reason || "правка",
+      recordId,
+      data: JSON.parse(JSON.stringify(normalizeContractData(data))),
+    });
+    writeDraftStack(stack);
+  } catch {
+    /* ignore quota */
+  }
+  updateRestoreButton();
+}
+
+function updateRestoreButton() {
+  const btn = document.getElementById("btn-restore-draft");
+  if (!btn) return;
+  const stack = readDraftStack();
+  btn.hidden = stack.length === 0;
+  if (stack.length) {
+    const when = new Date(stack[0].at).toLocaleString("ru-RU", {
+      day: "2-digit",
+      month: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    btn.title = `Вернуть: ${stack[0].reason || "черновик"} · ${when}`;
+    btn.textContent = `Вернуть черновик (${stack.length})`;
+  }
+}
+
+function restoreDraftSnapshot() {
+  const stack = readDraftStack();
+  if (!stack.length) return;
+  const snap = stack.shift();
+  writeDraftStack(stack);
+  data = normalizeContractData({ ...createDefaultData(), ...(snap.data || {}) });
+  recordId = snap.recordId ?? recordId;
+  formNeedsPaint = true;
+  tab = "contract";
+  view = "editor";
+  saveLocal();
+  setSaveStatus("Восстановлен черновик");
+  paint();
 }
 
 function buildFullContract() {
@@ -187,6 +252,7 @@ function paint() {
   document.getElementById("toolbar-lead").textContent = (titles[screen] || titles.contract).p;
   document.getElementById("doc-actions").hidden = screen === "archive" || screen === "analysis";
   document.getElementById("btn-sample").hidden = screen === "archive" || screen === "analysis";
+  updateRestoreButton();
 
   document.querySelectorAll(".contracts-tabs button").forEach((btn) => {
     btn.classList.toggle("active", btn.dataset.tab === tab);
@@ -219,7 +285,7 @@ function paint() {
   formPane.hidden = false;
   preview.hidden = false;
   if (formNeedsPaint) {
-    formPane.innerHTML = renderForm(data);
+    formPane.innerHTML = renderForm(data, { tab });
     formNeedsPaint = false;
   }
   preview.innerHTML = previewHtml();
@@ -236,6 +302,7 @@ async function loadArchive() {
 }
 
 async function openRecord(id) {
+  pushDraftSnapshot("перед открытием другого договора");
   const row = await getContract(id);
   if (!row) throw new Error("Договор не найден.");
   recordId = row.id;
@@ -248,6 +315,7 @@ async function openRecord(id) {
 }
 
 async function createNew() {
+  pushDraftSnapshot("перед новым договором");
   data = createDefaultData();
   formNeedsPaint = true;
   const row = await createContract(data);
@@ -281,6 +349,7 @@ function applyField(target) {
   if (!name) return;
   const value = target.type === "checkbox" ? target.checked : target.value;
   if (name === "packageType") {
+    pushDraftSnapshot("перед сменой рынка (Беларусь / ЕС)");
     data = applyPackageDefaults({ ...data, packageType: value });
     formNeedsPaint = true;
   } else {
@@ -347,6 +416,37 @@ function loadScriptOnce(src) {
   });
 }
 
+async function waitForImages(root) {
+  await Promise.all(
+    [...root.querySelectorAll("img")].map(async (img) => {
+      if (!img.getAttribute("src")) return;
+      if (!img.complete || img.naturalWidth === 0) {
+        await new Promise((resolve) => {
+          img.addEventListener("load", resolve, { once: true });
+          img.addEventListener("error", resolve, { once: true });
+        });
+      }
+      // Same-origin → data URL so html2canvas never paints a blank logo tile.
+      try {
+        if (img.src && !img.src.startsWith("data:")) {
+          const res = await fetch(img.src, { credentials: "same-origin" });
+          if (res.ok) {
+            const blob = await res.blob();
+            img.src = await new Promise((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () => resolve(String(reader.result || ""));
+              reader.onerror = reject;
+              reader.readAsDataURL(blob);
+            });
+          }
+        }
+      } catch {
+        /* keep original src */
+      }
+    }),
+  );
+}
+
 async function downloadPdfDocs(kind) {
   const docs = resolveExportDocs(kind).filter(
     (doc) =>
@@ -360,36 +460,36 @@ async function downloadPdfDocs(kind) {
   if (!docs.length) return;
 
   const btn = document.getElementById("btn-print");
-  const previousLabel = btn?.textContent || "Скачать PDF";
+  const previousLabel = btn?.textContent || "Скачать PDF ▾";
   if (btn) {
     btn.disabled = true;
     btn.textContent = "PDF…";
   }
 
-  const margin = [16, 16, 16, 16];
+  const margin = [12, 12, 14, 12];
   const wrap = document.createElement("div");
   wrap.setAttribute("aria-hidden", "true");
+  // Keep in viewport (opacity 0): off-screen -12000px often yields a blank white PDF in html2canvas.
   wrap.style.cssText =
-    "position:fixed;left:-12000px;top:0;width:178mm;padding:0;margin:0;background:#fff;color:#000;pointer-events:none;";
+    "position:fixed;left:0;top:0;width:190mm;padding:0;margin:0;background:#fff;color:#000;opacity:0;pointer-events:none;z-index:-1;";
   wrap.innerHTML = `
     <style>
-      .sheet, .sheet * { color: #000 !important; }
+      .sheet, .sheet * { color: #000 !important; box-sizing: border-box; }
       .sheet h1, .sheet h2, .sheet-title, .sheet-h { color: #000 !important; }
       .sheet-kv th, .sheet-kv td, .sheet-table th, .sheet-table td {
-        background: #fff !important; color: #000 !important; border-color: #000 !important;
+        background: #fff !important; color: #000 !important; border: 1px solid #000 !important;
       }
-      .sheet-keep, .signs, .sheet-kv, .sheet-kv tr, .sheet-table tr {
-        break-inside: avoid !important; page-break-inside: avoid !important;
-      }
-      .sheet-h { page-break-after: avoid !important; break-after: avoid-page !important; }
-      .sheet-annex, .sheet-break, .sheet-annex-only {
-        break-before: page !important; page-break-before: always !important;
+      .sheet-annex {
+        break-before: page; page-break-before: always; margin-top: 8mm;
       }
       .sheet {
-        width: 178mm; margin: 0; padding: 0; border: 0; box-shadow: none;
-        background: #fff; color: #000; min-height: 0;
+        width: 186mm; margin: 0 0 8mm; padding: 0; border: 0; box-shadow: none;
+        background: #fff; color: #000; min-height: 0 !important;
       }
+      .sheet-break { break-before: page; page-break-before: always; }
       .sheet-invoice-logo { width: 110px; height: auto; }
+      .sheet-invoice-head { width: 100%; border: 0 !important; }
+      .sheet-invoice-head td { border: 0 !important; }
     </style>
     ${renderSheets(docs)}
   `;
@@ -400,19 +500,12 @@ async function downloadPdfDocs(kind) {
     if (typeof window.html2pdf !== "function") {
       throw new Error("PDF-модуль не готов");
     }
-    // Wait for logo image so html2canvas captures it.
-    await Promise.all(
-      [...wrap.querySelectorAll("img")].map(
-        (img) =>
-          img.complete
-            ? Promise.resolve()
-            : new Promise((resolve) => {
-                img.addEventListener("load", resolve, { once: true });
-                img.addEventListener("error", resolve, { once: true });
-              }),
-      ),
-    );
+    await waitForImages(wrap);
+    // Force layout so canvas has real heights.
+    void wrap.offsetHeight;
+
     const filename = pdfName(kind);
+    // Do not use pagebreak mode "avoid-all" — it often yields a blank white PDF.
     const pdf = await window
       .html2pdf()
       .set({
@@ -422,22 +515,25 @@ async function downloadPdfDocs(kind) {
         html2canvas: {
           scale: 2,
           useCORS: true,
+          allowTaint: true,
           backgroundColor: "#ffffff",
           logging: false,
           scrollX: 0,
           scrollY: 0,
+          windowWidth: Math.max(wrap.scrollWidth, 720),
         },
         jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
         pagebreak: {
-          mode: ["avoid-all", "css"],
-          before: [".sheet-annex", ".sheet-break", ".sheet-annex-only"],
-          avoid: [".sheet-keep", ".signs", ".sheet-kv", ".sheet-kv tr", ".sheet-table tr", ".sheet-p"],
+          mode: ["css", "legacy"],
+          before: [".sheet-annex", ".sheet-break"],
         },
       })
       .from(wrap)
       .toPdf()
       .get("pdf");
+
     const total = pdf.internal.getNumberOfPages();
+    if (!total) throw new Error("PDF получился пустым");
     for (let i = 1; i <= total; i += 1) {
       pdf.setPage(i);
       pdf.setFont("times", "normal");
@@ -497,6 +593,7 @@ document.body.addEventListener("click", async (e) => {
       view = "archive";
       paint();
     } else if (action === "sample") {
+      pushDraftSnapshot("перед вставкой примера");
       const date = data.contractDate || todayIso();
       data = {
         ...data,
@@ -511,6 +608,8 @@ document.body.addEventListener("click", async (e) => {
       tab = "contract";
       scheduleSave();
       paint();
+    } else if (action === "restore-draft") {
+      restoreDraftSnapshot();
     } else if (action === "toggle-pdf" || action === "toggle-word") {
       e.preventDefault();
       const menuName = action === "toggle-pdf" ? "pdf" : "word";
@@ -525,7 +624,20 @@ document.body.addEventListener("click", async (e) => {
     } else if (action === "word") {
       closeExportMenus();
       const kind = btn.dataset.kind || "pack";
-      downloadWord(resolveExportDocs(kind), wordName(kind));
+      const wordBtn = document.getElementById("btn-word");
+      const prev = wordBtn?.textContent || "Скачать Word ▾";
+      if (wordBtn) {
+        wordBtn.disabled = true;
+        wordBtn.textContent = "Word…";
+      }
+      try {
+        await downloadWord(resolveExportDocs(kind), wordName(kind));
+      } finally {
+        if (wordBtn) {
+          wordBtn.disabled = false;
+          wordBtn.textContent = prev;
+        }
+      }
     }
   } catch (err) {
     archiveError = err.message;
@@ -539,6 +651,13 @@ document.addEventListener("click", (e) => {
 
 async function boot() {
   data = loadLocal();
+  // Keep a recoverable copy of whatever was already typed before further edits.
+  if (
+    !readDraftStack().length &&
+    (data.clientName || data.clientCompany || data.contractNumber || data.amount)
+  ) {
+    pushDraftSnapshot("автосохранение при открытии");
+  }
   view = "archive";
   tab = "archive";
   try {

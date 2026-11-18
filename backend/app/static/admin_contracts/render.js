@@ -73,10 +73,15 @@ function preambleHtml(doc) {
       .join("")}</div>`;
   }
   if (!doc.logoSrc) return letterhead;
-  return `<div class="sheet-invoice-head">
-    <img class="sheet-invoice-logo" src="${escapeHtml(doc.logoSrc)}" alt="" width="120" height="82" />
-    ${letterhead}
-  </div>`;
+  // Table layout so Word and PDF keep logo + requisites side by side (CSS grid breaks in Word).
+  return `<table class="sheet-invoice-head" width="100%" cellpadding="0" cellspacing="0" style="border:0;border-collapse:collapse;margin-bottom:12pt;">
+    <tr>
+      <td width="120" valign="top" style="border:0;padding:0 12pt 0 0;width:120px;">
+        <img class="sheet-invoice-logo" src="${escapeHtml(doc.logoSrc)}" alt="" width="110" height="75" />
+      </td>
+      <td valign="top" style="border:0;padding:0;">${letterhead}</td>
+    </tr>
+  </table>`;
 }
 
 /** Keep section heading with the next block so it never sits alone at page bottom. */
@@ -144,10 +149,19 @@ export function renderSheet(doc, { pageBreakBefore = false } = {}) {
   const metaDate = doc.meta?.date || "";
   const meta =
     metaCity || metaDate
-      ? `<div class="sheet-meta"><span>${escapeHtml(metaCity)}</span><span>${escapeHtml(metaDate)}</span></div>`
+      ? `<table class="sheet-meta" width="100%" cellpadding="0" cellspacing="0" style="border:0;border-collapse:collapse;margin:12pt 0;">
+          <tr>
+            <td style="border:0;padding:0;text-align:left;">${escapeHtml(metaCity)}</td>
+            <td style="border:0;padding:0;text-align:right;">${escapeHtml(metaDate)}</td>
+          </tr>
+        </table>`
       : "";
   const breakCls = pageBreakBefore ? " sheet-break" : "";
+  const breakMarker = pageBreakBefore
+    ? `<br clear="all" style="page-break-before:always;mso-break-type:section-break;" />`
+    : "";
   return `
+    ${breakMarker}
     <article class="sheet sheet-${escapeHtml(doc.kind || "doc")}${breakCls}">
       ${kicker}
       ${title}
@@ -166,9 +180,42 @@ export function renderSheets(docs) {
     .join("");
 }
 
-export function downloadWord(docOrDocs, filename) {
+async function urlToDataUrl(url) {
+  if (!url || String(url).startsWith("data:")) return url || "";
+  try {
+    const res = await fetch(url, { credentials: "same-origin" });
+    if (!res.ok) return url;
+    const blob = await res.blob();
+    return await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ""));
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return url;
+  }
+}
+
+async function embedImagesInHtml(html) {
+  const urls = [...html.matchAll(/<img[^>]+src="([^"]+)"/gi)].map((m) => m[1]);
+  const unique = [...new Set(urls)].filter((u) => u && !u.startsWith("data:"));
+  const map = new Map();
+  await Promise.all(
+    unique.map(async (url) => {
+      map.set(url, await urlToDataUrl(url));
+    }),
+  );
+  let out = html;
+  for (const [url, data] of map) {
+    out = out.split(url).join(data);
+  }
+  return out;
+}
+
+export async function downloadWord(docOrDocs, filename) {
   const docs = Array.isArray(docOrDocs) ? docOrDocs : [docOrDocs];
-  const inner = renderSheets(docs);
+  let inner = await embedImagesInHtml(renderSheets(docs));
   const title = docs.map((d) => d?.title).filter(Boolean)[0] || "Документ";
   const html = `<!DOCTYPE html>
 <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
@@ -216,31 +263,29 @@ export function downloadWord(docOrDocs, filename) {
     color: #000;
   }
   .sheet-sub { text-align: center; font-style: italic; margin: 0; color: #000; }
-  .sheet-meta { display: flex; justify-content: space-between; margin: 12pt 0; color: #000; }
+  .sheet-meta { margin: 12pt 0; color: #000; }
   .sheet-h {
     font-size: 12pt;
     margin: 10pt 0 4pt;
     color: #000;
     page-break-after: avoid;
-    break-after: avoid-page;
   }
   .sheet-h.center { text-align: center; }
-  .sheet-keep {
-    page-break-inside: avoid;
-    break-inside: avoid;
-  }
+  .sheet-keep { page-break-inside: avoid; }
   .sheet-p {
     text-align: justify;
     margin: 0;
     color: #000;
-    orphans: 3;
-    widows: 3;
   }
   .sheet-note { font-size: 10pt; font-style: italic; color: #000; }
-  table { border-collapse: collapse; width: 100%; margin: 6pt 0 10pt; page-break-inside: avoid; }
-  tr { page-break-inside: avoid; }
-  th, td { border: 1px solid #000; padding: 3pt 5pt; vertical-align: top; color: #000; background: #fff; }
-  th { background: #fff; text-align: left; font-weight: bold; }
+  table.sheet-kv, table.sheet-table { border-collapse: collapse; width: 100%; margin: 6pt 0 10pt; }
+  table.sheet-kv th, table.sheet-kv td,
+  table.sheet-table th, table.sheet-table td {
+    border: 1px solid #000; padding: 3pt 5pt; vertical-align: top; color: #000; background: #fff;
+  }
+  table.sheet-invoice-head, table.sheet-meta, table.sheet-invoice-head td, table.sheet-meta td {
+    border: 0 !important;
+  }
   .signs { display: table; width: 100%; margin-top: 18pt; page-break-inside: avoid; }
   .signs-single { display: block; margin-top: 28pt; }
   .sign-line-single { margin-top: 18pt; }
@@ -250,8 +295,7 @@ export function downloadWord(docOrDocs, filename) {
   .sign-gap { height: 22pt; }
   .sheet-invoice-title { text-align: center; font-weight: bold; margin: 12pt 0 8pt; }
   .sheet-invoice-buyer { white-space: pre-line; margin: 0 0 10pt; }
-  .sheet-invoice-head { margin-bottom: 12pt; }
-  .sheet-invoice-logo { width: 90pt; height: auto; margin-bottom: 6pt; }
+  .sheet-invoice-logo { width: 90pt; height: auto; }
   .sheet-annex { page-break-before: always; padding-top: 12pt; }
   .sheet-break, .sheet-annex-only { page-break-before: always; }
 </style>

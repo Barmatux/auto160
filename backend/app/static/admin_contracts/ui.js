@@ -66,7 +66,63 @@ function section(title, inner) {
   return `<section class="form-section"><h3>${escapeHtml(title)}</h3><div class="form-grid">${inner}</div></section>`;
 }
 
-export function renderForm(data) {
+function renderCarInvoiceForm(data) {
+  const buyerFields =
+    data.clientType === "legal"
+      ? [
+          field("Организация", "clientCompany", data, { wide: true }),
+          field("УНП", "clientUnp", data),
+          field("Адрес", "clientAddress", data, { wide: true }),
+          field("Телефон", "clientPhone", data),
+        ]
+      : [
+          field("ФИО", "clientName", data, { wide: true }),
+          field("Адрес", "clientAddress", data, { wide: true }),
+          field("Паспорт", "passport", data),
+          field("Идентификационный номер", "personalNumber", data),
+          field("Телефон", "clientPhone", data),
+        ];
+  return `
+    <form class="form" id="contract-form">
+      ${section(
+        "Счёт на оплату авто",
+        [
+          field("Номер счёта", "invoiceNumber", data),
+          field("Дата счёта", "invoiceDate", data, { type: "date" }),
+          field("Марка", "invoiceCarMake", data, { placeholder: data.vehicleMake || "Mitsubishi" }),
+          field("Модель", "invoiceCarModel", data, { placeholder: data.vehicleModel || "Outlander" }),
+          field("Год выпуска", "invoiceCarYear", data, { placeholder: "2014" }),
+          field("VIN", "invoiceCarVin", data, { placeholder: data.vehicleVin || "Z8T…" }),
+          field("Сумма за авто, BYN", "invoiceAmount", data, { placeholder: "30888,00" }),
+          field("НДС", "vatMode", data, {
+            type: "select",
+            options: [
+              ["none", "Не исчисляется"],
+              ["included20", "20 % включён в сумму"],
+              ["onTop20", "20 % сверх суммы"],
+            ],
+          }),
+        ].join(""),
+      )}
+      ${section(
+        "Покупатель",
+        [
+          field("Тип", "clientType", data, {
+            type: "select",
+            options: [
+              ["individual", "Физическое лицо"],
+              ["legal", "Юридическое лицо"],
+            ],
+          }),
+          ...buyerFields,
+        ].join(""),
+      )}
+      <p class="hint">Этот счёт не входит в пакет договора — только отдельный документ на оплату автомобиля.</p>
+    </form>`;
+}
+
+export function renderForm(data, { tab = "contract" } = {}) {
+  if (tab === "invoice") return renderCarInvoiceForm(data);
   const clientFields =
     data.clientType === "legal"
       ? [
@@ -200,19 +256,6 @@ export function renderForm(data) {
             hint: "В пакете договора — счёт за услуги. Сумма берётся из стоимости услуг выше.",
           }),
           field("Дата счёта", "invoiceDate", data, { type: "date" }),
-        ].join(""),
-      )}
-      ${section(
-        "Счёт на оплату авто (отдельная вкладка)",
-        [
-          field("Марка", "invoiceCarMake", data, { placeholder: data.vehicleMake || "Mitsubishi" }),
-          field("Модель", "invoiceCarModel", data, { placeholder: data.vehicleModel || "Outlander" }),
-          field("Год выпуска", "invoiceCarYear", data, { placeholder: "2014" }),
-          field("VIN", "invoiceCarVin", data, { placeholder: data.vehicleVin || "Z8T…" }),
-          field("Сумма за авто, BYN", "invoiceAmount", data, {
-            placeholder: "30888,00",
-            hint: "Только для вкладки «Счёт на оплату авто», не для пакета договора.",
-          }),
         ].join(""),
       )}
       ${section(
