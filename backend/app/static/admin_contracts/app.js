@@ -5,8 +5,8 @@ import { buildAct } from "./lib/act.js";
 import { buildCarInvoice, buildInvoice } from "./lib/invoice.js";
 import { moneyPhrase } from "./lib/money.js";
 import { suggestContractNumber, todayIso } from "./lib/format.js";
-import { downloadWord, renderSheet, renderSheets } from "./render.js?v=20261118-14";
-import { renderAnalysis, renderArchive, renderForm } from "./ui.js?v=20261118-14";
+import { downloadWord, renderSheet, renderSheets } from "./render.js?v=20261118-15";
+import { renderAnalysis, renderArchive, renderForm } from "./ui.js?v=20261118-15";
 import {
   createContract,
   deleteContract,

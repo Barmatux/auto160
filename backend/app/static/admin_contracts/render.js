@@ -128,7 +128,9 @@ function blocksHtml(blocks, opts = {}) {
         chunk.push(blockHtml(blocks[i], opts));
         i += 1;
       }
-      out.push(`<div class="sheet-keep">${chunk.join("")}</div>`);
+      // Word: rely on page-break-after:avoid on headings — keep-together on large
+      // chunks leaves huge blank regions when Word cannot fit the block.
+      out.push(opts.word ? chunk.join("") : `<div class="sheet-keep">${chunk.join("")}</div>`);
       continue;
     }
     if (block.type === "title") {
@@ -138,7 +140,7 @@ function blocksHtml(blocks, opts = {}) {
         chunk.push(blockHtml(blocks[i], opts));
         i += 1;
       }
-      out.push(`<div class="sheet-keep">${chunk.join("")}</div>`);
+      out.push(opts.word ? chunk.join("") : `<div class="sheet-keep">${chunk.join("")}</div>`);
       continue;
     }
     out.push(blockHtml(block, opts));
@@ -150,23 +152,37 @@ function blocksHtml(blocks, opts = {}) {
 export function renderSheet(doc, { pageBreakBefore = false, word = false } = {}) {
   const opts = { word };
   const blocks = [...(doc.blocks || [])];
+  const annexBlocks = [...(doc.annex1 || [])];
+  const annexOnly = Boolean(doc.annex1) && !doc.title && !(doc.blocks || []).length && !doc.preamble;
   const signs = signsHtml(doc.signatures, opts);
   const last = blocks[blocks.length - 1];
   const lastIsRequisites =
     last?.type === "heading" && /РЕКВИЗИТЫ/i.test(String(last.text || ""));
   let body;
-  if (lastIsRequisites) {
+  if (annexOnly) {
+    // Annex-only sheet: content + signs live inside .sheet-annex. Do not also
+    // emit body signs — that orphaned a signature page before the annex break.
+    body = "";
+  } else if (lastIsRequisites) {
     const heading = blocks.pop();
-    body = `${blocksHtml(blocks, opts)}<div class="sheet-keep">${blockHtml(heading, opts)}${signs}</div>`;
+    body = word
+      ? `${blocksHtml(blocks, opts)}${blockHtml(heading, opts)}${signs}`
+      : `${blocksHtml(blocks, opts)}<div class="sheet-keep">${blockHtml(heading, opts)}${signs}</div>`;
   } else if (blocks.length || signs) {
     body = `${blocksHtml(blocks, opts)}${signs}`;
   } else {
     body = "";
   }
-  const annexBlocks = [...(doc.annex1 || [])];
-  const annexOnly = Boolean(doc.annex1) && !doc.title && !(doc.blocks || []).length && !doc.preamble;
+  // Word pack already inserts one page-break marker before each subsequent doc.
+  // Extra CSS page-break on .sheet-annex / .sheet-annex-only / .sheet-break stacked
+  // into blank pages — so Word CSS drops those, and embedded annex gets one marker.
+  const annexBreak =
+    word && doc.annex1 && !annexOnly
+      ? `<br clear="all" style="page-break-before:always;" />`
+      : "";
+  const annexSigns = word ? signsHtml(doc.signatures, opts) : `<div class="sheet-keep">${signsHtml(doc.signatures, opts)}</div>`;
   const annex = doc.annex1
-    ? `<div class="sheet-annex${annexOnly ? " sheet-annex-only" : ""}">${blocksHtml(annexBlocks, opts)}<div class="sheet-keep">${signsHtml(doc.signatures, opts)}</div></div>`
+    ? `${annexBreak}<div class="sheet-annex${annexOnly ? " sheet-annex-only" : ""}">${blocksHtml(annexBlocks, opts)}${annexSigns}</div>`
     : "";
   const kicker = doc.kicker
     ? word
@@ -190,12 +206,11 @@ export function renderSheet(doc, { pageBreakBefore = false, word = false } = {})
           </tr>
         </table>`
       : "";
+  // Keep sheet-break class for PDF capture CSS; Word stylesheet ignores it.
   const breakCls = pageBreakBefore ? " sheet-break" : "";
-  // Word: ordinary page break. Avoid mso section-break — it splits headers/footers and looks broken.
+  // One ordinary break only. Avoid mso section-break and stacking with CSS breaks.
   const breakMarker = pageBreakBefore
-    ? word
-      ? `<p class="page-break" style="page-break-before:always;mso-pagination:widow-orphan lines-together;"><span style="font-size:1pt;">&nbsp;</span></p>`
-      : `<br clear="all" style="page-break-before:always;" />`
+    ? `<br clear="all" style="page-break-before:always;" />`
     : "";
   const tag = word ? "div" : "article";
   return `
@@ -329,7 +344,7 @@ export async function downloadWord(docOrDocs, filename) {
     page-break-after: avoid;
   }
   .sheet-h.center { text-align: center; }
-  .sheet-keep { page-break-inside: avoid; }
+  /* Do not use page-break-inside:avoid in Word — large keeps create blank half-pages. */
   .sheet-p {
     text-align: justify;
     margin: 0 0 6pt;
@@ -366,10 +381,12 @@ export async function downloadWord(docOrDocs, filename) {
   .sign-line-single { margin: 22pt 0 0; }
   .sheet-invoice-title { text-align: center; font-weight: bold; margin: 12pt 0 8pt; }
   .sheet-invoice-buyer { margin: 0 0 10pt; }
-  .sheet-invoice-logo { width: 90pt; height: auto; }
-  .sheet-annex { page-break-before: always; padding-top: 12pt; margin-top: 0; }
-  .sheet-break, .sheet-annex-only { page-break-before: always; }
-  .page-break { margin: 0; font-size: 1pt; line-height: 1pt; }
+  .sheet-invoice-logo { width: 90px; height: auto; }
+  /* Page breaks for Word come only from explicit <br page-break-before> markers.
+     CSS page-break on .sheet-break / .sheet-annex stacked with those markers and
+     produced blank pages between contract, annex, invoice, and act. */
+  .sheet-annex { padding-top: 0; margin-top: 0; }
+  .sheet-break, .sheet-annex-only { }
 </style>
 </head>
 <body>
