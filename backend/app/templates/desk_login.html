@@ -44,8 +44,9 @@
         var data = await response.json();
         if (response.ok && data.access_token && data.refresh_token) {
           setAuthCookies(data.access_token, data.refresh_token);
-          var next = new URLSearchParams(window.location.search).get("next") || "/desk/contracts";
-          var safeNext = next.startsWith("/") && !next.startsWith("//") ? next : "/desk/contracts";
+          var deskRoot = {{ desk_root|tojson }};
+          var next = new URLSearchParams(window.location.search).get("next") || (deskRoot + "/contracts");
+          var safeNext = next.startsWith("/") && !next.startsWith("//") ? next : (deskRoot + "/contracts");
           window.location.href = safeNext;
           return;
         }

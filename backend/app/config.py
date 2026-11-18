@@ -20,6 +20,8 @@ class Settings(BaseSettings):
     bootstrap_desk_admin_email: str = "admin_roman1067@auto160.internal"
     bootstrap_desk_admin_name: str = "admin_roman1067"
     bootstrap_desk_admin_password: str = "6888Volvo6333Peugeot"
+    # Numeric path only; intended for bare IP host, not auto160.ru.
+    desk_portal_path: str = "73948126"
     # Optional one-shot Supabase import for old SM contracts archive.
     supabase_contracts_url: str = ""
     supabase_contracts_anon_key: str = ""

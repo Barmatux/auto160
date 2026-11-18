@@ -5793,27 +5793,37 @@ def admin_contracts_page(request: Request, db: Session = Depends(get_db)):
     return templates.TemplateResponse(request, "admin_contracts.html", context)
 
 
+def _desk_root() -> str:
+    raw = (settings.desk_portal_path or "73948126").strip().strip("/")
+    return f"/{raw or '73948126'}"
+
+
 def _desk_contracts_redirect(current_user) -> RedirectResponse | None:
+    root = _desk_root()
+    login = f"{root}?next={root}/contracts"
     if current_user is None:
-        return RedirectResponse(url="/desk?next=/desk/contracts", status_code=302)
+        return RedirectResponse(url=login, status_code=302)
     if current_user.role in {UserRole.admin, UserRole.staff}:
         return None
-    return RedirectResponse(url="/desk?next=/desk/contracts", status_code=302)
+    return RedirectResponse(url=login, status_code=302)
 
 
-@router.get("/desk")
+@router.get("/73948126")
+@router.get("/73948126/")
 def desk_login_page(request: Request, db: Session = Depends(get_db)):
+    # Served on bare IP via nginx; blocked on auto160.ru host.
     current_user = _resolve_user_from_request(request, db)
+    root = _desk_root()
     if current_user is not None and current_user.role in {UserRole.admin, UserRole.staff}:
-        return RedirectResponse(url="/desk/contracts", status_code=302)
+        return RedirectResponse(url=f"{root}/contracts", status_code=302)
     return templates.TemplateResponse(
         request,
         "desk_login.html",
-        {"request": request, "seo_noindex": True},
+        {"request": request, "seo_noindex": True, "desk_root": root},
     )
 
 
-@router.get("/desk/contracts")
+@router.get("/73948126/contracts")
 def desk_contracts_page(request: Request, db: Session = Depends(get_db)):
     current_user = _resolve_user_from_request(request, db)
     redirect = _desk_contracts_redirect(current_user)
@@ -5821,6 +5831,7 @@ def desk_contracts_page(request: Request, db: Session = Depends(get_db)):
         return redirect
     context = _template_context(request, current_user)
     context["seo_noindex"] = True
+    context["desk_root"] = _desk_root()
     return templates.TemplateResponse(request, "desk_contracts.html", context)
 
 

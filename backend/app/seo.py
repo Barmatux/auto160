@@ -832,8 +832,8 @@ SITEMAP_MAX_URLS = 40_000
 
 _ROBOTS_DISALLOW = (
     "/admin/",
-    "/desk",
-    "/desk/",
+    "/73948126",
+    "/73948126/",
     "/api/",
     "/login",
     "/register",
