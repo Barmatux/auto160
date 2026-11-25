@@ -818,6 +818,7 @@ class BcaLot(Base):
     sale_location: Mapped[str] = mapped_column(String(160), default="")
     vehicle_location: Mapped[str] = mapped_column(String(160), default="")
     image_url: Mapped[str] = mapped_column(Text, default="")
+    photo_s3_key: Mapped[str] = mapped_column(Text, default="")
     bid_now: Mapped[str] = mapped_column(String(80), default="")
     buy_now: Mapped[str] = mapped_column(String(80), default="")
     condition_report_url: Mapped[str] = mapped_column(Text, default="")

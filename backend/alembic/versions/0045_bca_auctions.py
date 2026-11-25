@@ -60,6 +60,7 @@ def upgrade() -> None:
         sa.Column("sale_location", sa.String(160), nullable=False, server_default=""),
         sa.Column("vehicle_location", sa.String(160), nullable=False, server_default=""),
         sa.Column("image_url", sa.Text(), nullable=False, server_default=""),
+        sa.Column("photo_s3_key", sa.Text(), nullable=False, server_default=""),
         sa.Column("bid_now", sa.String(80), nullable=False, server_default=""),
         sa.Column("buy_now", sa.String(80), nullable=False, server_default=""),
         sa.Column("condition_report_url", sa.Text(), nullable=False, server_default=""),

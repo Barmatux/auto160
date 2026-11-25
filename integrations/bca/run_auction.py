@@ -21,7 +21,8 @@ if str(ROOT) not in sys.path:
 
 from integrations.bca.client import BcaClient, DownloadResult
 from integrations.bca.normalize import auction_from_lots, lot_from_row
-from integrations.bca.store import connect, upsert_auction, upsert_document, upsert_lot
+from integrations.bca.s3 import object_key, put_bytes, settings_from_env
+from integrations.bca.store import connect, set_photo_s3_key, upsert_auction, upsert_document, upsert_lot
 
 DOCUMENT_KINDS = (
     ("condition_report_url", "inspection"),
@@ -75,6 +76,26 @@ def _load_report(path: Path | None) -> dict[str, dict]:
     return {str(item["url"]): item for item in items if item.get("url")}
 
 
+def _image_ext(body: bytes, content_type: str) -> str:
+    if body.startswith(b"\xff\xd8") or "jpeg" in content_type:
+        return ".jpg"
+    if body.startswith(b"\x89PNG") or "png" in content_type:
+        return ".png"
+    if body.startswith(b"RIFF") or "webp" in content_type:
+        return ".webp"
+    return ""
+
+
+def _publish(body: bytes, key: str, content_type: str, local_path: Path) -> tuple[str, str]:
+    settings = settings_from_env()
+    if settings is not None:
+        put_bytes(settings, key=key, body=body, content_type=content_type)
+        return key, ""
+    local_path.parent.mkdir(parents=True, exist_ok=True)
+    local_path.write_bytes(body)
+    return str(local_path), "S3 credentials are not set; saved locally"
+
+
 def _store_body(
     connection,
     *,
@@ -87,15 +108,19 @@ def _store_body(
     status: str,
     detail: str,
     doc_dir: Path,
+    sale_id: str,
+    vehicle_id: str,
     seen_at: datetime,
 ) -> None:
     storage_path = ""
-    if status == "downloaded":
-        doc_dir.mkdir(parents=True, exist_ok=True)
-        filename = f"{kind}-{lot_pk or auction_id}.pdf"
-        target = doc_dir / filename
-        target.write_bytes(body)
-        storage_path = str(target)
+    if status == "downloaded" and body:
+        if vehicle_id:
+            key = object_key(f"bca/{vehicle_id}", kind, source=url, ext=".pdf")
+        else:
+            key = object_key(f"bca/sales/{sale_id}", kind, source=url, ext=".pdf")
+        storage_path, note = _publish(body, key, content_type or "application/pdf", doc_dir / Path(key).name)
+        if note:
+            detail = f"{detail}; {note}".strip("; ")
     upsert_document(
         connection,
         auction_id=auction_id,
@@ -130,6 +155,35 @@ def _apply_report_item(item: dict, doc_dir: Path) -> tuple[bytes, str, str, str]
     return body, content_type, status, detail
 
 
+def _load_photo(client: BcaClient, lot: dict, photo_dir: Path | None) -> tuple[bytes, str]:
+    if photo_dir is not None:
+        for ext in (".jpg", ".jpeg", ".png", ".webp"):
+            candidate = photo_dir / f"{lot['vehicle_id']}{ext}"
+            if candidate.is_file():
+                return candidate.read_bytes(), "image/jpeg" if ext in {".jpg", ".jpeg"} else f"image/{ext[1:]}"
+    if not lot.get("image_url"):
+        return b"", ""
+    result = client.download(lot["image_url"])
+    if result.error:
+        return b"", ""
+    return result.body, result.content_type
+
+
+def _store_photos(connection, client: BcaClient, lots: list[dict], *, photo_dir: Path | None, doc_dir: Path) -> int:
+    uploaded = 0
+    for lot in lots:
+        body, content_type = _load_photo(client, lot, photo_dir)
+        ext = _image_ext(body, content_type)
+        if not ext or not lot.get("image_url"):
+            continue
+        key = object_key(f"bca/{lot['vehicle_id']}", "000", source=lot["image_url"], ext=ext)
+        stored, _note = _publish(body, key, content_type or "image/jpeg", doc_dir / "photos" / f"{lot['vehicle_id']}{ext}")
+        if stored == key:
+            set_photo_s3_key(connection, lot["vehicle_id"], key)
+            uploaded += 1
+    return uploaded
+
+
 def run(args: argparse.Namespace) -> dict:
     seen_at = datetime.now(timezone.utc)
     if args.pages_json:
@@ -154,7 +208,7 @@ def run(args: argparse.Namespace) -> dict:
         lot_ids: dict[str, int] = {}
         for lot in lots:
             lot_ids[lot["vehicle_id"]] = upsert_lot(connection, auction_id, lot, seen_at=seen_at)
-        documents: list[tuple[str, str, int | None]] = []
+        documents: list[tuple[str, str, int | None, str]] = []
         seen_docs: set[tuple[str, str]] = set()
         for lot in lots:
             lot_pk = lot_ids[lot["vehicle_id"]]
@@ -164,8 +218,16 @@ def run(args: argparse.Namespace) -> dict:
                     continue
                 seen_docs.add((kind, url))
                 owner = None if kind in {"sale_catalogue", "sale_section"} else lot_pk
-                documents.append((kind, url, owner))
-        for kind, url, lot_pk in documents:
+                owner_vehicle = "" if owner is None else lot["vehicle_id"]
+                documents.append((kind, url, owner, owner_vehicle))
+        photos_uploaded = _store_photos(
+            connection,
+            client,
+            lots,
+            photo_dir=Path(args.photo_dir) if args.photo_dir else None,
+            doc_dir=doc_dir,
+        )
+        for kind, url, lot_pk, vehicle_id in documents:
             result = client.download(url)
             status, detail = _classify(result)
             body = result.body if status == "downloaded" else b""
@@ -198,12 +260,19 @@ def run(args: argparse.Namespace) -> dict:
                 status=status,
                 detail=detail,
                 doc_dir=doc_dir,
+                sale_id=auction["sale_id"],
+                vehicle_id=vehicle_id,
                 seen_at=seen_at,
             )
         connection.commit()
     finally:
         connection.close()
-    return {"db": str(db_path), "sale_id": auction["sale_id"], "lots": len(lots)}
+    return {
+        "db": str(db_path),
+        "sale_id": auction["sale_id"],
+        "lots": len(lots),
+        "photos_uploaded": photos_uploaded,
+    }
 
 
 def main() -> None:
@@ -213,6 +282,7 @@ def main() -> None:
     parser.add_argument("--db", required=True)
     parser.add_argument("--doc-dir", default="")
     parser.add_argument("--fetch-report", default="")
+    parser.add_argument("--photo-dir", default="", help="Directory of {vehicle_id}.jpg files")
     args = parser.parse_args()
     if not args.doc_dir:
         args.doc_dir = str(Path(args.db).with_suffix("")) + "-docs"

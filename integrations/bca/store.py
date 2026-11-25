@@ -46,6 +46,7 @@ CREATE TABLE IF NOT EXISTS bca_lots (
     sale_location TEXT NOT NULL DEFAULT '',
     vehicle_location TEXT NOT NULL DEFAULT '',
     image_url TEXT NOT NULL DEFAULT '',
+    photo_s3_key TEXT NOT NULL DEFAULT '',
     bid_now TEXT NOT NULL DEFAULT '',
     buy_now TEXT NOT NULL DEFAULT '',
     condition_report_url TEXT NOT NULL DEFAULT '',
@@ -82,6 +83,9 @@ def connect(path: Path) -> sqlite3.Connection:
     connection.row_factory = sqlite3.Row
     connection.execute("PRAGMA foreign_keys = ON")
     connection.executescript(SCHEMA)
+    columns = {row[1] for row in connection.execute("PRAGMA table_info(bca_lots)")}
+    if "photo_s3_key" not in columns:
+        connection.execute("ALTER TABLE bca_lots ADD COLUMN photo_s3_key TEXT NOT NULL DEFAULT ''")
     return connection
 
 
@@ -150,10 +154,10 @@ def upsert_lot(
             auction_id, vehicle_id, lot_id, lot_number, lot_url, headline,
             make, model, derivative, vin, mileage_km, registration,
             registration_date, fuel_type, power_kw, power_ps, sale_location,
-            vehicle_location, image_url, bid_now, buy_now,
+            vehicle_location, image_url, photo_s3_key, bid_now, buy_now,
             condition_report_url, mechanical_report_url,
             first_seen_at, last_seen_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(vehicle_id) DO UPDATE SET
             auction_id=excluded.auction_id,
             lot_id=excluded.lot_id,
@@ -173,6 +177,7 @@ def upsert_lot(
             sale_location=excluded.sale_location,
             vehicle_location=excluded.vehicle_location,
             image_url=excluded.image_url,
+            photo_s3_key=CASE WHEN excluded.photo_s3_key != '' THEN excluded.photo_s3_key ELSE bca_lots.photo_s3_key END,
             bid_now=excluded.bid_now,
             buy_now=excluded.buy_now,
             condition_report_url=excluded.condition_report_url,
@@ -199,6 +204,7 @@ def upsert_lot(
             lot["sale_location"],
             lot["vehicle_location"],
             lot["image_url"],
+            lot.get("photo_s3_key") or "",
             lot["bid_now"],
             lot["buy_now"],
             lot["condition_report_url"],
@@ -212,6 +218,13 @@ def upsert_lot(
         (lot["vehicle_id"],),
     ).fetchone()
     return int(row["id"])
+
+
+def set_photo_s3_key(connection: sqlite3.Connection, vehicle_id: str, key: str) -> None:
+    connection.execute(
+        "UPDATE bca_lots SET photo_s3_key = ? WHERE vehicle_id = ?",
+        (key, vehicle_id),
+    )
 
 
 def upsert_document(
