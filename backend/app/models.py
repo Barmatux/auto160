@@ -769,3 +769,85 @@ class AvbyPriceSoldAdvert(Base):
     payload: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
     year_stat: Mapped["AvbyPriceYearStat"] = relationship(back_populates="sold_adverts")
+
+
+class BcaAuction(Base):
+    """One BCA Europe sale. Prices stay empty until a buyer session exists."""
+
+    __tablename__ = "bca_auctions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    sale_id: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    name: Mapped[str] = mapped_column(String(300), default="")
+    country: Mapped[str] = mapped_column(String(8), default="", index=True)
+    sale_type: Mapped[str] = mapped_column(String(160), default="")
+    channel: Mapped[str] = mapped_column(String(40), default="")
+    location: Mapped[str] = mapped_column(String(160), default="")
+    starts_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True, index=True)
+    catalogue_url: Mapped[str] = mapped_column(Text, default="")
+    section_url: Mapped[str] = mapped_column(Text, default="")
+    lot_count: Mapped[int] = mapped_column(Integer, default=0)
+    can_view_pricing: Mapped[bool] = mapped_column(default=False)
+    first_seen_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    last_seen_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+
+    lots: Mapped[list["BcaLot"]] = relationship(back_populates="auction", cascade="all, delete-orphan")
+    documents: Mapped[list["BcaDocument"]] = relationship(back_populates="auction")
+
+
+class BcaLot(Base):
+    __tablename__ = "bca_lots"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    auction_id: Mapped[int] = mapped_column(ForeignKey("bca_auctions.id", ondelete="CASCADE"), index=True)
+    vehicle_id: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    lot_id: Mapped[str] = mapped_column(String(32), default="", index=True)
+    lot_number: Mapped[str] = mapped_column(String(32), default="")
+    lot_url: Mapped[str] = mapped_column(Text, default="")
+    headline: Mapped[str] = mapped_column(Text, default="")
+    make: Mapped[str] = mapped_column(String(80), default="", index=True)
+    model: Mapped[str] = mapped_column(String(80), default="")
+    derivative: Mapped[str] = mapped_column(String(160), default="")
+    vin: Mapped[str] = mapped_column(String(32), default="", index=True)
+    mileage_km: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    registration: Mapped[str] = mapped_column(String(32), default="")
+    registration_date: Mapped[str] = mapped_column(String(40), default="")
+    fuel_type: Mapped[str] = mapped_column(String(40), default="")
+    power_kw: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    power_ps: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    sale_location: Mapped[str] = mapped_column(String(160), default="")
+    vehicle_location: Mapped[str] = mapped_column(String(160), default="")
+    image_url: Mapped[str] = mapped_column(Text, default="")
+    bid_now: Mapped[str] = mapped_column(String(80), default="")
+    buy_now: Mapped[str] = mapped_column(String(80), default="")
+    condition_report_url: Mapped[str] = mapped_column(Text, default="")
+    mechanical_report_url: Mapped[str] = mapped_column(Text, default="")
+    first_seen_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    last_seen_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    auction: Mapped["BcaAuction"] = relationship(back_populates="lots")
+    documents: Mapped[list["BcaDocument"]] = relationship(back_populates="lot")
+
+
+class BcaDocument(Base):
+    __tablename__ = "bca_documents"
+    __table_args__ = (UniqueConstraint("kind", "source_url", name="uq_bca_documents_kind_url"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    auction_id: Mapped[int | None] = mapped_column(
+        ForeignKey("bca_auctions.id", ondelete="CASCADE"), nullable=True, index=True
+    )
+    lot_pk: Mapped[int | None] = mapped_column(
+        ForeignKey("bca_lots.id", ondelete="CASCADE"), nullable=True, index=True
+    )
+    kind: Mapped[str] = mapped_column(String(40))
+    source_url: Mapped[str] = mapped_column(Text)
+    content_type: Mapped[str] = mapped_column(String(120), default="")
+    byte_size: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    storage_path: Mapped[str] = mapped_column(Text, default="")
+    status: Mapped[str] = mapped_column(String(32), index=True)
+    detail: Mapped[str] = mapped_column(Text, default="")
+    fetched_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    auction: Mapped["BcaAuction | None"] = relationship(back_populates="documents")
+    lot: Mapped["BcaLot | None"] = relationship(back_populates="documents")
