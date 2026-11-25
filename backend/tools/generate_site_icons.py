@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Regenerate Auto160 favicon / apple-touch icons with Safari-safe padding.
+"""Regenerate Auto160 favicon / apple-touch icons.
+
+Design (like av.by): bright full-bleed brand-gradient square, no dark plate and no
+padding, huge condensed near-black "160" filling the tile. A dark icon on a dark
+Safari tab bar gets a light outline from the browser; a bright tile does not.
 
 Usage (from backend/):
   python tools/generate_site_icons.py
@@ -12,90 +16,86 @@ from PIL import Image, ImageDraw, ImageFont
 
 ROOT = Path(__file__).resolve().parents[1] / "app" / "static"
 ICONS = ROOT / "icons"
-FONT_PATH = "/System/Library/Fonts/Supplemental/Arial Black.ttf"
-# Fallback for Linux CI / VM
-FALLBACK_FONTS = [
-    FONT_PATH,
-    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
-    "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
+
+# Condensed heavy faces → tallest digits for a given width. First existing wins.
+FONT_CANDIDATES = [
+    ("/System/Library/Fonts/Supplemental/DIN Condensed Bold.ttf", 0),
+    ("/System/Library/Fonts/Supplemental/Impact.ttf", 0),
+    ("/System/Library/Fonts/Avenir Next Condensed.ttc", 8),  # Heavy
+    ("/usr/share/fonts/truetype/dejavu/DejaVuSansCondensed-Bold.ttf", 0),
+    ("/usr/share/fonts/truetype/liberation/LiberationSansNarrow-Bold.ttf", 0),
 ]
-STOPS = [
-    (0.00, (0x4A, 0x7F, 0xE8)),
-    (0.55, (0x3E, 0xC8, 0xF0)),
-    (1.00, (0x7F, 0xE8, 0xB0)),
+
+# Diagonal brand gradient (top-left → bottom-right).
+BG_STOPS = [
+    (0.00, (0x3F, 0x7B, 0xF0)),
+    (0.50, (0x35, 0xC2, 0xF2)),
+    (1.00, (0x6F, 0xE8, 0xB4)),
 ]
-# Safari Favorites apply a heavy squircle; keep ~26% empty on each side.
-PAD_RATIO = 0.26
-PAD_RATIO_SMALL = 0.18
+INK = (0x06, 0x0A, 0x12)
+
+TEXT = "160"
+# Share of the tile covered by the digits.
+FILL_W = 0.94
+FILL_H = 0.74
+SS = 8  # supersampling factor for crisp small sizes
 
 
-def _font_path() -> str:
-    for path in FALLBACK_FONTS:
+def _font(px: int) -> ImageFont.FreeTypeFont:
+    for path, index in FONT_CANDIDATES:
         if Path(path).is_file():
-            return path
-    raise SystemExit("No usable bold TTF found for icon generation")
+            return ImageFont.truetype(path, px, index=index)
+    raise SystemExit("No usable condensed bold TTF found for icon generation")
 
 
 def _lerp(a, b, t):
     return tuple(int(a[i] + (b[i] - a[i]) * t) for i in range(3))
 
 
-def _grad_color(t: float):
+def _bg_color(t: float):
     t = max(0.0, min(1.0, t))
-    for i in range(len(STOPS) - 1):
-        t0, c0 = STOPS[i]
-        t1, c1 = STOPS[i + 1]
+    for i in range(len(BG_STOPS) - 1):
+        t0, c0 = BG_STOPS[i]
+        t1, c1 = BG_STOPS[i + 1]
         if t <= t1:
             u = 0.0 if t1 == t0 else (t - t0) / (t1 - t0)
             return _lerp(c0, c1, u)
-    return STOPS[-1][1]
+    return BG_STOPS[-1][1]
 
 
-def render(size: int, pad_ratio: float = PAD_RATIO) -> Image.Image:
-    font_file = _font_path()
-    img = Image.new("RGB", (size, size), (0, 0, 0))
-    draw = ImageDraw.Draw(img)
-    text = "160"
-    max_w = int(size * (1 - 2 * pad_ratio))
-    lo, hi = 4, size
-    best = None
-    while lo <= hi:
-        mid = (lo + hi) // 2
-        font = ImageFont.truetype(font_file, mid)
-        bbox = draw.textbbox((0, 0), text, font=font)
-        if bbox[2] - bbox[0] <= max_w:
-            best = (font, bbox)
-            lo = mid + 1
-        else:
-            hi = mid - 1
-    assert best is not None
-    font, bbox = best
-    tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
-    x = (size - tw) // 2 - bbox[0]
-    y = (size - th) // 2 - bbox[1]
-    mask = Image.new("L", (size, size), 0)
-    ImageDraw.Draw(mask).text((x, y), text, font=font, fill=255)
-    mp = mask.load()
-    xs = [ix for ix in range(size) for iy in range(size) if mp[ix, iy] > 0]
-    xmin, xmax = min(xs), max(xs)
-    shift = ((size - 1 - xmax) - xmin) // 2
-    if shift:
-        shifted = Image.new("L", (size, size), 0)
-        shifted.paste(mask, (shift, 0))
-        mask = shifted
-        mp = mask.load()
-        xs = [ix for ix in range(size) for iy in range(size) if mp[ix, iy] > 0]
-        xmin, xmax = min(xs), max(xs)
-    pixels = img.load()
-    span = max(1, xmax - xmin)
-    for iy in range(size):
-        for ix in range(size):
-            a = mp[ix, iy]
-            if not a:
-                continue
-            r, g, b = _grad_color((ix - xmin) / span)
-            pixels[ix, iy] = (r * a // 255, g * a // 255, b * a // 255) if a < 255 else (r, g, b)
+def _background(size: int) -> Image.Image:
+    img = Image.new("RGB", (size, size))
+    px = img.load()
+    denom = 2 * (size - 1) or 1
+    for y in range(size):
+        for x in range(size):
+            px[x, y] = _bg_color((x + y) / denom)
     return img
+
+
+def _digits_mask(size: int, fill_w: float, fill_h: float) -> Image.Image:
+    """White-on-black mask with the glyph box stretched to fill_w × fill_h of the tile."""
+    big = size * SS
+    font = _font(big)
+    probe = Image.new("L", (big * 2, big * 2), 0)
+    ImageDraw.Draw(probe).text((big // 2, big // 2), TEXT, font=font, fill=255)
+    box = probe.getbbox()
+    assert box, "empty glyph box"
+    glyphs = probe.crop(box)
+    target_w = int(big * fill_w)
+    target_h = int(big * fill_h)
+    glyphs = glyphs.resize((target_w, target_h), Image.Resampling.LANCZOS)
+    mask = Image.new("L", (big, big), 0)
+    mask.paste(glyphs, ((big - target_w) // 2, (big - target_h) // 2))
+    return mask
+
+
+def render(size: int) -> Image.Image:
+    bg = _background(size * SS)
+    mask = _digits_mask(size, FILL_W, FILL_H)
+    ink = Image.new("RGB", bg.size, INK)
+    bg.paste(ink, (0, 0), mask)
+    return bg.resize((size, size), Image.Resampling.LANCZOS)
 
 
 def main() -> None:
@@ -112,13 +112,14 @@ def main() -> None:
         "favicon-32.png": 32,
         "favicon-16.png": 16,
     }
+    cache: dict[int, Image.Image] = {}
     for name, sz in sizes.items():
-        im = render(sz, PAD_RATIO if sz >= 48 else PAD_RATIO_SMALL)
+        im = cache.setdefault(sz, render(sz))
         im.save(ICONS / name, format="PNG", optimize=True)
         if name.startswith("apple-touch") or name.startswith("favicon-"):
             im.save(ROOT / name, format="PNG", optimize=True)
         print("wrote", name, sz)
-    ico = [render(48), render(32, PAD_RATIO_SMALL), render(16, PAD_RATIO_SMALL)]
+    ico = [render(48), render(32), render(16)]
     for path in (ROOT / "favicon.ico", ICONS / "favicon.ico"):
         ico[0].save(
             path,
@@ -126,17 +127,18 @@ def main() -> None:
             sizes=[(48, 48), (32, 32), (16, 16)],
             append_images=ico[1:],
         )
-    svg = f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180" width="180" height="180" role="img" aria-label="Auto160">
-  <rect x="0" y="0" width="180" height="180" fill="#000000"/>
+    svg = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180" width="180" height="180" role="img" aria-label="Auto160">
   <defs>
-    <linearGradient id="g" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0%" stop-color="#4A7FE8"/>
-      <stop offset="55%" stop-color="#3EC8F0"/>
-      <stop offset="100%" stop-color="#7FE8B0"/>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#3F7BF0"/>
+      <stop offset="50%" stop-color="#35C2F2"/>
+      <stop offset="100%" stop-color="#6FE8B4"/>
     </linearGradient>
   </defs>
-  <!-- ~{int(PAD_RATIO*100)}% side padding so Safari Favorites squircle does not clip the \"0\" -->
-  <text x="90" y="108" text-anchor="middle" font-family="Arial Black, Helvetica Neue, Arial, sans-serif" font-size="46" font-weight="900" fill="url(#g)" letter-spacing="-0.5">160</text>
+  <rect width="180" height="180" fill="url(#bg)"/>
+  <text x="90" y="141" text-anchor="middle" textLength="169" lengthAdjust="spacingAndGlyphs"
+        font-family="DIN Condensed, Impact, Arial Narrow, sans-serif" font-size="150" font-weight="700"
+        fill="#060A12">160</text>
 </svg>
 """
     for path in (ROOT / "favicon.svg", ICONS / "favicon.svg"):
