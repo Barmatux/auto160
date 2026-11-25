@@ -76,6 +76,16 @@ class Settings(BaseSettings):
     smtp_use_tls: bool = True
     smtp_use_ssl: bool = False
     email_verify_token_hours: int = 24
+    # Public contacts (shown on site / in privacy policy). Empty = hidden.
+    company_email: str = ""
+    company_phone: str = ""
+    # Digits only, international without "+", e.g. 375291234567. Empty hides WhatsApp.
+    whatsapp_phone: str = ""
+    # New-lead alerts for managers. Empty token/chat = Telegram alerts off.
+    telegram_bot_token: str = ""
+    lead_telegram_chat_id: str = ""
+    # Optional e-mail copy of every new lead (needs SMTP_* configured).
+    lead_notify_email: str = ""
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

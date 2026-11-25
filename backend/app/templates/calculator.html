@@ -1,5 +1,8 @@
 {% extends "base.html" %}
 {% block content %}
 {% include "partials/customs_calculator_panel.html" %}
+{% set cta_title = "Посчитали растаможку — посчитаем авто целиком" %}
+{% set cta_text = "Здравствуйте! Посчитал растаможку в калькуляторе, хочу рассчитать авто под ключ. Марка/модель: …" %}
+{% include "partials/contact_cta.html" %}
 <script src="/static/customs_calc.js?v=20261112-price" defer></script>
 {% endblock %}

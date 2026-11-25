@@ -9,12 +9,13 @@ from collections import defaultdict, deque
 from datetime import datetime
 from threading import Lock
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request, Response, status
 from pydantic import BaseModel, Field
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session, joinedload
 
 from app.db import get_db
+from app.lead_notify import notify_new_thread_message
 from app.deps import get_optional_user_flexible, require_admin_flexible
 from app.models import (
     CarListing,
@@ -45,6 +46,8 @@ class StartThreadRequest(BaseModel):
     phone: str = Field(min_length=5, max_length=40)
     message: str = Field(min_length=1, max_length=4000)
     email: str | None = Field(default=None, max_length=255)
+    # Consent to personal-data processing (see /privacy). Required.
+    consent: bool = False
 
 
 class PostMessageRequest(BaseModel):
@@ -253,9 +256,15 @@ def start_thread(
     body: StartThreadRequest,
     request: Request,
     response: Response,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     user: User | None = Depends(get_optional_user_flexible),
 ):
+    if not body.consent:
+        raise HTTPException(
+            status_code=400,
+            detail="Подтвердите согласие на обработку персональных данных",
+        )
     _check_rate_limit(f"ip:{_client_ip(request)}")
     listing = (
         db.query(CarListing)
@@ -323,6 +332,8 @@ def start_thread(
     thread.visitor_last_read_at = now
     db.commit()
     db.refresh(thread)
+    db.refresh(msg)
+    background_tasks.add_task(notify_new_thread_message, thread.id, msg.id)
     thread = (
         db.query(MessageThread)
         .options(joinedload(MessageThread.listing))

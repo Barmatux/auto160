@@ -624,6 +624,9 @@ class SiteLeadCreateRequest(BaseModel):
     listing_id: int | None = None
     avby_url: str | None = None
     source: str = "belarus_landing"
+    # Required: consent to personal-data processing (see /privacy). Optional marketing opt-in.
+    consent: bool = False
+    marketing_consent: bool = False
 
 
 class SiteLeadOut(BaseModel):

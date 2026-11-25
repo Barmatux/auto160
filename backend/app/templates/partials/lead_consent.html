@@ -1,0 +1,17 @@
+{# Required consent checkbox for every public form that collects contacts.
+   Include with {% with marketing=True %} to add the optional marketing opt-in. #}
+<label class="lead-consent">
+  <input type="checkbox" name="consent" required />
+  <span>
+    Я даю согласие на обработку моих персональных данных на условиях
+    <a href="/privacy" target="_blank" rel="noopener">политики</a>
+    и ознакомлен(а) с
+    <a href="/oferta" target="_blank" rel="noopener">условиями оказания услуг</a>.
+  </span>
+</label>
+{% if marketing %}
+<label class="lead-consent lead-consent--optional">
+  <input type="checkbox" name="marketing_consent" />
+  <span>Хочу получать информационные сообщения об услугах Auto160 (необязательно, можно отказаться в любой момент).</span>
+</label>
+{% endif %}

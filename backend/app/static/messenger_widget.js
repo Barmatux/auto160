@@ -91,6 +91,10 @@
             <label>Имя<input name="name" required maxlength="120" autocomplete="name" /></label>
             <label>Телефон<input name="phone" required maxlength="40" autocomplete="tel" /></label>
             <label>Сообщение<textarea name="message" rows="4" required maxlength="4000" placeholder="Здравствуйте! Интересует это авто…"></textarea></label>
+            <label class="lead-consent">
+              <input type="checkbox" name="consent" required />
+              <span>Я даю согласие на обработку моих персональных данных на условиях <a href="/privacy" target="_blank" rel="noopener">политики</a> и ознакомлен(а) с <a href="/oferta" target="_blank" rel="noopener">условиями оказания услуг</a>.</span>
+            </label>
             <p class="a160-msg-error" data-a160-msg-error hidden></p>
             <div class="a160-msg-modal-actions">
               <button type="button" class="btn-secondary" data-a160-msg-modal-cancel>Отмена</button>
@@ -297,6 +301,7 @@
             name,
             phone,
             message,
+            consent: Boolean(fd.get("consent")),
           }),
         });
         closeModal();
@@ -318,6 +323,8 @@
           comment: commentParts.join("\n"),
           avby_url: pendingAvbyUrl || null,
           source: "site_chat",
+          consent: Boolean(fd.get("consent")),
+          marketing_consent: false,
         }),
       });
       const leadData = await leadRes.json().catch(() => ({}));

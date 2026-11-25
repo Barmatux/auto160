@@ -576,6 +576,10 @@ class SiteLead(Base):
     )
     avby_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     is_read: Mapped[bool] = mapped_column(default=False, index=True)
+    # Consent to personal-data processing (required) and optional marketing messages.
+    consent_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    consent_version: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    consent_marketing: Mapped[bool] = mapped_column(default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
 
     listing: Mapped["CarListing | None"] = relationship()

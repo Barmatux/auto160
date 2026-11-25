@@ -35,7 +35,7 @@ from app.fuel_type_labels import (
     resolved_catalog_fuel_type,
 )
 from app.drive_type_labels import drive_type_sql_predicate, normalize_drive_display_label
-from app.messengers import header_messenger_links
+from app.messengers import header_messenger_links, messenger_prefill_url
 from app.myfin_rates import fetch_myfin_buy_rates
 from app.site_theme import (
     SITE_THEME_COOKIE,
@@ -272,6 +272,7 @@ from app.catalog_ratings import (
 
 router = APIRouter(tags=["pages"])
 templates = Jinja2Templates(directory="app/templates")
+templates.env.globals["messenger_prefill"] = messenger_prefill_url
 templates.env.filters["body_type_label"] = normalize_body_type_label
 templates.env.filters["listing_display_title"] = listing_display_title
 templates.env.filters["listing_feed_heading"] = listing_feed_heading
@@ -4159,6 +4160,24 @@ def privacy_page(request: Request, db: Session = Depends(get_db)):
         ),
     )
     return templates.TemplateResponse(request, "privacy.html", context)
+
+
+@router.get("/oferta")
+def oferta_page(request: Request, db: Session = Depends(get_db)):
+    current_user = _resolve_user_from_request(request, db)
+    context = _template_context(
+        request,
+        current_user,
+        SeoMeta(
+            title="Условия оказания услуг — Auto160",
+            description=(
+                "Общие условия оказания услуг Auto160 (ООО «Сканди Моторс»): состав услуг, "
+                "оплата, ответственность, возврат и порядок споров."
+            ),
+            path="/oferta",
+        ),
+    )
+    return templates.TemplateResponse(request, "oferta.html", context)
 
 
 @router.get("/requisites")

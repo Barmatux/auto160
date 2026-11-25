@@ -1,6 +1,6 @@
 """Public endpoints for Belarus landing leads, import-date lookup, and customs calc."""
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.customs_catalog import (
@@ -33,6 +33,7 @@ from app.customs_vehicles import (
 )
 from app.db import get_db
 from app.deps import get_optional_user_flexible
+from app.lead_notify import notify_new_lead
 from app.featured import create_site_lead, lookup_public_import_date, run_public_inspection_check
 from app.models import User, UserRole
 from app.myfin_rates import fetch_myfin_buy_rates
@@ -69,9 +70,13 @@ def _fx_triplet() -> tuple[float, float, float]:
 
 
 @router.post("/leads", response_model=SiteLeadOut)
-def submit_site_lead(payload: SiteLeadCreateRequest, db: Session = Depends(get_db)):
+def submit_site_lead(
+    payload: SiteLeadCreateRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
     try:
-        return create_site_lead(
+        lead = create_site_lead(
             db,
             contact_name=payload.contact_name,
             contact=payload.contact,
@@ -79,9 +84,13 @@ def submit_site_lead(payload: SiteLeadCreateRequest, db: Session = Depends(get_d
             listing_id=payload.listing_id,
             avby_url=payload.avby_url,
             source=payload.source or "belarus_landing",
+            consent=payload.consent,
+            marketing_consent=payload.marketing_consent,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    background_tasks.add_task(notify_new_lead, lead.id)
+    return lead
 
 
 @router.post("/import-date", response_model=ImportDateLookupResponse)

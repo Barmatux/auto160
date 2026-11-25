@@ -1,0 +1,31 @@
+{# Direct-to-messenger call to action. Optional: cta_title, cta_text (prefilled first message). #}
+{% set cta_links = design_lab_messengers or [] %}
+{% if cta_links %}
+<section class="contact-cta" aria-label="Написать нам">
+  <div class="contact-cta-text">
+    <h2>{{ cta_title or "Быстрее всего — написать нам в мессенджер" }}</h2>
+    <p>Отвечаем в рабочее время. Расскажите, какое авто ищете и в каком бюджете — предложим варианты и посчитаем итоговую стоимость.</p>
+  </div>
+  <div class="contact-cta-buttons">
+    {% for m in cta_links %}
+      <a
+        class="contact-cta-btn contact-cta-btn--{{ m.id }}"
+        href="{{ messenger_prefill(m.url, m.id, cta_text) }}"
+        target="_blank"
+        rel="noopener noreferrer"
+        data-messenger="{{ m.id }}"
+        data-cta="contact"
+      >
+        {% if m.id == 'max' %}
+          <img src="/static/icons/messengers/max.png?v=20261023-02" alt="" width="24" height="24" decoding="async" />
+        {% elif m.id == 'telegram' %}
+          <img src="/static/icons/messengers/telegram.svg?v=20261023-02" alt="" width="24" height="24" decoding="async" />
+        {% else %}
+          <img src="/static/icons/messengers/whatsapp.svg?v=20261023-02" alt="" width="24" height="24" decoding="async" />
+        {% endif %}
+        <span>Написать в {{ m.label }}</span>
+      </a>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}

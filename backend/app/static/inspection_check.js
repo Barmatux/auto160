@@ -236,6 +236,8 @@
       '<input type="hidden" name="listing_id" value="' +
       escapeHtml(data.listing_id != null ? String(data.listing_id) : "") +
       '" />' +
+      '<label class="lead-consent"><input type="checkbox" name="consent" required />' +
+      '<span>Я даю согласие на обработку моих персональных данных на условиях <a href="/privacy" target="_blank" rel="noopener">политики</a>.</span></label>' +
       '<div class="actions-row"><button type="submit" class="btn-primary">Прислать результат</button></div>' +
       '<p class="hint" data-notify-status hidden></p>' +
       "</form></div>"
@@ -275,6 +277,8 @@
             listing_id: data.listing_id || null,
             avby_url: data.avby_url || null,
             source: "inspection_customs_retry",
+            consent: Boolean(fd.get("consent")),
+            marketing_consent: false,
           }),
         });
         var payload = await res.json().catch(function () {
