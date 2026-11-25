@@ -7,5 +7,6 @@
       <stop offset="100%" stop-color="#7FE8B0"/>
     </linearGradient>
   </defs>
-  <text x="90" y="118" text-anchor="middle" font-family="Arial Black, Helvetica Neue, Arial, sans-serif" font-size="78" font-weight="900" fill="url(#g)" letter-spacing="-4">160</text>
+  <!-- ~26% side padding so Safari Favorites squircle does not clip the "0" -->
+  <text x="90" y="108" text-anchor="middle" font-family="Arial Black, Helvetica Neue, Arial, sans-serif" font-size="46" font-weight="900" fill="url(#g)" letter-spacing="-0.5">160</text>
 </svg>
