@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% block body_class %}blog-surface{% endblock %}
 {% block content %}
 <article class="guide-page blog-post">
   <header class="guide-header">
@@ -8,9 +9,6 @@
       <time class="blog-post-date" datetime="{{ post.published_at.isoformat() }}">
         {{ post.published_at.strftime('%d.%m.%Y') }}
       </time>
-    {% endif %}
-    {% if post.excerpt %}
-      <p class="guide-lead">{{ post.excerpt }}</p>
     {% endif %}
   </header>
   <div class="blog-post-body guide-section">

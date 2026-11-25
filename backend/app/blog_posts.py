@@ -172,3 +172,100 @@ def update_blog_post(
 def delete_blog_post(db: Session, post: BlogPost) -> None:
     db.delete(post)
     db.commit()
+
+
+# Canonical seed posts: created if missing, content refreshed on deploy.
+_SEED_BLOG_POSTS: tuple[dict[str, str], ...] = (
+    {
+        "slug": "kto-my-i-chem-zanimaemsya",
+        "title": "Почему стоит обратиться в Auto160?",
+        "excerpt": (
+            "Кто мы и чем помогаем: авто из Европы до 1,9 л и подбор в Беларуси "
+            "под льготный утильсбор до 160 л.с. для РФ."
+        ),
+        "body": """
+<p><strong>Auto160</strong> (<a href="/">auto160.ru</a>) — сервис ООО «Сканди Моторс».
+Уже несколько лет подбираем, проверяем и доставляем легковые авто из Европы и Беларуси
+покупателям из России и Беларуси. До сделки считаем полную стоимость и ведём логистику без сюрпризов.</p>
+
+<h2>Почему к нам</h2>
+<ol>
+  <li><strong>Считаем до решения, а не после задатка.</strong>
+  Полная стоимость (авто + пошлина + утиль + доставка) известна до сделки и не меняется в процессе.</li>
+  <li><strong>Узкая специализация.</strong>
+  Основное направление — малообъёмные авто из Европы (до 1,9&nbsp;л) и подбор в Беларуси
+  под льготный утильсбор до 160&nbsp;л.с. для РФ. Знаем, какие модели реально подходят под задачу,
+  а от каких лучше сразу отказаться.</li>
+  <li><strong>Два рынка — один процесс.</strong>
+  Беларусь и Европа в одном контуре: поиск, проверка, расчёт, логистика.
+  Можно вести подбор параллельно на обоих рынках — выше шанс найти хороший вариант по приемлемой цене.</li>
+  <li><strong>Понятный старт.</strong>
+  Оставьте заявку или контакт — свяжемся и предложим первые варианты, обычно в день обращения.</li>
+</ol>
+
+<h2>Чем можем помочь</h2>
+<ul>
+  <li>Привезти авто из Европы с аукциона или площадки — с объёмом двигателя до 1,9&nbsp;л (ограничение по санкциям).</li>
+  <li>На белорусском рынке: поиск, проверка и подбор под ключ для россиян и белорусов;
+  для выезда в РФ — варианты под льготный утильсбор (<strong>до 160&nbsp;л.с.</strong>).</li>
+</ul>
+
+<p>До задатка на сайте можно <a href="/inspection">проверить VIN</a>
+и <a href="/calculator">посчитать растаможку</a>.</p>
+
+<h2>Как начать</h2>
+<ul>
+  <li><a href="/by">Заявка на авто из Беларуси</a></li>
+  <li><a href="/eu">Подбор из Европы</a></li>
+  <li><a href="/catalog">Каталог комплектаций до 160 л.с.</a></li>
+</ul>
+""".strip(),
+    },
+)
+
+
+def ensure_seed_blog_posts(db: Session) -> int:
+    """Insert or refresh canonical seed posts. Returns number of created/updated rows."""
+    changed = 0
+    now = datetime.utcnow()
+    for item in _SEED_BLOG_POSTS:
+        slug = item["slug"]
+        post = db.query(BlogPost).filter(BlogPost.slug == slug).first()
+        if post is None:
+            db.add(
+                BlogPost(
+                    title=item["title"],
+                    slug=slug,
+                    body=item["body"],
+                    excerpt=item.get("excerpt"),
+                    is_published=True,
+                    published_at=now,
+                    author_id=None,
+                    created_at=now,
+                    updated_at=now,
+                )
+            )
+            changed += 1
+            continue
+        dirty = False
+        if post.title != item["title"]:
+            post.title = item["title"]
+            dirty = True
+        if post.body != item["body"]:
+            post.body = item["body"]
+            dirty = True
+        excerpt = item.get("excerpt")
+        if post.excerpt != excerpt:
+            post.excerpt = excerpt
+            dirty = True
+        if not post.is_published:
+            post.is_published = True
+            if post.published_at is None:
+                post.published_at = now
+            dirty = True
+        if dirty:
+            post.updated_at = now
+            changed += 1
+    if changed:
+        db.commit()
+    return changed

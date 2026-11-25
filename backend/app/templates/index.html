@@ -117,6 +117,9 @@
   </div>
 </section>
 
+{% set cta_text = "Здравствуйте! Хочу подобрать авто. Бюджет: … Марка/модель: … Откуда: Беларусь/Европа" %}
+{% include "partials/contact_cta.html" %}
+
 <section class="home-how">
   <h2>Как привозим авто под льготный утильсбор</h2>
   <ol class="home-steps">
@@ -205,6 +208,6 @@
 </section>
 
 {% if featured_listings %}
-  <script src="/static/featured_home.js?v=20261020-01" defer></script>
+  <script src="/static/featured_home.js?v=20261125-consent" defer></script>
 {% endif %}
 {% endblock %}

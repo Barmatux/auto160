@@ -71,6 +71,8 @@
       const contactInput = leadForm.querySelector('[name="contact"]');
       const commentInput = leadForm.querySelector('[name="comment"]');
       const sourceInput = leadForm.querySelector('[name="source"]');
+      const consentInput = leadForm.querySelector('[name="consent"]');
+      const marketingInput = leadForm.querySelector('[name="marketing_consent"]');
       const payload = {
         contact_name: (nameInput && nameInput.value) || "",
         contact: (contactInput && contactInput.value) || "",
@@ -78,6 +80,8 @@
         listing_id: leadListingId && leadListingId.value ? Number(leadListingId.value) : null,
         avby_url: (leadAvbyUrl && leadAvbyUrl.value) || null,
         source: (sourceInput && sourceInput.value) || "featured_modal",
+        consent: Boolean(consentInput && consentInput.checked),
+        marketing_consent: Boolean(marketingInput && marketingInput.checked),
       };
       if (leadStatus) {
         leadStatus.hidden = false;
@@ -98,6 +102,7 @@
         if (nameInput) nameInput.value = "";
         if (contactInput) contactInput.value = "";
         if (commentInput) commentInput.value = "";
+        if (consentInput) consentInput.checked = false;
       } catch (err) {
         if (leadStatus) leadStatus.textContent = err.message || "Ошибка отправки";
       }

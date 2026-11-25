@@ -77,5 +77,13 @@
     {% if filters_reset_url %}
       <a class="page-link vehicle-hierarchy-reset" href="{{ filters_reset_url }}">Сбросить</a>
     {% endif %}
+    {% if show_page_vin_check %}
+      <button
+        type="button"
+        class="btn vehicle-hierarchy-page-vin-check"
+        data-vin-check-page
+        {% if not (listings|default([])) %}disabled{% endif %}
+      >Проверка VIN всей страницы</button>
+    {% endif %}
   </div>
 </div>

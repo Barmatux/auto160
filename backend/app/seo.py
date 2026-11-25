@@ -78,6 +78,10 @@ STATIC_SEO: dict[str, tuple[str, str]] = {
         "Политика персональных данных — Auto160",
         "Как Auto160 (ООО «Сканди Моторс») обрабатывает персональные данные, cookie и аналитику.",
     ),
+    "/oferta": (
+        "Условия оказания услуг — Auto160",
+        "Общие условия оказания услуг Auto160 (ООО «Сканди Моторс»): состав услуг, оплата, возврат и ответственность.",
+    ),
     "/requisites": (
         "Реквизиты ООО «Сканди Моторс» — Auto160",
         "Реквизиты оператора Auto160: ООО «Сканди Моторс», УНП 193866357, адрес и банковские реквизиты.",
@@ -832,6 +836,8 @@ SITEMAP_MAX_URLS = 40_000
 
 _ROBOTS_DISALLOW = (
     "/admin/",
+    "/73948126",
+    "/73948126/",
     "/api/",
     "/login",
     "/register",
@@ -929,6 +935,7 @@ def build_sitemap_sections(db: Session, base_url: str) -> dict[str, list[tuple[s
         "/guides/vin",
         "/guides/do-160-hp",
         "/privacy",
+        "/oferta",
         "/requisites",
         "/blog",
     ):

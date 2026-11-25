@@ -1,0 +1,66 @@
+{% extends "desk_base.html" %}
+{% block body_class %}desk-login{% endblock %}
+{% block extra_head %}
+  <link rel="stylesheet" href="/static/desk.css?v=20261118-1" />
+{% endblock %}
+{% block content %}
+<main class="desk-login-wrap">
+  <form class="desk-login-form" id="desk-login-form" autocomplete="on">
+    <label>
+      <input id="desk-login" name="login" required autocomplete="username" />
+    </label>
+    <label>
+      <input id="desk-password" name="password" type="password" required autocomplete="current-password" />
+    </label>
+    <button type="submit">Войти</button>
+    <p id="desk-login-error" class="desk-login-error" hidden></p>
+  </form>
+</main>
+<script>
+  (function () {
+    function setAuthCookies(accessToken, refreshToken) {
+      document.cookie = "access_token=" + accessToken + "; path=/";
+      document.cookie = "refresh_token=" + refreshToken + "; path=/";
+    }
+
+    var form = document.getElementById("desk-login-form");
+    var errorEl = document.getElementById("desk-login-error");
+    if (!form) return;
+
+    form.addEventListener("submit", async function (event) {
+      event.preventDefault();
+      errorEl.hidden = true;
+      errorEl.textContent = "";
+      var payload = {
+        login: document.getElementById("desk-login").value.trim(),
+        password: document.getElementById("desk-password").value,
+      };
+      try {
+        var response = await fetch("/api/v1/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        var data = await response.json();
+        if (response.ok && data.access_token && data.refresh_token) {
+          setAuthCookies(data.access_token, data.refresh_token);
+          var deskRoot = {{ desk_root|tojson }};
+          var next = new URLSearchParams(window.location.search).get("next") || (deskRoot + "/contracts");
+          var safeNext = next.startsWith("/") && !next.startsWith("//") ? next : (deskRoot + "/contracts");
+          window.location.href = safeNext;
+          return;
+        }
+        var detail = data.detail || "Нет доступа";
+        if (Array.isArray(detail)) {
+          detail = detail.map(function (item) { return item.msg || JSON.stringify(item); }).join("; ");
+        }
+        errorEl.textContent = detail;
+        errorEl.hidden = false;
+      } catch (err) {
+        errorEl.textContent = "Нет связи с сервером";
+        errorEl.hidden = false;
+      }
+    });
+  })();
+</script>
+{% endblock %}

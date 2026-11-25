@@ -446,9 +446,6 @@ body.design-lab .header.header--design-lab .header-nav .user-badge {
   padding: 7px 12px;
 }
 
-body.design-lab .header-nav-row-account {
-  align-items: center;
-}
 
 body.design-lab .header-messengers {
   display: inline-flex;
@@ -907,10 +904,6 @@ body.theme-admin.theme-admin-light.design-lab .inspection-verdict-card.is-red .i
   gap: 4px;
 }
 
-.header-nav-row-account {
-  flex-wrap: nowrap;
-  white-space: nowrap;
-}
 
 .header-nav {
   display: flex;
@@ -1842,6 +1835,12 @@ body.theme-admin.theme-admin-light .header-theme-toggle:focus-visible {
   background: #edf3ff;
   border-color: #93c5fd;
   color: #1d4ed8;
+}
+
+.admin-vin-check-page .admin-vin-check-head {
+  width: 100%;
+  max-width: none;
+  margin-bottom: 12px;
 }
 
 .admin-vin-check-page .admin-vin-check-main {
@@ -3985,6 +3984,16 @@ body.vin-enter-modal-open {
   padding: 10px 14px;
   font-size: 15px;
   font-weight: 600;
+}
+
+.vehicle-hierarchy-page-vin-check {
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+.vehicle-hierarchy-page-vin-check:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .vehicle-hierarchy-submit:hover {
@@ -7532,11 +7541,6 @@ body.theme-admin .home-hero.home-hero--split .home-hero-pane-lead {
     gap: 4px;
   }
 
-  .header-nav-row-account {
-    flex-wrap: wrap;
-    white-space: normal;
-  }
-
   .header-nav a,
   .header-nav-dropdown-toggle,
   .header-nav .user-badge {
@@ -10201,6 +10205,34 @@ body.design-lab .inspection-results-head h2 {
   }
 }
 
+/* Blog: flat page background (no radial glow / second surface panel). */
+body.blog-surface {
+  background: var(--bg);
+}
+
+body.blog-surface .page {
+  background: var(--bg);
+  max-width: none;
+  margin: 0;
+  padding: 16px 16px 40px;
+}
+
+body.blog-surface .guide-page {
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+body.blog-surface .guide-section,
+body.blog-surface .blog-post-body {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+body.blog-surface .site-footer {
+  background: var(--bg);
+}
+
 .blog-index-list {
   list-style: none;
   margin: 0;
@@ -10314,3 +10346,73 @@ body.design-lab .inspection-results-head h2 {
   align-items: center;
   gap: 12px;
 }
+
+
+/* ---- Lead consent checkboxes ---- */
+.lead-consent {
+  display: flex !important;
+  grid-template-columns: none;
+  align-items: flex-start;
+  gap: 8px !important;
+  font-size: 0.82rem !important;
+  line-height: 1.35;
+  color: inherit;
+  opacity: 0.9;
+}
+.lead-consent input[type="checkbox"] {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  margin: 2px 0 0;
+  padding: 0;
+  accent-color: var(--accent, #0ea5e9);
+}
+.lead-consent a { color: inherit; text-decoration: underline; }
+.lead-consent--optional { opacity: 0.75; }
+
+/* ---- Messenger call to action ---- */
+.contact-cta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px 24px;
+  margin: 28px 0;
+  padding: 20px 24px;
+  border: 1px solid rgba(128, 128, 128, 0.35);
+  border-radius: 16px;
+}
+.contact-cta h2 { margin: 0 0 6px; font-size: 1.25rem; }
+.contact-cta p { margin: 0; max-width: 46ch; opacity: 0.85; }
+.contact-cta-buttons { display: flex; flex-wrap: wrap; gap: 10px; }
+.contact-cta-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 10px 18px;
+  border-radius: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  color: #fff;
+  background: #229ed9;
+}
+.contact-cta-btn--max { background: #6a3df0; }
+.contact-cta-btn--whatsapp { background: #25d366; color: #052e16; }
+.contact-cta-btn img { display: block; border-radius: 6px; }
+.contact-cta-btn:hover { filter: brightness(1.08); }
+@media (max-width: 640px) {
+  .contact-cta { padding: 16px; }
+  .contact-cta-buttons, .contact-cta-btn { width: 100%; }
+  .contact-cta-btn { justify-content: center; }
+}
+
+/* ---- Legal documents (/privacy, /oferta) ---- */
+.legal-doc { max-width: 820px; margin: 0 auto; line-height: 1.55; }
+.legal-doc h1 { margin-bottom: 4px; }
+.legal-doc h2 { margin: 28px 0 8px; font-size: 1.15rem; }
+.legal-doc .legal-meta { opacity: 0.7; font-size: 0.9rem; margin-bottom: 18px; }
+.legal-doc ol, .legal-doc ul { padding-left: 1.25rem; }
+.legal-doc li { margin: 4px 0; }
+.legal-doc table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 0.92rem; }
+.legal-doc th, .legal-doc td { border: 1px solid rgba(128, 128, 128, 0.4); padding: 6px 10px; text-align: left; vertical-align: top; }

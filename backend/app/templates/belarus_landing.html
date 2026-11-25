@@ -8,6 +8,9 @@
     </p>
   </header>
 
+  {% set cta_text = "Здравствуйте! Хочу подобрать авто из Беларуси. Бюджет: … Марка/модель: …" %}
+  {% include "partials/contact_cta.html" %}
+
   <div class="belarus-landing-paths">
     <article class="belarus-landing-path">
       <h2>Нашли авто в Беларуси?</h2>
@@ -45,6 +48,7 @@
           <textarea name="comment" rows="3" maxlength="2000" placeholder="Марка, бюджет, год…"></textarea>
         </label>
         <input type="hidden" name="source" value="belarus_landing" />
+        {% with marketing=True %}{% include "partials/lead_consent.html" %}{% endwith %}
         <button type="submit" class="btn-primary belarus-cta-btn">Отправить заявку</button>
         <p class="hint" data-belarus-lead-status hidden></p>
       </form>
@@ -122,6 +126,7 @@
       </label>
       <input type="hidden" name="avby_url" value="" data-belarus-consult-avby-url />
       <input type="hidden" name="source" value="belarus_consultation" />
+      {% with marketing=True %}{% include "partials/lead_consent.html" %}{% endwith %}
       <button type="submit" class="btn-primary belarus-cta-btn">Отправить контакты</button>
       <p class="hint" data-belarus-consult-lead-status hidden></p>
     </form>
@@ -133,5 +138,5 @@
   </div>
 </dialog>
 
-<script src="/static/belarus_landing.js?v=20261028-02" defer></script>
+<script src="/static/belarus_landing.js?v=20261125-consent" defer></script>
 {% endblock %}

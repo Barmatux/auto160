@@ -2,6 +2,12 @@
 
 from __future__ import annotations
 
+from app.config import settings
+
+# Bump when /privacy or /oferta text changes materially (stored with each lead consent).
+LEGAL_DOCS_VERSION = "2026-11-25"
+LEGAL_DOCS_DATE_HUMAN = "25.11.2026"
+
 COMPANY_SHORT_NAME = "ООО «Сканди Моторс»"
 COMPANY_FULL_NAME = 'Общество с ограниченной ответственностью «Сканди Моторс»'
 COMPANY_UNP = "193866357"
@@ -20,9 +26,9 @@ COMPANY_BANK_SWIFT = "ALFABY2X"
 COMPANY_BANK_UNP = "101541947"
 COMPANY_BANK_OKPO = "37526626"
 
-# Optional contacts — fill when provided (shown only if non-empty).
-COMPANY_EMAIL = ""
-COMPANY_PHONE = ""
+# Optional contacts — set COMPANY_EMAIL / COMPANY_PHONE in .env.vm (shown only if non-empty).
+COMPANY_EMAIL = (settings.company_email or "").strip()
+COMPANY_PHONE = (settings.company_phone or "").strip()
 
 
 def company_public_context() -> dict[str, str]:
@@ -44,4 +50,5 @@ def company_public_context() -> dict[str, str]:
         "company_bank_okpo": COMPANY_BANK_OKPO,
         "company_email": COMPANY_EMAIL,
         "company_phone": COMPANY_PHONE,
+        "legal_docs_date": LEGAL_DOCS_DATE_HUMAN,
     }

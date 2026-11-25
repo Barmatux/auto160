@@ -34,6 +34,7 @@
       <input type="hidden" name="listing_id" value="" data-featured-lead-listing-id />
       <input type="hidden" name="avby_url" value="" data-featured-lead-avby-url />
       <input type="hidden" name="source" value="featured_modal" />
+      {% include "partials/lead_consent.html" %}
       <button type="submit" class="btn-primary" data-featured-lead-submit>Отправить заявку</button>
       <p class="hint" data-featured-lead-status hidden></p>
     </form>

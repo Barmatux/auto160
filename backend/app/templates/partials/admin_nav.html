@@ -1,3 +1,4 @@
+{% if is_admin %}
 <nav class="admin-nav">
   <a href="/admin/messages"{% if admin_section == "messages" %} class="active"{% endif %}>Сообщения</a>
   <a href="/admin/site-leads"{% if admin_section == "site-leads" %} class="active"{% endif %}>Заявки</a>
@@ -17,3 +18,4 @@
   <a href="/admin/logs"{% if admin_section == "logs" %} class="active"{% endif %}>Логи</a>
   <a href="/admin/blog"{% if admin_section == "blog" %} class="active"{% endif %}>Блог</a>
 </nav>
+{% endif %}

@@ -282,6 +282,23 @@
           </select>
         </div>
       </div>
+      <div class="catalog-filter-field catalog-filter-year-range{% if listings_filters.filters.volume_from != "" or listings_filters.filters.volume_to != "" %} is-active{% endif %}">
+        <span class="catalog-filter-field-label">Объём, л</span>
+        <div class="catalog-filter-year-range-inputs">
+          <select name="volume_from">
+            <option value="" {% if listings_filters.filters.volume_from == "" %}selected{% endif %}>от</option>
+            {% for liters in listings_filters.options.volumes %}
+              <option value="{{ liters }}" {% if listings_filters.filters.volume_from == liters %}selected{% endif %}>{{ liters }}</option>
+            {% endfor %}
+          </select>
+          <select name="volume_to">
+            <option value="" {% if listings_filters.filters.volume_to == "" %}selected{% endif %}>до</option>
+            {% for liters in listings_filters.options.volumes %}
+              <option value="{{ liters }}" {% if listings_filters.filters.volume_to == liters %}selected{% endif %}>{{ liters }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
       <label class="catalog-filter-field{% if listings_filters.filters.price_range %} is-active{% endif %}">
         Цена
         <select name="price_range">

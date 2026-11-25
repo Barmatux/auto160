@@ -13,6 +13,13 @@
     return data;
   }
 
+  function consentPayload(fd) {
+    return {
+      consent: fd.get("consent") === "on",
+      marketing_consent: fd.get("marketing_consent") === "on",
+    };
+  }
+
   const leadForm = document.querySelector("[data-belarus-lead-form]");
   if (leadForm) {
     const status = leadForm.querySelector("[data-belarus-lead-status]");
@@ -29,6 +36,7 @@
           contact: fd.get("contact") || "",
           comment: fd.get("comment") || null,
           source: fd.get("source") || "belarus_landing",
+          ...consentPayload(fd),
         });
         if (status) status.textContent = "Заявка отправлена. Мы свяжемся с вами.";
         leadForm.reset();
@@ -163,6 +171,7 @@
           comment: commentParts.join("\n") || null,
           avby_url: avbyUrl || null,
           source: fd.get("source") || "belarus_consultation",
+          ...consentPayload(fd),
         });
         if (consultLeadStatus) {
           consultLeadStatus.textContent = "Заявка отправлена. Мы свяжемся с вами.";

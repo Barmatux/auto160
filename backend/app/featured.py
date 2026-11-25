@@ -6,11 +6,12 @@ import hashlib
 import random
 import re
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime
 
 from sqlalchemy import desc
 from sqlalchemy.orm import Session
 
+from app.company import LEGAL_DOCS_VERSION
 from app.listing_enrichment import build_listing_customs_map, get_listing_customs_summary, perform_listing_vin_check
 from app.listing_import_age import IMPORT_AGE_RF_MONTHS, release_date_older_than_months
 from app.manual_vin_check import (
@@ -179,6 +180,8 @@ def create_site_lead(
     listing_id: int | None = None,
     avby_url: str | None = None,
     source: str = "belarus_landing",
+    consent: bool = False,
+    marketing_consent: bool = False,
 ) -> SiteLead:
     name = (contact_name or "").strip()
     contact_value = (contact or "").strip()
@@ -186,6 +189,8 @@ def create_site_lead(
         raise ValueError("Укажите имя")
     if not contact_value:
         raise ValueError("Укажите телефон или Telegram")
+    if not consent:
+        raise ValueError("Подтвердите согласие на обработку персональных данных")
     lead = SiteLead(
         source=source[:40],
         contact_name=name[:120],
@@ -194,6 +199,9 @@ def create_site_lead(
         listing_id=listing_id,
         avby_url=(avby_url or "").strip()[:500] or None,
         is_read=False,
+        consent_at=datetime.utcnow(),
+        consent_version=LEGAL_DOCS_VERSION,
+        consent_marketing=bool(marketing_consent),
     )
     db.add(lead)
     db.commit()

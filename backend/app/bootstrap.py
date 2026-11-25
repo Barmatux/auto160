@@ -3,6 +3,7 @@ from datetime import datetime
 from sqlalchemy import inspect
 from sqlalchemy.orm import Session
 
+from app.blog_posts import ensure_seed_blog_posts
 from app.catalog_seed import seed_catalog_from_csv
 from app.config import settings
 from app.models import CarListing, ListingStatus, User, UserRole
@@ -44,6 +45,81 @@ def ensure_admin_user(db: Session) -> None:
         email_verified_at=datetime.utcnow(),
     )
     db.add(admin)
+    db.commit()
+
+
+def ensure_staff_user(db: Session) -> None:
+    """Ensure dir_max (or configured) staff can open contracts + AV Search."""
+    login = (settings.bootstrap_staff_login or "").strip().lower()
+    email = (settings.bootstrap_staff_email or "").strip().lower()
+    password = settings.bootstrap_staff_password or ""
+    if not login or not email or not password:
+        return
+
+    existing = (
+        db.query(User)
+        .filter((User.username == login) | (User.email == email))
+        .first()
+    )
+    if existing:
+        existing.username = login
+        existing.email = email
+        existing.name = settings.bootstrap_staff_name or existing.name or login
+        if existing.role != UserRole.admin:
+            existing.role = UserRole.staff
+        existing.password_hash = hash_password(password)
+        if existing.email_verified_at is None:
+            existing.email_verified_at = existing.created_at or datetime.utcnow()
+        db.commit()
+        return
+
+    db.add(
+        User(
+            username=login,
+            email=email,
+            name=settings.bootstrap_staff_name or login,
+            role=UserRole.staff,
+            password_hash=hash_password(password),
+            email_verified_at=datetime.utcnow(),
+        )
+    )
+    db.commit()
+
+
+def ensure_desk_admin_user(db: Session) -> None:
+    """Ensure desk portal admin exists with full access."""
+    login = (settings.bootstrap_desk_admin_login or "").strip().lower()
+    email = (settings.bootstrap_desk_admin_email or "").strip().lower()
+    password = settings.bootstrap_desk_admin_password or ""
+    if not login or not email or not password:
+        return
+
+    existing = (
+        db.query(User)
+        .filter((User.username == login) | (User.email == email))
+        .first()
+    )
+    if existing:
+        existing.username = login
+        existing.email = email
+        existing.name = settings.bootstrap_desk_admin_name or existing.name or login
+        existing.role = UserRole.admin
+        existing.password_hash = hash_password(password)
+        if existing.email_verified_at is None:
+            existing.email_verified_at = existing.created_at or datetime.utcnow()
+        db.commit()
+        return
+
+    db.add(
+        User(
+            username=login,
+            email=email,
+            name=settings.bootstrap_desk_admin_name or login,
+            role=UserRole.admin,
+            password_hash=hash_password(password),
+            email_verified_at=datetime.utcnow(),
+        )
+    )
     db.commit()
 
 
@@ -201,10 +277,26 @@ def safe_bootstrap_admin(session_factory, engine) -> None:
 
     db = session_factory()
     try:
-        ensure_admin_user(db)
+        try:
+            ensure_admin_user(db)
+        except Exception:
+            db.rollback()
+        try:
+            ensure_staff_user(db)
+        except Exception:
+            # Staff seed must not take down the API (e.g. enum not migrated yet).
+            db.rollback()
+        try:
+            ensure_desk_admin_user(db)
+        except Exception:
+            db.rollback()
         if settings.seed_mock_listings and inspect(engine).has_table("car_listings"):
             seed_mock_listings(db)
         if inspect(engine).has_table("catalog_items"):
             seed_catalog_from_csv(db)
+        if inspect(engine).has_table("blog_posts"):
+            ensure_seed_blog_posts(db)
+    except Exception:
+        db.rollback()
     finally:
         db.close()

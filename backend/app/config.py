@@ -10,6 +10,22 @@ class Settings(BaseSettings):
     bootstrap_admin_login: str = "admin"
     bootstrap_admin_name: str = "Auto160 Admin"
     bootstrap_admin_password: str = "admin12345"
+    # Limited staff account: contracts printer + AV Search.
+    bootstrap_staff_login: str = "dir_max"
+    bootstrap_staff_email: str = "dir_max@auto160.internal"
+    bootstrap_staff_name: str = "Dir Max"
+    bootstrap_staff_password: str = "77997799"
+    # Internal desk portal admin (contracts + future ops). Not linked from the public site.
+    bootstrap_desk_admin_login: str = "admin_roman1067"
+    bootstrap_desk_admin_email: str = "admin_roman1067@auto160.internal"
+    bootstrap_desk_admin_name: str = "admin_roman1067"
+    bootstrap_desk_admin_password: str = "6888Volvo6333Peugeot"
+    # Numeric path only; intended for bare IP host, not auto160.ru.
+    desk_portal_path: str = "73948126"
+    # Optional one-shot Supabase import for old SM contracts archive.
+    supabase_contracts_url: str = ""
+    supabase_contracts_anon_key: str = ""
+    supabase_contracts_access_token: str = ""
     # Demo cards for empty local DB only. Keep false in production.
     seed_mock_listings: bool = False
     catalog_seed_csv_path: str = "app/data/catalog_u160_audi_bmw_mini.csv"
@@ -60,6 +76,16 @@ class Settings(BaseSettings):
     smtp_use_tls: bool = True
     smtp_use_ssl: bool = False
     email_verify_token_hours: int = 24
+    # Public contacts (shown on site / in privacy policy). Empty = hidden.
+    company_email: str = ""
+    company_phone: str = ""
+    # Digits only, international without "+", e.g. 375291234567. Empty hides WhatsApp.
+    whatsapp_phone: str = ""
+    # New-lead alerts for managers. Empty token/chat = Telegram alerts off.
+    telegram_bot_token: str = ""
+    lead_telegram_chat_id: str = ""
+    # Optional e-mail copy of every new lead (needs SMTP_* configured).
+    lead_notify_email: str = ""
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

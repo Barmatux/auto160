@@ -15,6 +15,7 @@ except ImportError:  # pragma: no cover - local sqlite without pgvector
 class UserRole(str, enum.Enum):
     guest = "guest"
     seller = "seller"
+    staff = "staff"
     admin = "admin"
 
 
@@ -479,6 +480,87 @@ class BlogPost(Base):
     author: Mapped["User | None"] = relationship()
 
 
+class AdminContract(Base):
+    """Scandi Motors selection-service contracts (admin docs printer)."""
+
+    __tablename__ = "admin_contracts"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    contract_number: Mapped[str | None] = mapped_column(String(80), nullable=True, index=True)
+    client_name: Mapped[str | None] = mapped_column(String(300), nullable=True, index=True)
+    amount: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    payload: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    source_key: Mapped[str | None] = mapped_column(String(80), unique=True, nullable=True, index=True)
+    created_by_id: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+
+    created_by: Mapped["User | None"] = relationship()
+
+
+class SoldPartner(Base):
+    """Payer / partner code used in the Excel sold-cars archive (А, М, R, IHR…)."""
+
+    __tablename__ = "sold_partners"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    code: Mapped[str] = mapped_column(String(40), unique=True, index=True)
+    name: Mapped[str | None] = mapped_column(String(160), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class SoldCar(Base):
+    """One sold car imported from «Архив проданных.xlsx» (admin-only desk portal)."""
+
+    __tablename__ = "sold_cars"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    source_key: Mapped[str | None] = mapped_column(String(160), unique=True, nullable=True, index=True)
+    sheet: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    title: Mapped[str] = mapped_column(String(300), index=True)
+    sold_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    sold_price: Mapped[float | None] = mapped_column(Numeric(14, 2), nullable=True)
+    cost_price: Mapped[float | None] = mapped_column(Numeric(14, 2), nullable=True)
+    commission: Mapped[float | None] = mapped_column(Numeric(14, 2), nullable=True)
+    profit: Mapped[float | None] = mapped_column(Numeric(14, 2), nullable=True)
+    fx_rate: Mapped[float | None] = mapped_column(Numeric(10, 4), nullable=True)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Import diagnostics. needs_review stays True until an admin confirms the numbers.
+    needs_review: Mapped[bool] = mapped_column(default=True, index=True)
+    verified: Mapped[bool] = mapped_column(default=False)
+    locked: Mapped[bool] = mapped_column(default=False)  # edited by hand → re-import will not overwrite
+    flags: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
+    figures: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
+    sums: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    sheet_totals: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    raw_grid: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+
+    expenses: Mapped[list["SoldCarExpense"]] = relationship(
+        back_populates="car",
+        cascade="all, delete-orphan",
+        order_by="SoldCarExpense.row_no",
+    )
+
+
+class SoldCarExpense(Base):
+    __tablename__ = "sold_car_expenses"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    car_id: Mapped[int] = mapped_column(ForeignKey("sold_cars.id", ondelete="CASCADE"), index=True)
+    row_no: Mapped[int] = mapped_column(Integer, default=0)
+    item: Mapped[str] = mapped_column(String(300))
+    amount: Mapped[float] = mapped_column(Numeric(14, 2))
+    currency: Mapped[str] = mapped_column(String(3))
+    payer_code: Mapped[str | None] = mapped_column(String(40), nullable=True, index=True)
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    car: Mapped["SoldCar"] = relationship(back_populates="expenses")
+
+
 class SiteLead(Base):
     """Public contact lead from homepage modal or Belarus landing."""
 
@@ -494,6 +576,10 @@ class SiteLead(Base):
     )
     avby_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     is_read: Mapped[bool] = mapped_column(default=False, index=True)
+    # Consent to personal-data processing (required) and optional marketing messages.
+    consent_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    consent_version: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    consent_marketing: Mapped[bool] = mapped_column(default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
 
     listing: Mapped["CarListing | None"] = relationship()
