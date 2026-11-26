@@ -98,7 +98,7 @@
           const detail = data.detail;
           throw new Error(typeof detail === "string" ? detail : "Не удалось отправить заявку");
         }
-        if (leadStatus) leadStatus.textContent = "Заявка отправлена. Мы свяжемся с вами.";
+        if (leadStatus) leadStatus.textContent = data.reply_hint || "Заявка отправлена. Мы свяжемся с вами.";
         if (nameInput) nameInput.value = "";
         if (contactInput) contactInput.value = "";
         if (commentInput) commentInput.value = "";

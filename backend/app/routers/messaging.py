@@ -389,6 +389,7 @@ def post_visitor_message(
     thread_id: int,
     body: PostMessageRequest,
     request: Request,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     user: User | None = Depends(get_optional_user_flexible),
 ):
@@ -415,19 +416,19 @@ def post_visitor_message(
         _check_rate_limit(f"guest:{guest_token}")
 
     now = datetime.utcnow()
-    db.add(
-        Message(
-            thread_id=thread.id,
-            sender=MessageSender.visitor,
-            sender_user_id=user.id if user else None,
-            body=text[:4000],
-            created_at=now,
-        )
+    msg = Message(
+        thread_id=thread.id,
+        sender=MessageSender.visitor,
+        sender_user_id=user.id if user else None,
+        body=text[:4000],
+        created_at=now,
     )
+    db.add(msg)
     thread.last_message_at = now
     thread.visitor_last_read_at = now
     db.commit()
     db.refresh(thread)
+    background_tasks.add_task(notify_new_thread_message, thread.id, msg.id)
     return _thread_detail(db, thread)
 
 

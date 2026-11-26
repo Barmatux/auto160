@@ -34,6 +34,7 @@ from app.customs_vehicles import (
 from app.db import get_db
 from app.deps import get_optional_user_flexible
 from app.lead_notify import notify_new_lead
+from app.reply_hint import in_work_hours, lead_reply_hint
 from app.featured import create_site_lead, lookup_public_import_date, run_public_inspection_check
 from app.models import User, UserRole
 from app.myfin_rates import fetch_myfin_buy_rates
@@ -90,7 +91,15 @@ def submit_site_lead(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     background_tasks.add_task(notify_new_lead, lead.id)
-    return lead
+    out = SiteLeadOut.model_validate(lead)
+    out.reply_hint = lead_reply_hint()
+    return out
+
+
+@router.get("/reply-hint")
+def get_reply_hint():
+    """Auto-reply text for visitors, depending on the operator's working hours."""
+    return {"hint": lead_reply_hint(), "in_work_hours": in_work_hours()}
 
 
 @router.post("/import-date", response_model=ImportDateLookupResponse)

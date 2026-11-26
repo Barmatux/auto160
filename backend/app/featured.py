@@ -8,7 +8,7 @@ import re
 from dataclasses import dataclass
 from datetime import date, datetime
 
-from sqlalchemy import desc
+from sqlalchemy import desc, func
 from sqlalchemy.orm import Session
 
 from app.company import LEGAL_DOCS_VERSION
@@ -209,14 +209,116 @@ def create_site_lead(
     return lead
 
 
-def list_site_leads(db: Session, *, limit: int = 100, offset: int = 0) -> list[SiteLead]:
+LEAD_STATUSES: list[tuple[str, str]] = [
+    ("new", "Новая"),
+    ("contacted", "На связи"),
+    ("deposit", "Задаток"),
+    ("bought", "Куплено"),
+    ("delivered", "Доставлено"),
+    ("lost", "Отказ"),
+]
+LEAD_STATUS_LABELS = dict(LEAD_STATUSES)
+LEAD_CURRENCIES = ("BYN", "RUB", "USD", "EUR")
+
+
+def list_site_leads(
+    db: Session, *, limit: int = 100, offset: int = 0, status: str | None = None
+) -> list[SiteLead]:
+    q = db.query(SiteLead)
+    if status and status in LEAD_STATUS_LABELS:
+        q = q.filter(SiteLead.status == status)
     return (
-        db.query(SiteLead)
-        .order_by(desc(SiteLead.created_at), desc(SiteLead.id))
-        .offset(offset)
-        .limit(limit)
+        q.order_by(desc(SiteLead.created_at), desc(SiteLead.id)).offset(offset).limit(limit).all()
+    )
+
+
+def site_lead_funnel(db: Session) -> dict:
+    """Counts per status plus money totals for closed deals (grouped by currency)."""
+    counts = {key: 0 for key, _ in LEAD_STATUSES}
+    for status, n in db.query(SiteLead.status, func.count(SiteLead.id)).group_by(SiteLead.status):
+        counts[status if status in counts else "new"] += int(n)
+    money: dict[str, dict[str, float]] = {}
+    rows = (
+        db.query(
+            SiteLead.deal_currency,
+            func.coalesce(func.sum(SiteLead.deal_amount), 0),
+            func.coalesce(func.sum(SiteLead.deal_margin), 0),
+        )
+        .filter(SiteLead.status.in_(("bought", "delivered")))
+        .group_by(SiteLead.deal_currency)
         .all()
     )
+    for currency, amount, margin in rows:
+        money[currency or "—"] = {"amount": float(amount or 0), "margin": float(margin or 0)}
+    total = sum(counts.values())
+    won = counts["bought"] + counts["delivered"]
+    return {
+        "counts": counts,
+        "total": total,
+        "won": won,
+        "conversion": round(100 * won / total, 1) if total else 0.0,
+        "money": money,
+    }
+
+
+def set_lead_status(db: Session, lead_id: int, status: str) -> SiteLead:
+    if status not in LEAD_STATUS_LABELS:
+        raise ValueError("Неизвестный статус")
+    lead = db.get(SiteLead, lead_id)
+    if lead is None:
+        raise ValueError("Заявка не найдена")
+    if lead.status != status:
+        lead.status = status
+        lead.status_updated_at = datetime.utcnow()
+    if status != "new":
+        lead.is_read = True
+    db.commit()
+    db.refresh(lead)
+    return lead
+
+
+def append_lead_note(db: Session, lead_id: int, text: str) -> SiteLead:
+    lead = db.get(SiteLead, lead_id)
+    if lead is None:
+        raise ValueError("Заявка не найдена")
+    stamp = datetime.utcnow().strftime("%d.%m %H:%M")
+    entry = f"[{stamp}] {text.strip()[:1500]}"
+    lead.manager_note = f"{lead.manager_note}\n{entry}" if lead.manager_note else entry
+    db.commit()
+    db.refresh(lead)
+    return lead
+
+
+def update_site_lead(db: Session, lead_id: int, fields: dict) -> SiteLead:
+    """Apply an admin edit (only keys present in `fields`; None clears nullable values)."""
+    lead = db.get(SiteLead, lead_id)
+    if lead is None:
+        raise ValueError("Заявка не найдена")
+    if "status" in fields and fields["status"] is not None:
+        status = fields["status"]
+        if status not in LEAD_STATUS_LABELS:
+            raise ValueError("Неизвестный статус")
+        if lead.status != status:
+            lead.status = status
+            lead.status_updated_at = datetime.utcnow()
+        if status != "new":
+            lead.is_read = True
+    if "deal_amount" in fields:
+        lead.deal_amount = fields["deal_amount"]
+    if "deal_margin" in fields:
+        lead.deal_margin = fields["deal_margin"]
+    if "deal_currency" in fields:
+        cur = (fields["deal_currency"] or "").upper() or None
+        if cur and cur not in LEAD_CURRENCIES:
+            raise ValueError("Неизвестная валюта")
+        lead.deal_currency = cur
+    if "manager_note" in fields:
+        lead.manager_note = (fields["manager_note"] or "").strip()[:4000] or None
+    if "is_read" in fields and fields["is_read"] is not None:
+        lead.is_read = bool(fields["is_read"])
+    db.commit()
+    db.refresh(lead)
+    return lead
 
 
 def mark_site_lead_read(db: Session, lead_id: int, *, is_read: bool = True) -> SiteLead:

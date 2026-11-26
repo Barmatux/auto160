@@ -82,6 +82,7 @@ from app.featured import (
     list_featured_rows,
     list_site_leads,
     mark_site_lead_read,
+    update_site_lead,
     remove_featured_listing,
     set_featured_active,
 )
@@ -138,6 +139,7 @@ from app.schemas import (
     BlogPostUpdateRequest,
     SiteLeadOut,
     SiteLeadReadRequest,
+    SiteLeadUpdateRequest,
     UserPublic,
     UserRoleUpdateRequest,
 )
@@ -985,10 +987,25 @@ def admin_delete_customs_vehicle(
 def admin_list_site_leads(
     limit: int = Query(default=100, ge=1, le=500),
     offset: int = Query(default=0, ge=0),
+    status: str | None = Query(default=None),
     _: User = Depends(require_admin_flexible),
     db: Session = Depends(get_db),
 ):
-    return list_site_leads(db, limit=limit, offset=offset)
+    return list_site_leads(db, limit=limit, offset=offset, status=status)
+
+
+@router.patch("/site-leads/{lead_id}", response_model=SiteLeadOut)
+def admin_update_site_lead(
+    lead_id: int,
+    payload: SiteLeadUpdateRequest,
+    _: User = Depends(require_admin_flexible),
+    db: Session = Depends(get_db),
+):
+    try:
+        return update_site_lead(db, lead_id, payload.model_dump(exclude_unset=True))
+    except ValueError as exc:
+        code = 404 if "не найдена" in str(exc) else 400
+        raise HTTPException(status_code=code, detail=str(exc)) from exc
 
 
 @router.post("/site-leads/{lead_id}/read", response_model=SiteLeadOut)

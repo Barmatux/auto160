@@ -151,7 +151,10 @@ from app.featured import (
     FEATURED_POOL_LIMIT,
     home_featured_listings,
     list_featured_rows,
+    LEAD_CURRENCIES,
+    LEAD_STATUSES,
     list_site_leads,
+    site_lead_funnel,
 )
 from app.listing_catalog_link import (
     canonical_model_name as _canonical_model_name,
@@ -5823,13 +5826,17 @@ def admin_featured_page(request: Request, db: Session = Depends(get_db)):
 
 
 @router.get("/admin/site-leads")
-def admin_site_leads_page(request: Request, db: Session = Depends(get_db)):
+def admin_site_leads_page(request: Request, status: str | None = None, db: Session = Depends(get_db)):
     current_user = _resolve_user_from_request(request, db)
     redirect = _admin_page_redirect(current_user)
     if redirect:
         return redirect
     context = _template_context(request, current_user)
-    context["leads"] = list_site_leads(db, limit=200)
+    context["leads"] = list_site_leads(db, limit=300, status=status)
+    context["funnel"] = site_lead_funnel(db)
+    context["lead_statuses"] = LEAD_STATUSES
+    context["lead_currencies"] = LEAD_CURRENCIES
+    context["active_status"] = status or ""
     return templates.TemplateResponse(request, "admin_site_leads.html", context)
 
 
