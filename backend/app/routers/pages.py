@@ -2743,7 +2743,7 @@ def _home_popular_directions() -> list[dict]:
         },
         {
             "label": "Авто с европейских аукционов",
-            "url": "/listings/auctions",
+            "url": "/auctions",
             "flag_key": "eu-auctions",
             "flag_src": "/static/flags/eu-wide.svg?v=20261002-05",
         },
@@ -2833,25 +2833,8 @@ def sitemap_part_xml(slug: str, request: Request, db: Session = Depends(get_db))
     return Response(content=xml, media_type="application/xml; charset=utf-8", headers=_SITEMAP_CACHE_HEADERS)
 
 @router.get("/listings/auctions")
-def listings_coming_soon_page(request: Request, db: Session = Depends(get_db)):
-    current_user = _resolve_user_from_request(request, db)
-    page_heading = "Авто с европейских аукционов"
-    page_title = "Авто с европейских аукционов"
-    seo_path = "/listings/auctions"
-    context = _template_context(
-        request,
-        current_user,
-        SeoMeta(
-            title=f"{page_title} — Auto160",
-            description=f"{page_heading}: раздел в разработке. Скоро появятся объявления без утильсбора.",
-            path=seo_path,
-            noindex=True,
-            h1=page_heading,
-        ),
-    )
-    context["page_heading"] = page_heading
-    context["page_title"] = page_title
-    return templates.TemplateResponse(request, "listings_coming_soon.html", context)
+def listings_coming_soon_page():
+    return RedirectResponse(url="/auctions", status_code=302)
 
 
 @router.get("/listings/lt", include_in_schema=False)
@@ -5438,6 +5421,7 @@ def admin_archived_listings_page(
     return templates.TemplateResponse(request, "admin_archived_listings.html", context)
 
 
+@router.get("/auctions")
 @router.get("/admin/auctions")
 def admin_auctions_page(
     request: Request,
@@ -5445,11 +5429,9 @@ def admin_auctions_page(
     q: str = Query(default=""),
     db: Session = Depends(get_db),
 ):
+    if request.url.path.startswith("/admin/"):
+        return RedirectResponse(url="/auctions", status_code=302)
     current_user = _resolve_user_from_request(request, db)
-    if not current_user:
-        return RedirectResponse(url="/login", status_code=302)
-    if current_user.role != UserRole.admin:
-        return RedirectResponse(url="/", status_code=302)
 
     from app.bca_admin import auction_admin_view
 

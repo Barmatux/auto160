@@ -1,9 +1,6 @@
 {% extends "base.html" %}
-{% block title %}Админка — Аукционы{% endblock %}
+{% block title %}Аукционы — Auto160{% endblock %}
 {% block content %}
-{% set admin_section = "auctions" %}
-{% include "partials/admin_nav.html" %}
-
 <h1>Аукционы</h1>
 <p class="hint">Лоты BCA Europe, которые уже снял парсер. Страна и название аукциона показывают, откуда пришло объявление.</p>
 
@@ -21,13 +18,13 @@
 </section>
 
 <div class="actions-row">
-  <a class="btn-link{% if not auction_country %} active{% endif %}" href="/admin/auctions">Все</a>
+  <a class="btn-link{% if not auction_country %} active{% endif %}" href="/auctions">Все</a>
   {% for item in auction_countries %}
-    <a class="btn-link{% if auction_country == item.code %} active{% endif %}" href="/admin/auctions?country={{ item.code }}">{{ item.label }} · {{ item.count }}</a>
+    <a class="btn-link{% if auction_country == item.code %} active{% endif %}" href="/auctions?country={{ item.code }}">{{ item.label }} · {{ item.count }}</a>
   {% endfor %}
 </div>
 
-<form class="filters filters-inline" method="get" action="/admin/auctions">
+<form class="filters filters-inline" method="get" action="/auctions">
   {% if auction_country %}
     <input type="hidden" name="country" value="{{ auction_country }}" />
   {% endif %}
@@ -37,7 +34,7 @@
   </label>
   <button type="submit">Найти</button>
   {% if auction_q %}
-    <a class="page-link" href="/admin/auctions{% if auction_country %}?country={{ auction_country }}{% endif %}">Сбросить</a>
+    <a class="page-link" href="/auctions{% if auction_country %}?country={{ auction_country }}{% endif %}">Сбросить</a>
   {% endif %}
 </form>
 
