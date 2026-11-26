@@ -1,4 +1,5 @@
 import io
+import re
 from urllib.error import URLError
 from urllib.request import Request, urlopen
 
@@ -13,7 +14,7 @@ router = APIRouter(prefix="/media", tags=["media"])
 
 
 @router.get("/object")
-def get_media_object(key: str = Query(..., min_length=1)):
+def get_media_object(key: str = Query(..., min_length=1), download: int = Query(default=0)):
     # Serve media through app domain so browser doesn't need direct MinIO access.
     if ".." in key or key.startswith("/"):
         raise HTTPException(status_code=400, detail="Invalid object key")
@@ -26,7 +27,11 @@ def get_media_object(key: str = Query(..., min_length=1)):
     if body is None:
         raise HTTPException(status_code=404, detail="Object body missing")
     content_type = response.get("ContentType") or "application/octet-stream"
-    return StreamingResponse(body, media_type=content_type)
+    headers = {}
+    if download:
+        name = re.sub(r"[^A-Za-z0-9._-]", "_", key.rsplit("/", 1)[-1])[:120] or "document"
+        headers["Content-Disposition"] = f'attachment; filename="{name}"'
+    return StreamingResponse(body, media_type=content_type, headers=headers)
 
 
 @router.get("/autoplius")

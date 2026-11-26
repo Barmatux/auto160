@@ -394,10 +394,17 @@ body.theme-admin .btn-link-like {
 }
 
 /* EU check: keep «Просмотр» / «Источник» readable (black on brand CTA). */
-body.theme-admin .eu-check-table .eu-check-links a.btn-link {
+body.theme-admin .eu-check-table .eu-check-links a.btn-link,
+body.theme-admin .actions-row a.btn-link,
+body.theme-admin .actions-row a.btn-link:hover,
+body.theme-admin .actions-row a.btn-link:visited,
+body.theme-admin a.auction-action,
+body.theme-admin a.auction-action:hover,
+body.theme-admin a.auction-action:visited {
   background: var(--brand-cta);
-  color: #000;
+  color: #041018;
   font-weight: 700;
+  text-decoration: none;
 }
 
 body.theme-admin .eu-check-table .eu-check-links a.btn-link:hover {
@@ -1082,5 +1089,35 @@ body.theme-admin:not(.theme-admin-light) .featured-avby-dialog-close {
 
 .admin-auctions-table td {
   vertical-align: middle;
+}
+
+.admin-auctions-table .actions-row {
+  margin-top: 0;
+}
+
+.auction-lot {
+  display: grid;
+  grid-template-columns: minmax(0, 460px) minmax(0, 1fr);
+  gap: 28px;
+  align-items: start;
+  margin-top: 8px;
+}
+
+.auction-lot-photo {
+  width: 100%;
+  border-radius: 12px;
+  background: var(--surface);
+  display: block;
+}
+
+.auction-lot-back {
+  display: inline-block;
+  margin-bottom: 8px;
+}
+
+@media (max-width: 800px) {
+  .auction-lot {
+    grid-template-columns: 1fr;
+  }
 }
 

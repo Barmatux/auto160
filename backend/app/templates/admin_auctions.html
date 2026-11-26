@@ -62,7 +62,7 @@
           {% endif %}
         </td>
         <td>
-          <div>{{ row.headline }}</div>
+          <div><a href="/auctions/{{ row.id }}">{{ row.headline }}</a></div>
           {% if row.vin %}<div class="hint">{{ row.vin }}</div>{% endif %}
         </td>
         <td>{{ row.year }}</td>
@@ -72,8 +72,12 @@
         <td>{{ row.auction_name }}</td>
         <td>{{ row.city }}</td>
         <td>
-          {% if row.lot_url %}<a href="{{ row.lot_url }}" target="_blank" rel="noopener">Лот</a>{% endif %}
-          {% if row.report_url %}<a href="{{ row.report_url }}" target="_blank" rel="noopener">PDF</a>{% endif %}
+          <div class="actions-row">
+            <a class="btn-link auction-action" href="/auctions/{{ row.id }}">Подробнее</a>
+            {% if row.download_url %}
+              <a class="btn-link auction-action" href="{{ row.download_url }}">Скачать документ</a>
+            {% endif %}
+          </div>
         </td>
       </tr>
     {% endfor %}

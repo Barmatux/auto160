@@ -51,6 +51,19 @@ def storage_key_from_media_url(url: str) -> str:
     return unquote(key)
 
 
+def media_download_url(key: str) -> str:
+    """Attachment URL for a file already stored in our bucket."""
+    value = (key or "").strip()
+    if not value or ".." in value or value.startswith("/"):
+        return ""
+    return f"/media/object?key={quote(value, safe='')}&download=1"
+
+
+def _with_download(url: str) -> str:
+    key = storage_key_from_media_url(url)
+    return media_download_url(key) if key else ""
+
+
 def auction_admin_view(db, *, country: str = "", q: str = "") -> dict:
     from sqlalchemy import func, or_
 
@@ -84,22 +97,7 @@ def auction_admin_view(db, *, country: str = "", q: str = "") -> dict:
     pairs = lots_query.order_by(BcaAuction.country, BcaAuction.name, BcaLot.headline, BcaLot.id).all()
     rows = []
     for lot, auction in pairs:
-        rows.append(
-            {
-                "headline": lot.headline or "—",
-                "year": lot.registration_date if str(lot.registration_date or "").isdigit() else _year(lot.headline),
-                "mileage": lot.mileage_km,
-                "fuel": fuel_label(lot.fuel_type),
-                "city": lot.vehicle_location or "—",
-                "country": country_label(auction.country),
-                "country_code": auction.country or "",
-                "auction_name": auction.name or "—",
-                "photo_url": lot.image_url or "",
-                "lot_url": lot.lot_url or "",
-                "report_url": lot.condition_report_url or "",
-                "vin": lot.vin or "",
-            }
-        )
+        rows.append(_lot_row(lot, auction))
     auction_ids = {auction.id for _, auction in pairs}
     return {
         "rows": rows,
@@ -110,11 +108,88 @@ def auction_admin_view(db, *, country: str = "", q: str = "") -> dict:
     }
 
 
+def auction_lot_view(db, lot_id: int) -> dict | None:
+    from app.models import BcaAuction, BcaLot
+
+    pair = (
+        db.query(BcaLot, BcaAuction)
+        .join(BcaAuction, BcaLot.auction_id == BcaAuction.id)
+        .filter(BcaLot.id == lot_id)
+        .one_or_none()
+    )
+    if pair is None:
+        return None
+    lot, auction = pair
+    row = _lot_row(lot, auction)
+    row["registration"] = lot.registration or ""
+    row["specs"] = [
+        item
+        for item in (
+            ("Год", row["year"] if row["year"] != "—" else ""),
+            ("Пробег", _mileage_text(row["mileage"])),
+            ("Топливо", row["fuel"] if row["fuel"] != "—" else ""),
+            ("VIN", row["vin"]),
+            ("Рег. номер", row["registration"]),
+            ("Страна", row["country"] if row["country"] != "—" else ""),
+            ("Аукцион", row["auction_name"] if row["auction_name"] != "—" else ""),
+            ("Где стоит", row["city"] if row["city"] != "—" else ""),
+        )
+        if item[1]
+    ]
+    return row
+
+
+def _mileage_text(value: int | None) -> str:
+    if value is None:
+        return ""
+    return f"{value:,}".replace(",", " ") + " км"
+
+
+def _lot_row(lot, auction) -> dict:
+    download_url = _with_download(lot.condition_report_url or "")
+    return {
+        "id": lot.id,
+        "headline": lot.headline or "—",
+        "year": lot.registration_date if str(lot.registration_date or "").isdigit() else _year(lot.headline),
+        "mileage": lot.mileage_km,
+        "fuel": fuel_label(lot.fuel_type) or "—",
+        "city": lot.vehicle_location or "—",
+        "country": country_label(auction.country),
+        "country_code": auction.country or "",
+        "auction_name": auction.name or "—",
+        "photo_url": lot.image_url or "",
+        "lot_url": lot.lot_url or "",
+        "download_url": download_url,
+        "vin": lot.vin or "",
+    }
+
+
 def _year(headline: str) -> str:
     tail = (headline or "").rsplit(",", 1)
     if len(tail) == 2 and tail[1].strip().isdigit() and len(tail[1].strip()) == 4:
         return tail[1].strip()
     return "—"
+
+
+def _store_inspection_document(db, lot, auction, inspection: str) -> None:
+    if not inspection or ".." in inspection or inspection.startswith("/"):
+        return
+    from app.models import BcaDocument
+
+    document = (
+        db.query(BcaDocument)
+        .filter(BcaDocument.kind == "inspection", BcaDocument.source_url == inspection)
+        .one_or_none()
+    )
+    if document is None:
+        document = BcaDocument(kind="inspection", source_url=inspection, fetched_at=lot.last_seen_at)
+        db.add(document)
+    document.auction_id = auction.id
+    document.lot_pk = lot.id
+    document.content_type = "application/pdf"
+    document.storage_path = inspection
+    document.status = "stored"
+    document.detail = ""
 
 
 def upsert_parsed_lots(db, items: list[dict]) -> int:
@@ -150,6 +225,7 @@ def upsert_parsed_lots(db, items: list[dict]) -> int:
         lot.make = (title.split(" ", 1)[0] if title else "")[:80]
         lot.lot_url = str(item.get("url") or "")
         lot.vin = str(item.get("vin") or "")[:32]
+        lot.registration = str(item.get("registration") or "")[:32]
         lot.mileage_km = corrected_mileage(item.get("mileage_km"))
         lot.fuel_type = str(item.get("fuel") or "")[:40]
         lot.registration_date = str(item.get("year") or "")[:40]
@@ -161,6 +237,8 @@ def upsert_parsed_lots(db, items: list[dict]) -> int:
             f"/media/object?key={quote(inspection, safe='')}" if inspection else ""
         )
         lot.last_seen_at = now
+        db.flush()
+        _store_inspection_document(db, lot, auction, inspection)
         saved += 1
     db.flush()
     for auction in auctions.values():

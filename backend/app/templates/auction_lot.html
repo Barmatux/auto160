@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}{{ auction_lot.headline }} — Аукционы{% endblock %}
+{% block content %}
+<a class="auction-lot-back" href="/auctions">Все аукционы</a>
+<h1>{{ auction_lot.headline }}</h1>
+<p class="hint">{{ auction_lot.country }} · {{ auction_lot.auction_name }}</p>
+
+<div class="auction-lot">
+  <div>
+    {% if auction_lot.photo_url %}
+      <img class="auction-lot-photo" src="{{ auction_lot.photo_url }}" alt="{{ auction_lot.headline }}" />
+    {% endif %}
+  </div>
+  <div>
+    <dl class="listing-spec-list">
+      {% for label, value in auction_lot.specs %}
+        <div class="listing-spec-row">
+          <dt>{{ label }}</dt>
+          <dd>{{ value }}</dd>
+        </div>
+      {% endfor %}
+    </dl>
+    {% if auction_lot.download_url %}
+      <div class="actions-row">
+        <a class="btn-link auction-action" href="{{ auction_lot.download_url }}">Скачать документ</a>
+      </div>
+    {% else %}
+      <p class="hint">Документа осмотра в нашем хранилище для этого лота нет.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

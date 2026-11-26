@@ -5451,6 +5451,19 @@ def admin_auctions_page(
     return templates.TemplateResponse(request, "admin_auctions.html", context)
 
 
+@router.get("/auctions/{lot_id}")
+def auction_lot_page(lot_id: int, request: Request, db: Session = Depends(get_db)):
+    current_user = _resolve_user_from_request(request, db)
+    from app.bca_admin import auction_lot_view
+
+    lot = auction_lot_view(db, lot_id)
+    if lot is None:
+        raise HTTPException(status_code=404, detail="Объявление не найдено")
+    context = _template_context(request, current_user)
+    context["auction_lot"] = lot
+    return templates.TemplateResponse(request, "auction_lot.html", context)
+
+
 @router.get("/admin/eu-check")
 def admin_eu_check_page(
     request: Request,
