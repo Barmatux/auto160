@@ -5435,6 +5435,37 @@ def admin_archived_listings_page(
     return templates.TemplateResponse(request, "admin_archived_listings.html", context)
 
 
+@router.get("/admin/auctions")
+def admin_auctions_page(
+    request: Request,
+    country: str = Query(default=""),
+    q: str = Query(default=""),
+    db: Session = Depends(get_db),
+):
+    current_user = _resolve_user_from_request(request, db)
+    if not current_user:
+        return RedirectResponse(url="/login", status_code=302)
+    if current_user.role != UserRole.admin:
+        return RedirectResponse(url="/", status_code=302)
+
+    from app.bca_admin import auction_admin_view
+
+    view = auction_admin_view(db, country=country, q=q)
+    context = _template_context(request, current_user)
+    context.update(
+        {
+            "auction_rows": view["rows"],
+            "auction_shown": view["total"],
+            "auction_lot_total": view["lot_total"],
+            "auction_count": view["auction_count"],
+            "auction_countries": view["countries"],
+            "auction_country": (country or "").strip().upper(),
+            "auction_q": q.strip(),
+        }
+    )
+    return templates.TemplateResponse(request, "admin_auctions.html", context)
+
+
 @router.get("/admin/eu-check")
 def admin_eu_check_page(
     request: Request,

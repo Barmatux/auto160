@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}Админка — Аукционы{% endblock %}
+{% block content %}
+{% set admin_section = "auctions" %}
+{% include "partials/admin_nav.html" %}
+
+<h1>Аукционы</h1>
+<p class="hint">Лоты BCA Europe, которые уже снял парсер. Страна и название аукциона показывают, откуда пришло объявление.</p>
+
+<section class="admin-stats-grid">
+  <article class="admin-stat-card">
+    <div class="label">Объявлений</div>
+    <div class="value">{{ auction_lot_total }}</div>
+    <div class="sub">в выбранной выборке {{ auction_shown }}</div>
+  </article>
+  <article class="admin-stat-card">
+    <div class="label">Аукционов</div>
+    <div class="value">{{ auction_count }}</div>
+    <div class="sub">в этой выборке</div>
+  </article>
+</section>
+
+<div class="actions-row">
+  <a class="btn-link{% if not auction_country %} active{% endif %}" href="/admin/auctions">Все</a>
+  {% for item in auction_countries %}
+    <a class="btn-link{% if auction_country == item.code %} active{% endif %}" href="/admin/auctions?country={{ item.code }}">{{ item.label }} · {{ item.count }}</a>
+  {% endfor %}
+</div>
+
+<form class="filters filters-inline" method="get" action="/admin/auctions">
+  {% if auction_country %}
+    <input type="hidden" name="country" value="{{ auction_country }}" />
+  {% endif %}
+  <label>
+    Поиск
+    <input type="search" name="q" value="{{ auction_q }}" placeholder="Mercedes, Франция, VIN" />
+  </label>
+  <button type="submit">Найти</button>
+  {% if auction_q %}
+    <a class="page-link" href="/admin/auctions{% if auction_country %}?country={{ auction_country }}{% endif %}">Сбросить</a>
+  {% endif %}
+</form>
+
+{% if auction_rows %}
+<table class="users-table admin-auctions-table">
+  <thead>
+    <tr>
+      <th></th>
+      <th>Объявление</th>
+      <th>Год</th>
+      <th>Пробег</th>
+      <th>Топливо</th>
+      <th>Страна</th>
+      <th>Аукцион</th>
+      <th>Где стоит</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for row in auction_rows %}
+      <tr>
+        <td>
+          {% if row.photo_url %}
+            <img class="admin-auction-thumb" src="{{ row.photo_url }}" alt="" />
+          {% endif %}
+        </td>
+        <td>
+          <div>{{ row.headline }}</div>
+          {% if row.vin %}<div class="hint">{{ row.vin }}</div>{% endif %}
+        </td>
+        <td>{{ row.year }}</td>
+        <td>{% if row.mileage is not none %}{{ "{:,}".format(row.mileage).replace(",", " ") }} км{% else %}—{% endif %}</td>
+        <td>{{ row.fuel or "—" }}</td>
+        <td>{{ row.country }}</td>
+        <td>{{ row.auction_name }}</td>
+        <td>{{ row.city }}</td>
+        <td>
+          {% if row.lot_url %}<a href="{{ row.lot_url }}" target="_blank" rel="noopener">Лот</a>{% endif %}
+          {% if row.report_url %}<a href="{{ row.report_url }}" target="_blank" rel="noopener">PDF</a>{% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="hint">Пока нет загруженных аукционных объявлений.</p>
+{% endif %}
+{% endblock %}

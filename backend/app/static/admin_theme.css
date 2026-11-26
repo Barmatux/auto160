@@ -1070,3 +1070,17 @@ body.theme-admin:not(.theme-admin-light) .featured-avby-dialog {
 body.theme-admin:not(.theme-admin-light) .featured-avby-dialog-close {
   color: var(--muted);
 }
+
+.admin-auction-thumb {
+  width: 88px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 6px;
+  background: var(--surface-soft);
+  display: block;
+}
+
+.admin-auctions-table td {
+  vertical-align: middle;
+}
+
