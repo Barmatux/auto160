@@ -1110,6 +1110,31 @@ body.theme-admin:not(.theme-admin-light) .featured-avby-dialog-close {
   display: block;
 }
 
+.auction-photo-strip {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  margin-top: 8px;
+  padding-bottom: 4px;
+}
+
+.auction-photo-thumb {
+  flex: 0 0 auto;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.auction-photo-thumb img {
+  display: block;
+  width: 84px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 6px;
+}
+
 .auction-lot-back {
   display: inline-block;
   margin-bottom: 8px;

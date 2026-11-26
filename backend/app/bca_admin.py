@@ -158,6 +158,7 @@ def _lot_row(lot, auction) -> dict:
         "country_code": auction.country or "",
         "auction_name": auction.name or "—",
         "photo_url": lot.image_url or "",
+        "photos": [url for url in (lot.photo_urls or []) if url] or ([lot.image_url] if lot.image_url else []),
         "lot_url": lot.lot_url or "",
         "download_url": download_url,
         "vin": lot.vin or "",
@@ -230,7 +231,16 @@ def upsert_parsed_lots(db, items: list[dict]) -> int:
         lot.fuel_type = str(item.get("fuel") or "")[:40]
         lot.registration_date = str(item.get("year") or "")[:40]
         lot.vehicle_location = str(item.get("city") or "")[:160]
-        lot.image_url = str(item.get("photo_url") or "")
+        gallery = [
+            str(url)
+            for url in (item.get("photo_urls") or [])
+            if str(url).startswith("/media/object?key=")
+        ]
+        if gallery:
+            lot.photo_urls = gallery[:12]
+            lot.image_url = gallery[0]
+        else:
+            lot.image_url = str(item.get("photo_url") or "")
         lot.photo_s3_key = storage_key_from_media_url(lot.image_url)
         inspection = str(item.get("inspection_key") or "").strip()
         lot.condition_report_url = (

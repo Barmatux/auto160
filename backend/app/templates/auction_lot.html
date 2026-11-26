@@ -7,8 +7,17 @@
 
 <div class="auction-lot">
   <div>
-    {% if auction_lot.photo_url %}
-      <img class="auction-lot-photo" src="{{ auction_lot.photo_url }}" alt="{{ auction_lot.headline }}" />
+    {% if auction_lot.photos %}
+      <img class="auction-lot-photo" src="{{ auction_lot.photos[0] }}" alt="{{ auction_lot.headline }}" />
+      {% if auction_lot.photos|length > 1 %}
+        <div class="auction-photo-strip">
+          {% for photo in auction_lot.photos %}
+            <button type="button" class="auction-photo-thumb" data-photo="{{ photo }}">
+              <img src="{{ photo }}" alt="" />
+            </button>
+          {% endfor %}
+        </div>
+      {% endif %}
     {% endif %}
   </div>
   <div>
@@ -33,4 +42,12 @@
     {% endif %}
   </div>
 </div>
+<script>
+  document.querySelectorAll(".auction-photo-thumb").forEach(function (button) {
+    button.addEventListener("click", function () {
+      var main = document.querySelector(".auction-lot-photo");
+      if (main) main.src = button.getAttribute("data-photo");
+    });
+  });
+</script>
 {% endblock %}
