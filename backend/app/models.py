@@ -580,9 +580,29 @@ class SiteLead(Base):
     consent_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     consent_version: Mapped[str | None] = mapped_column(String(20), nullable=True)
     consent_marketing: Mapped[bool] = mapped_column(default=False)
+    # Sales funnel: new → contacted → deposit → bought → delivered | lost.
+    status: Mapped[str] = mapped_column(String(20), default="new", index=True)
+    deal_amount: Mapped[float | None] = mapped_column(Numeric(14, 2), nullable=True)
+    deal_margin: Mapped[float | None] = mapped_column(Numeric(14, 2), nullable=True)
+    deal_currency: Mapped[str | None] = mapped_column(String(3), nullable=True)
+    manager_note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    status_updated_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
 
     listing: Mapped["CarListing | None"] = relationship()
+
+
+class TelegramMessageLink(Base):
+    """Maps a bot message to the lead / chat thread it announced (for Reply-to-answer)."""
+
+    __tablename__ = "telegram_message_links"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    chat_id: Mapped[str] = mapped_column(String(40), index=True)
+    tg_message_id: Mapped[int] = mapped_column(Integer, index=True)
+    kind: Mapped[str] = mapped_column(String(10))  # "lead" | "thread"
+    ref_id: Mapped[int] = mapped_column(Integer)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
 class CustomsVehicleSpec(Base):

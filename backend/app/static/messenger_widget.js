@@ -172,8 +172,20 @@
       .join("");
   }
 
+  let replyHint = null;
+  async function ensureReplyHint() {
+    if (replyHint !== null) return;
+    try {
+      const res = await fetch("/api/v1/public/reply-hint");
+      const data = await res.json();
+      replyHint = String(data.hint || "");
+    } catch (_) {
+      replyHint = "";
+    }
+  }
+
   function renderMessages(detail) {
-    messagesEl.innerHTML = detail.messages
+    const bubbles = detail.messages
       .map((m) => {
         const side = m.sender === "visitor" ? "me" : "them";
         const when = new Date(m.created_at).toLocaleString("ru-RU");
@@ -183,6 +195,12 @@
         </div>`;
       })
       .join("");
+    const waiting = !detail.messages.some((m) => m.sender !== "visitor");
+    const hint =
+      waiting && replyHint
+        ? `<p class="hint a160-msg-empty">${esc(replyHint)}</p>`
+        : "";
+    messagesEl.innerHTML = bubbles + hint;
     messagesEl.scrollTop = messagesEl.scrollHeight;
   }
 
@@ -194,6 +212,7 @@
 
   async function openThread(id) {
     const detail = await api(`/threads/${id}`);
+    await ensureReplyHint();
     activeThreadId = id;
     listEl.hidden = true;
     chatEl.hidden = false;
@@ -336,7 +355,9 @@
       closeModal();
       openPanel();
       listEl.innerHTML =
-        '<p class="hint a160-msg-empty">Сообщение отправлено менеджеру. Ответ появится здесь или мы свяжемся по указанному контакту.</p>';
+        '<p class="hint a160-msg-empty">' +
+        esc(leadData.reply_hint || "Сообщение отправлено менеджеру. Мы свяжемся по указанному контакту.") +
+        "</p>";
     } catch (err) {
       startError.hidden = false;
       startError.textContent = err.message || "Не удалось отправить";

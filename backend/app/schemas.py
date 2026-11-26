@@ -639,9 +639,26 @@ class SiteLeadOut(BaseModel):
     avby_url: str | None = None
     is_read: bool
     created_at: datetime
+    status: str = "new"
+    deal_amount: float | None = None
+    deal_margin: float | None = None
+    deal_currency: str | None = None
+    manager_note: str | None = None
+    consent_marketing: bool = False
+    # Filled only in the public POST /leads response (auto-reply text for the visitor).
+    reply_hint: str | None = None
 
     class Config:
         from_attributes = True
+
+
+class SiteLeadUpdateRequest(BaseModel):
+    status: str | None = None
+    deal_amount: float | None = None
+    deal_margin: float | None = None
+    deal_currency: str | None = None
+    manager_note: str | None = None
+    is_read: bool | None = None
 
 
 class SiteLeadReadRequest(BaseModel):

@@ -5,51 +5,88 @@
 {% include "partials/admin_nav.html" %}
 
 <h1>Заявки с сайта</h1>
-<p class="hint">Лиды с главной (модалка av.by) и страницы «Авто из Беларуси».</p>
+<p class="hint">Воронка: новая → на связи → задаток → куплено → доставлено. Уведомления и ответы клиентам — через Telegram-бота.</p>
 
-<table class="users-table">
+<div class="funnel">
+  <a class="funnel-chip {% if not active_status %}is-active{% endif %}" href="/admin/site-leads">
+    <span class="funnel-chip__n">{{ funnel.total }}</span><span>Все</span>
+  </a>
+  {% for key, label in lead_statuses %}
+    <a class="funnel-chip funnel-chip--{{ key }} {% if active_status == key %}is-active{% endif %}" href="/admin/site-leads?status={{ key }}">
+      <span class="funnel-chip__n">{{ funnel.counts[key] }}</span><span>{{ label }}</span>
+    </a>
+  {% endfor %}
+</div>
+<p class="hint">
+  Конверсия в покупку: <strong>{{ funnel.conversion }}%</strong> ({{ funnel.won }} из {{ funnel.total }}).
+  {% for cur, m in funnel.money.items() %}
+    Закрыто в {{ cur }}: оборот {{ "{:,.0f}".format(m.amount).replace(",", " ") }}, маржа <strong>{{ "{:,.0f}".format(m.margin).replace(",", " ") }}</strong>.
+  {% endfor %}
+</p>
+
+<table class="users-table leads-table">
   <thead>
     <tr>
       <th>Когда</th>
-      <th>Источник</th>
-      <th>Контакт</th>
-      <th>Комментарий</th>
-      <th>Объявление</th>
+      <th>Клиент</th>
+      <th>Заявка</th>
+      <th>Статус</th>
+      <th>Сделка</th>
+      <th>Заметка</th>
       <th></th>
     </tr>
   </thead>
   <tbody>
     {% for lead in leads %}
       <tr class="{% if not lead.is_read %}is-unread{% endif %}" data-lead-row="{{ lead.id }}">
-        <td>{{ lead.created_at.strftime('%d.%m.%Y %H:%M') if lead.created_at else "—" }}</td>
-        <td>{{ lead.source }}</td>
+        <td>
+          {{ lead.created_at.strftime('%d.%m.%Y %H:%M') if lead.created_at else "—" }}
+          <div class="hint">{{ lead.source }}</div>
+        </td>
         <td>
           <strong>{{ lead.contact_name }}</strong>
           <div>{{ lead.contact }}</div>
+          {% if lead.consent_at %}<div class="hint">согласие {{ lead.consent_at.strftime('%d.%m.%Y') }}{% if lead.consent_marketing %} + рассылки{% endif %}</div>{% endif %}
         </td>
-        <td>{{ lead.comment or "—" }}</td>
         <td>
+          {{ lead.comment or "—" }}
           {% if lead.listing_id %}
-            <a href="/listings/{{ lead.listing_id }}">#{{ lead.listing_id }}</a>
+            <div class="hint"><a href="/listings/{{ lead.listing_id }}">объявление #{{ lead.listing_id }}</a></div>
           {% endif %}
           {% if lead.avby_url %}
             <div class="hint"><a href="{{ lead.avby_url }}" target="_blank" rel="noopener">av.by</a></div>
           {% endif %}
-          {% if not lead.listing_id and not lead.avby_url %}—{% endif %}
         </td>
         <td>
-          {% if not lead.is_read %}
-            <button type="button" class="btn-link" data-lead-mark-read="{{ lead.id }}">Прочитано</button>
-          {% else %}
-            <span class="hint">прочитано</span>
-          {% endif %}
+          <select data-lead-field="status" class="leads-input">
+            {% for key, label in lead_statuses %}
+              <option value="{{ key }}" {% if lead.status == key %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </td>
+        <td>
+          <input data-lead-field="deal_amount" class="leads-input" type="number" step="any" min="0" placeholder="Сумма" value="{{ lead.deal_amount|int if lead.deal_amount is not none else '' }}">
+          <input data-lead-field="deal_margin" class="leads-input" type="number" step="any" placeholder="Маржа" value="{{ lead.deal_margin|int if lead.deal_margin is not none else '' }}">
+          <select data-lead-field="deal_currency" class="leads-input">
+            <option value="">валюта</option>
+            {% for cur in lead_currencies %}
+              <option value="{{ cur }}" {% if lead.deal_currency == cur %}selected{% endif %}>{{ cur }}</option>
+            {% endfor %}
+          </select>
+        </td>
+        <td>
+          <textarea data-lead-field="manager_note" class="leads-input leads-note" rows="3" placeholder="Заметка">{{ lead.manager_note or "" }}</textarea>
+        </td>
+        <td>
+          <button type="button" class="btn" data-lead-save="{{ lead.id }}">Сохранить</button>
+          <div class="hint" data-lead-msg></div>
         </td>
       </tr>
     {% else %}
-      <tr><td colspan="6">Заявок пока нет</td></tr>
+      <tr><td colspan="7">Заявок пока нет</td></tr>
     {% endfor %}
   </tbody>
 </table>
 
-<script src="/static/admin_site_leads.js?v=20261020-01" defer></script>
+<script src="/static/admin_site_leads.js?v=20261126-funnel"></script>
 {% endblock %}

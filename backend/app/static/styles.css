@@ -10416,3 +10416,14 @@ body.blog-surface .site-footer {
 .legal-doc li { margin: 4px 0; }
 .legal-doc table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 0.92rem; }
 .legal-doc th, .legal-doc td { border: 1px solid rgba(128, 128, 128, 0.4); padding: 6px 10px; text-align: left; vertical-align: top; }
+
+/* Admin: lead funnel */
+.funnel { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+.funnel-chip { display: inline-flex; align-items: baseline; gap: 8px; padding: 8px 14px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.14); background: rgba(255,255,255,0.04); color: inherit; text-decoration: none; font-size: 0.9rem; }
+.funnel-chip__n { font-weight: 700; font-size: 1.05rem; }
+.funnel-chip.is-active { border-color: #35c2f2; background: rgba(53,194,242,0.14); }
+.funnel-chip--lost .funnel-chip__n { opacity: 0.6; }
+.funnel-chip--bought .funnel-chip__n, .funnel-chip--delivered .funnel-chip__n { color: #6fe8b4; }
+.leads-table td { vertical-align: top; }
+.leads-input { display: block; width: 100%; min-width: 110px; margin-bottom: 6px; padding: 6px 8px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.16); background: rgba(255,255,255,0.05); color: inherit; font: inherit; }
+.leads-note { min-width: 200px; resize: vertical; }

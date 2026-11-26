@@ -1,3 +1,4 @@
+import threading
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -10,8 +11,9 @@ from app.db import SessionLocal, engine
 from app.logging_setup import ensure_uvicorn_file_logging, setup_logging
 from app.middleware.analytics import AnalyticsMiddleware
 from app.middleware.static_cache import StaticCacheMiddleware
-from app.routers import admin, auth, catalog_photos, chat, internal_catalog, listings, market_prices, media, messaging, pages, site_public, sold_cars, vin_check
+from app.routers import admin, auth, catalog_photos, chat, internal_catalog, listings, market_prices, media, messaging, pages, site_public, sold_cars, telegram, vin_check
 from app.storage import ensure_bucket_exists
+from app.telegram_bridge import register_webhook
 
 setup_logging("api")
 
@@ -74,6 +76,7 @@ def on_startup() -> None:
     ensure_bucket_exists()
     safe_bootstrap_admin(SessionLocal, engine)
     warm_vin_test_session(SessionLocal)
+    threading.Thread(target=register_webhook, daemon=True).start()
 
 
 @app.get("/health")
@@ -214,3 +217,4 @@ app.include_router(admin.router)
 app.include_router(sold_cars.router)
 app.include_router(vin_check.router)
 app.include_router(site_public.router)
+app.include_router(telegram.router)

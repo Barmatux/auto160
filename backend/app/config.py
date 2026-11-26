@@ -86,6 +86,12 @@ class Settings(BaseSettings):
     lead_telegram_chat_id: str = ""
     # Optional e-mail copy of every new lead (needs SMTP_* configured).
     lead_notify_email: str = ""
+    # Secret for Telegram webhook header; empty = derived from the bot token.
+    telegram_webhook_secret: str = ""
+    # Working hours (Minsk/Moscow time, UTC+3) used for the on-site auto-reply text.
+    work_hours_start: int = 9
+    work_hours_end: int = 21
+    reply_minutes: int = 30
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

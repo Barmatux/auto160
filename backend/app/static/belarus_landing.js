@@ -31,14 +31,14 @@
         status.textContent = "Отправка…";
       }
       try {
-        await postJson("/api/v1/public/leads", {
+        const leadData = await postJson("/api/v1/public/leads", {
           contact_name: fd.get("contact_name") || "",
           contact: fd.get("contact") || "",
           comment: fd.get("comment") || null,
           source: fd.get("source") || "belarus_landing",
           ...consentPayload(fd),
         });
-        if (status) status.textContent = "Заявка отправлена. Мы свяжемся с вами.";
+        if (status) status.textContent = (leadData && leadData.reply_hint) || "Заявка отправлена. Мы свяжемся с вами.";
         leadForm.reset();
       } catch (err) {
         if (status) status.textContent = err.message || "Ошибка отправки";
@@ -165,7 +165,7 @@
         const comment = String(fd.get("comment") || "").trim();
         if (comment) commentParts.push(comment);
         if (avbyUrl) commentParts.push("Ссылка: " + avbyUrl);
-        await postJson("/api/v1/public/leads", {
+        const consultData = await postJson("/api/v1/public/leads", {
           contact_name: fd.get("contact_name") || "",
           contact: fd.get("contact") || "",
           comment: commentParts.join("\n") || null,
@@ -174,7 +174,8 @@
           ...consentPayload(fd),
         });
         if (consultLeadStatus) {
-          consultLeadStatus.textContent = "Заявка отправлена. Мы свяжемся с вами.";
+          consultLeadStatus.textContent =
+            (consultData && consultData.reply_hint) || "Заявка отправлена. Мы свяжемся с вами.";
         }
         consultLeadForm.querySelector('button[type="submit"]').disabled = true;
       } catch (err) {
