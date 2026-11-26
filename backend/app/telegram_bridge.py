@@ -56,6 +56,10 @@ def site_base() -> str:
     return (settings.public_site_url or "").strip().rstrip("/") or SITE_FALLBACK
 
 
+def token_set() -> bool:
+    return bool((settings.telegram_bot_token or "").strip())
+
+
 def bot_enabled() -> bool:
     return bool((settings.telegram_bot_token or "").strip() and (settings.lead_telegram_chat_id or "").strip())
 
@@ -85,8 +89,11 @@ def _call(method: str, payload: dict) -> dict | None:
 
 
 def register_webhook() -> None:
-    """Point the bot at this site (idempotent). Called once at startup."""
-    if not bot_enabled():
+    """Point the bot at this site (idempotent). Called once at startup.
+
+    Needs only the token: /start must work before LEAD_TELEGRAM_CHAT_ID is known.
+    """
+    if not token_set():
         return
     result = _call(
         "setWebhook",
