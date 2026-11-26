@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from sqlalchemy.orm import Session
 
 from app.db import get_db
-from app.telegram_bridge import bot_enabled, handle_update, webhook_secret
+from app.telegram_bridge import handle_update, token_set, webhook_secret
 
 router = APIRouter(prefix="/api/v1/telegram", tags=["telegram"], include_in_schema=False)
 
@@ -17,7 +17,7 @@ async def telegram_webhook(
     db: Session = Depends(get_db),
     x_telegram_bot_api_secret_token: str | None = Header(default=None),
 ):
-    if not bot_enabled() or not hmac.compare_digest(
+    if not token_set() or not hmac.compare_digest(
         x_telegram_bot_api_secret_token or "", webhook_secret()
     ):
         raise HTTPException(status_code=403, detail="Forbidden")
