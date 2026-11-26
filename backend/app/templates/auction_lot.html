@@ -20,11 +20,15 @@
         </div>
       {% endfor %}
     </dl>
-    {% if auction_lot.download_url %}
-      <div class="actions-row">
+    <div class="actions-row">
+      {% if auction_lot.lot_url %}
+        <a class="btn-link auction-action" href="{{ auction_lot.lot_url }}" target="_blank" rel="noopener">Оригинальный лот</a>
+      {% endif %}
+      {% if auction_lot.download_url %}
         <a class="btn-link auction-action" href="{{ auction_lot.download_url }}">Скачать документ</a>
-      </div>
-    {% else %}
+      {% endif %}
+    </div>
+    {% if not auction_lot.download_url %}
       <p class="hint">Документа осмотра в нашем хранилище для этого лота нет.</p>
     {% endif %}
   </div>

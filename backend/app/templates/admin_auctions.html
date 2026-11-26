@@ -74,6 +74,9 @@
         <td>
           <div class="actions-row">
             <a class="btn-link auction-action" href="/auctions/{{ row.id }}">Подробнее</a>
+            {% if row.lot_url %}
+              <a class="btn-link auction-action" href="{{ row.lot_url }}" target="_blank" rel="noopener">Оригинальный лот</a>
+            {% endif %}
             {% if row.download_url %}
               <a class="btn-link auction-action" href="{{ row.download_url }}">Скачать документ</a>
             {% endif %}
