@@ -225,6 +225,7 @@ def upsert_parsed_lots(db, items: list[dict]) -> int:
         lot.headline = title
         lot.make = (title.split(" ", 1)[0] if title else "")[:80]
         lot.lot_url = str(item.get("url") or "")
+        lot.lot_id = str(item.get("lot_id") or "")[:32]
         lot.vin = str(item.get("vin") or "")[:32]
         lot.registration = str(item.get("registration") or "")[:32]
         lot.mileage_km = corrected_mileage(item.get("mileage_km"))
@@ -254,3 +255,51 @@ def upsert_parsed_lots(db, items: list[dict]) -> int:
     for auction in auctions.values():
         auction.lot_count = db.query(BcaLot).filter(BcaLot.auction_id == auction.id).count()
     return saved
+
+
+# A short or empty push must not wipe the public catalog.
+REPLACE_MIN_LOTS = 50
+
+
+def sync_parsed_lots(db, items: list[dict], *, replace: bool = False) -> dict:
+    """Upsert the parser snapshot. A full snapshot also drops lots that left the catalog."""
+    saved = upsert_parsed_lots(db, items)
+    removed = 0
+    if replace and saved >= REPLACE_MIN_LOTS:
+        removed = _drop_lots_outside(db, items)
+    return {"saved": saved, "removed": removed}
+
+
+def _drop_lots_outside(db, items: list[dict]) -> int:
+    from sqlalchemy import func
+
+    from app.models import BcaAuction, BcaDocument, BcaLot
+
+    keep = {str(item.get("vehicle_id") or "").strip() for item in items}
+    keep.discard("")
+    stale_ids = [
+        row[0]
+        for row in db.query(BcaLot.id).filter(BcaLot.vehicle_id.notin_(keep)).all()
+    ]
+    removed = 0
+    if stale_ids:
+        db.query(BcaDocument).filter(BcaDocument.lot_pk.in_(stale_ids)).delete(synchronize_session=False)
+        removed = db.query(BcaLot).filter(BcaLot.id.in_(stale_ids)).delete(synchronize_session=False)
+        db.flush()
+    empty_ids = [
+        row[0]
+        for row in (
+            db.query(BcaAuction.id)
+            .outerjoin(BcaLot, BcaLot.auction_id == BcaAuction.id)
+            .group_by(BcaAuction.id)
+            .having(func.count(BcaLot.id) == 0)
+            .all()
+        )
+    ]
+    if empty_ids:
+        db.query(BcaDocument).filter(BcaDocument.auction_id.in_(empty_ids)).delete(synchronize_session=False)
+        db.query(BcaAuction).filter(BcaAuction.id.in_(empty_ids)).delete(synchronize_session=False)
+        db.flush()
+    for auction in db.query(BcaAuction).all():
+        auction.lot_count = db.query(BcaLot).filter(BcaLot.auction_id == auction.id).count()
+    return int(removed or 0)

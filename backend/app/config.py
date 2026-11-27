@@ -45,6 +45,8 @@ class Settings(BaseSettings):
     autoplius_scrape_dsn: str = "postgresql://scrape:scrape@10.129.0.33:5433/scrape"
     public_site_url: str = ""
     yandex_metrika_id: str = ""
+    # Parser pushes the current BCA catalog here. Empty = deny all.
+    bca_sync_api_key: str = ""
     # Internal Catalog API for colocated services (eu2.by). Empty = deny all.
     internal_catalog_api_key: str = ""
     # Comma-separated IPs/CIDRs; empty = skip app-level IP check (rely on nginx + key).

@@ -11,7 +11,7 @@ from app.db import SessionLocal, engine
 from app.logging_setup import ensure_uvicorn_file_logging, setup_logging
 from app.middleware.analytics import AnalyticsMiddleware
 from app.middleware.static_cache import StaticCacheMiddleware
-from app.routers import admin, auth, catalog_photos, chat, internal_catalog, listings, market_prices, media, messaging, pages, site_public, sold_cars, telegram, vin_check
+from app.routers import admin, auth, bca_sync, catalog_photos, chat, internal_catalog, listings, market_prices, media, messaging, pages, site_public, sold_cars, telegram, vin_check
 from app.storage import ensure_bucket_exists
 from app.telegram_bridge import register_webhook
 
@@ -207,6 +207,7 @@ app.include_router(auth.router)
 app.include_router(listings.router)
 app.include_router(catalog_photos.router)
 app.include_router(internal_catalog.router)
+app.include_router(bca_sync.router)
 app.include_router(market_prices.router)
 app.include_router(chat.router)
 app.include_router(messaging.router)
