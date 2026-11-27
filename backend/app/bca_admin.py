@@ -50,6 +50,39 @@ def _parse_sync_utc(value: str | None) -> datetime | None:
         return None
 
 
+def detail_spec_rows(lot_detail: dict | None) -> list[tuple[str, str]]:
+    if not isinstance(lot_detail, dict):
+        return []
+    rows: list[tuple[str, str]] = []
+    specs = lot_detail.get("specs") or {}
+    if isinstance(specs, dict):
+        for label, value in sorted(specs.items(), key=lambda item: str(item[0]).lower()):
+            text = str(value or "").strip()
+            if text:
+                rows.append((str(label).strip(), text))
+    for remark in lot_detail.get("remarks") or []:
+        text = str(remark or "").strip()
+        if text:
+            rows.append(("Замечание", text))
+    for item in lot_detail.get("equipment") or []:
+        text = str(item or "").strip()
+        if text:
+            rows.append(("Опции", text))
+    return rows[:80]
+
+
+def merge_detail_specs(base: list[tuple[str, str]], lot_detail: dict | None) -> list[tuple[str, str]]:
+    seen = {label.casefold() for label, value in base if value}
+    merged = list(base)
+    for label, value in detail_spec_rows(lot_detail):
+        key = label.casefold()
+        if key in seen:
+            continue
+        merged.append((label, value))
+        seen.add(key)
+    return merged
+
+
 def format_auction_start(value: datetime | None) -> str:
     if value is None:
         return ""
@@ -182,7 +215,8 @@ def auction_lot_view(db, lot_id: int) -> dict | None:
     lot, auction = pair
     row = _lot_row(lot, auction)
     row["registration"] = lot.registration or ""
-    row["specs"] = [
+    row["detail_scraped"] = bool(lot.lot_detail)
+    base_specs = [
         item
         for item in (
             ("Год", row["year"] if row["year"] != "—" else ""),
@@ -200,6 +234,7 @@ def auction_lot_view(db, lot_id: int) -> dict | None:
         )
         if item[1]
     ]
+    row["specs"] = merge_detail_specs(base_specs, lot.lot_detail)
     return row
 
 
@@ -320,6 +355,9 @@ def upsert_parsed_lots(db, items: list[dict]) -> int:
         lot.sale_location = str(item.get("sale_location") or "")[:160]
         lot.bid_now = str(item.get("bid_now") or "")[:80]
         lot.buy_now = str(item.get("buy_now") or "")[:80]
+        detail = item.get("lot_detail")
+        if isinstance(detail, dict) and detail:
+            lot.lot_detail = detail
         raw_lot_url = str(item.get("url") or "")
         lot.lot_url = canonical_peep_lot_url(raw_lot_url) if raw_lot_url else ""
         lot.lot_id = str(item.get("lot_id") or "")[:32]

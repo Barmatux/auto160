@@ -3,7 +3,9 @@ from app.bca_admin import (
     canonical_peep_lot_url,
     corrected_mileage,
     country_label,
+    detail_spec_rows,
     format_auction_start,
+    merge_detail_specs,
     fuel_label,
     media_download_url,
     public_lot_url_ok,
@@ -21,6 +23,17 @@ def test_country_and_fuel_labels():
     assert fuel_label("BEV - battery electric vehicle  100% electric") == "Электро"
     assert fuel_label("Diesel") == "Дизель"
     assert fuel_label("Benzyna") == "Бензин"
+
+
+def test_merge_detail_specs():
+    base = [("VIN", "1HGCM82633A")]
+    detail = {"specs": {"Transmission": "Automatic", "Vin": "other"}, "remarks": ["Scratch"]}
+    merged = merge_detail_specs(base, detail)
+    labels = [label for label, _ in merged]
+    assert "Transmission" in labels
+    assert "Замечание" in labels
+    assert labels.count("VIN") == 1
+    assert detail_spec_rows(None) == []
 
 
 def test_parse_sync_utc_from_bca_iso():
