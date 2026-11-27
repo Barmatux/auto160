@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from urllib.parse import parse_qs, quote, unquote, urlencode, urlparse
 
 COUNTRY_LABELS = {
@@ -33,6 +33,27 @@ def fuel_label(value: str) -> str:
     if low.startswith("petrol") or low.startswith("benz"):
         return "Бензин"
     return text[:40]
+
+
+def _parse_sync_utc(value: str | None) -> datetime | None:
+    text = (value or "").strip()
+    if not text:
+        return None
+    if text.endswith("Z"):
+        text = text[:-1] + "+00:00"
+    try:
+        aware = datetime.fromisoformat(text)
+        if aware.tzinfo is None:
+            return aware
+        return aware.astimezone(timezone.utc).replace(tzinfo=None)
+    except ValueError:
+        return None
+
+
+def format_auction_start(value: datetime | None) -> str:
+    if value is None:
+        return ""
+    return value.strftime("%d.%m.%Y %H:%M UTC")
 
 
 def corrected_mileage(value: int | None) -> int | None:
@@ -171,11 +192,24 @@ def auction_lot_view(db, lot_id: int) -> dict | None:
             ("Рег. номер", row["registration"]),
             ("Страна", row["country"] if row["country"] != "—" else ""),
             ("Аукцион", row["auction_name"] if row["auction_name"] != "—" else ""),
+            ("Начало торгов", row.get("auction_starts_at") or ""),
+            ("Номер лота", lot.lot_number or ""),
+            ("Мощность", _power_text(lot.power_kw, lot.power_ps)),
+            ("Комплектация", lot.derivative or ""),
             ("Где стоит", row["city"] if row["city"] != "—" else ""),
         )
         if item[1]
     ]
     return row
+
+
+def _power_text(power_kw: int | None, power_ps: int | None) -> str:
+    parts = []
+    if power_ps:
+        parts.append(f"{power_ps} л.с.")
+    if power_kw:
+        parts.append(f"{power_kw} kW")
+    return " / ".join(parts)
 
 
 def _mileage_text(value: int | None) -> str:
@@ -196,6 +230,7 @@ def _lot_row(lot, auction) -> dict:
         "country": country_label(auction.country),
         "country_code": auction.country or "",
         "auction_name": auction.name or "—",
+        "auction_starts_at": format_auction_start(auction.starts_at),
         "photo_url": lot.image_url or "",
         "photos": [url for url in (lot.photo_urls or []) if url] or ([lot.image_url] if lot.image_url else []),
         "lot_url": (
@@ -256,6 +291,12 @@ def upsert_parsed_lots(db, items: list[dict]) -> int:
                 db.add(auction)
             auction.name = str(item.get("auction_name") or auction.name or "")[:300]
             auction.country = str(item.get("country") or "")[:8]
+            auction.sale_type = str(item.get("sale_type") or auction.sale_type or "")[:160]
+            auction.channel = str(item.get("sale_channel") or auction.channel or "")[:40]
+            auction.location = str(item.get("sale_location") or auction.location or "")[:160]
+            parsed_start = _parse_sync_utc(item.get("sale_starts_at"))
+            if parsed_start is not None:
+                auction.starts_at = parsed_start
             auction.last_seen_at = now
             db.flush()
             auctions[sale_id] = auction
@@ -266,7 +307,19 @@ def upsert_parsed_lots(db, items: list[dict]) -> int:
         title = str(item.get("title") or "")
         lot.auction_id = auction.id
         lot.headline = title
-        lot.make = (title.split(" ", 1)[0] if title else "")[:80]
+        lot.make = (str(item.get("make") or "") or (title.split(" ", 1)[0] if title else ""))[:80]
+        lot.model = str(item.get("model") or "")[:80]
+        lot.derivative = str(item.get("derivative") or "")[:160]
+        lot.lot_number = str(item.get("lot_number") or "")[:32]
+        kw = item.get("power_kw")
+        ps = item.get("power_ps")
+        if isinstance(kw, int):
+            lot.power_kw = kw
+        if isinstance(ps, int):
+            lot.power_ps = ps
+        lot.sale_location = str(item.get("sale_location") or "")[:160]
+        lot.bid_now = str(item.get("bid_now") or "")[:80]
+        lot.buy_now = str(item.get("buy_now") or "")[:80]
         raw_lot_url = str(item.get("url") or "")
         lot.lot_url = canonical_peep_lot_url(raw_lot_url) if raw_lot_url else ""
         lot.lot_id = str(item.get("lot_id") or "")[:32]

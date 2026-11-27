@@ -3,7 +3,7 @@
 {% block content %}
 <a class="auction-lot-back" href="/auctions">Все аукционы</a>
 <h1>{{ auction_lot.headline }}</h1>
-<p class="hint">{{ auction_lot.country }} · {{ auction_lot.auction_name }}</p>
+<p class="hint">{{ auction_lot.country }} · {{ auction_lot.auction_name }}{% if auction_lot.auction_starts_at %} · {{ auction_lot.auction_starts_at }}{% endif %}</p>
 
 <div class="auction-lot">
   <div>

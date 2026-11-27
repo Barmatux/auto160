@@ -1,7 +1,9 @@
 from app.bca_admin import (
+    _parse_sync_utc,
     canonical_peep_lot_url,
     corrected_mileage,
     country_label,
+    format_auction_start,
     fuel_label,
     media_download_url,
     public_lot_url_ok,
@@ -19,6 +21,12 @@ def test_country_and_fuel_labels():
     assert fuel_label("BEV - battery electric vehicle  100% electric") == "Электро"
     assert fuel_label("Diesel") == "Дизель"
     assert fuel_label("Benzyna") == "Бензин"
+
+
+def test_parse_sync_utc_from_bca_iso():
+    parsed = _parse_sync_utc("2026-11-26T13:30:00Z")
+    assert parsed is not None
+    assert format_auction_start(parsed) == "26.11.2026 13:30 UTC"
 
 
 def test_canonical_peep_lot_url_adds_page_and_encodes_bq():
