@@ -1,4 +1,11 @@
-from app.bca_admin import corrected_mileage, country_label, fuel_label, media_download_url, public_lot_url_ok
+from app.bca_admin import (
+    canonical_peep_lot_url,
+    corrected_mileage,
+    country_label,
+    fuel_label,
+    media_download_url,
+    public_lot_url_ok,
+)
 
 
 def test_corrected_mileage_drops_trailing_decimal_zero():
@@ -12,6 +19,18 @@ def test_country_and_fuel_labels():
     assert fuel_label("BEV - battery electric vehicle  100% electric") == "Электро"
     assert fuel_label("Diesel") == "Дизель"
     assert fuel_label("Benzyna") == "Бензин"
+
+
+def test_canonical_peep_lot_url_adds_page_and_encodes_bq():
+    raw = (
+        "https://ee.bca-europe.com/Lot?id=24186345&ItemId=aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+        "&bq=saleid_exact:c3501219-972a-4785-9775-3fea7d41e8fb"
+        "&SourceSystem=PEEP"
+    )
+    fixed = canonical_peep_lot_url(raw)
+    assert "page=1" in fixed
+    assert "saleid_exact%3A" in fixed
+    assert "saleid_exact:" not in fixed.split("?", 1)[-1]
 
 
 def test_public_lot_url_ok_rejects_broken_peep_links():

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from urllib.parse import parse_qs, quote, unquote, urlparse
+from urllib.parse import parse_qs, quote, unquote, urlencode, urlparse
 
 COUNTRY_LABELS = {
     "DE": "Германия",
@@ -62,6 +62,28 @@ def media_download_url(key: str) -> str:
 def _with_download(url: str) -> str:
     key = storage_key_from_media_url(url)
     return media_download_url(key) if key else ""
+
+
+def canonical_peep_lot_url(url: str) -> str:
+    """Rebuild PEEP links like BCA ViewLotUrl (page=1, encoded bq)."""
+    value = (url or "").strip()
+    if not value or "SourceSystem=PEEP" not in value:
+        return value
+    parsed = urlparse(value)
+    if "bca-europe.com" not in parsed.netloc:
+        return value
+    query = parse_qs(parsed.query, keep_blank_values=True)
+    pairs: list[tuple[str, str]] = [(key, values[-1] if values else "") for key, values in query.items()]
+    if "page" not in query:
+        rebuilt: list[tuple[str, str]] = []
+        for key, val in pairs:
+            rebuilt.append((key, val))
+            if key == "awaitingAppraisal":
+                rebuilt.append(("page", "1"))
+        if not any(item[0] == "page" for item in rebuilt):
+            rebuilt.append(("page", "1"))
+        pairs = rebuilt
+    return f"https://ee.bca-europe.com/Lot?" + urlencode(pairs)
 
 
 def public_lot_url_ok(url: str) -> bool:
@@ -176,7 +198,11 @@ def _lot_row(lot, auction) -> dict:
         "auction_name": auction.name or "—",
         "photo_url": lot.image_url or "",
         "photos": [url for url in (lot.photo_urls or []) if url] or ([lot.image_url] if lot.image_url else []),
-        "lot_url": lot.lot_url if public_lot_url_ok(lot.lot_url) else "",
+        "lot_url": (
+            canonical_peep_lot_url(lot.lot_url)
+            if public_lot_url_ok(lot.lot_url)
+            else ""
+        ),
         "download_url": download_url,
         "vin": lot.vin or "",
     }
@@ -241,7 +267,8 @@ def upsert_parsed_lots(db, items: list[dict]) -> int:
         lot.auction_id = auction.id
         lot.headline = title
         lot.make = (title.split(" ", 1)[0] if title else "")[:80]
-        lot.lot_url = str(item.get("url") or "")
+        raw_lot_url = str(item.get("url") or "")
+        lot.lot_url = canonical_peep_lot_url(raw_lot_url) if raw_lot_url else ""
         lot.lot_id = str(item.get("lot_id") or "")[:32]
         lot.vin = str(item.get("vin") or "")[:32]
         lot.registration = str(item.get("registration") or "")[:32]
