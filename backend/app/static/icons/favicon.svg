@@ -1,13 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180" width="180" height="180" role="img" aria-label="Auto160">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180" role="img" aria-label="Auto160">
+  <rect width="180" height="180" fill="#000"/>
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#3F7BF0"/>
-      <stop offset="50%" stop-color="#35C2F2"/>
-      <stop offset="100%" stop-color="#6FE8B4"/>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#4A7FE8"/>
+      <stop offset="55%" stop-color="#3EC8F0"/>
+      <stop offset="100%" stop-color="#7FE8B0"/>
     </linearGradient>
   </defs>
-  <rect width="180" height="180" fill="url(#bg)"/>
-  <text x="90" y="141" text-anchor="middle" textLength="169" lengthAdjust="spacingAndGlyphs"
-        font-family="DIN Condensed, Impact, Arial Narrow, sans-serif" font-size="150" font-weight="700"
-        fill="#060A12">160</text>
+  <text x="90" y="118" text-anchor="middle" font-family="Arial Black, Helvetica Neue, Arial, sans-serif" font-size="78" font-weight="900" fill="url(#g)" letter-spacing="-4">160</text>
 </svg>
