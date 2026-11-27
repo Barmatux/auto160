@@ -64,6 +64,23 @@ def _with_download(url: str) -> str:
     return media_download_url(key) if key else ""
 
 
+def public_lot_url_ok(url: str) -> bool:
+    """PEEP lot links need a positive numeric id; id=0 makes BCA respond with 500."""
+    value = (url or "").strip()
+    if not value or "bca-europe.com" not in value:
+        return False
+    if "BuyerGateway" in value or "SourceSystem=BuyerGateway" in value:
+        return False
+    parsed = urlparse(value)
+    query = parse_qs(parsed.query)
+    lot_id = (query.get("id") or [""])[0]
+    if lot_id == "0" or (lot_id.isdigit() and int(lot_id) <= 0):
+        return False
+    if "SourceSystem=PEEP" in value:
+        return bool((query.get("ItemId") or [""])[0]) and bool(lot_id.isdigit() and int(lot_id) > 0)
+    return True
+
+
 def auction_admin_view(db, *, country: str = "", q: str = "") -> dict:
     from sqlalchemy import func, or_
 
@@ -159,7 +176,7 @@ def _lot_row(lot, auction) -> dict:
         "auction_name": auction.name or "—",
         "photo_url": lot.image_url or "",
         "photos": [url for url in (lot.photo_urls or []) if url] or ([lot.image_url] if lot.image_url else []),
-        "lot_url": lot.lot_url or "",
+        "lot_url": lot.lot_url if public_lot_url_ok(lot.lot_url) else "",
         "download_url": download_url,
         "vin": lot.vin or "",
     }

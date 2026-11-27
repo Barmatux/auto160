@@ -1,4 +1,4 @@
-from app.bca_admin import corrected_mileage, country_label, fuel_label, media_download_url
+from app.bca_admin import corrected_mileage, country_label, fuel_label, media_download_url, public_lot_url_ok
 
 
 def test_corrected_mileage_drops_trailing_decimal_zero():
@@ -12,6 +12,20 @@ def test_country_and_fuel_labels():
     assert fuel_label("BEV - battery electric vehicle  100% electric") == "Электро"
     assert fuel_label("Diesel") == "Дизель"
     assert fuel_label("Benzyna") == "Бензин"
+
+
+def test_public_lot_url_ok_rejects_broken_peep_links():
+    ok = (
+        "https://ee.bca-europe.com/Lot?"
+        "id=24179092&ItemId=aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee&SourceSystem=PEEP"
+    )
+    bad = (
+        "https://ee.bca-europe.com/Lot?"
+        "id=0&ItemId=aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee&SourceSystem=PEEP"
+    )
+    assert public_lot_url_ok(ok)
+    assert not public_lot_url_ok(bad)
+    assert not public_lot_url_ok("https://ee.bca-europe.com/Lot?id=1&SourceSystem=BuyerGateway")
 
 
 def test_media_download_url_points_at_our_bucket():
